@@ -51,8 +51,41 @@ serve(async (req) => {
       )
     }
 
-    // Allow self-deletion or admin deletion
-    // (For now, allow any authenticated user — restrict to admin roles later)
+    // Only the account owner or staff may delete an account. Staff are
+    // matched by id or email (invited staff have a staff.id that differs
+    // from their auth id). Non-admin staff need manage_clients and can
+    // never delete another staff member.
+    if (caller.id !== userId) {
+      const callerEmail = (caller.email ?? '').toLowerCase()
+      const { data: staffRows } = await supabaseAdmin
+        .from('staff')
+        .select('*')
+        .eq('active', true)
+      const rows = (staffRows ?? []) as Array<Record<string, any>>
+      const me = rows.find(
+        (s) => s.id === caller.id || (callerEmail && (s.email ?? '').toLowerCase() === callerEmail),
+      )
+      const isAdmin = me?.role === 'admin'
+      const canManageClients =
+        !!me && Array.isArray(me.permissions) && me.permissions.includes('manage_clients')
+
+      let targetIsStaff = false
+      if (!isAdmin && canManageClients) {
+        const { data: target } = await supabaseAdmin.auth.admin.getUserById(userId)
+        const targetEmail = (target?.user?.email ?? '').toLowerCase()
+        const { data: allStaff } = await supabaseAdmin.from('staff').select('id, email')
+        targetIsStaff = ((allStaff ?? []) as Array<Record<string, any>>).some(
+          (s) => s.id === userId || (targetEmail && (s.email ?? '').toLowerCase() === targetEmail),
+        )
+      }
+
+      if (!isAdmin && !(canManageClients && !targetIsStaff)) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+    }
 
     // 1. Delete messages for all conversations belonging to this user
     const { data: conversations, error: convErr } = await supabaseAdmin

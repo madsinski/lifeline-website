@@ -265,6 +265,17 @@ const sidebarLinks = [
     ),
   },
   {
+    href: "/admin/security",
+    label: "Intruder watch",
+    badgeType: "security",
+    icon: (
+      // Shield with an exclamation mark.
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/wearable-issues",
     label: "Wearable issues",
     badgeType: "wearable-issues",
@@ -372,6 +383,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [openDsrCount, setOpenDsrCount] = useState(0);
   const [overdueAccessReviewCount, setOverdueAccessReviewCount] = useState(0);
   const [openErrorsCount, setOpenErrorsCount] = useState(0);
+  const [openSecurityCount, setOpenSecurityCount] = useState(0);
   const [openAiFeedbackCount, setOpenAiFeedbackCount] = useState(0);
   const [pendingSurveysCount, setPendingSurveysCount] = useState(0);
   const [newSurveyResponsesCount, setNewSurveyResponsesCount] = useState(0);
@@ -472,6 +484,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .select("*", { count: "exact", head: true })
         .is("resolved_at", null);
       if (!errErr && errCount !== null) setOpenErrorsCount(errCount);
+    } catch {}
+    // Open intruder-scan findings. RLS is admin-only, same as app_errors.
+    try {
+      const { count: secCount, error: secErr } = await supabase
+        .from("security_findings")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "open");
+      if (!secErr && secCount !== null) setOpenSecurityCount(secCount);
     } catch {}
     // Open AI recommendation feedback ("doesn't feel right" reports
     // from the app). Counts open + reviewed (i.e. anything not yet
@@ -936,6 +956,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (link.href === "/admin/data-requests" && !canViewAllSections) return false;
             if (link.href === "/admin/access-review" && !canViewAllSections) return false;
             if (link.href === "/admin/errors" && !canViewAllSections) return false;
+            if (link.href === "/admin/security" && !canViewAllSections) return false;
             if (link.href === "/admin/wearable-issues" && !canViewAllSections) return false;
             if (link.href === "/admin/action-feedback" && !canViewAllSections) return false;
             if (link.href === "/admin/onboarding-bench" && !canViewAllSections) return false;
@@ -961,6 +982,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               : badgeType === "data-requests" ? openDsrCount
               : badgeType === "access-review" ? overdueAccessReviewCount
               : badgeType === "errors" ? openErrorsCount
+              : badgeType === "security" ? openSecurityCount
               : badgeType === "ai-feedback" ? openAiFeedbackCount
               // Surveys badge counts only new completed responses in
               // the last 7 days. Pending-approval state is more of an

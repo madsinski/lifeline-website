@@ -17,6 +17,10 @@
       "schedule": "0 8 * * *"
     },
     {
+      "path": "/api/cron/intruder-scan",
+      "schedule": "30 * * * *"
+    },
+    {
       "path": "/api/ai/refresh-consistency-narratives",
       "schedule": "0 3 * * *"
     },
