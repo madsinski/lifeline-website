@@ -13,7 +13,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, CircleUser, HeartPulse, Home, Users } from "lucide-react";
+import { Building2, HeartPulse, Home, MessageCircle, Users } from "lucide-react";
 
 interface Tab {
   href: string;
@@ -23,12 +23,20 @@ interface Tab {
   exact?: boolean;
 }
 
+/**
+ * The app's own five tabs, not an invention.
+ *
+ * src/components/BottomNav.tsx:63-68 in fhir-health-dashboard:
+ * home · assessment · health · coach · community. The second was relabelled
+ * to Clinic on 2026-05-20 when HealthAssessmentScreen was folded into
+ * ClinicInfoScreen (HomeScreen.tsx:191-193), so it is Stofan here.
+ */
 export const APP_TABS: Tab[] = [
-  { href: "/app", label: "Heima", Icon: Home, exact: true },
-  { href: "/app/heilsa", label: "Heilsan", Icon: HeartPulse },
-  { href: "/app/virkni", label: "Virkni", Icon: Activity },
+  { href: "/app", label: "Heim", Icon: Home, exact: true },
+  { href: "/app/stofan", label: "Stofan", Icon: Building2 },
+  { href: "/app/heilsan", label: "Heilsan", Icon: HeartPulse },
+  { href: "/app/thjalfari", label: "Þjálfari", Icon: MessageCircle },
   { href: "/app/samfelag", label: "Samfélag", Icon: Users },
-  { href: "/app/eg", label: "Ég", Icon: CircleUser },
 ];
 
 export default function AppNav() {
