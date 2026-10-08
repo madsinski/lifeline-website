@@ -232,9 +232,11 @@ export default function AppHome() {
                 <div key={x.iso} className="flex flex-1 flex-col items-center gap-1">
                   {/* Every day gets a full-height track, so a week with
                       nothing done reads as an empty week rather than as a
-                      chart that failed to load. */}
+                      chart that failed to load. The track is darker than
+                      cardAlt — that tint is near-white and vanished against
+                      the card it sits on. */}
                   <div className="flex w-full flex-1 items-end overflow-hidden rounded-md"
-                    style={{ background: appBrand.cardAlt }}>
+                    style={{ background: "#dbe3ec" }}>
                     <div className="w-full rounded-md transition-all"
                       style={{ height: x.done ? `${Math.max(14, (x.done / best) * 100)}%` : 0,
                         background: appBrand.primary }}
