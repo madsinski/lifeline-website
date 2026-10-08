@@ -227,9 +227,12 @@ export default function AppHome() {
 
           <div className={`${appCard} p-4`}>
             <p className="mb-2 text-xs font-bold uppercase tracking-wide" style={{ color: appBrand.ink2 }}>{t("home.week")}</p>
-            <div className="flex items-end justify-between gap-1.5" style={{ height: 72 }}>
+            {/* items-stretch, not items-end: with items-end each column
+                shrinks to its label and the track's flex-1 resolves to zero
+                height, which is why the strip looked empty. */}
+            <div className="flex items-stretch justify-between gap-1.5" style={{ height: 72 }}>
               {days.map((x, i) => (
-                <div key={x.iso} className="flex flex-1 flex-col items-center gap-1">
+                <div key={x.iso} className="flex h-full flex-1 flex-col items-center gap-1">
                   {/* Every day gets a full-height track, so a week with
                       nothing done reads as an empty week rather than as a
                       chart that failed to load. The track is darker than
