@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
     priorities,
     signals,
     marker_titles: markerTitles,
-    suggestions: suggestModules(lib.modules, priorities, !!stored),
+    suggestions: suggestModules(lib.modules, priorities, !!stored, stored?.report ?? null),
   });
 }
 

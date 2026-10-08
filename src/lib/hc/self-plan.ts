@@ -7,6 +7,7 @@
 
 import { PILLARS, type Pillar, type PlanModule } from "./types";
 import type { Grunnheilsa, Signal } from "./grunnheilsa";
+import { planFromReport } from "./plan-from-report";
 
 /** Library actions only staff put in a plan: referrals and supplements. */
 export const STAFF_ONLY_TAGS = ["tilvísun", "bætiefni"];
@@ -57,7 +58,61 @@ const score = (m: PlanModule) => (m.effect ?? 3) + (m.ease ?? 3) + (m.evidence ?
  * where it is fine. Metabolic / blood-pressure tagged actions go first when
  * those markers are flagged.
  */
-export function suggestModules(modules: PlanModule[], priorities: PillarPriority[], hasReport: boolean): { key: string; pillar: Pillar; why: string }[] {
+/**
+ * What to suggest when the person has a report.
+ *
+ * The report's Ráðleggingar column is a plan a doctor already made and
+ * recorded in Medalia. Suggesting Lifeline's own picks instead — which is
+ * what this file did — meant the self-service path invented a plan on the
+ * one route with no clinician in the loop, while the workstation had been
+ * fixed to render the doctor's. Same report, two different plans, and the
+ * un-traced one going to the person on their own.
+ *
+ * Staff-only actions are still filtered out: a referral or a supplement is
+ * not something to hand someone to tick off by themselves, whoever
+ * recommended it.
+ */
+function fromReport(modules: PlanModule[], report: Grunnheilsa): { key: string; pillar: Pillar; why: string }[] {
+  return planFromReport(report, modules)
+    .actions
+    .filter((a) => selfServiceModule(a.module))
+    .map((a) => ({
+      key: a.module.key,
+      pillar: a.module.pillar,
+      why: a.source.component
+        ? `Úr skýrslunni: ${a.source.component}`
+        : `Úr skýrslunni: ${a.source.text}`,
+    }));
+}
+
+export function suggestModules(modules: PlanModule[], priorities: PillarPriority[], hasReport: boolean, report?: Grunnheilsa | null): { key: string; pillar: Pillar; why: string }[] {
+  // A report means a clinical decision exists; render it rather than ranking
+  // our own library against it. Without one there is nothing to render, and
+  // Lifeline's general guidance below is the honest answer.
+  if (report) {
+    const out = fromReport(modules, report);
+    if (out.length) {
+      /**
+       * A pillar the report asked nothing of still gets one suggestion, and
+       * it is labelled differently.
+       *
+       * Andleg líðan is the live case: the report's only lines for it say to
+       * see a doctor, so rendering it alone leaves the pillar empty. Lifeline
+       * has its own guidance there, and offering it is fine — what would not
+       * be fine is letting it pass as the doctor's. "Úr skýrslunni" versus
+       * "Góður grunnur" is the difference, on every row.
+       */
+      const covered = new Set(out.map((x) => x.pillar));
+      for (const pr of priorities) {
+        if (covered.has(pr.pillar)) continue;
+        const pick = modules
+          .filter((m) => m.pillar === pr.pillar && selfServiceModule(m))
+          .sort((a, b) => (b.tags?.includes("grunnur") ? 1 : 0) - (a.tags?.includes("grunnur") ? 1 : 0) || score(b) - score(a) || a.sort - b.sort)[0];
+        if (pick) out.push({ key: pick.key, pillar: pick.pillar, why: "Góður grunnur" });
+      }
+      return out;
+    }
+  }
   const out: { key: string; pillar: Pillar; why: string }[] = [];
   for (const pr of priorities) {
     const n = !hasReport ? 1 : pr.signal === "red" ? 3 : pr.signal === "yellow" ? 2 : 1;
