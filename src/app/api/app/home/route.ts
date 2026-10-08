@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { requireUser } from "@/lib/hc/server";
+import { APPOINTMENT_KIND, UPCOMING_STATUS, parseAppointment } from "@/lib/app/appointment-date";
 
 export const runtime = "nodejs";
 
@@ -67,13 +68,14 @@ export async function GET(req: NextRequest) {
     // The state behind "What's coming up": programmes chosen, appointments
     // booked, questionnaire progress.
     supabaseAdmin.from("client_programs").select("category_key").eq("client_id", user.id),
+    // No date filter here on purpose: `date` is text holding "April 13,
+    // 2026", so .gte() against an ISO string compares alphabetically and
+    // every April row passes. Status is a real enum-ish text and does filter.
     supabaseAdmin
       .from("appointments")
-      .select("type, date, time, station_name, station_address, package_name, coach_name, status, video_room_url")
+      .select("type, date, time, station_name, package_name, coach_name")
       .eq("client_id", user.id)
-      .gte("date", today)
-      .neq("status", "cancelled")
-      .order("date", { ascending: true }),
+      .eq("status", UPCOMING_STATUS),
     supabaseAdmin.from("questionnaire_responses").select("question_key").eq("client_id", user.id),
   ]);
 
@@ -138,17 +140,23 @@ export async function GET(req: NextRequest) {
     })(),
     /** The next-step list. Each item is a piece of account state, not a date. */
     upcoming: (() => {
-      const items: { key: string; when?: string; detail?: string | null }[] = [];
+      const items: { key: string; at?: string; detail?: string | null }[] = [];
       if (!programs?.length) items.push({ key: "choose-programs" });
       if (!answers?.length) items.push({ key: "questionnaire" });
-      for (const a of appointments ?? []) {
-        const key = a.type === "measurement" ? "measurement-appt"
-          : a.type === "blood_test" ? "bloodtest-appt"
-          : a.type === "consultation" ? "coach-consultation" : null;
+      // Parse, drop what is already past, soonest first.
+      const now = Date.now();
+      const appts = (appointments ?? [])
+        .map((a) => ({ a, at: parseAppointment(a.date, a.time) }))
+        .filter((x): x is { a: typeof x.a; at: Date } => x.at !== null && x.at.getTime() >= now)
+        .sort((x, y) => x.at.getTime() - y.at.getTime());
+      for (const { a, at } of appts) {
+        const key = APPOINTMENT_KIND[a.type];
         if (!key) continue;
         items.push({
           key,
-          when: `${a.date}${a.time ? ` ${String(a.time).slice(0, 5)}` : ""}`,
+          // ISO so the client can write the date in the reader's language;
+          // the stored string is English prose and cannot be translated.
+          at: at.toISOString(),
           detail: a.station_name ?? a.coach_name ?? a.package_name ?? null,
         });
       }

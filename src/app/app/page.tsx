@@ -22,7 +22,7 @@
 import { useEffect, useState } from "react";
 import { Activity, BarChart3, CalendarClock, ChevronRight, TrendingDown } from "lucide-react";
 import { useApi } from "@/lib/hc/use-api";
-import { useT, useLongDate } from "./useT";
+import { useT, useLongDate, useShortDateTime } from "./useT";
 import type { StringKey } from "./strings";
 import { appBrand, appCard, appHeaderBar, greenHeader, darkHeader } from "./ui";
 
@@ -42,7 +42,7 @@ interface Home {
     phaseAngle: number | null; bmrKcal: number | null; visceralFatIdx: number | null;
   } | null;
   banner: { kind: "transition"; next: string; reason: string | null } | { kind: "deload" } | null;
-  upcoming: { key: string; when?: string; detail?: string | null }[];
+  upcoming: { key: string; at?: string; detail?: string | null }[];
   weight: { kg: number; at: string; previousKg: number | null } | null;
 }
 
@@ -145,6 +145,7 @@ export default function AppHome() {
   const api = useApi();
   const t = useT();
   const longDate = useLongDate();
+  const shortAt = useShortDateTime();
   const [d, setD] = useState<Home | null | undefined>(undefined);
   const [name, setName] = useState<string | null>(null);
 
@@ -174,7 +175,9 @@ export default function AppHome() {
     const s = d.scan;
     if (s.bodyFatPct != null) scanRows.push(["insights.fat", `${s.bodyFatPct.toFixed(1)} %`]);
     if (s.muscleMassPct != null) scanRows.push(["insights.muscle", `${s.muscleMassPct.toFixed(1)} %`]);
-    if (s.visceralFatIdx != null) scanRows.push(["insights.visceral", String(s.visceralFatIdx)]);
+    // A visceral-fat index of 0 is not a reading — the scanner leaves it at
+    // zero when it did not measure it. Showing "0" would read as excellent.
+    if (s.visceralFatIdx) scanRows.push(["insights.visceral", String(s.visceralFatIdx)]);
     if (s.bmrKcal != null) scanRows.push(["insights.bmr", `${Math.round(s.bmrKcal)} kcal`]);
     if (s.phaseAngle != null) scanRows.push(["insights.phase", `${s.phaseAngle.toFixed(1)}°`]);
   }
@@ -292,7 +295,7 @@ export default function AppHome() {
               <p className={`${appCard} px-4 py-3 text-sm`} style={{ color: appBrand.ink2 }}>{t("upcoming.none")}</p>
             ) : (
               d.upcoming.map((u) => (
-                <div key={`${u.key}-${u.when ?? ""}`} className={`${appCard} flex items-center gap-3 px-4 py-3`}>
+                <div key={`${u.key}-${u.at ?? ""}`} className={`${appCard} flex items-center gap-3 px-4 py-3`}>
                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full"
                     style={{ background: `${appBrand.primary}14`, border: `1px solid ${appBrand.primary}` }}>
                     <Activity className="h-4 w-4" style={{ color: appBrand.primaryDark }} aria-hidden />
@@ -302,7 +305,7 @@ export default function AppHome() {
                       {t(`upcoming.${u.key}` as "upcoming.questionnaire")}
                     </span>
                     <span className="block truncate text-xs" style={{ color: appBrand.ink2 }}>
-                      {u.when ? `${u.when}${u.detail ? ` · ${u.detail}` : ""}` : t(`upcoming.${u.key}.sub` as "upcoming.questionnaire.sub")}
+                      {u.at ? `${shortAt(u.at)}${u.detail ? ` · ${u.detail}` : ""}` : t(`upcoming.${u.key}.sub` as "upcoming.questionnaire.sub")}
                     </span>
                   </span>
                 </div>

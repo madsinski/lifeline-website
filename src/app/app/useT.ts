@@ -27,6 +27,24 @@ const MONTHS = {
 };
 
 /**
+ * A date and time, short, in the reader's language. Hand-formatted for the
+ * same reason as the long one below.
+ */
+export function useShortDateTime() {
+  const { locale } = useI18n();
+  const l = locale === "en" ? "en" : "is";
+  return useCallback((iso: string) => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return l === "is"
+      ? `${d.getDate()}. ${MONTHS.is[d.getMonth()]} kl. ${hh}:${mm}`
+      : `${MONTHS.en[d.getMonth()]} ${d.getDate()}, ${hh}:${mm}`;
+  }, [l]);
+}
+
+/**
  * Hand-formatted in both languages.
  *
  * Intl is not an option here: Vercel's runtime has no Icelandic locale data,
