@@ -36,7 +36,7 @@ export const STRINGS = {
   "home.week": { is: "Vikan", en: "This week" },
   "home.failed": { is: "Náði ekki í mælana þína.", en: "Could not load your meters." },
   "home.rest": {
-    is: "Næst koma skráning á máltíð og þyngd, það sem er framundan, og áminningar þjálfarans.",
+    is: "Næst koma skráning á máltíð og þyngd, það sem er fram undan, og áminningar þjálfarans.",
     en: "Next: meal and weight logging, what's coming up, and your coach's nudges.",
   },
 
