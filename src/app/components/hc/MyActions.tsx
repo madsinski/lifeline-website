@@ -241,11 +241,24 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit }: {
               target standing next to it. Tapping a day fills in one that was
               missed, which is why they are buttons and not dots. */}
           <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-            <span className="flex items-center gap-2 text-sm text-slate-500">
+            <span className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
               <span>
                 {a.frequency || "Daglega"}
                 {target < 7 && <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-slate-400"}> · {thisWeek} af {target} í vikunni</span>}
               </span>
+              {/* Where it came from. The plan is a rendering of the
+                  recommendations in the health report, and this is the
+                  participant being able to see that rather than being told
+                  it in a policy document. */}
+              {a.source && (
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${
+                  a.source.priority === "red"
+                    ? "bg-red-50 text-red-800 ring-red-200"
+                    : "bg-amber-50 text-amber-900 ring-amber-200"}`}
+                  title={`Úr skýrslunni þinni: ${a.source.text}`}>
+                  Úr skýrslunni · {a.source.priority === "red" ? "Forgangur 1" : "Forgangur 2"}
+                </span>
+              )}
               {onEdit && (
                 <button type="button" onClick={onEdit} aria-label={`Breyta: ${a.title}`}
                   className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-900">

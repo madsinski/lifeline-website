@@ -228,8 +228,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
     const items: PlanItem[] = actions.map((a) => {
       const fromLib = a.module_key ? lib?.modules.find((m) => m.key === a.module_key) : undefined;
       return fromLib
-        ? { ...fromModule(fromLib), frequency: a.frequency || fromLib.frequency, note: a.why || null }
-        : { uid: uid(), key: null, pillar: a.pillar, title: a.title, summary: a.detail, details: null, frequency: a.frequency || null, note: a.why || null };
+        ? { ...fromModule(fromLib), frequency: a.frequency || fromLib.frequency, note: a.why || null, source: a.source ?? null }
+        : { uid: uid(), key: null, pillar: a.pillar, title: a.title, summary: a.detail, details: null, frequency: a.frequency || null, note: a.why || null, source: a.source ?? null };
     });
     const have = new Set(draft.modules.map((m) => `${m.pillar}:${m.title}`));
     update({

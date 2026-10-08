@@ -348,6 +348,20 @@ export interface PlanItem {
   details: string | null;
   frequency: string | null;
   note: string | null;
+  /**
+   * The report recommendation this action implements, when it came from one.
+   *
+   * Stored, not just displayed while the nurse builds the plan: a trace that
+   * disappears on save proves nothing. This is what shows that the plan
+   * renders a clinical decision recorded in Medalia rather than making one
+   * here. See plan-from-report.ts.
+   */
+  source?: {
+    item: string;
+    component: string;
+    text: string;
+    priority: "red" | "yellow" | "green";
+  } | null;
 }
 
 export interface PlanGoal {

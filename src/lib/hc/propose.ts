@@ -16,6 +16,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getClientProfile } from "@/lib/hc/server";
 import { ANALYZE_MODEL, proposePlan, trafficLights, type FlaggedValue, type Proposal, type ReportLine } from "@/lib/hc/analyze";
 import { loadReport } from "@/lib/hc/report-store";
+import { planFromReport } from "@/lib/hc/plan-from-report";
 import { sexOf } from "@/lib/hc/sex";
 import type { KnowledgeEntry } from "@/lib/hc/knowledge";
 import type { InterviewNotes, PlanModule } from "@/lib/hc/types";
@@ -39,7 +40,14 @@ export function notesText(n: InterviewNotes | null): string | null {
 }
 
 export type ProposeOutcome =
-  | { ok: true; proposal: Proposal; flagged: FlaggedValue[]; other: { title: string; value: number; unit: string | null }[] }
+  | {
+      ok: true;
+      proposal: Proposal;
+      flagged: FlaggedValue[];
+      other: { title: string; value: number; unit: string | null }[];
+      /** Report recommendations the map does not know — shown, never guessed at. */
+      unmapped: import("./plan-from-report").ActionSource[];
+    }
   | { ok: false; reason: "no_key" | "no_values" | "failed"; message: string };
 
 /**
@@ -67,6 +75,7 @@ export async function buildProposal(journeyId: string, actorLabel: string): Prom
     getClientProfile(journey.client_id),
   ]);
 
+  let unmapped: import("./plan-from-report").ActionSource[] = [];
   const rows = (results || []).map((r) => ({ marker: r.marker, value: Number(r.value), unit: r.unit, note: r.note }));
   const stored = await loadReport(journeyId, journey.client_id);
   if (!rows.length && !stored) {
@@ -106,6 +115,39 @@ export async function buildProposal(journeyId: string, actorLabel: string): Prom
     };
     const proposal = await proposePlan(input);
 
+    /**
+     * The report decides which actions, not the model.
+     *
+     * Medalia's Ráðleggingar column is a clinical plan a doctor already made
+     * and recorded in the sjúkraskrá. Where a report exists, the actions are
+     * read off it (plan-from-report.ts) and the model's own list is replaced.
+     * The model keeps what it is good at and entitled to do: the headline,
+     * the summary, and the sentence saying why an action matters to this
+     * person. Phrasing, not selection.
+     *
+     * Referrals likewise come from the report's own "ræddu við lækni" lines.
+     * Inferring one from a measurement would be a new clinical decision taken
+     * outside the record system.
+     */
+    if (stored?.report) {
+      const fromReport = planFromReport(stored.report, (modules || []) as PlanModule[]);
+      const whyFor = new Map(proposal.actions.map((a) => [a.module_key, a.why]));
+      proposal.actions = fromReport.actions.map((a) => ({
+        module_key: a.module.key,
+        title: a.module.title,
+        pillar: a.module.pillar,
+        frequency: a.module.frequency ?? "",
+        detail: a.module.details ?? a.module.summary,
+        // Forgangur 1 is what must happen; Forgangur 2 is the recommended
+        // addition. The tiers already mean exactly that.
+        tier: a.source.priority === "red" ? "core" : "standard",
+        why: whyFor.get(a.module.key) ?? a.source.text,
+        source: a.source,
+      }));
+      proposal.referrals = [];
+      unmapped = fromReport.unmapped;
+    }
+
     await supabaseAdmin.from("hc_ai_proposals").insert({
       journey_id: journeyId,
       client_id: journey.client_id,
@@ -115,7 +157,7 @@ export async function buildProposal(journeyId: string, actorLabel: string): Prom
       model: ANALYZE_MODEL,
       created_by: actorLabel,
     });
-    return { ok: true, proposal, flagged, other };
+    return { ok: true, proposal, flagged, other, unmapped };
   } catch (e) {
     return { ok: false, reason: "failed", message: e instanceof Error ? e.message : "unknown" };
   }

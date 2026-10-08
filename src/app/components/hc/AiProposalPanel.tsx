@@ -23,6 +23,14 @@ export interface ProposedAction {
   detail: string;
   tier: "core" | "standard" | "extra";
   why: string;
+  /**
+   * The report recommendation this action implements.
+   *
+   * Present whenever a report exists: the actions are read off Medalia's own
+   * Ráðleggingar column rather than proposed, so the nurse is choosing among
+   * the doctor's priorities and can see which is which.
+   */
+  source?: { item: string; component: string; text: string; priority: "red" | "yellow" | "green" } | null;
 }
 interface Proposal {
   headline: string;
@@ -165,7 +173,18 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden title={meta.label} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-slate-900">{a.title}</span>
-                        <span className="block truncate text-xs text-slate-500">{a.frequency || meta.label}</span>
+                        <span className="block truncate text-xs text-slate-500">
+                          {a.frequency || meta.label}
+                          {/* Which recommendation in the report asked for this.
+                              The nurse is choosing among the doctor's own
+                              priorities, not among a model's suggestions. */}
+                          {a.source && (
+                            <span className={a.source.priority === "red" ? "text-red-700" : "text-amber-700"}>
+                              {" · "}{a.source.priority === "red" ? "Forgangur 1" : "Forgangur 2"}
+                              {a.source.component ? ` · ${a.source.component}` : ""}
+                            </span>
+                          )}
+                        </span>
                       </span>
                       <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{TIER_IS[a.tier]}</span>
                       <button type="button" onClick={() => setWhy(open ? null : i)} aria-expanded={open}

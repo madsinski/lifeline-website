@@ -96,6 +96,18 @@ const proposalSchema = z.object({
     detail: z.string().describe("Hvað skjólstæðingurinn gerir nákvæmlega. Íslenska, 1–2 setningar."),
     tier: z.enum(["core", "standard", "extra"]),
     why: z.string().describe("Af hverju þetta skiptir máli fyrir þennan einstakling. Íslenska, ein setning."),
+    /**
+     * Where the action came from in the report. Filled in after the model
+     * returns, by plan-from-report.ts — the model is never asked for it and
+     * could not know it. It is what makes the plan demonstrably a rendering
+     * of Medalia's own recommendation rather than a second opinion.
+     */
+    source: z.object({
+      item: z.string(),
+      component: z.string(),
+      text: z.string(),
+      priority: z.enum(["red", "yellow", "green"]),
+    }).nullish(),
   })).describe("Raðað eftir mikilvægi, 5–9 atriði alls"),
   referrals: z.array(z.object({
     target: z.enum(["heilsugaesla", "physio", "psychologist", "nutritionist", "specialist"]),
@@ -152,10 +164,10 @@ Reglur sem þú mátt ekki brjóta:
 • Umferðarljósin sem þú sérð eru viðmið Lifeline. Notaðu þau, ekki orðalag skýrslunnar.
 
 Tilvísanir (referrals):
-• Leggðu til tilvísun þegar niðurstaða kallar á mat annars fagmanns: heilsugæslu fyrir gildi utan viðmiða eða þekkta sjúkdóma, sjúkraþjálfara fyrir verki og stoðkerfi, sálfræðing fyrir andlega líðan og fíkn, næringarfræðing fyrir mataræði og matarhegðun, sérfræðing þegar sérgrein á við.
-• reason er ÞAÐ SEM Á AÐ SKOÐA, aldrei sjúkdómsgreining: „Fastandi blóðsykur yfir viðmiðum“, ekki „sykursýki“.
-• Leggðu ekki til tilvísun fyrir gildi sem er innan viðmiða.
-• Tómur listi er rétt svar þegar ekkert kallar á tilvísun.`;
+• Skilaðu ALLTAF tómum lista. Tilvísanir koma úr ráðleggingum skýrslunnar
+  sjálfrar — læknirinn sem skrifaði hana hefur þegar tekið þá ákvörðun og hún
+  er skráð í sjúkraskrá. Að álykta tilvísun út frá mæligildi hér væri ný
+  læknisfræðileg ákvörðun tekin utan sjúkraskrárkerfisins.`;
 
 /** Ask the model for a ranked plan. Throws on model/transport errors. */
 export async function proposePlan(input: AnalyzeInput): Promise<Proposal> {
