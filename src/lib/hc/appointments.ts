@@ -39,6 +39,14 @@ export interface CalItem {
   /** Which journey column holds this appointment's link. */
   meetField?: "meeting_url" | "followup_meeting_url";
   /**
+   * A booking that owns its own link, instead of a column on the journey.
+   *
+   * The journey has one meeting_url because an intake interview happens
+   * once. A monthly video consultation happens again next month, so its
+   * link belongs to the booking row.
+   */
+  meetBookingId?: string;
+  /**
    * The participant's email, invited as a guest on the interviewer's video
    * appointment: Google then sends them the invitation with the Meet link,
    * whether or not they connected a calendar of their own.
@@ -113,12 +121,66 @@ export async function clientAppointments(clientId: string): Promise<CalItem[]> {
       });
     }
   }
+  // The repeatable coach bookings. No wantsMeet here: the coach's copy is
+  // the one that asks, or the same call gets two conferences.
+  for (const b of await bookings("client", clientId)) out.push(bookingItem(b, false, null, null));
+
   return out;
 }
 
 function initials(name: string | null | undefined): string {
   const parts = (name || "").replace(/^Prufa\s*[–-]\s*/, "").trim().split(/\s+/).filter(Boolean);
   return parts.length ? parts.map((p) => p[0]!.toUpperCase() + ".").join(" ") : "—";
+}
+
+const BOOKING_IS: Record<string, { label: string; what: string }> = {
+  video: { label: "Myndsímtal við þjálfara", what: "Myndsímtal: farið yfir vikuna, áætlunina og það sem stendur í vegi." },
+  measurement: { label: "Mælingar", what: "Líkamssamsetning og blóðþrýstingur." },
+  vo2max: { label: "Þrekpróf (VO₂max)", what: "Þolpróf á hjóli eða bretti. Komdu í æfingafötum." },
+  strength: { label: "Styrkmæling", what: "Grip- og fótstyrkur." },
+};
+
+interface BookingRow {
+  id: string; journey_id: string; client_id: string; coach_id: string | null;
+  kind: string; starts_at: string; minutes: number; meeting_url: string | null; note: string | null;
+}
+
+/**
+ * The repeatable bookings with a coach: video consultations and the
+ * measurements people come back for.
+ *
+ * These live in hc_bookings rather than on the journey, which carries one
+ * slot each for the steps that happen once. Both calendars show them; only
+ * the coach's copy asks Google for a Meet link, because the same call is on
+ * both and two asks would make two conferences for one conversation.
+ */
+async function bookings(where: "client" | "coach", id: string): Promise<BookingRow[]> {
+  const q = supabaseAdmin.from("hc_bookings")
+    .select("id, journey_id, client_id, coach_id, kind, starts_at, minutes, meeting_url, note")
+    .neq("status", "cancelled")
+    .gte("starts_at", windowStart())
+    .order("starts_at");
+  const { data } = await (where === "client" ? q.eq("client_id", id) : q.eq("coach_id", id));
+  return (data ?? []) as BookingRow[];
+}
+
+function bookingItem(b: BookingRow, forCoach: boolean, who: string | null, guestEmail: string | null): CalItem {
+  const t = BOOKING_IS[b.kind] ?? { label: "Tími hjá Lifeline", what: "" };
+  const video = b.kind === "video";
+  return {
+    id: `b${b.id.replace(/-/g, "").slice(0, 24)}`,
+    start: b.starts_at, minutes: b.minutes,
+    summary: forCoach && who ? `${t.label} – ${who}` : `Lifeline – ${t.label}`,
+    description: [t.what, b.note, b.meeting_url ? `Myndsímtal: ${b.meeting_url}` : null]
+      .filter(Boolean).join("\n"),
+    location: video ? (b.meeting_url ?? "Myndsímtal") : "Lifeline",
+    reminderMinutes: 30,
+    // Only the coach hosts, and only while there is no link yet.
+    wantsMeet: forCoach && video && !b.meeting_url,
+    journeyId: b.journey_id,
+    meetBookingId: b.id,
+    inviteEmail: forCoach && video ? guestEmail : null,
+  };
 }
 
 export async function workerAppointments(workerId: string): Promise<CalItem[]> {
@@ -179,6 +241,17 @@ export async function workerAppointments(workerId: string): Promise<CalItem[]> {
       });
     }
   }
+  // Where this worker is the coach rather than the interviewer.
+  const mine = await bookings("coach", workerId);
+  if (mine.length) {
+    const extra = Array.from(new Set(mine.map((b) => b.client_id)));
+    const { data: more } = await supabaseAdmin.from("clients_decrypted").select("id, full_name").in("id", extra);
+    const names = new Map((more ?? []).map((c) => [c.id as string, c.full_name as string | null]));
+    for (const b of mine) {
+      out.push(bookingItem(b, true, names.get(b.client_id) ?? null, emails.get(b.client_id) ?? null));
+    }
+  }
+
   return out;
 }
 

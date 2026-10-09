@@ -128,8 +128,21 @@ async function askForMeet(token: string, calendarId: string, item: CalItem, body
     await new Promise((r) => setTimeout(r, 1500));
     link = G.meetLinkOf(await G.getEvent(token, calendarId, item.id));
   }
-  if (!link || !item.journeyId) return link ?? null;
-  // Only fill an empty one — never overwrite a link a nurse pasted.
+  if (!link) return null;
+
+  // Only ever fill an empty one — never overwrite a link a nurse pasted.
+  if (item.meetBookingId) {
+    // A repeatable booking owns its own link: the journey has one
+    // meeting_url because an intake happens once, but a monthly
+    // consultation happens again next month.
+    await supabaseAdmin
+      .from("hc_bookings")
+      .update({ meeting_url: link, updated_at: new Date().toISOString() })
+      .eq("id", item.meetBookingId)
+      .is("meeting_url", null);
+    return link;
+  }
+  if (!item.journeyId) return link;
   const field = item.meetField ?? "meeting_url";
   await supabaseAdmin
     .from("hc_journeys")

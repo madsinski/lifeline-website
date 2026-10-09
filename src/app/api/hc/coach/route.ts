@@ -9,9 +9,10 @@
 // blocked to the client by RLS, which is the house pattern for clinical
 // tables here. Every query is scoped to the caller's own journey.
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, hcAudit, requireUser } from "@/lib/hc/server";
+import { syncOwner } from "@/lib/hc/calendar-sync";
 
 export const runtime = "nodejs";
 
@@ -133,6 +134,19 @@ export async function POST(req: NextRequest) {
     }).select("id").maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     await hcAudit("client", "booking_created", journey.id, { kind, starts_at: when.toISOString() });
+    /*
+     * Both calendars, after the response.
+     *
+     * The coach's copy is the one that asks Google for the Meet link and
+     * writes it back onto the booking, so it has to run too — syncing only
+     * the client would put the call in their calendar with no way to join
+     * it. after(), not a bare void: a promise still running when the
+     * response returns is killed with the invocation on Vercel.
+     */
+    after(async () => {
+      await syncOwner("client", user.id).catch(() => {});
+      if (journey.coach_id) await syncOwner("worker", journey.coach_id).catch(() => {});
+    });
     return NextResponse.json({ ok: true, id: data?.id });
   }
 
@@ -141,6 +155,12 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from("hc_bookings")
       .update({ status: "cancelled", updated_at: new Date().toISOString() })
       .eq("id", body.cancel).eq("client_id", user.id);
+    // A cancelled booking has to leave both calendars, or it sits there
+    // looking like it is still happening.
+    after(async () => {
+      await syncOwner("client", user.id).catch(() => {});
+      if (journey.coach_id) await syncOwner("worker", journey.coach_id).catch(() => {});
+    });
     return NextResponse.json({ ok: true });
   }
 
