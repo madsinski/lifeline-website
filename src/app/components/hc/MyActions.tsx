@@ -243,32 +243,35 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               {p === "exercise" && todaysSessions.map((s) => {
                 const done = Boolean(doneToday?.has(s.id) || doneToday?.has(s.title));
                 return (
-                  <li key={s.id} className="flex items-start gap-3 px-4 py-3">
+                  /* Set out exactly like ActionRow below it: same 40px
+                     target, same base-size semibold title, same small grey
+                     line under it. It was a 24px circle with a 10px kicker
+                     above a text-sm title, which read as a different kind of
+                     thing in a list where it is the most important one. */
+                  <li key={s.id} className="flex items-start gap-3 px-3 py-3 sm:px-4">
                     <button type="button"
                       onClick={() => { if (done) return; if (s.session) onCompleteSession?.(s.session); else if (s.activity) onCompleteActivity?.(s.activity); }}
                       disabled={done}
                       aria-pressed={done} aria-label={`Merkja ${s.title} sem lokið`}
-                      className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition disabled:opacity-100"
-                      style={{ borderColor: done ? meta.ink : "#cbd5e1", background: done ? meta.ink : "transparent" }}>
-                      {done && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} aria-hidden />}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-90 disabled:opacity-100"
+                      style={{ borderColor: done ? meta.ink : "#e2e8f0", background: done ? meta.ink : "transparent" }}>
+                      <Check className={`h-5 w-5 ${done ? "text-white" : "text-transparent"}`} strokeWidth={3} aria-hidden />
                     </button>
                     <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: meta.ink }}>
-                          Æfing dagsins
-                        </span>
-                        {s.at ? <span className="text-[10px] text-slate-400">· kl. {s.at}</span> : null}
-                        {s.minutes ? <span className="text-[10px] text-slate-400">· {s.minutes} mín</span> : null}
-                      </span>
-                      <span className={`mt-0.5 block text-sm font-bold ${done ? "text-slate-400 line-through" : "text-hc-ink"}`}>
+                      <span className={`block font-semibold ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>
                         {s.title}
+                      </span>
+                      <span className="mt-1.5 block text-sm text-slate-500">
+                        Æfing dagsins
+                        {s.at ? ` · kl. ${s.at}` : ""}
+                        {s.minutes ? ` · ${s.minutes} mín.` : ""}
                       </span>
                     </span>
                     {/* Only a prescribed session has an exercise list to
                         open; their own commitment is a thing they go and do. */}
                     {links?.exercise && s.session && (
                       <button type="button" onClick={links.exercise}
-                        className="shrink-0 self-center text-xs font-bold" style={{ color: meta.ink }}>
+                        className="shrink-0 self-center text-sm font-semibold" style={{ color: meta.ink }}>
                         Opna
                       </button>
                     )}
