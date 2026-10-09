@@ -186,6 +186,43 @@ export const STRINGS = {
   "social.you": { is: "Þú", en: "You" },
   "social.free": { is: "Frítt", en: "Free" },
 
+  // ── Þjálfari: outer tabs and pillar tabs ────────────────────────────
+  "tab.actions": { is: "Aðgerðir", en: "Actions" },
+  "tab.coachChat": { is: "Þjálfari", en: "Coach" },
+  "tab.plan": { is: "Áskrift", en: "Plan" },
+
+  // ── Programme picker ────────────────────────────────────────────────
+  "prog.title": { is: "Prógrammið", en: "Programme" },
+  "prog.current": { is: "Í gangi", en: "Current" },
+  "prog.week": { is: "vika", en: "week" },
+  "prog.change": { is: "Skipta um prógramm", en: "Change programme" },
+  "prog.choose": { is: "Velja", en: "Choose" },
+  "prog.none": { is: "Ekkert prógramm valið.", en: "No programme chosen." },
+  "prog.switched": { is: "Prógrammið er komið í gang. Vika 1.", en: "Programme started. Week 1." },
+  "prog.weeks": { is: "vikur", en: "weeks" },
+  "prog.close": { is: "Loka", en: "Close" },
+
+  // ── Education ───────────────────────────────────────────────────────
+  "edu.title": { is: "Fræðsla", en: "Education" },
+  "edu.none": { is: "Engin fræðsla hér enn.", en: "No education for this pillar yet." },
+  "edu.minutes": { is: "mín", en: "min" },
+  "edu.modules": { is: "kaflar", en: "modules" },
+  "edu.back": { is: "Til baka", en: "Back" },
+
+  // ── Coach chat ──────────────────────────────────────────────────────
+  "chat.none": { is: "Engin skilaboð enn.", en: "No messages yet." },
+  "chat.noConvo": { is: "Þú ert ekki með opið samtal við þjálfara.", en: "You don't have an open conversation with a coach." },
+  "chat.placeholder": { is: "Skrifaðu skilaboð…", en: "Write a message…" },
+  "chat.send": { is: "Senda", en: "Send" },
+  "chat.sending": { is: "Sendi…", en: "Sending…" },
+
+  // ── Subscription ────────────────────────────────────────────────────
+  "sub.title": { is: "Áskriftin þín", en: "Your plan" },
+  "sub.none": { is: "Engin áskrift skráð.", en: "No subscription on record." },
+  "sub.status": { is: "Staða", en: "Status" },
+  "sub.until": { is: "Gildir til", en: "Valid until" },
+  "sub.trial": { is: "Prufutími til", en: "Trial until" },
+
   // ── Weekdays, short — for the week strip ────────────────────────────
   "day.0": { is: "Su", en: "Sun" },
   "day.1": { is: "Má", en: "Mon" },

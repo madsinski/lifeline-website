@@ -31,17 +31,39 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "bad day" }, { status: 400 });
   }
 
+  // ?pillar=exercise returns that pillar's whole week instead of one day —
+  // the pillar tabs show the week, Today shows the day.
+  const pillar = req.nextUrl.searchParams.get("pillar");
+
   const week = await resolveWeek(user.id, isoToday());
   const dow = dowOf(new Date(`${day}T12:00:00`));
+  const byOrder = (a: { sortOrder: number; label: string }, b: { sortOrder: number; label: string }) =>
+    a.sortOrder - b.sortOrder || a.label.localeCompare(b.label, "is");
+
   const forDay = week.filter((a) => a.dayOfWeek === dow);
-  const actions = (await withCompletions(user.id, day, forDay)).sort(
-    (a, b) => a.sortOrder - b.sortOrder || a.label.localeCompare(b.label, "is"),
-  );
+  const actions = (await withCompletions(user.id, day, forDay)).sort(byOrder);
+
+  let pillarWeek: { dow: number; actions: typeof week }[] | undefined;
+  if (pillar) {
+    const mine = week.filter((a) => a.pillar === pillar);
+    // Completions are per date, so only today's row can show a tick; the
+    // other days are the plan, not a history.
+    const todayDone = await withCompletions(user.id, day, mine.filter((a) => a.dayOfWeek === dow));
+    const doneKeys = new Set(todayDone.filter((a) => a.done).map((a) => a.actionKey));
+    pillarWeek = Array.from({ length: 7 }, (_, i) => ({
+      dow: i,
+      actions: mine
+        .filter((a) => a.dayOfWeek === i)
+        .map((a) => ({ ...a, done: i === dow && doneKeys.has(a.actionKey) }))
+        .sort(byOrder),
+    }));
+  }
 
   return NextResponse.json({
     day,
     dow,
     actions,
+    pillarWeek,
     /** Per-day counts for the whole week, so the UI can show a strip. */
     week: Array.from({ length: 7 }, (_, i) => ({
       dow: i,
