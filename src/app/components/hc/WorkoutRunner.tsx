@@ -125,7 +125,7 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
       {/* The panel scrolls, not the page, so moving on has to reset it:
           after a long exercise you were dropped into the middle of the next
           one, past its name and its cues. */}
-      <div ref={scroller} className="flex-1 overflow-y-auto">
+      <div ref={scroller} className="flex-1 overflow-y-auto overscroll-contain">
         {current && <ExercisePanel key={`${current.name}-${idx}`} it={current} onSwap={onSwap} body={body} />}
       </div>
 
@@ -148,10 +148,38 @@ function Shell({ title, onClose, children }: { title: string; onClose: () => voi
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
   }, [onClose]);
+
+  /**
+   * Freeze the page underneath while the runner is open.
+   *
+   * Scrolling past the end of the panel handed the scroll to the document
+   * behind it, so the workout drifted up the screen and you came out of a
+   * set somewhere else on the page. overscroll-contain on the panel stops
+   * the chaining; locking the body is what stops the background moving at
+   * all, including from a swipe that starts on the backdrop.
+   *
+   * The scroll position is restored on the way out, because setting
+   * position/overflow on the body loses it otherwise — you would close the
+   * runner and find yourself back at the top of a long page.
+   */
+  useEffect(() => {
+    const y = window.scrollY;
+    const prev = {
+      overflow: document.body.style.overflow,
+      touch: document.body.style.touchAction,
+    };
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    return () => {
+      document.body.style.overflow = prev.overflow;
+      document.body.style.touchAction = prev.touch;
+      window.scrollTo({ top: y, behavior: "instant" });
+    };
+  }, []);
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/60 sm:items-center sm:p-4">
       <div role="dialog" aria-modal="true" aria-label={title}
-        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl">
+        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden overscroll-contain rounded-t-3xl bg-white sm:rounded-3xl">
         <div className="flex items-center gap-3 p-4">
           <p className="min-w-0 flex-1 truncate text-lg font-bold text-slate-900">{title}</p>
           <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
@@ -228,6 +256,22 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   const [today, setToday] = useState<LoggedSet[]>([]);
   const [busy, setBusy] = useState(false);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  /**
+   * Delete one logged set.
+   *
+   * set_logs is owner-writable under RLS, so this is the client's own row to
+   * remove. The local list is updated from the server's answer rather than
+   * optimistically: a failed delete that looked like it worked would leave
+   * the set counting towards the target and towards the next suggestion.
+   */
+  const removeSet = async (id: string) => {
+    setRemoving(id);
+    const { error } = await supabase.from("set_logs").delete().eq("id", id);
+    setRemoving(null);
+    if (!error) setToday((t) => t.filter((x) => x.id !== id));
+  };
 
   /**
    * How long to rest, and the person's own answer to that.
@@ -283,7 +327,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user || !it.exercise_id) return;
     const { data } = await supabase.from("set_logs")
-      .select("date, set_index, weight, reps")
+      .select("id, date, set_index, weight, reps")
       .eq("client_id", u.user.id).eq("exercise_id", it.exercise_id)
       .order("logged_at", { ascending: false }).limit(40);
     const rows = (data ?? []) as LoggedSet[];
@@ -349,10 +393,12 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
       weight: timed || bodyweight || weight === 0 ? null : weight,
       reps: reps || null,
     };
-    const { error } = await supabase.from("set_logs").insert(row);
+    // Read the row back so the pill can be deleted straight away rather
+    // than only after the next reload.
+    const { data: ins, error } = await supabase.from("set_logs").insert(row).select("id").maybeSingle();
     setBusy(false);
     if (error) return;
-    setToday((t) => [...t, row as LoggedSet]);
+    setToday((t) => [...t, { ...row, id: ins?.id } as LoggedSet]);
     // Warm the voice list inside the tap: iOS Safari will not speak unless
     // the first utterance descends from a user gesture.
     warmVoices();
@@ -460,8 +506,18 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
       {today.length > 0 && (
         <ul className="flex flex-wrap gap-1.5">
           {today.map((s, i) => (
-            <li key={i} className="rounded-lg bg-white px-2 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
-              {s.weight != null ? `${s.weight} kg × ` : ""}{s.reps}{timed ? " sek." : ""}
+            <li key={s.id ?? i} className="flex items-center gap-1 rounded-lg bg-white py-1 pl-2 pr-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
+              <span className="tabular-nums">{s.weight != null ? `${s.weight} kg × ` : ""}{s.reps}{timed ? " sek." : ""}</span>
+              {/* A mistyped weight is the common case and it used to be
+                  permanent — it would then feed the suggestion for next
+                  time, so one fat-fingered 425 kg poisons the progression. */}
+              {s.id && (
+                <button type="button" onClick={() => void removeSet(s.id!)} disabled={removing === s.id}
+                  aria-label={`Eyða setti ${i + 1}`}
+                  className="grid h-5 w-5 place-items-center rounded text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
+                  <X className="h-3 w-3" aria-hidden />
+                </button>
+              )}
             </li>
           ))}
         </ul>

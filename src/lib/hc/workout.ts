@@ -73,6 +73,8 @@ export const isLoggable = (it: ExerciseItem) =>
   !!it.exercise_id && (it.block ?? "main") === "main" && !/^hiit/i.test(it.name);
 
 export interface LoggedSet {
+  /** Present on rows read back from the database; needed to delete one. */
+  id?: string;
   date: string;
   set_index: number;
   weight: number | null;
