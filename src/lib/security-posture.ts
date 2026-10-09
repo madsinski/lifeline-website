@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.16";
+export const SECURITY_POSTURE_VERSION = "v1.17";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-09";
 
 export function renderSecurityPosture(): string {
@@ -367,6 +367,20 @@ Vinnsluaðilar (28. gr. GDPR):
   - Áminningar með vefpúsi (Web Push, opt-in): efni dulkóðað enda á
     milli (RFC 8291); Apple/Google/Mozilla flytja skeytið án þess að
     geta lesið það. Enginn vinnslusamningur þarf.
+  - Google LLC (Google Calendar) — **vinnslusamningur ógerður; ekki í
+    notkun í framleiðslu.** Þátttakandi getur tengt eigið Google-dagatal
+    og þá skrifum við dagsetningar úr heilsuferðinni í dagatal sem við
+    búum til í hans eigin aðgangi (bókanir og æfingar vikunnar: heiti,
+    tími, staður). Krefst OAuth-samþykkis í hvert sinn og er hægt að
+    aftengja hvenær sem er; þá er dagatalið tæmt. Umfangið er
+    calendar.app.created — við sjáum ekkert annað í dagatalinu.
+    Auðkenni Google-forrits eru ekki sett upp í framleiðslu, svo engin
+    gögn fara þangað í dag.
+  - Dagatalsáskrift (.ics) er á okkar eigin vefsvæði og enginn þriðji
+    aðili kemur að henni. Hlekkurinn sjálfur er auðkennið: ótímabundinn
+    leyniþráður (24 bæti) sem veitir lesaðgang að dagsetningum
+    heilsuferðarinnar án innskráningar. Þátttakandinn er upplýstur um
+    það og getur búið til nýjan hlekk, sem afturkallar þann gamla.
   - OpenAI, L.L.C. — **vinnslusamningur ógerður, í forgangi.**
     Notkun er tvíþætt og afmörkuð:
       (a) Tillaga að lífsstílsáætlun. Mæligildi, aldur, kyn og
@@ -571,6 +585,19 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.17 (2026-10-09)
+  Calendar paths written down. Both existed in code and neither was in
+  this statement, which is the gap worth recording: Google Calendar sync
+  is a transfer of journey dates to a third party, and the .ics feed is a
+  non-expiring bearer link to the same dates. Google is listed as a
+  processor with no DPA and is not configured in production, so nothing
+  goes there today; the scope is calendar.app.created, which cannot read
+  the rest of the calendar. The feed stays on our own domain, and the
+  participant is told the link is the credential and can replace it.
+  Also: the sync had been firing without awaiting, so on Vercel it never
+  ran at all — meaning the transfer this entry describes has not yet
+  happened even once.
 
 v1.16 (2026-10-09)
   Retention for parsed reports. The PDF is never stored on any path —
@@ -1078,6 +1105,19 @@ Processors (GDPR Art. 28):
   - Web Push reminders (opt-in): payload end-to-end encrypted
     (RFC 8291); Apple/Google/Mozilla relay it without being able to
     read it. No processing agreement needed.
+  - Google LLC (Google Calendar) — **no DPA; not in use in production.**
+    A participant may connect their own Google calendar, after which we
+    write the journey's dates into a calendar we create inside their own
+    account (bookings and the training week: title, time, place). It
+    requires OAuth consent each time and can be disconnected at will,
+    which empties the calendar. The scope is calendar.app.created — we
+    cannot see anything else in the calendar. The Google app credentials
+    are not configured in production, so no data goes there today.
+  - The .ics subscription is served from our own domain with no third
+    party involved. The link itself is the credential: a non-expiring
+    24-byte secret granting read access to the journey's dates without a
+    login. The participant is told so and can issue a new link, which
+    revokes the old one.
   - OpenAI, L.L.C. — **DPA not yet in place; being prioritised.**
     Two narrow uses:
       (a) Lifestyle-plan proposal. Measured values, age, sex and
@@ -1287,6 +1327,19 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.17 (2026-10-09)
+  Calendar paths written down. Both existed in code and neither was in
+  this statement, which is the gap worth recording: Google Calendar sync
+  is a transfer of journey dates to a third party, and the .ics feed is a
+  non-expiring bearer link to the same dates. Google is listed as a
+  processor with no DPA and is not configured in production, so nothing
+  goes there today; the scope is calendar.app.created, which cannot read
+  the rest of the calendar. The feed stays on our own domain, and the
+  participant is told the link is the credential and can replace it.
+  Also: the sync had been firing without awaiting, so on Vercel it never
+  ran at all — meaning the transfer this entry describes has not yet
+  happened even once.
 
 v1.16 (2026-10-09)
   Retention for parsed reports. The PDF is never stored on any path —
