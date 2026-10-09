@@ -24,7 +24,7 @@ interface Payload {
   events: { id: string; name: string; type: string | null; colour: string | null; date: string; time: string | null; location: string | null; cost: string | number | null; reward: string | number | null; joined: boolean }[];
   feed: { id: string; who: string; isMe: boolean; action: string; points: number; at: string }[];
   friends: { id: string; clientId: string; name: string; status: string | null; incoming: boolean }[];
-  partner: { id: string | null; name: string; points: number } | null;
+  partner: { id: string | null; name: string; points: number; resolvedByName?: boolean } | null;
   messages: { id: string; mine: boolean; who: string; content: string; read: boolean; at: string }[];
 }
 

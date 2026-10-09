@@ -112,18 +112,29 @@ export async function GET(req: NextRequest) {
       cost: (e.cost as string | number) ?? null, reward: (e.reward as string | number) ?? null,
       joined: joinedIds.has(e.id as string),
     })),
-    partner: me?.accountability_partner_name
-      ? {
-          id: (me.accountability_partner_id as string) ?? null,
-          name: me.accountability_partner_name as string,
-          // The stored score is a snapshot from when they were chosen. The
-          // live figure is better when the partner is on the leaderboard.
-          points: Number(
-            (board ?? []).find((b) => b.id === me.accountability_partner_id)?.total_points
-              ?? me.accountability_partner_score ?? 0,
-          ),
-        }
-      : null,
+    partner: (() => {
+      const name = me?.accountability_partner_name as string | undefined;
+      if (!name) return null;
+      /**
+       * The app stores a NAME, never an id — PeopleTab writes only
+       * accountability_partner_name and _score, and the column holds null
+       * for every client who has a partner (2 of 2, both with score 0).
+       * So resolve by id when this surface set it, and fall back to the
+       * name when the app did, otherwise an app-chosen partner can never
+       * be matched to a person and their score stays frozen at zero.
+       */
+      const byId = me?.accountability_partner_id
+        ? (board ?? []).find((b) => b.id === me.accountability_partner_id)
+        : null;
+      const byName = byId ?? (board ?? []).find((b) => (b.full_name as string) === name);
+      return {
+        id: (me?.accountability_partner_id as string) ?? (byName?.id as string) ?? null,
+        name,
+        points: Number(byName?.total_points ?? me?.accountability_partner_score ?? 0),
+        /** True when it came from the app and we matched it by name. */
+        resolvedByName: !me?.accountability_partner_id && Boolean(byName),
+      };
+    })(),
     friends: (friends ?? []).map((f) => {
       const other = f.requester_id === user.id ? (f.addressee_id as string) : (f.requester_id as string);
       return {
