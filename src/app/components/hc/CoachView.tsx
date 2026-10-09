@@ -148,6 +148,37 @@ export default function CoachView({ api }: { api: Api }) {
         ))}
       </nav>
 
+      {/* Above the tabs, not inside "Bóka".
+            What is already booked is the thing on this page you most need to
+            see — and it should not depend on which tab you happen to be on.
+            Under the tabs it was below two cards and a thread. */}
+      {data.bookings.length > 0 && (
+        <section className={`${hcCard.base} divide-y divide-slate-100`}>
+          <p className="px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Bókað</p>
+          {data.bookings.map((b) => (
+            <div key={b.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-4">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark">
+                {b.kind === "video" ? <Video className="h-5 w-5" aria-hidden /> : <Activity className="h-5 w-5" aria-hidden />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-hc-ink">
+                  {b.kind === "video" ? "Myndsímtal"
+                    : (b.items ?? []).map((k) => MEASURE_LABEL.get(k) ?? k).join(" + ") || "Mælingar"}
+                </p>
+                <p className="text-sm text-slate-600">{longWhen(b.starts_at)} · {b.minutes} mín.</p>
+              </div>
+              {b.meeting_url && (
+                <a href={b.meeting_url} target="_blank" rel="noopener noreferrer" className={hcBtn.secondary}>Fara á fundinn</a>
+              )}
+              <button type="button" onClick={() => void post({ cancel: b.id })} disabled={busy}
+                aria-label="Afbóka" className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40">
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
+
       {err && <p className="rounded-hc-element bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-900 ring-1 ring-rose-200">{err}</p>}
 
       {tab === "talk" && <Talk data={data} draft={draft} setDraft={setDraft} busy={busy}
@@ -403,32 +434,6 @@ function Book({ data, busy, onPost }: {
         </section>
       )}
 
-      {data.bookings.length > 0 && (
-        <section className={`${hcCard.base} divide-y divide-slate-100`}>
-          <p className="px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Bókað</p>
-          {data.bookings.map((b) => (
-            <div key={b.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-4">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark">
-                {b.kind === "video" ? <Video className="h-5 w-5" aria-hidden /> : <Activity className="h-5 w-5" aria-hidden />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-hc-ink">
-                  {b.kind === "video" ? "Myndsímtal"
-                    : (b.items ?? []).map((k) => MEASURE_LABEL.get(k) ?? k).join(" + ") || "Mælingar"}
-                </p>
-                <p className="text-sm text-slate-600">{longWhen(b.starts_at)} · {b.minutes} mín.</p>
-              </div>
-              {b.meeting_url && (
-                <a href={b.meeting_url} target="_blank" rel="noopener noreferrer" className={hcBtn.secondary}>Fara á fundinn</a>
-              )}
-              <button type="button" onClick={() => void onPost({ cancel: b.id })} disabled={busy}
-                aria-label="Afbóka" className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40">
-                <X className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
-          ))}
-        </section>
-      )}
     </>
   );
 }

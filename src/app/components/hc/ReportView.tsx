@@ -71,18 +71,22 @@ const SECTIONS: {
   scoreKey?: string;
 }[] = [
   { pillar: "sleep" as Pillar, key: "sleep", title: "Svefn", blurb: "", accent: PILLAR_META.sleep.color,
-    keys: ["svefn_vandamal", "svefn_venjur", "koffin"] },
+    keys: ["svefn_vandamal", "svefn_venjur"] },
   { pillar: "exercise" as Pillar, key: "exercise", title: "Hreyfing", blurb: "", accent: PILLAR_META.exercise.color,
     keys: ["hreyfing_vandamal", "hreyfing_venjur"] },
   { pillar: "nutrition" as Pillar, key: "nutrition", title: "Næring", blurb: "", accent: PILLAR_META.nutrition.color,
     keys: ["naering_vandamal", "naering_venjur", "matarhegdun"] },
   { pillar: "mental" as Pillar, key: "mental", title: "Andleg líðan", blurb: "", accent: PILLAR_META.mental.color,
-    keys: ["andleg_heilsa", "streita", "vellidan", "skjanotkun", "fjarhaettuspil"] },
+    keys: ["andleg_heilsa", "streita", "vellidan"] },
   { key: "habits", title: "Ávanar", blurb: "Nikótín, áfengi og önnur efni. 10 þýðir engin notkun.", accent: "#78716C",
-    keys: ["nikotin", "afengi", "onnur_efni"] },
+    // Caffeine, screens and gambling are habits, whatever pillar the
+    // questionnaire files their score under. A number in the Svefn heading
+    // that counted caffeine while caffeine was listed elsewhere would
+    // describe rows the reader cannot see.
+    keys: ["nikotin", "afengi", "onnur_efni", "koffin", "skjanotkun", "fjarhaettuspil"] },
   { scoreKey: "efnaskiptaheilsa", key: "metabolic", title: "Efnaskipti", blurb: "Hvernig líkaminn heldur blóðsykri í skefjum. Hér sést álag fyrst.", accent: "#0D9488",
     keys: ["efnaskiptaheilsa", "blodsykur", "insulin", "hba1c", "homa_ir"] },
-  { scoreKey: "hjartaheilsa", key: "heart", title: "Hjarta og blóðfitur", blurb: "Blóðþrýstingur og blóðfitur — það sem ræður áhættunni til langs tíma.", accent: "#E11D48",
+  { key: "heart", title: "Hjarta og blóðfitur", blurb: "Blóðþrýstingur og blóðfitur — það sem ræður áhættunni til langs tíma.", accent: "#E11D48",
     keys: ["hjartaheilsa", "bp_efri", "bp_nedri", "kolesterol", "hdl", "ldl", "thriglyserid"] },
   { key: "liver", title: "Lifur", blurb: "Lifrarensím. Þau svara vel breytingum á áfengi, sykri og þyngd.", accent: "#CA8A04",
     keys: ["alat", "asat"] },
@@ -106,27 +110,40 @@ export default function ReportView({ report, signals, reference, sex, audience =
   onUpload?: () => void;
 }) {
   /**
-   * The average score per pillar, which used to be four cards at the top of
-   * the page under "Stoðirnar fjórar".
+   * The score in each section heading, averaged over the rows that section
+   * actually shows.
    *
-   * Four cards summarising four sections that sit directly underneath them
-   * is the same page twice — and the card carried the number while the
-   * section it summarised did not. The number belongs on the section.
+   * It used to average by the questionnaire's own pillar tag, which stopped
+   * being the same thing the moment caffeine moved from Svefn to Ávanar: the
+   * Svefn heading would have gone on counting a row the reader could no
+   * longer see under it. A heading number should describe what is beneath
+   * it, so it is computed from the section's own key list.
    */
-  const pillarAvg = useMemo(() => {
-    const out = new Map<Pillar, number>();
-    for (const p of ["sleep", "exercise", "nutrition", "mental"] as Pillar[]) {
-      const rows = report.items.filter((i) => i.pillar === p && i.kind === "score");
-      if (rows.length) out.set(p, rows.reduce((n, i) => n + i.value, 0) / rows.length);
+  const sectionAvg = useMemo(() => {
+    const byKey = new Map(report.items.map((i) => [i.key, i]));
+    const out = new Map<string, number>();
+    for (const sec of SECTIONS) {
+      if (sec.scoreKey) {
+        const c = byKey.get(sec.scoreKey);
+        if (c) out.set(sec.key, c.value);
+        continue;
+      }
+      if (!sec.pillar || !sec.keys) continue;
+      const rows = sec.keys.map((k) => byKey.get(k)).filter((i) => i?.kind === "score");
+      if (rows.length) out.set(sec.key, rows.reduce((n, i) => n + i!.value, 0) / rows.length);
     }
     return out;
   }, [report.items]);
-  /** Where the plan starts, kept from the cards: the weakest of the four. */
+  /** Where the plan starts: the weakest of the four questionnaire pillars. */
   const weakest = useMemo(() => {
-    let k: Pillar | null = null, v = Infinity;
-    for (const [p, a] of pillarAvg) if (a < v) { v = a; k = p; }
+    let k: string | null = null, v = Infinity;
+    for (const sec of SECTIONS) {
+      if (!sec.pillar) continue;
+      const a2 = sectionAvg.get(sec.key);
+      if (a2 !== undefined && a2 < v) { v = a2; k = sec.key; }
+    }
     return k;
-  }, [pillarAvg]);
+  }, [sectionAvg]);
 
   const lit = useMemo(
     () => report.items.map((item) => ({ item, signal: signals[item.key] ?? null })),
@@ -213,8 +230,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
 
       {/* 4 ── The detail */}
       {SECTIONS.map((s) => {
-        const composite = s.scoreKey ? lit.find((x) => x.item.key === s.scoreKey)?.item.value : undefined;
-        const avg = s.pillar ? pillarAvg.get(s.pillar) : composite;
+        const avg = sectionAvg.get(s.key);
         const rows = s.keys
           ? s.keys.filter((k) => k !== s.scoreKey)
               .map((k) => lit.find((x) => x.item.key === k)).filter((x): x is (typeof lit)[number] => !!x)
@@ -237,12 +253,12 @@ export default function ReportView({ report, signals, reference, sex, audience =
                   can run down a column of them instead of hunting for each
                   one after a title of a different length. */}
               {avg !== undefined && (
-                <span className="order-last ml-auto flex items-baseline gap-1">
+                <span className="ml-auto flex items-baseline gap-1">
                   <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: s.accent }}>{fmt1(avg)}</span>
                   <span className="text-xs font-semibold text-slate-500">af 10</span>
                 </span>
               )}
-              {s.pillar && s.pillar === weakest && (
+              {s.pillar && s.key === weakest && (
                 <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>
               )}
               {/* Only the red one survives. The amber chip and "Allt í lagi"
@@ -252,7 +268,9 @@ export default function ReportView({ report, signals, reference, sex, audience =
               {off > 0 && (
                 <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800">{off} utan viðmiða</span>
               )}
-              {s.blurb && <p className="w-full text-xs font-normal normal-case tracking-normal text-slate-500">{s.blurb}</p>}
+              {/* order-last keeps the subtext under the whole line, so the
+                  score sits beside the title rather than after a sentence. */}
+              {s.blurb && <p className="order-last w-full text-xs font-normal normal-case tracking-normal text-slate-500">{s.blurb}</p>}
             </div>
             <ul className="divide-y divide-slate-100">
               {rows.map(({ item, signal }) => (

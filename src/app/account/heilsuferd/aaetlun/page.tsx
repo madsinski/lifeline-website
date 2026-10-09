@@ -35,6 +35,7 @@ import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import { TodayCard, useToday } from "@/app/components/hc/TodayCards";
 import { NotificationBell, useNotifications } from "@/app/components/hc/Notifications";
+import { UpcomingCard, useUpcoming } from "@/app/components/hc/Upcoming";
 import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
 import { peek } from "@/lib/hc/client-cache";
@@ -167,6 +168,7 @@ function PlanPageInner() {
   // Stats, urgent items and the partner for Í dag — one request for three cards.
   const { today, reloadToday } = useToday(api);
   const { unread } = useNotifications(api);
+  const { items: upcoming } = useUpcoming(api);
 
   useEffect(() => {
     let first = true;
@@ -474,6 +476,11 @@ function PlanPageInner() {
                         ofToday={(plan.modules ?? []).filter((m) => (m.frequency ?? "").toLowerCase() === "daglega" || m.pillar !== "exercise").length
                           + (exercise?.sessions.filter((sx) => sx.weekday === ((new Date().getDay() + 6) % 7)).length ?? 0)} />
                     )} />
+                  {/* Between the hero and the checklist: context before
+                      chores. Two items at most — Í dag is a checklist, and
+                      one line about Tuesday is context where six is a
+                      second page. The rest is one tap away. */}
+                  <UpcomingCard items={upcoming} />
                   <MyActions api={api} journeyId={data.journey_id} plan={plan}
                     onEditPillar={(pl) => { setEditPillar(pl); setEditing(true); }} logs={data.logs} prefs={data.prefs}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }}

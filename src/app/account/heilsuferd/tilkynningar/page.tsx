@@ -12,7 +12,9 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import JourneyNav from "@/app/components/hc/JourneyNav";
 import { NotificationList, useNotifications } from "@/app/components/hc/Notifications";
+import { UpcomingList, useUpcoming } from "@/app/components/hc/Upcoming";
 import { hcPage } from "@/app/components/hc/ui";
+import { Bell, CalendarClock } from "lucide-react";
 
 export default function Page() {
   return <Suspense><Tilkynningar /></Suspense>;
@@ -44,6 +46,8 @@ function Tilkynningar() {
 
   const { items, markSeen } = useNotifications(api);
 
+  const { items: upcoming } = useUpcoming(api);
+
   // Seen on open, once. A ref rather than state: this guards an effect and
   // nothing renders from it, so setting state here would only cost a
   // render — which is what the lint rule is about.
@@ -58,7 +62,21 @@ function Tilkynningar() {
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
         <div className="sm:mb-4"><JourneyNav active="notifications" /></div>
-        <h1 className="mb-4 text-2xl font-bold text-hc-ink sm:text-3xl">Tilkynningar</h1>
+        {/* Two sections, two icons, and the upcoming one first.
+            Appointments are not notifications — there is nothing to clear
+            about next Tuesday — but this is the page people come to when
+            they want to know what is happening, so both live here and the
+            heading says which is which. */}
+        <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold text-hc-ink sm:text-3xl">
+          <CalendarClock className="h-6 w-6 shrink-0 text-hc-brand-dark" aria-hidden />Á döfinni
+        </h1>
+        {ready
+          ? <UpcomingList items={upcoming} />
+          : <div className="h-28 animate-pulse rounded-hc-card bg-white" aria-hidden />}
+
+        <h2 className="mb-4 mt-8 flex items-center gap-2 text-2xl font-bold text-hc-ink sm:text-3xl">
+          <Bell className="h-6 w-6 shrink-0 text-slate-400" aria-hidden />Tilkynningar
+        </h2>
         {ready
           ? <NotificationList items={items} />
           : <div className="h-40 animate-pulse rounded-hc-card bg-white" aria-hidden />}
