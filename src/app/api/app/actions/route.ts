@@ -147,9 +147,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Recompute the meters the home screen reads. Fire-and-forget, as the app
-    // does — a failed refresh must not fail the tick.
-    void supabaseAdmin.rpc("refresh_user_meters", { p_client_id: user.id });
+    // Recompute the meters Heim reads. Awaited, unlike the app.
+    //
+    // api.ts:2695 fires this without waiting, which is fine in a long-lived
+    // React Native process. In a serverless function the response returns and
+    // the instance freezes, so an un-awaited call simply never runs: verified
+    // live — the tick persisted, points were awarded, and consistency_score
+    // stayed 0 until the RPC was invoked by hand, which moved it to 4/14/100.
+    // It costs a few milliseconds and it is the whole point of ticking.
+    const { error: meterErr } = await supabaseAdmin.rpc("refresh_user_meters", { p_client_id: user.id });
+    // A failed refresh must not fail the tick — the completion is already
+    // written, and the meters are recomputed on the next one.
+    if (meterErr) console.error("refresh_user_meters failed", meterErr.message);
   }
 
   return NextResponse.json({ ok: true });
