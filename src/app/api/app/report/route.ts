@@ -26,6 +26,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, requireUser } from "@/lib/hc/server";
 import { loadReport } from "@/lib/hc/report-store";
+import { classifyRecommendation } from "@/lib/hc/recommendation-map";
 
 export const runtime = "nodejs";
 
@@ -82,9 +83,30 @@ export async function GET(req: NextRequest) {
         components: ref.components ?? [],
       };
     })(),
-    recommendations: (it.recommendations ?? []).map((r) => ({
-      component: r.component, text: r.text, priority: r.priority,
-    })),
+    recommendations: (it.recommendations ?? []).map((r) => {
+      /**
+       * Which recommendations are already actionable.
+       *
+       * classifyRecommendation turns the report's own Ráðleggingar column
+       * into a plan module, and separates the lines that must NOT become
+       * habits: a "talk to your doctor" line is a referral, not a routine.
+       * This is what nobody else in the market has — the clinician's
+       * prioritisation arrives with the data — so the surface says which
+       * lines it can act on rather than printing all of them alike.
+       *
+       * The module keys are hc_plan_modules (58 rows, heilsuferð). They do
+       * NOT overlap the app's action_library (802 rows, 0 keys in common),
+       * so this marks a line as actionable without yet being able to put it
+       * on a programme day. Bridging those two vocabularies is the real work
+       * behind merging the surfaces.
+       */
+      const kind = classifyRecommendation({ component: r.component, text: r.text, priority: r.priority });
+      return {
+        component: r.component, text: r.text, priority: r.priority,
+        kind: kind.kind,
+        moduleKey: kind.kind === "action" ? kind.moduleKey : null,
+      };
+    }),
   })).sort((a, b) => (rank[a.level ?? "green"] ?? 3) - (rank[b.level ?? "green"] ?? 3));
 
   const { data: row } = await supabaseAdmin

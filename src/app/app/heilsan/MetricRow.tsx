@@ -28,7 +28,7 @@ export interface Metric {
   key: string; title: string; value: number; unit: string;
   level: "green" | "yellow" | "red" | null; reportWord: string | null;
   advice: string[]; trend: { date: string; value: number }[];
-  recommendations: { component: string; text: string; priority: string }[];
+  recommendations: { component: string; text: string; priority: string; kind?: string; moduleKey?: string | null }[];
   reference: Reference | null;
 }
 
@@ -159,7 +159,22 @@ export default function MetricRow({ m }: { m: Metric }) {
                   <li key={i} className="flex items-start gap-1.5 text-xs" style={{ color: appBrand.ink2 }}>
                     <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full"
                       style={{ background: DOT[rec.priority] ?? appBrand.ink4 }} aria-hidden />
-                    <span><strong style={{ color: appBrand.ink1 }}>{rec.component}</strong> — {rec.text}</span>
+                    <span>
+                      <strong style={{ color: appBrand.ink1 }}>{rec.component}</strong> — {rec.text}
+                      {/* A referral must never read like a habit to adopt. */}
+                      {rec.kind === "action" && (
+                        <span className="ml-1 whitespace-nowrap rounded-full px-1.5 text-[9px] font-bold uppercase"
+                          style={{ background: `${appBrand.primary}1a`, color: appBrand.primaryDark }}>
+                          {t("rec.action")}
+                        </span>
+                      )}
+                      {rec.kind === "referral" && (
+                        <span className="ml-1 whitespace-nowrap rounded-full px-1.5 text-[9px] font-bold uppercase"
+                          style={{ background: `${appBrand.error}1a`, color: appBrand.error }}>
+                          {t("rec.referral")}
+                        </span>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>

@@ -334,6 +334,11 @@ export const STRINGS = {
   "ap.needFriends": { is: "Þú þarft að eiga vin til að velja ábyrgðarfélaga.", en: "You need a friend before you can choose a partner." },
   "ap.failed": { is: "Tókst ekki að vista.", en: "Could not save." },
 
+  // ── How a recommendation is classified ──────────────────────────────
+  "rec.action": { is: "Hægt að setja í áætlun", en: "Can go in your plan" },
+  "rec.referral": { is: "Ræddu við lækni", en: "Discuss with a doctor" },
+  "rec.generic": { is: "Almenn ráðlegging", en: "General advice" },
+
   // ── Weekdays, short — for the week strip ────────────────────────────
   "day.0": { is: "Su", en: "Sun" },
   "day.1": { is: "Má", en: "Mon" },
