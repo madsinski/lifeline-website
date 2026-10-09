@@ -27,10 +27,14 @@ import { hcCard } from "./ui";
 /** "2", "hálf", "1,5" — Icelandic counts half sessions, not 0,5 of one. */
 const num = (x: number) => (Number.isInteger(x) ? String(x) : String(x).replace(".", ","));
 
-export default function WeekBalance({ score, stage, onFix }: {
+export default function WeekBalance({ score, stage, description, principles, onFix }: {
   score: TrainingScore;
   /** Which stage of the progression this is, when the plan has a start date. */
   stage?: StageInfo | null;
+  /** The programme's own paragraph, folded in below. */
+  description?: string | null;
+  /** Its numbered principles. */
+  principles?: string[] | null;
   /** Open Breytingar, so a gap is one tap from being filled. */
   onFix?: () => void;
 }) {
@@ -111,24 +115,49 @@ export default function WeekBalance({ score, stage, onFix }: {
         <ChevronDown className={`h-4 w-4 shrink-0 transition ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
       {open && (
-        <div className="space-y-3 border-t border-slate-100 px-4 py-3.5 text-sm text-slate-600 sm:px-5">
+        <div className="space-y-4 border-t border-slate-100 px-4 py-3.5 text-sm text-slate-600 sm:px-5">
           {stage && (
             <p><span className="font-semibold text-slate-800">{stage.title}.</span> {stage.text}</p>
           )}
+          {description && <p className="leading-relaxed">{description}</p>}
+
+          {/*
+            * What each quality is FOR, and nothing about how much of it.
+            *
+            * These lines used to carry the dose as well — "tvisvar í viku",
+            * "ein æfing á viku er nóg", "undirstaðan undir hitt tvennt" —
+            * and every one of those is already in the paragraph above
+            * ("tveir heilir styrktartímar ... tvisvar í viku", "rólegt þol
+            * byggir grunninn") and in the numbers in the rows at the top of
+            * this card. Three places saying 2 and 1 and 2. What was left out
+            * of both is why the three are not interchangeable, so that is
+            * all these say now.
+            */}
           <dl className="space-y-2">
             <div>
               <dt className="font-semibold text-slate-800">Styrkur</dt>
-              <dd>Heldur í vöðva og beinþéttni, sem þolþjálfun gerir ekki. Tvisvar í viku er það sem rannsóknir styðja.</dd>
+              <dd>Heldur í vöðva og beinþéttni, sem þolþjálfun gerir ekki.</dd>
             </div>
             <div>
               <dt className="font-semibold text-slate-800">HIIT</dt>
-              <dd>Mesta bæting í þoli á stystum tíma. Ein æfing á viku er nóg — fleiri harðir dagar bæta litlu og kosta hvíld.</dd>
+              <dd>Mesta bæting í þoli á stystum tíma, en harðir dagar kosta hvíld.</dd>
             </div>
             <div>
               <dt className="font-semibold text-slate-800">Rólegt þol</dt>
-              <dd>Vinna sem þú getur gert mikið af án þess að þurfa að jafna þig: rösk ganga, hjól, sund. Undirstaðan undir hitt tvennt.</dd>
+              <dd>Vinna sem þú getur gert mikið af án þess að þurfa að jafna þig: rösk ganga, hjól, sund.</dd>
             </div>
           </dl>
+
+          {!!principles?.length && (
+            <ol className="space-y-1.5">
+              {principles.map((x, i) => (
+                <li key={i} className="flex gap-2.5">
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-600">{i + 1}</span>
+                  <span className="min-w-0">{x}</span>
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       )}
     </section>

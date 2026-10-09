@@ -8,7 +8,7 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import React, { useMemo, useState } from "react";
-import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
 import { hiitOnAt, itemsForFocus, LOAD_IS, trainingScore } from "@/lib/hc/adaptive-program";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
@@ -421,38 +421,19 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
         {/* What the week is made of. Directly under the hero and the
             Breytingar button, because a gap here is a thing you fix there. */}
-        {balance && <WeekBalance score={balance} stage={stage} onFix={onSaveTraining ? () => setChanges(true) : undefined} />}
+        {balance && <WeekBalance score={balance} stage={stage}
+          description={exercise.description} principles={exercise.principles}
+          onFix={onSaveTraining ? () => setChanges(true) : undefined} />}
 
         {editable && controls}
         {stages}
 
-        {/* The paragraph explaining the programme and the list of why it works
-            both sat open on the page — one above the sessions and one below
-            them. Nobody reads a rationale while looking for today's workout,
-            and the sessions were pushed down by both. They are one disclosure
-            now, at the end, for whoever does want them. */}
-        {(exercise.description || !!exercise.principles?.length) && (
-          <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-slate-800">
-              <Info className="h-4 w-4 text-orange-700" aria-hidden />
-              Um áætlunina — af hverju þetta virkar
-              <ChevronDown className="ml-auto h-4 w-4 text-slate-400 transition group-open:rotate-180" aria-hidden />
-            </summary>
-            <div className="mt-3 space-y-4">
-              {exercise.description && <p className="text-sm leading-relaxed text-slate-700">{exercise.description}</p>}
-              {!!exercise.principles?.length && (
-                <ol className="grid gap-2 sm:grid-cols-2">
-                  {exercise.principles.map((p, i) => (
-                    <li key={i} className="flex gap-3 rounded-2xl border border-orange-100 bg-orange-50/40 p-3">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-700">{i + 1}</span>
-                      <span className="text-sm text-slate-700">{p}</span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </div>
-          </details>
-        )}
+        {/* The programme paragraph and its principles were a second
+            disclosure down here, also called "Um áætlunina", repeating what
+            the card above says: that paragraph gives the strength dose and
+            calls zone 2 the base, which the card's own rows already show as
+            numbers and its quality lines were restating in words. One
+            disclosure, in the card that owns the subject. */}
 
       {/* Swapping used to mean a 976-exercise library pinned to the right of
           the page at all times. It is a popup now, opened from the exercise

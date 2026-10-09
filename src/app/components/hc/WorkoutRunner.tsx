@@ -164,14 +164,27 @@ function Shell({ title, onClose, children }: { title: string; onClose: () => voi
    */
   useEffect(() => {
     const y = window.scrollY;
+    const html = document.documentElement;
+    /*
+     * html, not only body.
+     *
+     * globals.css sets overflow-x: clip on html to stop a wide child making
+     * the page draggable sideways. That takes html out of `overflow:
+     * visible`, which makes html the element that scrolls the viewport — so
+     * hiding body's overflow locked nothing and the page still moved.
+     * Measured: touch-action took effect and overflow did not.
+     */
     const prev = {
-      overflow: document.body.style.overflow,
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: document.body.style.overflow,
       touch: document.body.style.touchAction,
     };
+    html.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
     document.body.style.touchAction = "none";
     return () => {
-      document.body.style.overflow = prev.overflow;
+      html.style.overflow = prev.htmlOverflow;
+      document.body.style.overflow = prev.bodyOverflow;
       document.body.style.touchAction = prev.touch;
       window.scrollTo({ top: y, behavior: "instant" });
     };
