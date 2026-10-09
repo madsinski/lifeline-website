@@ -18,6 +18,7 @@ import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type Step
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import ReportApproval from "@/app/components/hc/ReportApproval";
+import RetentionReview from "@/app/components/hc/RetentionReview";
 import JourneyNav from "@/app/components/hc/JourneyNav";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
@@ -168,6 +169,7 @@ function Heilsuferd() {
       {/* First thing on the page: a report somebody else entered is not
           shown anywhere until the person says it is theirs. */}
       <div className="mb-4"><ReportApproval api={api} onDone={() => load(true)} /></div>
+      <RetentionReview api={api} onDone={() => load(true)} />
       {next && <div className="mb-4"><AppointmentCard a={next} /></div>}
       {data.profile.complete && data.profile.health_consent === false && <ConsentCard reload={() => load(true)} />}
       {/* Hero: where you are, in one glance, and the one thing to do next. */}

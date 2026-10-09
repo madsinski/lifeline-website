@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.15";
+export const SECURITY_POSTURE_VERSION = "v1.16";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-09";
 
 export function renderSecurityPosture(): string {
@@ -571,6 +571,23 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.16 (2026-10-09)
+  Retention for parsed reports. The PDF is never stored on any path —
+  both routes parse in memory and persist only the encrypted result — but
+  that result is health data and Art. 5(1)(e) applies. Because Lifeline is
+  a viewer and not a sjúkraskrá, lög 55/2009's retention duty does not,
+  so storage limitation decides.
+
+  The person is asked rather than timed out: once a year, and only when
+  nothing has been done with the report for six months — real use is
+  credited as an answer instead of nagging somebody whose plan is built on
+  it. Silence is not consent to keep: a reminder at 30 days, removal at
+  60. That is defensible only because the original stays in Medalia, so
+  removing Lifeline's copy loses nothing re-importable in one step, and
+  the prompt says so — otherwise people keep out of fear and the review
+  becomes theatre. Policy in src/lib/hc/retention.ts; weekly cron
+  /api/cron/hc-report-retention; every outcome written to hc_audit.
 
 v1.15 (2026-10-09)
   The client now confirms a report staff entered on their behalf. Until
@@ -1270,6 +1287,23 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.16 (2026-10-09)
+  Retention for parsed reports. The PDF is never stored on any path —
+  both routes parse in memory and persist only the encrypted result — but
+  that result is health data and Art. 5(1)(e) applies. Because Lifeline is
+  a viewer and not a sjúkraskrá, lög 55/2009's retention duty does not,
+  so storage limitation decides.
+
+  The person is asked rather than timed out: once a year, and only when
+  nothing has been done with the report for six months — real use is
+  credited as an answer instead of nagging somebody whose plan is built on
+  it. Silence is not consent to keep: a reminder at 30 days, removal at
+  60. That is defensible only because the original stays in Medalia, so
+  removing Lifeline's copy loses nothing re-importable in one step, and
+  the prompt says so — otherwise people keep out of fear and the review
+  becomes theatre. Policy in src/lib/hc/retention.ts; weekly cron
+  /api/cron/hc-report-retention; every outcome written to hc_audit.
 
 v1.15 (2026-10-09)
   The client now confirms a report staff entered on their behalf. Until

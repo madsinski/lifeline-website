@@ -47,6 +47,10 @@
     {
       "path": "/api/cron/hc-nudges",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/hc-report-retention",
+      "schedule": "0 5 * * 2"
     }
   ]
 }
