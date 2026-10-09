@@ -80,7 +80,19 @@ export default function BetaFeedback() {
       {/* Floating button */}
       <button
         onClick={() => { setOpen(!open); if (submitted) reset(); }}
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg transition-all duration-200 ${
+        /*
+         * z-30 and clear of the bottom bar.
+         *
+         * At z-50 this sat level with every modal and sheet in the app, and
+         * because the layout renders it after the page it won the tie — so
+         * it covered the bottom-right corner of each one, which is exactly
+         * where the primary action goes. It also beat the mobile bottom nav
+         * at z-40, putting a feedback pill on top of the right-hand tabs.
+         *
+         * Below both now, and lifted above the nav on small screens so it
+         * does not hide underneath it instead.
+         */
+        className={`fixed bottom-24 right-4 z-30 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg transition-all duration-200 sm:bottom-6 sm:right-6 ${
           open
             ? "bg-gray-700 text-white hover:bg-gray-800"
             : "bg-[#10B981] text-white hover:bg-[#047857] hover:shadow-xl"
@@ -100,7 +112,7 @@ export default function BetaFeedback() {
 
       {/* Panel */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 w-[calc(100vw-3rem)] sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="fixed bottom-40 right-4 z-30 w-[calc(100vw-2rem)] sm:bottom-20 sm:right-6 sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
           {submitted ? (
             /* Success state */
             <div className="p-8 text-center">
