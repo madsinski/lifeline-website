@@ -74,14 +74,28 @@ export async function GET(req: NextRequest) {
     for (const w of who ?? []) names.set(w.id as string, (w.full_name as string) ?? "—");
   }
 
-  const partnerId = me?.accountability_partner_id as string | undefined;
+  /**
+   * Resolve the partner by name when there is no id.
+   *
+   * The app never wrote accountability_partner_id — it sets only the name
+   * and a score it leaves at zero. Without resolving, an app-chosen partner
+   * can be neither measured nor nudged, which is exactly what Mads' own
+   * account showed: "canNudge: false" beside a partner who is right there.
+   */
   const partnerName = me?.accountability_partner_name as string | undefined;
+  let partnerId = me?.accountability_partner_id as string | undefined;
+  if (!partnerId && partnerName) {
+    const { data: byName } = await supabaseAdmin
+      .from("clients").select("id").eq("full_name", partnerName).limit(2);
+    // Only when the name is unambiguous — two members can share one.
+    if (byName?.length === 1) partnerId = byName[0].id as string;
+  }
+
   let partnerDays: number | null = null;
-  if (partnerId || partnerName) {
-    const { data: pj } = partnerId
-      ? await supabaseAdmin.from("hc_journeys").select("id").eq("client_id", partnerId).is("cancelled_at", null).limit(1)
-      : { data: null };
-    if (pj?.[0]) partnerDays = await activeDays(pj[0].id as string, partnerId!, 14);
+  if (partnerId) {
+    const { data: pj } = await supabaseAdmin
+      .from("hc_journeys").select("id").eq("client_id", partnerId).is("cancelled_at", null).limit(1);
+    if (pj?.[0]) partnerDays = await activeDays(pj[0].id as string, partnerId, 14);
   }
 
   return NextResponse.json({
@@ -123,8 +137,17 @@ export async function POST(req: NextRequest) {
   if (user instanceof NextResponse) return user;
 
   const { data: me } = await supabaseAdmin
-    .from("clients").select("full_name, accountability_partner_id").eq("id", user.id).maybeSingle();
-  const partnerId = me?.accountability_partner_id as string | undefined;
+    .from("clients")
+    .select("full_name, accountability_partner_id, accountability_partner_name")
+    .eq("id", user.id).maybeSingle();
+
+  // Same name fallback as the GET, or the button would show and then fail.
+  let partnerId = me?.accountability_partner_id as string | undefined;
+  if (!partnerId && me?.accountability_partner_name) {
+    const { data: byName } = await supabaseAdmin
+      .from("clients").select("id").eq("full_name", me.accountability_partner_name as string).limit(2);
+    if (byName?.length === 1) partnerId = byName[0].id as string;
+  }
   if (!partnerId) return NextResponse.json({ error: "no-partner" }, { status: 400 });
 
   const { data: recent } = await supabaseAdmin

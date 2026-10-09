@@ -144,11 +144,15 @@ export function TodayPartner({ d, api, onNudged }: { d: Data; api: Api; onNudged
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold text-hc-ink">{d.partner.name}</span>
           <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-            {d.partner.days !== null && (
+            {d.partner.days !== null ? (
               <span className="flex items-center gap-1.5">
                 <Dots days={d.partner.days} of={d.partner.of} tone="#64748b" />
                 <span className="text-xs text-slate-500">{d.partner.days}/{d.partner.of}</span>
               </span>
+            ) : (
+              // No heilsuferð on their side, so there is nothing to show —
+              // better said than left as an empty row of grey dots.
+              <span className="text-xs text-slate-400">Engin virkni skráð hjá félaganum</span>
             )}
             <span className="flex items-center gap-1.5">
               <span className="text-xs text-slate-400">Þú</span>
