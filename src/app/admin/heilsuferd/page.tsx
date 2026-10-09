@@ -21,7 +21,17 @@ interface Overview {
   packages: (HcPackage & { active: boolean })[];
   locations: (HcLocation & { active: boolean })[];
 }
-interface Worker { id: string; email: string; name: string; phone: string | null; organization: string; role: string; location_ids: string[]; receives_report_sms: boolean; active: boolean; activated: boolean; last_login_at: string | null }
+interface Worker {
+  id: string; email: string; name: string; phone: string | null; organization: string;
+  role: string; location_ids: string[]; receives_report_sms: boolean; active: boolean;
+  activated: boolean; last_login_at: string | null;
+  /* What a participant sees of this person on the Þjálfari tab. */
+  bio: string | null;
+  photo_url: string | null;
+  credentials: string | null;
+  specialties: string[] | null;
+  accepting_clients: boolean;
+}
 
 const TABS = [
   { key: "overview", label: "Yfirlit" },
@@ -33,7 +43,14 @@ const FUNNEL = ["account", "profile", "welcome", "package", "protocol", "tests",
 
 export default function HeilsuferdAdmin() {
   const { authorized, loading } = useStaffGuard();
-  const [tab, setTab] = useState("overview");
+  /* ?tab=workers opens the Vinnustöð tab, so the pointer from /admin/team
+     lands on the editor rather than the overview. Read once on mount; the
+     tab is local state after that. */
+  const [tab, setTab] = useState(() => {
+    if (typeof window === "undefined") return "overview";
+    const t = new URLSearchParams(window.location.search).get("tab");
+    return TABS.some((x) => x.key === t) ? t! : "overview";
+  });
   const [data, setData] = useState<Overview | null>(null);
   const load = useCallback(async () => {
     const r = await adminJson<Overview>("/api/admin/hc/overview");
@@ -225,7 +242,7 @@ function WorkersTab({ locations }: { locations: Overview["locations"] }) {
   const save = async (invite: boolean) => {
     if (!edit) return;
     const r = await adminJson<{ invite_url: string | null }>("/api/admin/hc/workers", { method: "POST", body: JSON.stringify({ ...edit, send_invite: invite }) });
-    setMsg(r.ok ? (invite ? "Vistað og boð sent." : "Vistað.") : r.error || "Villa");
+    setMsg(r.ok ? (invite ? "Vistað og boð send." : "Vistað.") : r.error || "Villa");
     if (r.ok) { setEdit(null); await load(); }
   };
 
@@ -258,6 +275,29 @@ function WorkersTab({ locations }: { locations: Overview["locations"] }) {
           </div>
           <label className="flex items-center gap-2 sm:col-span-2"><input type="checkbox" checked={!!edit.receives_report_sms} onChange={(e) => setEdit({ ...edit, receives_report_sms: e.target.checked })} /> Fær SMS ef skýrsla bíður í 5 mín. (læknar)</label>
           <label className="flex items-center gap-2"><input type="checkbox" checked={edit.active !== false} onChange={(e) => setEdit({ ...edit, active: e.target.checked })} /> Virkur</label>
+
+          {/* The profile a participant reads before deciding to talk to this
+              person, or to switch to them. Separate from the account fields
+              above: those decide what the worker can do, these decide what a
+              stranger knows about them. */}
+          <p className="mt-2 text-xs font-bold uppercase tracking-wide text-slate-500 sm:col-span-3">Það sem þátttakendur sjá</p>
+          <input value={edit.credentials ?? ""} onChange={(e) => setEdit({ ...edit, credentials: e.target.value })}
+            placeholder="Titill og nám, t.d. „MSc í íþróttafræði“" className="rounded-lg border border-slate-300 px-3 py-2 sm:col-span-2" />
+          <input value={edit.photo_url ?? ""} onChange={(e) => setEdit({ ...edit, photo_url: e.target.value })}
+            placeholder="Hlekkur á mynd (https://…)" className="rounded-lg border border-slate-300 px-3 py-2" />
+          <textarea value={edit.bio ?? ""} onChange={(e) => setEdit({ ...edit, bio: e.target.value })} rows={3} maxLength={1200}
+            placeholder="Stutt kynning í fyrstu persónu — hver þú ert og hvernig þú vinnur."
+            className="rounded-lg border border-slate-300 px-3 py-2 sm:col-span-3" />
+          <input value={(edit.specialties ?? []).join(", ")}
+            onChange={(e) => setEdit({ ...edit, specialties: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })}
+            placeholder="Sérsvið, aðskilin með kommu — t.d. „Svefn, Styrktarþjálfun, Næring“"
+            className="rounded-lg border border-slate-300 px-3 py-2 sm:col-span-3" />
+          <label className="flex items-center gap-2 sm:col-span-3">
+            <input type="checkbox" checked={edit.accepting_clients !== false}
+              onChange={(e) => setEdit({ ...edit, accepting_clients: e.target.checked })} />
+            Tekur við nýjum þátttakendum
+            <span className="text-xs text-slate-500">— ef ekki, heldur hann sínum en birtist ekki í listanum þegar fólk skiptir um þjálfara.</span>
+          </label>
           <div className="flex gap-2 sm:col-span-3">
             <button onClick={() => save(false)} className="rounded-lg border border-slate-300 px-4 py-2 font-semibold">Vista</button>
             <button onClick={() => save(true)} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white">Vista og senda boð</button>

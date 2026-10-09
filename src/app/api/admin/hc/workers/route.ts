@@ -1,6 +1,8 @@
 // Workstation users (Lifeline + partner nurses/doctors).
 // GET → list   POST { id?, email, name, phone, organization, role,
-//                     location_ids, receives_report_sms, active, send_invite? }
+//                     location_ids, receives_report_sms, active, send_invite?,
+//                     bio, photo_url, credentials, specialties[],
+//                     accepting_clients }
 // Invites email a one-time activation link (/vinnustod/virkja/<token>).
 
 import { NextRequest, NextResponse } from "next/server";
@@ -17,7 +19,7 @@ export async function GET(req: NextRequest) {
   if (g instanceof NextResponse) return g;
   const { data } = await supabaseAdmin
     .from("hc_workers")
-    .select("id, email, name, phone, organization, role, location_ids, receives_report_sms, active, invited_at, last_login_at, password_hash")
+    .select("id, email, name, phone, organization, role, location_ids, receives_report_sms, active, invited_at, last_login_at, password_hash, bio, photo_url, credentials, specialties, accepting_clients")
     .order("name");
   return NextResponse.json({
     workers: (data || []).map((w) => {
@@ -43,6 +45,22 @@ export async function POST(req: NextRequest) {
     location_ids: Array.isArray(b.location_ids) ? b.location_ids.filter((x: unknown) => typeof x === "string") : [],
     receives_report_sms: !!b.receives_report_sms,
     active: b.active !== false,
+    /*
+     * What a participant sees on the Þjálfari tab.
+     *
+     * Empty strings become null rather than being stored: the profile card
+     * tests for a value to decide whether to draw a line at all, and ""
+     * would draw an empty one.
+     */
+    bio: typeof b.bio === "string" && b.bio.trim() ? b.bio.trim().slice(0, 1200) : null,
+    photo_url: typeof b.photo_url === "string" && /^https?:\/\//.test(b.photo_url.trim()) ? b.photo_url.trim().slice(0, 500) : null,
+    credentials: typeof b.credentials === "string" && b.credentials.trim() ? b.credentials.trim().slice(0, 160) : null,
+    specialties: Array.isArray(b.specialties)
+      ? [...new Set(b.specialties.map((x: unknown) => String(x).trim()).filter(Boolean))].slice(0, 8)
+      : [],
+    // Someone at capacity stays assigned to the people they have, and
+    // simply stops appearing in the list of coaches to switch to.
+    accepting_clients: b.accepting_clients !== false,
   };
   const q = b.id
     ? supabaseAdmin.from("hc_workers").update(row).eq("id", b.id).select("id, name, email").single()

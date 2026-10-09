@@ -534,6 +534,15 @@ export default function TeamPage() {
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold text-[#1F2937]">Team Management</h2>
+            {/* This page is the `staff` table — who may use the admin app and
+                what they may do in it. The heilsuferð coach profile a
+                participant reads lives on `hc_workers`, a different table
+                with its own login, so it is edited where those are. Said here
+                because this is the page somebody looks on first. */}
+            <a href="/admin/heilsuferd?tab=workers"
+              className="text-sm font-semibold text-[#047857] hover:underline">
+              Þjálfaraprófílar (kynning, mynd, sérsvið) →
+            </a>
             {/* Connection status indicator */}
             <div className="flex items-center gap-1.5">
               <span
