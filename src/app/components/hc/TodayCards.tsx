@@ -79,7 +79,7 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
     <div className="flex items-center gap-3">
       <span className="w-20 shrink-0 truncate text-xs font-semibold" style={{ color: tone }}>{label}</span>
       {st ? <Dots days={st.days14} of={14} tone={tone} /> : <span className="text-xs text-slate-400">engin virkni</span>}
-      {st && <span className="ml-auto text-xs font-bold tabular-nums text-slate-600">{st.days14}/14</span>}
+      {st && <span className="ml-auto text-xs font-bold tabular-nums text-slate-600">{st.days14} af 14</span>}
     </div>
   );
 
@@ -97,10 +97,17 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
           style={{ width: `${ofToday ? (doneToday / ofToday) * 100 : 0}%` }} />
       </span>
 
-      {/* The two of you, same measure, one above the other. */}
-      <div className="mt-4 space-y-2 border-t border-slate-100 pt-3">
-        {row("Þú", mine, "#047857")}
-        {d.partner && row(d.partner.name.split(" ")[0], theirs, "#64748b")}
+      {/* The two of you, same measure, one above the other.
+          Labelled, because "12/14" on its own is a number without a noun —
+          it could be sets, actions, anything. */}
+      <div className="mt-4 border-t border-slate-100 pt-3">
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+          Dagar með virkni · síðustu 14
+        </p>
+        <div className="space-y-2">
+          {row("Þú", mine, "#047857")}
+          {d.partner && row(d.partner.name.split(" ")[0], theirs, "#64748b")}
+        </div>
       </div>
 
       {next && (
@@ -135,9 +142,12 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
 
       {more && (
         <dl className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3">
-          {([["Í röð", mine ? `${mine.streak} d` : "—", theirs ? `${theirs.streak} d` : "—"],
-             ["7 dagar", mine ? `${mine.days7}/7` : "—", theirs ? `${theirs.days7}/7` : "—"],
-             ["28 dagar", mine ? `${mine.percent28}%` : "—", theirs ? `${theirs.percent28}%` : "—"]] as const).map(([k, a, b]) => (
+          <p className="col-span-3 -mb-1 text-[10px] text-slate-400">
+            Allt talið í dögum þar sem eitthvað var merkt — ekki fjölda aðgerða.
+          </p>
+          {([["Daga í röð", mine ? `${mine.streak}` : "—", theirs ? `${theirs.streak}` : "—"],
+             ["Af síðustu 7", mine ? `${mine.days7}` : "—", theirs ? `${theirs.days7}` : "—"],
+             ["Af síðustu 28", mine ? `${mine.days28}` : "—", theirs ? `${theirs.days28}` : "—"]] as const).map(([k, a, b]) => (
             <div key={k}>
               <dt className="text-[10px] uppercase tracking-wide text-slate-400">{k}</dt>
               <dd className="text-sm font-bold tabular-nums text-hc-ink">{a}</dd>

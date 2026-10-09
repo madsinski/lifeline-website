@@ -12,7 +12,7 @@
 import * as cache from "@/lib/hc/client-cache";
 import PillarIcon from "./PillarIcon";
 import ActionSheet from "./ActionSheet";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, RotateCcw, Sliders } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { isoDay, lastDays, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
@@ -35,7 +35,7 @@ export interface ActionLinks {
 }
 
 export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links, onEditPillar,
-  exercise, doneToday, onCompleteSession }: {
+  exercise, doneToday, onCompleteSession, onLogs }: {
   api: Api;
   journeyId: string;
   plan: ActionPlan;
@@ -55,6 +55,13 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   doneToday?: Set<string>;
   /** Tick a session off here exactly as Æfingar would. */
   onCompleteSession?: (s: PSession) => void;
+  /**
+   * Ticks live here, in optimistic local state, but the day's count is
+   * drawn in a card outside this component. Without this the card read
+   * "0 af 18" no matter how many boxes were ticked — it was watching the
+   * page's copy of the logs, which a tick never touches.
+   */
+  onLogs?: (logs: ActionLog[]) => void;
 }) {
   const [logs, setLogs] = useState<ActionLog[]>(initialLogs);
   const [prefs, setPrefs] = useState<ActionPref[]>(initialPrefs);
@@ -95,6 +102,8 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const actions = plan.modules ?? [];
   const live = actions.filter((a) => !hidden.has(a.uid));
   const put = actions.filter((a) => hidden.has(a.uid));
+
+  useEffect(() => { onLogs?.(logs); }, [logs, onLogs]);
 
   const doneOn = (uid: string, day: string) => logs.some((l) => l.action_uid === uid && l.done_on === day);
 
@@ -211,8 +220,8 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                       style={{ background: hit ? meta.ink : "currentColor", opacity: hit ? 1 : 0.25 }} />;
                   })}
                 </span>
-                <span className="tabular-nums">{w}/7 vika</span>
-                <span className="tabular-nums">{mo}/28 mánuður</span>
+                <span className="tabular-nums">{w} af 7 dögum</span>
+                <span className="tabular-nums">{mo} af 28</span>
               </span>
             </button>
             <ul className={`divide-y divide-slate-100 ${open ? "" : "hidden"}`}>

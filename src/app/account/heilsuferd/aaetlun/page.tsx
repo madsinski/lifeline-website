@@ -110,6 +110,12 @@ function PlanPageInner() {
    * button looked broken even when it had worked.
    */
   const [doneToday, setDoneToday] = useState<Set<string>>(() => new Set());
+  /**
+   * The checklist's own view of the logs, lifted so the day's count in the
+   * card above can see a tick the moment it happens. data.logs only changes
+   * on a page reload.
+   */
+  const [liveLogs, setLiveLogs] = useState<ActionLog[] | null>(null);
   /** Every measured value on the journey, for "Mínar mælingar". */
   const [results, setResults] = useState<HcResult[] | null>(null);
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
@@ -449,7 +455,7 @@ function PlanPageInner() {
                     onOpenExercise={(id) => setTab("exercise", id)} onEdit={() => setEditing(true)}
                     aside={today && (
                       <TodayCard d={today} api={api} onNudged={() => void reloadToday()}
-                        doneToday={(plan.modules ?? []).filter((m) => data.logs.some((l) => l.action_uid === m.uid && l.done_on === new Date().toISOString().slice(0, 10))).length
+                        doneToday={(plan.modules ?? []).filter((m) => (liveLogs ?? data.logs).some((l) => l.action_uid === m.uid && l.done_on === new Date().toISOString().slice(0, 10))).length
                           + (exercise?.sessions.filter((sx) => sx.weekday === ((new Date().getDay() + 6) % 7) && doneToday.has(sx.id)).length ?? 0)}
                         ofToday={(plan.modules ?? []).filter((m) => (m.frequency ?? "").toLowerCase() === "daglega" || m.pillar !== "exercise").length
                           + (exercise?.sessions.filter((sx) => sx.weekday === ((new Date().getDay() + 6) % 7)).length ?? 0)} />
@@ -457,7 +463,7 @@ function PlanPageInner() {
                   <MyActions api={api} journeyId={data.journey_id} plan={plan}
                     onEditPillar={(pl) => { setEditPillar(pl); setEditing(true); }} logs={data.logs} prefs={data.prefs}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }}
-                    exercise={exercise} doneToday={doneToday}
+                    exercise={exercise} doneToday={doneToday} onLogs={setLiveLogs}
                     onCompleteSession={(sx) => void finishWorkout({
                       minutes: sx.minutes ?? 45,
                       // A tick from Í dag carries no measured RPE — the
