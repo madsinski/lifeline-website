@@ -22,6 +22,21 @@ import {
 } from "@/lib/hc/workout";
 import type { PSession } from "@/lib/hc/personalise";
 import Wheel from "./Wheel";
+
+const MO_SHORT = ["jan", "feb", "mar", "apr", "maí", "jún", "júl", "ágú", "sep", "okt", "nóv", "des"];
+/**
+ * "7. okt", or "í gær" when it was. Hand-written because Vercel's runtime
+ * carries no Icelandic locale data — toLocaleDateString("is-IS") silently
+ * returns English there.
+ */
+function shortDate(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  const days = Math.round((Date.now() - d.getTime()) / 86_400_000);
+  if (days <= 1) return "í gær";
+  if (days < 7) return `fyrir ${days} dögum`;
+  return `${d.getDate()}. ${MO_SHORT[d.getMonth()]}`;
+}
 import type { ExerciseItem } from "@/lib/hc/types";
 import { muscleIs } from "@/lib/hc/exercise-labels";
 import { BASIS_IS, suggestStartWeight, type BodyData } from "@/lib/hc/start-weight";
@@ -207,6 +222,15 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [now, setNow] = useState(0);
   const [pr, setPr] = useState<{ weight: number | null; reps: number | null } | null>(null);
+  /**
+   * What this exercise looked like last time.
+   *
+   * The rows were already being fetched to prefill the weight; they were
+   * never shown. Progressive overload is the whole point of writing sets
+   * down, and you cannot beat last week if the app knows what you lifted
+   * and does not say.
+   */
+  const [prev, setPrev] = useState<{ date: string; sets: LoggedSet[] } | null>(null);
   const [voice, setVoice] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setVoice(voiceEnabled()), 0);
@@ -226,8 +250,15 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
     // The personal best, which the database maintains with its own trigger.
     const { data: best } = await supabase.from("exercise_prs")
       .select("weight, reps").eq("client_id", u.user.id).eq("exercise_id", it.exercise_id).maybeSingle();
+    // The most recent session that is not today, so a half-finished set
+    // today does not become the thing you are trying to beat.
+    const earlier = rows.filter((r) => r.date !== d);
+    const lastDate = earlier[0]?.date ?? null;
     setTimeout(() => {
       setToday(mine);
+      setPrev(lastDate
+        ? { date: lastDate, sets: earlier.filter((r) => r.date === lastDate).sort((a, b) => a.set_index - b.set_index) }
+        : null);
       setPr(best ? { weight: best.weight == null ? null : Number(best.weight), reps: best.reps } : null);
       // Pick up where the last session left off, as the app does.
       const last = rows[0];
@@ -310,6 +341,24 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
           )}
         </div>
       </div>
+
+      {/* Last time, so there is something to beat. Shown as it was lifted —
+          set by set — rather than averaged, because the shape of the session
+          is what you are repeating. */}
+      {prev && prev.sets.length > 0 && (
+        <p className="-mt-1 flex flex-wrap items-baseline gap-x-2 text-xs text-slate-500">
+          <span className="font-semibold text-slate-600">Síðast {shortDate(prev.date)}:</span>
+          <span className="tabular-nums">
+            {prev.sets.slice(0, 5).map((r, i) => (
+              <span key={i}>
+                {i > 0 ? ", " : ""}
+                {r.weight != null ? `${r.weight} kg × ${r.reps ?? "?"}` : `${r.reps ?? "?"}`}
+              </span>
+            ))}
+            {prev.sets.length > 5 ? ` +${prev.sets.length - 5}` : ""}
+          </span>
+        </p>
+      )}
 
       <div className={`grid gap-3 ${timed || bodyweight ? "" : "sm:grid-cols-2"}`}>
         {!timed && !bodyweight && (
