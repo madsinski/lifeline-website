@@ -16,6 +16,7 @@ import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
 import { activityFocus, activityModality, hardDays, stageAt, type Activity, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
+import SessionGuide from "./SessionGuide";
 import SessionAlternatives from "./SessionAlternatives";
 import AddDayActivity from "./AddDayActivity";
 import ActivityIcon from "./ActivityIcon";
@@ -218,23 +219,34 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             </div>
           )}
 
-          <div className="mt-5 grid grid-cols-7 gap-1.5">
+          {/* A day per row on a phone, the week as a grid from sm up.
+              Seven columns inside 360px gives each day about 44px, which is
+              why session names collapsed to "Styrk" — there was nowhere to
+              print them. Full-width rows have room for the real title.
+              Drag and drop is unaffected: it rides on data-drop and the
+              chips' own handles, not on the layout. */}
+          <div className="mt-5 flex flex-col gap-1.5 sm:grid sm:grid-cols-7">
             {WEEKDAYS_SHORT.map((d, i) => {
               const here = view.sessions.filter((s) => s.weekday === i);
               const mine = (training?.activities ?? []).filter((a) => a.day === i);
               const over = drag?.over === `day:${i}`;
               return (
                 <div key={d} data-drop={`day:${i}`}
-                  className={`flex min-h-[92px] flex-col gap-1 rounded-xl border p-1 transition ${
+                  className={`flex items-center gap-1.5 rounded-xl border p-1.5 transition sm:min-h-[92px] sm:flex-col sm:items-stretch sm:gap-1 sm:p-1 ${
                     over ? "border-orange-400 bg-orange-50" : i === todayIdx ? "border-orange-300 bg-orange-50/60" : "border-slate-200 bg-white"}`}>
-                  <p className={`text-center text-[11px] font-bold uppercase ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>{d}</p>
+                  <p className={`w-9 shrink-0 text-[11px] font-bold uppercase sm:w-auto sm:text-center ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>
+                    {d}
+                  </p>
+                  {/* The chips sit in a row beside the label on a phone and
+                      stack under it on a wide screen. */}
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 sm:contents">
                   {here.map((s) => (
                     <button key={s.id} type="button" {...handle({ kind: "session", id: s.id }, s.title)}
                       onClick={() => { setPickedDay(i); setOpenSession(s.id); }}
                       aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}`}
                       className={`select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${shownDay === i ? "outline outline-2 outline-hc-ink" : ""}`}>
-                      <span className={`mb-0.5 block h-1 w-5 rounded-full ${MODALITY_IS[s.modality].dot}`} />
-                      <span className="block truncate sm:hidden">{MODALITY_IS[s.modality].short}</span>
+                      <span className={`mb-0.5 hidden h-1 w-5 rounded-full sm:block ${MODALITY_IS[s.modality].dot}`} />
+                      <span className="block truncate sm:hidden">{s.title}</span>
                       <span className="hidden line-clamp-2 sm:block">{s.title.length > 11 ? MODALITY_IS[s.modality].label : s.title}</span>
                     </button>
                   ))}
@@ -276,6 +288,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                   {!onAddDay && here.length === 0 && mine.length === 0 && (
                     <p className="mt-auto pb-1 text-center text-[10px] text-slate-400">Hvíld</p>
                   )}
+                  </div>
                 </div>
               );
             })}
@@ -580,6 +593,9 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
         </div>
       )}
     >
+      {/* What this kind of training loads and where it tends to go wrong.
+          Collapsed by default: useful the first few times, noise after. */}
+      {open && <SessionGuide name={typeof s.title === "string" ? s.title : String(s.title)} modality={s.modality} />}
       {open && (
         <div className="divide-y divide-slate-100">
           {blocks.map((b) => (
