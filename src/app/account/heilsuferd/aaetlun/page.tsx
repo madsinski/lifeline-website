@@ -395,12 +395,14 @@ function PlanPageInner() {
             phone puts it behind "Meira", and /account bounces a participant
             straight back here — so the account needs a button of its own that
             is visible wherever you are. */}
-        <div className="mb-3 print:hidden">
-          {editing || customise || nutritionSetup
-            ? <BackLink label="Til baka í áætlunina"
-                onBack={() => { setEditing(false); setEditPillar(null); setCustomise(false); setNutritionSetup(false); }} />
-            : <BackLink href="/account/heilsuferd/adgangur" label="Aðgangurinn minn" />}
-        </div>
+        {/* The "Aðgangurinn minn" link is gone — the navbar already has it.
+            A back link out of an editor is a different thing and stays. */}
+        {(editing || customise || nutritionSetup) && (
+          <div className="mb-3 print:hidden">
+            <BackLink label="Til baka í áætlunina"
+              onBack={() => { setEditing(false); setEditPillar(null); setCustomise(false); setNutritionSetup(false); }} />
+          </div>
+        )}
 
         {data === undefined && <PlanSkeleton />}
 
@@ -440,7 +442,7 @@ function PlanPageInner() {
             <div className="mt-4">
               {tab === "today" && plan && (
                 <div className="space-y-4 print:hidden">
-                  <TodayHeader name={name} onEdit={() => setEditing(true)} />
+                  <TodayHeader name={name} />
                   {/* The urgent card carries the next appointment now, so
                       AppointmentCard no longer repeats it here. */}
                   <TodayOverview plan={plan} exercise={exercise} training={training}
