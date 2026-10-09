@@ -46,7 +46,10 @@ export const hcPage = {
 
 /** Segmented tabs (workstation nav, the participant's nav, plan tabs). */
 export const hcTabs = {
-  bar: "flex overflow-x-auto rounded-hc-element bg-hc-surface p-1 ring-1 ring-slate-200",
+  // No overflow-x-auto. It let the bar scroll sideways rather than fit,
+  // which hid the last tabs behind a drag nobody thinks to try. Items that
+  // do not fit belong under "Meira" instead.
+  bar: "flex rounded-hc-element bg-hc-surface p-1 ring-1 ring-slate-200",
   tab: (active: boolean) =>
     `flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${active ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`,
 };

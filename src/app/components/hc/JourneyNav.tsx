@@ -13,13 +13,24 @@ import { Bell, BookOpen, CircleUser, Compass, Dumbbell, FileHeart, MessageCircle
 
 export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "coach" | "report" | "journey" | "notifications" | "account";
 
-const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun }[] = [
-  { key: "today", label: "Í dag", href: "/account/heilsuferd/aaetlun?tab=today", Icon: Sun },
-  { key: "exercise", label: "Æfingar", href: "/account/heilsuferd/aaetlun?tab=exercise", Icon: Dumbbell },
-  { key: "nutrition", label: "Næring", href: "/account/heilsuferd/aaetlun?tab=nutrition", Icon: Utensils },
+/**
+ * `primary` is what earns a slot in the bar itself. Nine items laid flat
+ * overflowed the bar on a laptop and it scrolled sideways — a nav you have
+ * to drag is a nav whose last items nobody finds.
+ *
+ * The five primary ones are the surfaces someone opens on a given day. The
+ * rest are real destinations but occasional: a lecture, the journey map,
+ * settings. Tilkynningar is deliberately never primary — the bell beside the
+ * greeting is its entry point, and a tab as well would be the same door
+ * twice.
+ */
+const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun; primary?: boolean }[] = [
+  { primary: true, key: "today", label: "Í dag", href: "/account/heilsuferd/aaetlun?tab=today", Icon: Sun },
+  { primary: true, key: "exercise", label: "Æfingar", href: "/account/heilsuferd/aaetlun?tab=exercise", Icon: Dumbbell },
+  { primary: true, key: "nutrition", label: "Næring", href: "/account/heilsuferd/aaetlun?tab=nutrition", Icon: Utensils },
   { key: "fraedsla", label: "Fræðsla", href: "/account/heilsuferd/fraedsla", Icon: BookOpen },
-  { key: "coach", label: "Þjálfari", href: "/account/heilsuferd/aaetlun?tab=coach", Icon: MessageCircle },
-  { key: "report", label: "Skýrslan", href: "/account/heilsuferd/aaetlun?tab=report", Icon: FileHeart },
+  { primary: true, key: "coach", label: "Þjálfari", href: "/account/heilsuferd/aaetlun?tab=coach", Icon: MessageCircle },
+  { primary: true, key: "report", label: "Skýrslan", href: "/account/heilsuferd/aaetlun?tab=report", Icon: FileHeart },
   { key: "journey", label: "Ferðin", href: "/account/heilsuferd?ferd=1", Icon: Compass },
   { key: "notifications", label: "Tilkynningar", href: "/account/heilsuferd/tilkynningar", Icon: Bell },
   { key: "account", label: "Aðgangur", href: "/account/heilsuferd/adgangur", Icon: CircleUser },
@@ -39,6 +50,12 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
   const [more, setMore] = useState(false);
   const items = ITEMS.filter((i) =>
     (i.key !== "report" || hasReport) && (i.key !== "exercise" || (hasPlan && hasExercise)) && (i.key !== "nutrition" || (hasPlan && hasNutrition)) && (i.key !== "today" || hasPlan));
+  const primary = items.filter((i) => i.primary);
+  const rest = items.filter((i) => !i.primary);
+  const restActive = rest.some((i) => i.key === active);
+  /** Unread lives on a hidden item, so the overflow button has to say so. */
+  const restUnread = rest.some((i) => i.key === "notifications") && unread > 0;
+
   const item = (i: (typeof ITEMS)[number], mobile: boolean) => {
     const on = i.key === active;
     return (
@@ -60,26 +77,59 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
   return (
     <>
       <nav aria-label="Heilsuferðin" className={`hidden sm:flex print:hidden ${hcTabs.bar}`}>
-        {items.map((i) => item(i, false))}
+        {primary.map((i) => item(i, false))}
+        {rest.length > 0 && (
+          <div className="relative flex shrink-0">
+            <button type="button" onClick={() => setMore(!more)} aria-expanded={more}
+              className={`${hcTabs.tab(restActive)} flex items-center justify-center gap-2`}>
+              <span className="relative">
+                <MoreHorizontal className="h-4 w-4" aria-hidden />
+                {restUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${unread} ný`} />}
+              </span>
+              Meira
+            </button>
+            {more && (
+              <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200">
+                {rest.map((i) => (
+                  <Link key={i.key} href={i.href} onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
+                    className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-700 hover:bg-slate-50"}`}>
+                    <i.Icon className="h-5 w-5" aria-hidden />{i.label}
+                    {i.key === "notifications" && unread > 0 && (
+                      <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{unread > 9 ? "9+" : unread}</span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
-      {/* Phones: five slots at most; the rest under "Meira". */}
+      {/* The phone bar took the first four by position while the desktop bar
+          took all nine, so the two disagreed about what mattered. Same split
+          now — four primary and Meira, since five plus Meira is too many
+          thumbs wide. */}
       {(() => {
-        const primary = items.length > 5 ? items.slice(0, 4) : items;
-        const rest = items.length > 5 ? items.slice(4) : [];
-        const restActive = rest.some((i) => i.key === active);
+        const slots = primary.length > 4 ? primary.slice(0, 4) : primary;
+        const spill = [...primary.slice(slots.length), ...rest];
+        const spillActive = spill.some((i) => i.key === active);
+        const spillUnread = spill.some((i) => i.key === "notifications") && unread > 0;
         return (
           <nav aria-label="Heilsuferðin" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden print:hidden"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-            {primary.map((i) => item(i, true))}
-            {rest.length > 0 && (
+            {slots.map((i) => item(i, true))}
+            {spill.length > 0 && (
               <div className="relative flex flex-1">
                 <button type="button" onClick={() => setMore(!more)} aria-expanded={more}
-                  className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${restActive ? "text-hc-brand-dark" : "text-slate-500"}`}>
-                  <MoreHorizontal className="h-6 w-6" aria-hidden /> Meira
+                  className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${spillActive ? "text-hc-brand-dark" : "text-slate-500"}`}>
+                  <span className="relative">
+                    <MoreHorizontal className="h-6 w-6" aria-hidden />
+                    {spillUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${unread} ný`} />}
+                  </span>
+                  Meira
                 </button>
                 {more && (
                   <div className="absolute bottom-full right-1 mb-2 w-48 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200">
-                    {rest.map((i) => (
+                    {spill.map((i) => (
                       <Link key={i.key} href={i.href} onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
                         className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-700 hover:bg-slate-50"}`}>
                         <i.Icon className="h-5 w-5" aria-hidden />{i.label}

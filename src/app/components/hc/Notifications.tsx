@@ -7,7 +7,7 @@
 // A booked appointment shows in the list but never lights it: a dot you
 // cannot clear is a dot people stop seeing.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, CalendarClock, FileCheck2, Hand, MessageCircle } from "lucide-react";
 import { hcCard } from "./ui";
@@ -51,20 +51,95 @@ export function useNotifications(api: Api) {
 }
 
 /**
- * Beside "Hæ Mads": the bell and the count, nothing else.
+ * A short two-note chime, synthesised rather than fetched.
  *
- * It carried the newest item's title too, which on a phone took half the
- * line and pushed the greeting around as the text changed length. The
- * count already says there is something; the title is one tap away.
+ * No asset, no request, a few lines: a notification sound is two sine tones
+ * with a fast decay, and shipping an mp3 for that would be a download on a
+ * page nobody opened to hear it.
+ *
+ * It can simply not play, and that is fine. Browsers refuse audio until the
+ * person has interacted with the page, so a chime on first load is blocked
+ * by design — hence the red pulse, which is the part that always works.
+ */
+function chime() {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    // suspended means no gesture has happened yet and the browser will not
+    // let this through. Give up quietly rather than leaving a context open.
+    if (ctx.state === "suspended") { void ctx.close(); return; }
+    [880, 1174.7].forEach((hz, n) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine"; o.frequency.value = hz;
+      const t = ctx.currentTime + n * 0.14;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.12, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + 0.32);
+    });
+    setTimeout(() => void ctx.close().catch(() => {}), 1200);
+  } catch { /* no audio on this device, or blocked. The pulse carries it. */ }
+}
+
+const SEEN_KEY = "hc-notif-seen-count";
+
+/**
+ * Beside "Hæ Mads": the bell and the count.
+ *
+ * Loud on purpose, because a coach's message or a report waiting for
+ * approval is the one thing on this page that is waiting on the person
+ * rather than the other way round. A red ring pulses behind it and a chime
+ * plays — but only when the count has actually gone up since they last
+ * looked, so opening the page five times does not ring five times.
+ *
+ * The high-water mark lives in localStorage, which is per-browser and can
+ * throw in a private window, so every access is guarded and a failure just
+ * means the alert behaves as if everything were new. Motion is dropped for
+ * anyone who asked for less of it; the red stays.
  */
 export function NotificationBell({ unread }: { unread: number }) {
+  const [fresh, setFresh] = useState(false);
+  const rung = useRef(false);
+
+  useEffect(() => {
+    // Deferred, like the loader above it: setting state synchronously inside
+    // an effect cascades renders, and nothing here needs to land this tick.
+    const t = setTimeout(() => {
+      if (unread <= 0) {
+        try { window.localStorage.removeItem(SEEN_KEY); } catch { /* private mode */ }
+        setFresh(false);
+        return;
+      }
+      let seen = 0;
+      try { seen = Number(window.localStorage.getItem(SEEN_KEY) ?? 0) || 0; } catch { /* private mode */ }
+      if (unread > seen) {
+        setFresh(true);
+        try { window.localStorage.setItem(SEEN_KEY, String(unread)); } catch { /* private mode */ }
+        // Once per mount. React runs effects twice in development and a
+        // double chime is the kind of thing that ships.
+        if (!rung.current) { rung.current = true; chime(); }
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [unread]);
+
   return (
     <Link href="/account/heilsuferd/tilkynningar"
-      className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+      onClick={() => setFresh(false)}
+      className={`relative grid h-10 w-10 shrink-0 place-items-center rounded-full transition ${
+        unread > 0 ? "text-red-600 hover:bg-red-50" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
       aria-label={unread ? `Tilkynningar, ${unread} ný` : "Tilkynningar"}>
-      <Bell className="h-5 w-5" aria-hidden />
+      {/* The pulse sits behind the bell and does not move it, so the
+          greeting line stays put while it rings. */}
+      {fresh && (
+        <span className="absolute inset-0 animate-hc-ping rounded-full bg-red-500/30 motion-reduce:hidden" aria-hidden />
+      )}
+      <Bell className={`relative h-5 w-5 ${fresh ? "animate-hc-swing motion-reduce:animate-none" : ""}`} aria-hidden />
       {unread > 0 && (
-        <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+        <span className={`absolute right-0.5 top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white ring-2 ring-white ${
+          fresh ? "animate-hc-pulse motion-reduce:animate-none" : ""}`}>
           {unread > 9 ? "9+" : unread}
         </span>
       )}

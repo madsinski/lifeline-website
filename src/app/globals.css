@@ -365,3 +365,30 @@ main.readonly-locked a {
   pointer-events: auto !important;
   opacity: 1 !important;
 }
+
+/* The notification bell when something new has arrived.
+   Three layers, because one alone reads as decoration: a ring expanding
+   out of the bell, a short swing on the bell itself, and a breathing
+   count. All three are behind motion-reduce in the markup. */
+@keyframes hc-ping {
+  0%   { transform: scale(0.9); opacity: 0.8; }
+  70%  { transform: scale(2.1); opacity: 0; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+@keyframes hc-swing {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  10%  { transform: rotate(-14deg); }
+  20%  { transform: rotate(12deg); }
+  30%  { transform: rotate(-9deg); }
+  40%  { transform: rotate(6deg); }
+  50%  { transform: rotate(-3deg); }
+}
+@keyframes hc-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+/* Six rings and then it stops. An indicator that pulses forever becomes
+   wallpaper, and the red badge still holds the state once it has. */
+.animate-hc-ping  { animation: hc-ping 1.5s cubic-bezier(0, 0, 0.2, 1) 6; }
+.animate-hc-swing { animation: hc-swing 1.5s ease-in-out 6; transform-origin: top center; }
+.animate-hc-pulse { animation: hc-pulse 1.5s ease-in-out 6; }
