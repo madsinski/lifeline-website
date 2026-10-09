@@ -6,7 +6,8 @@
 // as you finish it, a rest countdown after each one, and an RPE question at
 // the end. Ported from the app's WorkoutAdaptSheet + ExerciseSetTracker so
 // the two agree; see src/lib/hc/workout.ts for the three places the port
-// deliberately differs (local date, deadline-based timer, steppers).
+// deliberately differs (local date, deadline-based timer, steppers —
+// the web now uses a scroll-snap wheel instead, see Wheel.tsx).
 //
 // Sets go straight to `set_logs` with the anon client — the table's RLS is
 // client_id = auth.uid(), the app writes the same rows, and a workout logged
@@ -20,6 +21,7 @@ import {
   parseReps, parseRestSeconds, parseSets, RPE_IS, type LoggedSet,
 } from "@/lib/hc/workout";
 import type { PSession } from "@/lib/hc/personalise";
+import Wheel from "./Wheel";
 import type { ExerciseItem } from "@/lib/hc/types";
 import { muscleIs } from "@/lib/hc/exercise-labels";
 import { BASIS_IS, suggestStartWeight, type BodyData } from "@/lib/hc/start-weight";
@@ -311,9 +313,9 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
 
       <div className={`grid gap-3 ${timed || bodyweight ? "" : "sm:grid-cols-2"}`}>
         {!timed && !bodyweight && (
-          <Stepper label="Þyngd (kg)" value={weight} onChange={setWeight} step={2.5} min={0} max={300} />
+          <Wheel label="Þyngd" unit="kg" value={weight} onChange={setWeight} step={2.5} min={0} max={300} />
         )}
-        <Stepper label={timed ? "Sekúndur" : "Endurtekningar"} value={reps} onChange={setReps}
+        <Wheel label={timed ? "Sekúndur" : "Endurtekningar"} value={reps} onChange={setReps}
           step={timed ? 5 : 1} min={1} max={timed ? 600 : 50} />
       </div>
 
@@ -347,22 +349,3 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   );
 }
 
-function Stepper({ label, value, onChange, step, min, max }: {
-  label: string; value: number; onChange: (v: number) => void; step: number; min: number; max: number;
-}) {
-  const bump = (d: number) => onChange(Math.min(max, Math.max(min, Math.round((value + d) * 10) / 10)));
-  return (
-    <div>
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={() => bump(-step)} aria-label={`Minnka ${label.replace(/\s*\(.*\)$/, "").toLowerCase()}`}
-          className="h-11 w-11 shrink-0 rounded-xl bg-white text-xl font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100">−</button>
-        <input type="number" inputMode="decimal" value={value} aria-label={label}
-          onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || min)))}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 text-center text-lg font-bold text-slate-900" />
-        <button type="button" onClick={() => bump(step)} aria-label={`Auka ${label.replace(/\s*\(.*\)$/, "").toLowerCase()}`}
-          className="h-11 w-11 shrink-0 rounded-xl bg-white text-xl font-bold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100">+</button>
-      </div>
-    </div>
-  );
-}
