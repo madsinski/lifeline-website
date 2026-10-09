@@ -161,12 +161,19 @@ export default function AppHome() {
     })();
   }, [api]);
 
-  // Seven days ending today, so the strip reads left-to-right into now.
+  // Monday to Sunday of the current week, not a rolling seven days.
+  // The week starts on Monday here (confirmed with Mads, and the programme
+  // tables agree — day_of_week 0 is Monday), so a strip that began on a
+  // random weekday would not line up with the plan it is reporting on.
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const monday = new Date();
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
   const days = Array.from({ length: 7 }, (_, i) => {
-    const dt = new Date();
-    dt.setDate(dt.getDate() - (6 - i));
-    const iso = dt.toISOString().slice(0, 10);
-    return { iso, done: d?.grid.find((g) => g.date === iso)?.done_count ?? 0 };
+    const dt = new Date(monday);
+    dt.setDate(monday.getDate() + i);
+    const iso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    return { iso, done: d?.grid.find((g) => g.date === iso)?.done_count ?? 0, today: iso === todayIso };
   });
   const best = Math.max(1, ...days.map((x) => x.done));
 
@@ -231,7 +238,7 @@ export default function AppHome() {
                 shrinks to its label and the track's flex-1 resolves to zero
                 height, which is why the strip looked empty. */}
             <div className="flex items-stretch justify-between gap-1.5" style={{ height: 72 }}>
-              {days.map((x, i) => (
+              {days.map((x) => (
                 <div key={x.iso} className="flex h-full flex-1 flex-col items-center gap-1">
                   {/* Every day gets a full-height track, so a week with
                       nothing done reads as an empty week rather than as a
@@ -246,7 +253,7 @@ export default function AppHome() {
                       title={`${x.iso}: ${x.done}`} />
                   </div>
                   <span className="text-[10px] font-semibold"
-                    style={{ color: i === 6 ? appBrand.ink1 : appBrand.ink3 }}>
+                    style={{ color: x.today ? appBrand.ink1 : appBrand.ink3 }}>
                     {t(`day.${new Date(`${x.iso}T12:00:00`).getDay()}` as "day.0")}
                   </span>
                 </div>

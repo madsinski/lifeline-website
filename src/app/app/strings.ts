@@ -106,6 +106,32 @@ export const STRINGS = {
   "upcoming.coach-consultation": { is: "Samtal við þjálfara", en: "Coach consultation" },
   "upcoming.none": { is: "Ekkert á döfinni.", en: "Nothing coming up." },
 
+  // ── Þjálfari: the day's actions ─────────────────────────────────────
+  "coach.today": { is: "Í dag", en: "Today" },
+  "coach.none": { is: "Ekkert á dagskrá í dag.", en: "Nothing scheduled today." },
+  "coach.noProgram": { is: "Þú ert ekki með prógramm enn.", en: "You don't have a programme yet." },
+  "coach.noProgram.cta": { is: "Velja prógramm", en: "Choose a programme" },
+  "coach.done": { is: "búið", en: "done" },
+  "coach.of": { is: "af", en: "of" },
+  "coach.allDone": { is: "Dagurinn er kláraður. Vel gert.", en: "Day complete. Well done." },
+  "coach.tooFast": { is: "Aðeins of hratt — reyndu aftur eftir augnablik.", en: "A bit quick — try again in a moment." },
+  "coach.wrongDate": { is: "Aðeins er hægt að haka við í dag.", en: "Only today can be ticked off." },
+  "coach.failed": { is: "Tókst ekki að vista. Reyndu aftur.", en: "Could not save. Try again." },
+  "coach.added": { is: "Bætt við", en: "Added" },
+  "coach.min": { is: "mín", en: "min" },
+
+  // Pillars, as the app names them
+  "pillar.exercise": { is: "Hreyfing", en: "Exercise" },
+  "pillar.nutrition": { is: "Næring", en: "Nutrition" },
+  "pillar.sleep": { is: "Svefn", en: "Sleep" },
+  "pillar.mental": { is: "Andleg vellíðan", en: "Mental" },
+
+  // Time of day — program_actions.time_group
+  "when.morning": { is: "Morgunn", en: "Morning" },
+  "when.midday": { is: "Hádegi", en: "Midday" },
+  "when.evening": { is: "Kvöld", en: "Evening" },
+  "when.anytime": { is: "Hvenær sem er", en: "Anytime" },
+
   // ── Weekdays, short — for the week strip ────────────────────────────
   "day.0": { is: "Su", en: "Sun" },
   "day.1": { is: "Má", en: "Mon" },
