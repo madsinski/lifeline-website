@@ -1150,8 +1150,22 @@ export function sanitizeActivities(v: unknown): Activity[] {
     const benefits = preset ? (preset.benefits ?? []) : (Array.isArray(a.benefits) ? a.benefits : []).filter(isBenefit);
     const intensity: Intensity = preset ? preset.intensity
       : a.intensity === "hard" || a.intensity === "easy" ? a.intensity : "moderate";
+
+    /**
+     * The split, and this session's own load offset.
+     *
+     * Both were dropped on the way through here, which is why a lift came
+     * back from a save with no programme behind it: the picker set focus,
+     * the card rendered its exercises from it, and then the POST response —
+     * sanitised, and so focus-less — replaced that state a second later.
+     * Unlike covers, these two are the person's own answer about their own
+     * session, so the stored value is the only source for them.
+     */
+    const focus = a.focus === "full" || a.focus === "upper" || a.focus === "lower" || a.focus === "core"
+      ? a.focus : null;
+    const load = Number.isFinite(Number(a.load)) ? clamp(Math.round(Number(a.load)), -2, 2) : null;
     return day >= 0 && day <= 6
-      ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], partial: [...new Set(partial)], benefits: [...new Set(benefits)], intensity }
+      ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], partial: [...new Set(partial)], benefits: [...new Set(benefits)], intensity, focus, load }
       : null;
   }).filter((a): a is Activity => !!a);
 }

@@ -16,7 +16,9 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, RotateCcw, Sliders } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { isoDay, lastDays, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
-import { weekdayOf, type PersonalExercise, type PSession } from "@/lib/hc/personalise";
+import { type PersonalExercise, type PSession } from "@/lib/hc/personalise";
+import { trainingOn } from "@/lib/hc/todays-training";
+import type { Activity, TrainingSettings } from "@/lib/hc/adaptive-program";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -35,7 +37,7 @@ export interface ActionLinks {
 }
 
 export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links, onEditPillar,
-  exercise, doneToday, onCompleteSession, onLogs }: {
+  exercise, training, doneToday, onCompleteSession, onCompleteActivity, onLogs }: {
   api: Api;
   journeyId: string;
   plan: ActionPlan;
@@ -51,10 +53,14 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
    * "Styrktarþjálfun", and a Monday showed it without saying it was Upper A.
    */
   exercise?: PersonalExercise | null;
+  /** Their own commitments, so the checklist shows the same week the calendar does. */
+  training?: TrainingSettings | null;
   /** Session ids and titles already finished today. */
   doneToday?: Set<string>;
   /** Tick a session off here exactly as Æfingar would. */
   onCompleteSession?: (s: PSession) => void;
+  /** Ticking off a commitment they added themselves. */
+  onCompleteActivity?: (a: Activity) => void;
   /**
    * Ticks live here, in optimistic local state, but the day's count is
    * drawn in a card outside this component. Without this the card read
@@ -133,8 +139,16 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
    * So when a programme exists, non-daily exercise modules step aside and
    * the day's actual sessions take their place.
    */
-  const todaysSessions: PSession[] = exercise?.sessions.filter((s: PSession) => s.weekday === weekdayOf(new Date())) ?? [];
-  const programmeOwnsTraining = Boolean(exercise?.sessions.length);
+  /**
+   * Today's training, from the one shared filter.
+   *
+   * This read prescribed sessions only, so a lift or a football match the
+   * person had put in their own week was drawn in the Æfingar calendar and
+   * missing from the checklist they tick it off on. trainingOn() is what
+   * every surface calls now, so they cannot drift apart again.
+   */
+  const todaysSessions = trainingOn(exercise, training);
+  const programmeOwnsTraining = Boolean(exercise?.sessions.length || training?.activities?.length);
   const supersededByProgramme = (a: PlanItem) =>
     programmeOwnsTraining && a.pillar === "exercise" && (a.frequency ?? "").toLowerCase() !== "daglega";
 
@@ -179,7 +193,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         const items = byPillar(p);
         const uids = new Set(items.map((a) => a.uid));
         const dayDone = items.filter((a) => doneOn(a.uid, today)).length
-          + (p === "exercise" ? todaysSessions.filter((x: PSession) => doneToday?.has(x.id)).length : 0);
+          + (p === "exercise" ? todaysSessions.filter((x) => doneToday?.has(x.id)).length : 0);
         const dayOf = items.length + (p === "exercise" ? todaysSessions.length : 0);
         /**
          * Days with at least one tick in this pillar, over a week and over
@@ -226,11 +240,13 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
             </button>
             <ul className={`divide-y divide-slate-100 ${open ? "" : "hidden"}`}>
               {/* The programme's own sessions for today, first. */}
-              {p === "exercise" && todaysSessions.map((s: PSession) => {
+              {p === "exercise" && todaysSessions.map((s) => {
                 const done = Boolean(doneToday?.has(s.id) || doneToday?.has(s.title));
                 return (
                   <li key={s.id} className="flex items-start gap-3 px-4 py-3">
-                    <button type="button" onClick={() => !done && onCompleteSession?.(s)} disabled={done}
+                    <button type="button"
+                      onClick={() => { if (done) return; if (s.session) onCompleteSession?.(s.session); else if (s.activity) onCompleteActivity?.(s.activity); }}
+                      disabled={done}
                       aria-pressed={done} aria-label={`Merkja ${s.title} sem lokið`}
                       className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition disabled:opacity-100"
                       style={{ borderColor: done ? meta.ink : "#cbd5e1", background: done ? meta.ink : "transparent" }}>
@@ -241,13 +257,16 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                         <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: meta.ink }}>
                           Æfing dagsins
                         </span>
+                        {s.at ? <span className="text-[10px] text-slate-400">· kl. {s.at}</span> : null}
                         {s.minutes ? <span className="text-[10px] text-slate-400">· {s.minutes} mín</span> : null}
                       </span>
                       <span className={`mt-0.5 block text-sm font-bold ${done ? "text-slate-400 line-through" : "text-hc-ink"}`}>
                         {s.title}
                       </span>
                     </span>
-                    {links?.exercise && (
+                    {/* Only a prescribed session has an exercise list to
+                        open; their own commitment is a thing they go and do. */}
+                    {links?.exercise && s.session && (
                       <button type="button" onClick={links.exercise}
                         className="shrink-0 self-center text-xs font-bold" style={{ color: meta.ink }}>
                         Opna

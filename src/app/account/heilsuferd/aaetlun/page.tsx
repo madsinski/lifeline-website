@@ -466,7 +466,11 @@ function PlanPageInner() {
                   <MyActions api={api} journeyId={data.journey_id} plan={plan}
                     onEditPillar={(pl) => { setEditPillar(pl); setEditing(true); }} logs={data.logs} prefs={data.prefs}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }}
-                    exercise={exercise} doneToday={doneToday} onLogs={setLiveLogs}
+                    exercise={exercise} training={training} doneToday={doneToday} onLogs={setLiveLogs}
+                    onCompleteActivity={(a) => void finishWorkout({
+                      minutes: a.minutes ?? 60, rpe: a.intensity === "hard" ? 7 : a.intensity === "easy" ? 3 : 5,
+                      session: { id: a.id, title: a.name, modality: activityModality(a), weekday: a.day },
+                    })}
                     onCompleteSession={(sx) => void finishWorkout({
                       minutes: sx.minutes ?? 45,
                       // A tick from Í dag carries no measured RPE — the

@@ -162,21 +162,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   });
 
   const custom = mine && (Object.keys(personal.days).length > 0 || Object.keys(personal.swaps).length > 0 || personal.hiit_split);
-  // Today's sessions, and the next one when today is a rest day — the two
-  // things the hero is for.
-  const todays = view.sessions.filter((x) => x.weekday === todayIdx);
-  /**
-   * The hero read view.sessions alone, so a day holding only the person's
-   * own activities — football, CrossFit, a lift they added — announced
-   * "Hvíldardagur" while the calendar underneath showed the session. Both
-   * kinds count: you are training either way.
-   */
-  const myToday = (training?.activities ?? []).filter((a) => a.day === todayIdx);
-  const tomorrowIdx = (todayIdx + 1) % 7;
-  const tomorrow = [
-    ...view.sessions.filter((x) => x.weekday === tomorrowIdx).map((x) => x.title),
-    ...(training?.activities ?? []).filter((a) => a.day === tomorrowIdx).map((a) => a.name),
-  ];
+  // Today's sessions and tomorrow's were computed here for the hero's own
+  // "Í dag" block. The block is gone — the day card at the top of the page
+  // carries the real thing — so the hero no longer needs its own copy.
   const stage = training ? stageAt(training, planStart ?? null) : null;
   /**
    * The week's balance, scored across everything in it. hiitOn gates the
@@ -190,7 +178,75 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
   return (
     <div className="min-w-0 space-y-6">
-        {/* Hero: the week */}
+        {/* Today first. The hero used to open with its own "Í dag" block —
+            the title, the focus, tomorrow as a chip — and this card sat at
+            the foot of the page carrying the same day plus the exercises,
+            the weights and the start button. The copy went; the real one
+            came up here, which is what the page is for. */}
+        {/* One day at a time, the one picked in the week below. The whole
+            week used to be listed here as well — seven cards under a grid
+            that already showed the same seven days, so the page said
+            everything twice and you scrolled past five days you were not
+            doing to reach the one you were. */}
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+              {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
+            </h3>
+            {pickedDay !== null && pickedDay !== todayIdx && (
+              <button type="button" onClick={() => setPickedDay(null)} className="text-xs font-semibold text-orange-800 hover:underline">
+                Fara aftur á daginn í dag
+              </button>
+            )}
+          </div>
+
+          {dayActivities.length > 0 && (
+            <ActivityCards activities={dayActivities} todayIdx={todayIdx} done={doneToday} onLoad={onActivityLoad}
+              onRun={training ? (a) => {
+                // A lift the person put in the week is a training day like
+                // any other: the focus they chose decides the movements, and
+                // strengthItem applies their stage, load, place and injuries.
+                if (!a.focus) return;
+                setRunning({
+                  id: a.id, title: a.name, day: WEEKDAYS[a.day], weekday: a.day,
+                  modality: "strength", minutes: a.minutes ?? 60,
+                  items: itemsForFocus(a.focus, training, planStart ?? null, a.load ?? 0),
+                } as PSession);
+              } : undefined}
+              onComplete={onCompleteActivity} onRemove={onRemoveActivity} />
+          )}
+
+          {daySessions.map((s) => (
+            <SessionCard key={s.id} s={s} today={s.weekday === todayIdx} open={openSession === s.id}
+              done={!!doneToday?.has(s.id)}
+              // A ride has nothing to count, so it is ticked rather than run.
+              onStart={needsRunner(s.items) ? () => setRunning(s) : undefined}
+              onDid={() => onFinish?.({ minutes: s.minutes ?? 45, rpe: s.modality === "hiit" ? 7 : 4, session: s })}
+              onInstead={() => setSwapSession(s)}
+              onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
+              onRemove={onRemoveDay ? () => onRemoveDay(s.weekday) : undefined}
+              dragOver={drag?.over ?? null} swapFor={swapItem?.slot ?? null}
+              onSwap={(slot, it) => setSwapItem({ slot, item: it })} onUnswap={unswap}
+              onDropItem={dropItem}
+              onDropExtra={(i) => dropExtra(s.id, i)}
+              onAdd={() => setAddTo(s)}
+              dropped={(personal.drops ?? []).filter((d) => d.startsWith(`${s.id}:`))}
+              onUndrop={undrop} />
+          ))}
+
+          {daySessions.length === 0 && dayActivities.length === 0 && (
+            <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-slate-200">
+              <p className="font-semibold text-slate-800">Hvíldardagur</p>
+              <p className="mt-1 text-sm text-slate-500">Ekkert á dagskrá {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}.</p>
+              {onAddDay && (
+                <button type="button" onClick={() => setAddDay(shownDay)} className={`${hcBtn.secondary} mx-auto mt-3`}>
+                  Setja eitthvað á þennan dag
+                </button>
+              )}
+            </div>
+          )}
+        </section>
+
         <section className="overflow-hidden rounded-3xl border border-orange-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -210,46 +266,14 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             </div>
           </div>
 
-          {/* What the page is actually for: the next thing to do. The goal
-              sentence, the minutes, the level and the exercise count used to
-              sit here instead — all of it either repeated below or inferable
-              from the week, and none of it the question someone opens this
-              page with. */}
-          <div className="mt-4 rounded-2xl bg-orange-600 p-4 text-white">
-            <p className="text-xs font-bold uppercase tracking-[0.15em] text-orange-100">Í dag</p>
-            <p className="mt-0.5 text-lg font-bold">
-              {todays.length > 0 || myToday.length > 0
-                ? [...todays.map((x) => x.title), ...myToday.map((a) => a.name)].join(" + ")
-                : "Hvíldardagur"}
-            </p>
-            {todays.length > 0 && (
-              <p className="text-sm text-orange-50">
-                {[todays[0].focus, todays[0].minutes ? `um ${todays[0].minutes} mín.` : null].filter(Boolean).join(" · ")}
-              </p>
-            )}
-            {/* Tomorrow as a chip, not a sentence — the same treatment as
-                the Í dag hero, so the two pages read alike. */}
-            <span className="mt-2 inline-flex w-fit max-w-full items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold ring-1 ring-white/25">
-              <span className="opacity-80">Á morgun</span>
-              <span className="truncate">{tomorrow.length ? tomorrow.join(" + ") : "hvíld"}</span>
-            </span>
-          </div>
+          {/* The hero carried an "Í dag" block — the day's title, its focus,
+              tomorrow as a chip. The day card below it says all of that and
+              carries the exercises, the weights and the start button, so the
+              hero was a worse copy of the thing directly underneath it. */}
 
-          {stage && (
-            <div className="mt-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                <p className="font-semibold text-slate-800">{stage.title}</p>
-                <p className="text-slate-500">
-                  Vika {stage.week}{stage.weeksToNext !== null && stage.nextTitle ? ` · ${stage.nextTitle} eftir ${stage.weeksToNext} ${stage.weeksToNext === 1 ? "viku" : "vikur"}` : ""}
-                </p>
-              </div>
-              <div className="mt-1.5 flex gap-1.5" aria-hidden>
-                {Array.from({ length: stage.count }, (_, i) => (
-                  <span key={i} className={`h-1.5 flex-1 rounded-full ${i < stage.index ? "bg-orange-300" : i === stage.index ? "bg-orange-600" : "bg-slate-200"}`} />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* The stage line and its progress pips were here. They moved
+              into the card below, which already answers the same question
+              one layer out: is this going anywhere, and is this week right. */}
 
           {/* A day per row on a phone, the week as a grid from sm up.
               Seven columns inside 360px gives each day about 44px, which is
@@ -397,74 +421,10 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
         {/* What the week is made of. Directly under the hero and the
             Breytingar button, because a gap here is a thing you fix there. */}
-        {balance && <WeekBalance score={balance} onFix={onSaveTraining ? () => setChanges(true) : undefined} />}
+        {balance && <WeekBalance score={balance} stage={stage} onFix={onSaveTraining ? () => setChanges(true) : undefined} />}
 
         {editable && controls}
         {stages}
-
-        {/* One day at a time, the one picked in the week above. The whole
-            week used to be listed here as well — seven cards under a grid
-            that already showed the same seven days, so the page said
-            everything twice and you scrolled past five days you were not
-            doing to reach the one you were. */}
-        <section className="space-y-3">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-              {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
-            </h3>
-            {pickedDay !== null && pickedDay !== todayIdx && (
-              <button type="button" onClick={() => setPickedDay(null)} className="text-xs font-semibold text-orange-800 hover:underline">
-                Fara aftur á daginn í dag
-              </button>
-            )}
-          </div>
-
-          {dayActivities.length > 0 && (
-            <ActivityCards activities={dayActivities} todayIdx={todayIdx} done={doneToday} onLoad={onActivityLoad}
-              onRun={training ? (a) => {
-                // A lift the person put in the week is a training day like
-                // any other: the focus they chose decides the movements, and
-                // strengthItem applies their stage, load, place and injuries.
-                if (!a.focus) return;
-                setRunning({
-                  id: a.id, title: a.name, day: WEEKDAYS[a.day], weekday: a.day,
-                  modality: "strength", minutes: a.minutes ?? 60,
-                  items: itemsForFocus(a.focus, training, planStart ?? null, a.load ?? 0),
-                } as PSession);
-              } : undefined}
-              onComplete={onCompleteActivity} onRemove={onRemoveActivity} />
-          )}
-
-          {daySessions.map((s) => (
-            <SessionCard key={s.id} s={s} today={s.weekday === todayIdx} open={openSession === s.id}
-              done={!!doneToday?.has(s.id)}
-              // A ride has nothing to count, so it is ticked rather than run.
-              onStart={needsRunner(s.items) ? () => setRunning(s) : undefined}
-              onDid={() => onFinish?.({ minutes: s.minutes ?? 45, rpe: s.modality === "hiit" ? 7 : 4, session: s })}
-              onInstead={() => setSwapSession(s)}
-              onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
-              onRemove={onRemoveDay ? () => onRemoveDay(s.weekday) : undefined}
-              dragOver={drag?.over ?? null} swapFor={swapItem?.slot ?? null}
-              onSwap={(slot, it) => setSwapItem({ slot, item: it })} onUnswap={unswap}
-              onDropItem={dropItem}
-              onDropExtra={(i) => dropExtra(s.id, i)}
-              onAdd={() => setAddTo(s)}
-              dropped={(personal.drops ?? []).filter((d) => d.startsWith(`${s.id}:`))}
-              onUndrop={undrop} />
-          ))}
-
-          {daySessions.length === 0 && dayActivities.length === 0 && (
-            <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-slate-200">
-              <p className="font-semibold text-slate-800">Hvíldardagur</p>
-              <p className="mt-1 text-sm text-slate-500">Ekkert á dagskrá {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}.</p>
-              {onAddDay && (
-                <button type="button" onClick={() => setAddDay(shownDay)} className={`${hcBtn.secondary} mx-auto mt-3`}>
-                  Setja eitthvað á þennan dag
-                </button>
-              )}
-            </div>
-          )}
-        </section>
 
         {/* The paragraph explaining the programme and the list of why it works
             both sat open on the page — one above the sessions and one below
