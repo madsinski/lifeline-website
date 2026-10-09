@@ -53,7 +53,16 @@ export async function POST(req: NextRequest) {
      * would draw an empty one.
      */
     bio: typeof b.bio === "string" && b.bio.trim() ? b.bio.trim().slice(0, 1200) : null,
-    photo_url: typeof b.photo_url === "string" && /^https?:\/\//.test(b.photo_url.trim()) ? b.photo_url.trim().slice(0, 500) : null,
+    /*
+     * A full URL, or a path on this site.
+     *
+     * Requiring http(s) meant a photo had to be hosted somewhere else even
+     * when the file sits in our own /public — and an absolute URL to
+     * production is wrong on a preview deployment, where it would show the
+     * live photo instead of the one being tested.
+     */
+    photo_url: typeof b.photo_url === "string" && /^(https?:\/\/|\/[^/])/.test(b.photo_url.trim())
+      ? b.photo_url.trim().slice(0, 500) : null,
     credentials: typeof b.credentials === "string" && b.credentials.trim() ? b.credentials.trim().slice(0, 160) : null,
     specialties: Array.isArray(b.specialties)
       ? [...new Set(b.specialties.map((x: unknown) => String(x).trim()).filter(Boolean))].slice(0, 8)
