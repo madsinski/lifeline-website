@@ -55,7 +55,9 @@ export async function GET(req: NextRequest) {
     // cancelled rows, and showing those as upcoming is what the Heim bug was.
     upcoming: parsed.filter((p) => p.future && p.status === "booked"),
     past: parsed.filter((p) => !p.future || p.status !== "booked").reverse().slice(0, 20),
-    bookings: (bookings ?? []).map((b) => ({
+    // 8 of 11 rows have a null scheduled_at, which rendered as a blank
+    // date. A booking with no time on it is not something to show someone.
+    bookings: (bookings ?? []).filter((b) => b.scheduled_at).map((b) => ({
       id: b.id as string,
       at: b.scheduled_at as string,
       location: (b.location as string) ?? null,

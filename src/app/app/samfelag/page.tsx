@@ -105,7 +105,11 @@ export default function Community() {
                 <div className="grid grid-cols-2 gap-2">
                   {d.badges.map((b) => (
                     <div key={b.key} className={`${appCard} p-3`}>
-                      <span className="text-lg" aria-hidden>{b.icon || "🏅"}</span>
+                      {/* icon is an icon NAME ("trophy"), not an emoji —
+                          every badge in the table uses that one value.
+                          Rendering it raw printed the word, so the badge's
+                          own colour carries the distinction instead. */}
+                      <Award className="h-5 w-5" style={{ color: b.colour || appBrand.accent }} aria-hidden />
                       <p className="text-xs font-bold" style={{ color: b.colour || appBrand.ink1 }}>{b.title}</p>
                       {b.description && (
                         <p className="text-[11px] leading-snug" style={{ color: appBrand.ink2 }}>{b.description}</p>
