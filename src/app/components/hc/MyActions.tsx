@@ -15,7 +15,7 @@ import ActionSheet from "./ActionSheet";
 import { useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, RotateCcw, Sliders } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
-import { isoDay, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
+import { isoDay, lastDays, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { weekdayOf, type PersonalExercise, type PSession } from "@/lib/hc/personalise";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -60,6 +60,11 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const [prefs, setPrefs] = useState<ActionPref[]>(initialPrefs);
   const [showHidden, setShowHidden] = useState(false);
   const [sheet, setSheet] = useState<PlanItem | null>(null);
+  /**
+   * Which pillars are open. All of them to begin with: somebody arriving to
+   * tick something off should see the things, not four closed drawers.
+   */
+  const [shut, setShut] = useState<Set<string>>(() => new Set());
   const [err, setErr] = useState("");
   const queue = useRef<Promise<void>>(Promise.resolve());
   const waiting = useRef(0);
@@ -162,17 +167,55 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
 
       {PILLARS.filter((p) => byPillar(p).length || (p === "exercise" && programmeOwnsTraining)).map((p) => {
         const meta = PILLAR_META[p];
+        const items = byPillar(p);
+        const uids = new Set(items.map((a) => a.uid));
+        const dayDone = items.filter((a) => doneOn(a.uid, today)).length
+          + (p === "exercise" ? todaysSessions.filter((x: PSession) => doneToday?.has(x.id)).length : 0);
+        const dayOf = items.length + (p === "exercise" ? todaysSessions.length : 0);
+        /**
+         * Days with at least one tick in this pillar, over a week and over
+         * four weeks. Days rather than ticks, so the two numbers mean the
+         * same thing as each other and as the card above — and so a pillar
+         * with six habits does not look better than one with two.
+         */
+        const daysWith = (n: number) =>
+          new Set(logs.filter((l) => uids.has(l.action_uid) && lastDays(n).includes(l.done_on)).map((l) => l.done_on)).size;
+        const w = daysWith(7);
+        const mo = daysWith(28);
+        const open = !shut.has(p);
+
         return (
           <div key={p} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
-            <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: meta.soft }}>
-              <PillarIcon pillar={p} size="sm" />
-              <p className="font-bold" style={{ color: meta.ink }}>{meta.label}</p>
-              <span className="ml-auto text-xs font-semibold" style={{ color: meta.ink }}>
-                {byPillar(p).filter((a) => doneOn(a.uid, today)).length + (p === "exercise" ? todaysSessions.filter((s: PSession) => doneToday?.has(s.id)).length : 0)}
-                /{byPillar(p).length + (p === "exercise" ? todaysSessions.length : 0)}
+            {/* Two lines: the name and today on the first, the week and the
+                month on the second. The second line is the one that was
+                missing — a day on its own says nothing about whether this
+                pillar is a habit yet. */}
+            <button type="button" aria-expanded={open}
+              onClick={() => setShut((xs) => { const n = new Set(xs); if (n.has(p)) n.delete(p); else n.add(p); return n; })}
+              className="w-full px-4 py-2.5 text-left" style={{ background: meta.soft }}>
+              <span className="flex items-center gap-2">
+                <PillarIcon pillar={p} size="sm" />
+                <span className="font-bold" style={{ color: meta.ink }}>{meta.label}</span>
+                <span className="ml-auto text-xs font-semibold tabular-nums" style={{ color: meta.ink }}>
+                  {dayDone}/{dayOf} í dag
+                </span>
+                <ChevronRight className={`h-4 w-4 shrink-0 transition ${open ? "rotate-90" : ""}`}
+                  style={{ color: meta.ink, opacity: 0.5 }} aria-hidden />
               </span>
-            </div>
-            <ul className="divide-y divide-slate-100">
+              <span className="mt-1 flex items-center gap-3 pl-7 text-[11px]" style={{ color: meta.ink, opacity: 0.75 }}>
+                <span className="flex items-center gap-1">
+                  {/* Seven marks: the week at a glance, no legend needed. */}
+                  {week.map((d) => {
+                    const hit = logs.some((l) => uids.has(l.action_uid) && l.done_on === d);
+                    return <span key={d} className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: hit ? meta.ink : "currentColor", opacity: hit ? 1 : 0.25 }} />;
+                  })}
+                </span>
+                <span className="tabular-nums">{w}/7 vika</span>
+                <span className="tabular-nums">{mo}/28 mánuður</span>
+              </span>
+            </button>
+            <ul className={`divide-y divide-slate-100 ${open ? "" : "hidden"}`}>
               {/* The programme's own sessions for today, first. */}
               {p === "exercise" && todaysSessions.map((s: PSession) => {
                 const done = Boolean(doneToday?.has(s.id) || doneToday?.has(s.title));
