@@ -58,6 +58,11 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
   const items = session.items.filter((i) => (i.block ?? "main") !== "finisher" || /^hiit/i.test(i.name));
   const [phase, setPhase] = useState<Phase>("run");
   const [idx, setIdx] = useState(0);
+  const scroller = useRef<HTMLDivElement>(null);
+  const go = (n: number) => {
+    setIdx(n);
+    scroller.current?.scrollTo({ top: 0, behavior: "instant" });
+  };
   const [rpe, setRpe] = useState(6);
   const startedAt = useRef<number>(0);
   useEffect(() => { if (!startedAt.current) startedAt.current = Date.now(); }, []);
@@ -117,17 +122,20 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
         <p className="mt-1.5 text-xs font-semibold text-slate-500">{idx + 1} af {items.length}</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      {/* The panel scrolls, not the page, so moving on has to reset it:
+          after a long exercise you were dropped into the middle of the next
+          one, past its name and its cues. */}
+      <div ref={scroller} className="flex-1 overflow-y-auto">
         {current && <ExercisePanel key={`${current.name}-${idx}`} it={current} onSwap={onSwap} body={body} />}
       </div>
 
       <div className="flex items-center gap-2 border-t border-slate-100 p-3">
-        <button type="button" onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}
+        <button type="button" onClick={() => go(Math.max(0, idx - 1))} disabled={idx === 0}
           className={`${hcBtn.ghost} disabled:opacity-30`}><ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri</button>
         <button type="button" onClick={finish} className="text-xs font-semibold text-slate-500 hover:text-slate-800">Ljúka hér</button>
         <span className="flex-1" />
         {idx < items.length - 1
-          ? <button type="button" onClick={() => setIdx((i) => i + 1)} className={hcBtn.primary}>Næsta <ChevronRight className="h-4 w-4" aria-hidden /></button>
+          ? <button type="button" onClick={() => go(idx + 1)} className={hcBtn.primary}>Næsta <ChevronRight className="h-4 w-4" aria-hidden /></button>
           : <button type="button" onClick={finish} className={hcBtn.primary}>Lokið <Check className="h-4 w-4" aria-hidden /></button>}
       </div>
     </Shell>
@@ -220,6 +228,40 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   const [today, setToday] = useState<LoggedSet[]>([]);
   const [busy, setBusy] = useState(false);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+
+  /**
+   * How long to rest, and the person's own answer to that.
+   *
+   * The prescription says 90 seconds; whether 90 is right depends on how
+   * heavy the set actually was, which only the person in front of the bar
+   * knows. So it is adjustable, and the choice is remembered per exercise —
+   * somebody who always wants three minutes on squats should say so once,
+   * not on every set of every session.
+   *
+   * localStorage is per-browser and throws in a private window, so each
+   * access is guarded and a failure just falls back to the prescription.
+   */
+  const prescribedRest = parseRestSeconds(it.rest) ?? 0;
+  const restKey = `hc-rest:${it.name}`;
+  const [restSec, setRestSec] = useState(prescribedRest);
+  useEffect(() => {
+    // Deferred: setting state synchronously inside an effect cascades
+    // renders, and the prescription is already on screen until this lands.
+    const t = setTimeout(() => {
+      let saved = 0;
+      try { saved = Number(window.localStorage.getItem(restKey)) || 0; } catch { /* private mode */ }
+      setRestSec(saved > 0 ? saved : prescribedRest);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [restKey, prescribedRest]);
+  const changeRest = (next: number) => {
+    const v = Math.min(600, Math.max(15, next));
+    setRestSec(v);
+    try { window.localStorage.setItem(restKey, String(v)); } catch { /* private mode */ }
+    // Mid-countdown, move the finish line with it rather than waiting for
+    // the next set — the person is adjusting because this rest is wrong.
+    setRestEndsAt((end) => (end === null ? null : Date.now() + v * 1000));
+  };
   const [now, setNow] = useState(0);
   const [pr, setPr] = useState<{ weight: number | null; reps: number | null } | null>(null);
   /**
@@ -311,11 +353,10 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
     setBusy(false);
     if (error) return;
     setToday((t) => [...t, row as LoggedSet]);
-    const rest = parseRestSeconds(it.rest);
     // Warm the voice list inside the tap: iOS Safari will not speak unless
     // the first utterance descends from a user gesture.
     warmVoices();
-    if (rest) { setNow(Date.now()); setRestEndsAt(Date.now() + rest * 1000); }
+    if (restSec) { setNow(Date.now()); setRestEndsAt(Date.now() + restSec * 1000); }
   };
 
   return (
@@ -360,23 +401,54 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
         </p>
       )}
 
-      <div className={`grid gap-3 ${timed || bodyweight ? "" : "sm:grid-cols-2"}`}>
+      {/* Side by side on a phone too, not stacked. Weight and reps are one
+          decision taken together, and stacking them put the second wheel
+          below the fold so logging a set meant scrolling between two halves
+          of the same answer. */}
+      <div className={`grid gap-2 ${timed || bodyweight ? "" : "grid-cols-2"}`}>
         {!timed && !bodyweight && (
-          <Wheel label="Þyngd" unit="kg" value={weight} onChange={setWeight} step={2.5} min={0} max={300} />
+          <Wheel compact label="Þyngd" unit="kg" value={weight} onChange={setWeight} step={2.5} min={0} max={300} />
         )}
-        <Wheel label={timed ? "Sekúndur" : "Endurtekningar"} value={reps} onChange={setReps}
+        <Wheel compact label={timed ? "Sekúndur" : "Endurtekningar"} value={reps} onChange={setReps}
           step={timed ? 5 : 1} min={1} max={timed ? 600 : 50} />
       </div>
 
       {restLeft !== null ? (
-        <button type="button" onClick={() => setRestEndsAt(null)}
-          className="w-full rounded-xl bg-orange-100 px-4 py-3 text-center font-bold text-orange-900">
-          Hvíld {restLeft} sek. · ýttu til að sleppa
-        </button>
+        <div className="flex items-stretch gap-2">
+          <button type="button" onClick={() => changeRest(restSec - 15)} aria-label="Stytta hvíld um 15 sekúndur"
+            className="shrink-0 rounded-xl bg-orange-100 px-3 font-bold text-orange-900 hover:bg-orange-200">−15</button>
+          <button type="button" onClick={() => setRestEndsAt(null)}
+            className="min-w-0 flex-1 rounded-xl bg-orange-100 px-3 py-3 text-center font-bold text-orange-900 hover:bg-orange-200">
+            <span className="block tabular-nums">Hvíld {restLeft} sek.</span>
+            <span className="block text-xs font-semibold text-orange-800/80">ýttu til að sleppa</span>
+          </button>
+          <button type="button" onClick={() => changeRest(restSec + 15)} aria-label="Lengja hvíld um 15 sekúndur"
+            className="shrink-0 rounded-xl bg-orange-100 px-3 font-bold text-orange-900 hover:bg-orange-200">+15</button>
+        </div>
       ) : (
-        <button type="button" onClick={() => void logSet()} disabled={busy} className={`${hcBtn.primary} w-full`}>
-          <Plus className="h-4 w-4" aria-hidden /> {busy ? "Skrái…" : "Skrá sett"}
-        </button>
+        <>
+          <button type="button" onClick={() => void logSet()} disabled={busy} className={`${hcBtn.primary} w-full`}>
+            <Plus className="h-4 w-4" aria-hidden /> {busy ? "Skrái…" : "Skrá sett"}
+          </button>
+          {/* Set it before the set, not only while the clock is running —
+              otherwise the only way to change it is to be resting already. */}
+          {prescribedRest > 0 && (
+            <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+              <span>Hvíld</span>
+              <button type="button" onClick={() => changeRest(restSec - 15)} aria-label="Stytta hvíld um 15 sekúndur"
+                className="h-7 w-7 rounded-lg font-bold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100">−</button>
+              <span className="min-w-14 text-center font-bold tabular-nums text-slate-800">
+                {restSec >= 60 ? `${Math.floor(restSec / 60)}:${String(restSec % 60).padStart(2, "0")}` : `${restSec} sek.`}
+              </span>
+              <button type="button" onClick={() => changeRest(restSec + 15)} aria-label="Lengja hvíld um 15 sekúndur"
+                className="h-7 w-7 rounded-lg font-bold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100">+</button>
+              {restSec !== prescribedRest && (
+                <button type="button" onClick={() => { try { window.localStorage.removeItem(restKey); } catch { /* private mode */ } setRestSec(prescribedRest); }}
+                  className="font-semibold text-hc-brand-dark hover:underline">Sjálfgefið</button>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {suggested && !fromHistory && (
