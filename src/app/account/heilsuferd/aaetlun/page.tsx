@@ -552,6 +552,14 @@ function PlanPageInner() {
                     Þetta er heilsufarsskýrslan þín í einfaldaðri mynd. Læknir fer yfir niðurstöðurnar með þér og
                     fullbúna skýrslan er í sjúklingagáttinni.
                   </p>
+                  {/* Adding a newer report belongs on the page where you are
+                      looking at the current one. It used to live on the
+                      results tab, which is not where anybody goes after an
+                      endurmat hands them a new PDF — and it is also the way
+                      back if a retention review removed the old copy. */}
+                  <ReportUpload api={api} onDone={() => setReloadKey((k) => k + 1)}
+                    heading="Ný skýrsla"
+                    blurb="Komin með nýja Grunnheilsu-skýrslu úr sjúklingagáttinni? Settu hana inn og áætlunin uppfærist eftir nýju niðurstöðunum." />
                 </div>
               )}
               {tab === "results" && (

@@ -13,6 +13,7 @@ import JourneyNav from "@/app/components/hc/JourneyNav";
 import SettingsCard from "@/app/components/hc/SettingsCard";
 import NudgeSettings from "@/app/components/hc/NudgeSettings";
 import PartnerCard from "@/app/components/hc/PartnerCard";
+import ReportUpload from "@/app/components/hc/ReportUpload";
 import BillingPanel from "@/app/components/BillingPanel";
 import ContextSwitcher from "@/app/components/ContextSwitcher";
 import SignedDocumentsList from "@/app/account/SignedDocumentsList";
@@ -94,6 +95,13 @@ function Adgangur() {
 
         <SettingsCard />
         <NudgeSettings api={api} />
+        {/* A permanent home for this, independent of journey stage.
+            Everywhere else it appears is conditional — the report tab needs
+            a report, the first-run card disappears once there is one — so
+            somebody who simply has a new PDF had nowhere reliable to go. */}
+        <ReportUpload api={api} onDone={() => { /* nothing on this page reads it */ }}
+          heading="Hlaða upp skýrslu"
+          blurb="Sóttu Grunnheilsa-skýrsluna þína í sjúklingagáttina og settu hana hér inn. Þú getur gert þetta hvenær sem er, líka eftir endurmat." />
         <PartnerCard api={api} />
 
         <section className={card} aria-labelledby="acc-pay">
