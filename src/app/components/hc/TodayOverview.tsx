@@ -4,19 +4,14 @@
 // the goals and the next fræðsla — each one tap from the full view, and the
 // plan's own controls (edit, print) where they are easy to find.
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Dumbbell, Pencil, Printer, Target, Utensils } from "lucide-react";
+import { useState } from "react";
+import { Dumbbell, Pencil, Printer, Target } from "lucide-react";
 import PillarIcon from "./PillarIcon";
-import { dayFor, mealName, SLOT_IS, SLOTS, type Meal } from "@/lib/hc/meals";
-import type { NutritionPrefs } from "@/lib/hc/nutrition";
 import type { TrainingSettings } from "@/lib/hc/adaptive-program";
 import ActivityIcon from "./ActivityIcon";
 import { WEEKDAYS, weekdayOf, type PersonalExercise } from "@/lib/hc/personalise";
-import { PILLAR_META, type ActionPlan, type LectureRef } from "@/lib/hc/types";
-import * as cache from "@/lib/hc/client-cache";
+import { PILLAR_META, type ActionPlan } from "@/lib/hc/types";
 
-type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
 const MO = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
 
@@ -40,29 +35,25 @@ export function TodayHeader({ name, onEdit }: { name: string | null; onEdit: () 
   );
 }
 
-export default function TodayOverview({ api, plan, exercise, mealPicks, nutritionPrefs, training, lectures, onOpenExercise, onOpenNutrition, onEdit }: {
-  api: Api;
+export default function TodayOverview({ plan, exercise, training, onOpenExercise, onEdit, aside }: {
   plan: ActionPlan;
   exercise: PersonalExercise | null;
-  mealPicks: Record<string, string>;
   /** What they eat; restrictions are a hard filter on the meal library. */
-  nutritionPrefs?: NutritionPrefs;
   /** Their own weekly commitments, so today shows everything Æfingar shows. */
   training?: TrainingSettings;
-  lectures: (LectureRef & { completed?: boolean })[];
   onOpenExercise: (sessionId?: string) => void;
-  onOpenNutrition: () => void;
+  /**
+   * The card beside the workout. "Máltíðir dagsins" sat here; the meals are
+   * a tab of their own and what belongs next to today's session is how the
+   * week is actually going.
+   */
+  aside?: React.ReactNode;
   onEdit: () => void;
 }) {
   const [today] = useState(() => weekdayOf(new Date()));
-  const [meals, setMeals] = useState<Meal[] | null>(() => cache.peek<{ meals: Meal[] }>("/api/hc/library?kind=meals")?.body.meals ?? null);
-  useEffect(() => {
-    if (!plan.nutrition) return;
-    (async () => {
-      const r = await cache.load(api, "/api/hc/library?kind=meals");
-      if (r.status < 400) setMeals((r.body as { meals: Meal[] }).meals ?? []);
-    })();
-  }, [api, plan.nutrition]);
+  // The meal library was fetched here to draw "Máltíðir dagsins". That card
+  // moved out, and so did the request — Í dag was loading the whole meal
+  // library on every open for a card it no longer shows.
 
   const todays = exercise?.sessions.filter((s) => s.weekday === today) ?? [];
   // "Í dag" showed only prescribed sessions, so a Monday football game — drawn
@@ -76,11 +67,6 @@ export default function TodayOverview({ api, plan, exercise, mealPicks, nutritio
   // lamb casserole here either, which is the surface they actually read.
   // Today's meals, not Monday's: dayFor defaults to day 0, which would have
   // shown the same four meals here every day of the week.
-  const day = useMemo(
-    () => (meals && plan.nutrition ? dayFor(meals, plan.nutrition.key, mealPicks, nutritionPrefs, today) : null),
-    [meals, plan.nutrition, mealPicks, nutritionPrefs, today]);
-  const nextLecture = lectures.find((l) => !l.completed);
-  const doneLectures = lectures.filter((l) => l.completed).length;
 
   return (
     <div className="space-y-3">
@@ -122,31 +108,10 @@ export default function TodayOverview({ api, plan, exercise, mealPicks, nutritio
           </button>
         )}
 
-        {plan.nutrition && (
-          <button type="button" onClick={onOpenNutrition}
-            className="flex flex-col rounded-3xl bg-white p-4 text-left shadow-sm ring-1 ring-lime-100 transition hover:ring-lime-300 sm:p-5">
-            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-lime-700"><Utensils className="h-4 w-4" aria-hidden />Máltíðir dagsins</span>
-            <span className="mt-1 block font-bold text-slate-900">{plan.nutrition.name}</span>
-            {day ? (
-              <span className="mt-2 grid grid-cols-4 gap-1.5">
-                {SLOTS.map((slot) => {
-                  const m = day[slot];
-                  return (
-                    <span key={slot} className="block min-w-0">
-                      <span className="block aspect-square overflow-hidden rounded-xl bg-lime-50">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {m?.illustration_url && <img src={m.illustration_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
-                      </span>
-                      <span className="mt-0.5 block truncate text-[10px] font-semibold text-slate-500">{SLOT_IS[slot]}</span>
-                      <span className="block truncate text-[11px] text-slate-800">{m ? mealName(m) : "–"}</span>
-                    </span>
-                  );
-                })}
-              </span>
-            ) : <span className="mt-2 block text-sm text-slate-500">Hleð…</span>}
-            <span className="mt-auto pt-3 text-sm font-semibold text-lime-800">Sjá uppskriftir og skipta →</span>
-          </button>
-        )}
+        {/* The meals card stood here. Today's food lives on the Næring tab,
+            and the slot beside the workout is better spent on whether the
+            week is actually going — the thing the person came to check. */}
+        {aside}
       </div>
 
       {(plan.goals?.length ?? 0) > 0 && (
@@ -167,21 +132,9 @@ export default function TodayOverview({ api, plan, exercise, mealPicks, nutritio
         </section>
       )}
 
-      {/* "Fræðslan mín" used to list every lecture here. It is a tab of its
-          own now (/account/heilsuferd/fraedsla) — a list read once a week does
-          not belong on the surface that is about today. What stays is the one
-          lecture that is next. */}
-      {nextLecture && (
-        <Link href={`/account/heilsuferd/fraedsla/${nextLecture.slug}`}
-          className="flex items-center gap-3 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100 transition hover:ring-slate-300 sm:p-5">
-          <BookOpen className="h-5 w-5 shrink-0 text-hc-brand-dark" aria-hidden />
-          <span className="min-w-0 flex-1">
-            <span className="block text-xs font-bold uppercase tracking-[0.15em] text-slate-500">Næsta fræðsla</span>
-            <span className="block font-semibold text-slate-900">{nextLecture.title}</span>
-          </span>
-          <span className="shrink-0 text-xs text-slate-500">{doneLectures}/{lectures.length}</span>
-        </Link>
-      )}
+      {/* The "Næsta fræðsla" card was here. Í dag is the page people open
+          to tick things off; a lecture is a weekend thing, and it has its
+          own tab. Taken out so the daily surface is only today. */}
     </div>
   );
 }
