@@ -12,6 +12,8 @@
 
 import { useEffect, useState } from "react";
 import { Building2, CalendarClock, History, Video } from "lucide-react";
+import Book from "./Book";
+import Quiz from "./Quiz";
 import { useApi } from "@/lib/hc/use-api";
 import { useT, useShortDateTime } from "./../useT";
 import type { StringKey } from "./../strings";
@@ -27,11 +29,15 @@ interface Payload {
   bookings: { id: string; at: string; location: string | null; status: string | null; packageName: string | null }[];
 }
 
+type Tab = "appointments" | "book" | "quiz";
+
 export default function Clinic() {
   const api = useApi();
   const t = useT();
   const at = useShortDateTime();
+  const [tab, setTab] = useState<Tab>("appointments");
   const [d, setD] = useState<Payload | null | undefined>(undefined);
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     void (async () => {
@@ -39,7 +45,8 @@ export default function Clinic() {
       const j = r.ok ? await r.json().catch(() => null) : null;
       setTimeout(() => setD(j), 0);
     })();
-  }, [api]);
+    // nonce re-runs this after a booking lands, so the list is not stale.
+  }, [api, nonce]);
 
   const row = (a: Appt, muted = false) => (
     <div key={a.id} className={`${appCard} px-4 py-3`}>
@@ -76,9 +83,24 @@ export default function Clinic() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold" style={{ color: appBrand.ink1 }}>{t("nav.clinic")}</h1>
 
-      {d === undefined && <div className="h-32 animate-pulse rounded-[14px] bg-white" aria-hidden />}
+      <div className="flex gap-1 rounded-2xl p-1" style={{ background: appBrand.cardAlt }}>
+        {([["appointments", "st.appointments"], ["book", "st.book"], ["quiz", "st.quiz"]] as [Tab, StringKey][]).map(([k, label]) => (
+          <button key={k} type="button" onClick={() => setTab(k)}
+            className="flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-bold transition"
+            style={tab === k
+              ? { background: "#fff", color: appBrand.primaryDark, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
+              : { color: appBrand.ink2 }}>
+            {t(label)}
+          </button>
+        ))}
+      </div>
 
-      {d && (
+      {tab === "book" && <Book onBooked={() => { setNonce((n) => n + 1); setTab("appointments"); }} />}
+      {tab === "quiz" && <Quiz />}
+
+      {d === undefined && tab === "appointments" && <div className="h-32 animate-pulse rounded-[14px] bg-white" aria-hidden />}
+
+      {d && tab === "appointments" && (
         <>
           <section>
             <div className={appHeaderBar} style={greenHeader}>

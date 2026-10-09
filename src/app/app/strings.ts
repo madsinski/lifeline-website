@@ -257,6 +257,32 @@ export const STRINGS = {
     en: "Challenges are a location game — peaks, hot springs and waterfalls you check in to when you are there. That needs the phone's GPS, so they are in the app only.",
   },
 
+  // ── Stofan: tabs, booking, questionnaire ────────────────────────────
+  "st.appointments": { is: "Tímarnir mínir", en: "My appointments" },
+  "st.book": { is: "Bóka", en: "Book" },
+  "st.quiz": { is: "Spurningalisti", en: "Questionnaire" },
+
+  "bk.type": { is: "Hvers konar samtal?", en: "What kind of consultation?" },
+  "bk.coach": { is: "Hvaða þjálfari?", en: "Which coach?" },
+  "bk.date": { is: "Dagsetning", en: "Date" },
+  "bk.time": { is: "Tími", en: "Time" },
+  "bk.confirm": { is: "Staðfesta bókun", en: "Confirm booking" },
+  "bk.booking": { is: "Bóka…", en: "Booking…" },
+  "bk.done": { is: "Tíminn er bókaður.", en: "Your appointment is booked." },
+  "bk.past": { is: "Þessi tími er liðinn.", en: "That time has passed." },
+  "bk.duplicate": { is: "Þú ert þegar með tíma á þessum tíma.", en: "You already have an appointment then." },
+  "bk.failed": { is: "Bókunin tókst ekki. Reyndu aftur.", en: "Booking failed. Try again." },
+  "bk.minutes": { is: "mín", en: "min" },
+  "bk.pickAll": { is: "Veldu tegund, dag og tíma.", en: "Choose a type, a day and a time." },
+
+  "qz.intro": {
+    is: "Átta spurningar um venjurnar þínar. Svörin móta áætlunina og þú getur breytt þeim hvenær sem er.",
+    en: "Eight questions about your habits. The answers shape your plan and you can change them any time.",
+  },
+  "qz.done": { is: "Öllum spurningum er svarað.", en: "All questions answered." },
+  "qz.progress": { is: "svarað", en: "answered" },
+  "qz.saveFailed": { is: "Svarið vistaðist ekki.", en: "That answer did not save." },
+
   // ── Weekdays, short — for the week strip ────────────────────────────
   "day.0": { is: "Su", en: "Sun" },
   "day.1": { is: "Má", en: "Mon" },
