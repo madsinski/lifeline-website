@@ -11,7 +11,7 @@
 // you where you are; the direction is the part that is actually useful.
 
 import { useEffect, useState } from "react";
-import { Activity, Droplet, Scale } from "lucide-react";
+import { Activity, Droplet, Scale, Smartphone } from "lucide-react";
 import { useApi } from "@/lib/hc/use-api";
 import { useT } from "./../useT";
 import type { StringKey } from "./../strings";
@@ -60,9 +60,44 @@ function Spark({ values }: { values: number[] }) {
   );
 }
 
+type Section = "insights" | "lifestyle" | "measure" | "blood";
+
+/**
+ * Two of MyHealth's four tabs cannot be ported, and that is by design.
+ *
+ * Insights reads Apple Health / Health Connect on the device. Lifestyle —
+ * the Lífstílseinkunn — is computed from a 29-question pulse whose answers
+ * live in an encrypted SQLite file on the phone (localHealth.ts, whose own
+ * header reads "no Iceland coach, no cloud… No data ever leaves the device
+ * unless the user actively exports"). Verified: zero clients have
+ * pulseAnswers server-side.
+ *
+ * Bringing either to the web means moving health data off the device, which
+ * is a privacy decision rather than a coding one. So these tabs say where
+ * the data is instead of quietly showing nothing.
+ */
+function DeviceOnly({ body }: { body: string }) {
+  const t = useT();
+  return (
+    <div className={`${appCard} p-5`}>
+      <div className="flex items-start gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full" style={{ background: appBrand.cardAlt }}>
+          <Smartphone className="h-4 w-4" style={{ color: appBrand.ink2 }} aria-hidden />
+        </span>
+        <div>
+          <p className="text-sm font-bold" style={{ color: appBrand.ink1 }}>{t("hs.deviceOnly.title")}</p>
+          <p className="mt-1 text-sm leading-snug" style={{ color: appBrand.ink2 }}>{body}</p>
+          <p className="mt-2 text-xs" style={{ color: appBrand.ink3 }}>{t("hs.inApp")}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Health() {
   const api = useApi();
   const t = useT();
+  const [tab, setTab] = useState<Section>("measure");
   const [d, setD] = useState<Payload | null | undefined>(undefined);
 
   useEffect(() => {
@@ -80,9 +115,26 @@ export default function Health() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold" style={{ color: appBrand.ink1 }}>{t("nav.health")}</h1>
 
-      {d === undefined && <div className="h-40 animate-pulse rounded-[14px] bg-white" aria-hidden />}
+      {/* MyHealthScreen.tsx:1570 — four sections, Measure first here because
+          it is the one with data on this surface. */}
+      <div className="flex gap-1 overflow-x-auto rounded-2xl p-1" style={{ background: appBrand.cardAlt }}>
+        {([["measure", "hs.measure"], ["blood", "hs.blood"], ["insights", "hs.insights"], ["lifestyle", "hs.lifestyle"]] as [Section, StringKey][]).map(([k, label]) => (
+          <button key={k} type="button" onClick={() => setTab(k)}
+            className="flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-bold transition"
+            style={tab === k
+              ? { background: "#fff", color: appBrand.primaryDark, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
+              : { color: appBrand.ink2 }}>
+            {t(label)}
+          </button>
+        ))}
+      </div>
 
-      {d && (
+      {tab === "insights" && <DeviceOnly body={t("hs.insights.body")} />}
+      {tab === "lifestyle" && <DeviceOnly body={t("hs.lifestyle.body")} />}
+
+      {d === undefined && tab === "measure" && <div className="h-40 animate-pulse rounded-[14px] bg-white" aria-hidden />}
+
+      {d && tab === "measure" && (
         <>
           <section>
             <div className={appHeaderBar} style={greenHeader}>
@@ -162,6 +214,11 @@ export default function Health() {
             </section>
           )}
 
+        </>
+      )}
+
+      {d && tab === "blood" && (
+        <>
           <section>
             <div className={appHeaderBar} style={darkHeader}>
               <Droplet className="h-[18px] w-[18px]" aria-hidden />

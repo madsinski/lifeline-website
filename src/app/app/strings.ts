@@ -223,6 +223,40 @@ export const STRINGS = {
   "sub.until": { is: "Gildir til", en: "Valid until" },
   "sub.trial": { is: "Prufutími til", en: "Trial until" },
 
+  // ── Heilsan: the four section tabs ──────────────────────────────────
+  "hs.insights": { is: "Yfirlit", en: "Insights" },
+  "hs.lifestyle": { is: "Lífstíll", en: "Lifestyle" },
+  "hs.measure": { is: "Mælingar", en: "Measure" },
+  "hs.blood": { is: "Blóð", en: "Blood" },
+
+  "hs.deviceOnly.title": { is: "Þessi gögn eru í símanum þínum", en: "This data lives on your phone" },
+  "hs.insights.body": {
+    is: "Yfirlitið les daglegar tölur beint úr Apple Health eða Health Connect í símanum. Vafrinn hefur ekki aðgang að þeim og því er þetta aðeins í appinu.",
+    en: "Insights reads daily figures straight from Apple Health or Health Connect on your phone. A browser cannot reach those, so this part is in the app only.",
+  },
+  "hs.lifestyle.body": {
+    is: "Lífstílseinkunnin og svörin á bak við hana eru geymd dulkóðuð í símanum og fara hvergi. Það er ásetningur, ekki gloppa.",
+    en: "Your lifestyle score and the answers behind it are stored encrypted on your phone and go nowhere else. That is deliberate, not a gap.",
+  },
+  "hs.inApp": { is: "Opnaðu Lifeline appið til að sjá þetta.", en: "Open the Lifeline app to see this." },
+
+  // ── Samfélag: the six tabs ──────────────────────────────────────────
+  "sc.feed": { is: "Straumur", en: "Feed" },
+  "sc.people": { is: "Fólk", en: "People" },
+  "sc.messages": { is: "Skilaboð", en: "Messages" },
+  "sc.events": { is: "Viðburðir", en: "Events" },
+  "sc.challenges": { is: "Áskoranir", en: "Challenges" },
+  "sc.points": { is: "Lífstig", en: "Life points" },
+  "sc.noFriends": { is: "Engir vinir enn.", en: "No friends yet." },
+  "sc.noMessages": { is: "Engin skilaboð.", en: "No messages." },
+  "sc.pending": { is: "Bíður svars", en: "Pending" },
+  "sc.incoming": { is: "Vill tengjast", en: "Wants to connect" },
+  "sc.accepted": { is: "Vinur", en: "Friend" },
+  "sc.challenges.body": {
+    is: "Áskoranirnar eru staðsetningarleikur — tindar, hverir og fossar sem þú skráir þig á þegar þú ert á staðnum. Það þarf GPS símans og því eru þær aðeins í appinu.",
+    en: "Challenges are a location game — peaks, hot springs and waterfalls you check in to when you are there. That needs the phone's GPS, so they are in the app only.",
+  },
+
   // ── Weekdays, short — for the week strip ────────────────────────────
   "day.0": { is: "Su", en: "Sun" },
   "day.1": { is: "Má", en: "Mon" },

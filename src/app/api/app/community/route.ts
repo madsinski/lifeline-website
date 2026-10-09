@@ -49,8 +49,26 @@ export async function GET(req: NextRequest) {
       supabaseAdmin.from("event_participants").select("event_id").eq("client_id", user.id),
     ]);
 
-  // Names for the feed, resolved in one query rather than per row.
-  const ids = Array.from(new Set((feed ?? []).map((f) => f.client_id as string)));
+  // Friends and peer messages — the People and Messages tabs.
+  const [{ data: friends }, { data: peer }] = await Promise.all([
+    supabaseAdmin
+      .from("friendships")
+      .select("id, requester_id, addressee_id, status, created_at")
+      .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`),
+    supabaseAdmin
+      .from("peer_messages")
+      .select("id, sender_id, receiver_id, content, read, created_at")
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order("created_at", { ascending: false })
+      .limit(40),
+  ]);
+
+  // Names for the feed, friends and messages, resolved in one query.
+  const ids = Array.from(new Set([
+    ...(feed ?? []).map((f) => f.client_id as string),
+    ...(friends ?? []).flatMap((f) => [f.requester_id as string, f.addressee_id as string]),
+    ...(peer ?? []).flatMap((m) => [m.sender_id as string, m.receiver_id as string]),
+  ].filter(Boolean)));
   const nameById = new Map<string, string>();
   if (ids.length) {
     const { data: people } = await supabaseAdmin
@@ -85,6 +103,25 @@ export async function GET(req: NextRequest) {
       time: (e.time as string) ?? null, location: (e.location as string) ?? null,
       cost: (e.cost as string | number) ?? null, reward: (e.reward as string | number) ?? null,
       joined: joinedIds.has(e.id as string),
+    })),
+    friends: (friends ?? []).map((f) => {
+      const other = f.requester_id === user.id ? (f.addressee_id as string) : (f.requester_id as string);
+      return {
+        id: f.id as string,
+        name: nameById.get(other) || "—",
+        status: (f.status as string) ?? null,
+        // Who asked matters: a pending request you received needs an answer,
+        // one you sent is just waiting.
+        incoming: f.addressee_id === user.id,
+      };
+    }),
+    messages: (peer ?? []).map((m) => ({
+      id: m.id as string,
+      mine: m.sender_id === user.id,
+      who: nameById.get((m.sender_id === user.id ? m.receiver_id : m.sender_id) as string) || "—",
+      content: (m.content as string) ?? "",
+      read: Boolean(m.read),
+      at: m.created_at as string,
     })),
     feed: (feed ?? []).map((f) => ({
       id: f.id as string,
