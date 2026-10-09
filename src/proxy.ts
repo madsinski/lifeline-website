@@ -20,6 +20,7 @@ const BYPASS_PREFIXES = [
   "/admin",                 // staff portal (own auth + AAL2)
   "/api",                   // API routes (own auth)
   "/access",                // the /access/claim + /access/error pages
+  "/app",                   // the app surface (own auth guard in its layout)
   "/account/login",         // existing users need to be able to log in
   "/business/login",        //   "          "
   // ── Token-gated / unguessable-URL flows: the URL itself is the
