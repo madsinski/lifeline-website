@@ -851,6 +851,9 @@ export interface TrainingScore {
  * It scores what they already do, not what the plan adds — otherwise every
  * score would read 10 the moment a plan existed, which tells nobody anything.
  */
+/** Mid-sentence form. HIIT is an acronym and keeps its case. */
+const midSentence = (label: string) => (label === "HIIT" ? label : label.toLowerCase());
+
 export function trainingScore(
   s: TrainingSettings, hiitOn: boolean,
   /** Structural on purpose: importing the personalised session type here
@@ -890,11 +893,11 @@ export function trainingScore(
       // A week can be complete and still lopsided: four hard days and the
       // easy aerobic base nowhere is a week that reads 10 on every row.
       ? over.length
-        ? `Allt þakið, en ${over.map((x) => x.label.toLowerCase()).join(" og ")} er ríflegt.`
+        ? `Allt þakið, en ${over.map((x) => midSentence(x.label)).join(" og ")} er ríflegt.`
         : "Vikan þekur allt sem þarf."
       : worst.score === 0
         ? `${worst.label} vantar alveg í vikuna.`
-        : `Veikasti hlekkurinn er ${worst.label.toLowerCase()}.`,
+        : `Veikasti hlekkurinn er ${midSentence(worst.label)}.`,
   };
 }
 

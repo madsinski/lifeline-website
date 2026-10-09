@@ -91,7 +91,7 @@ export default function WeekBalance({ score, stage, onFix }: {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-slate-100 px-4 py-3 sm:px-5">
         <p className="min-w-0 flex-1 text-sm text-slate-600">
           {gaps.length
-            ? gaps.map((g) => `${g.label}: ${g.gap!.toLowerCase()}`).join(" · ")
+            ? gaps.map((g) => `${g.label}: ${g.gap!.charAt(0).toLowerCase()}${g.gap!.slice(1)}`).join(" · ")
             : score.summary}
         </p>
         {gaps.length > 0 && onFix && (
