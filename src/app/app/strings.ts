@@ -283,6 +283,30 @@ export const STRINGS = {
   "qz.progress": { is: "svarað", en: "answered" },
   "qz.saveFailed": { is: "Svarið vistaðist ekki.", en: "That answer did not save." },
 
+  // ── Skýrslan ────────────────────────────────────────────────────────
+  "rp.title": { is: "Skýrslan", en: "Report" },
+  "rp.upload": { is: "Hlaða upp skýrslu (PDF)", en: "Upload report (PDF)" },
+  "rp.reading": { is: "Les skýrsluna…", en: "Reading the report…" },
+  "rp.intro": {
+    is: "Sæktu PDF-skýrsluna „Grunnheilsa“ í sjúklingagáttina og settu hana hér inn. Þá sérðu niðurstöðurnar þínar strax.",
+    en: "Download the „Grunnheilsa“ PDF from the patient portal and put it here. You will see your results straight away.",
+  },
+  "rp.privacy": {
+    is: "Lesin á okkar eigin netþjóni og hvergi send áfram. Skjalið sjálft er ekki geymt, aðeins niðurstöðurnar, dulkóðaðar. Kennitalan á skýrslunni þarf að vera þín.",
+    en: "Read on our own server and sent nowhere else. The file itself is not kept, only the results, encrypted. The kennitala on the report must be yours.",
+  },
+  "rp.done": { is: "Skýrslan er komin inn.", en: "Your report is in." },
+  "rp.failed": { is: "Tókst ekki að lesa skýrsluna.", en: "Could not read the report." },
+  "rp.none": { is: "Engin skýrsla komin inn enn.", en: "No report yet." },
+  "rp.flagged": { is: "atriði þarfnast athygli", en: "items need attention" },
+  "rp.allGreen": { is: "Ekkert utan marka.", en: "Nothing out of range." },
+  "rp.measured": { is: "Mæld", en: "Measured" },
+  "rp.advice": { is: "Ráðleggingar", en: "Recommendations" },
+  "rp.noJourney": {
+    is: "Skýrsluupphleðsla er hluti af heilsuferðinni. Hafðu samband ef þú ert með Grunnheilsu-skýrslu sem þú vilt koma inn.",
+    en: "Uploading a report is part of the health journey. Get in touch if you have a Grunnheilsa report you want added.",
+  },
+
   // ── Weekdays, short — for the week strip ────────────────────────────
   "day.0": { is: "Su", en: "Sun" },
   "day.1": { is: "Má", en: "Mon" },

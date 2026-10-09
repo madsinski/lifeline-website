@@ -15,6 +15,7 @@ import { Activity, Droplet, Scale, Smartphone } from "lucide-react";
 import { useApi } from "@/lib/hc/use-api";
 import { useT } from "./../useT";
 import type { StringKey } from "./../strings";
+import Report from "./Report";
 import { appBrand, appCard, appHeaderBar, greenHeader, darkHeader } from "./../ui";
 
 interface Scan {
@@ -60,7 +61,7 @@ function Spark({ values }: { values: number[] }) {
   );
 }
 
-type Section = "insights" | "lifestyle" | "measure" | "blood";
+type Section = "measure" | "report" | "blood" | "insights" | "lifestyle";
 
 /**
  * Two of MyHealth's four tabs cannot be ported, and that is by design.
@@ -118,9 +119,9 @@ export default function Health() {
       {/* MyHealthScreen.tsx:1570 — four sections, Measure first here because
           it is the one with data on this surface. */}
       <div className="flex gap-1 overflow-x-auto rounded-2xl p-1" style={{ background: appBrand.cardAlt }}>
-        {([["measure", "hs.measure"], ["blood", "hs.blood"], ["insights", "hs.insights"], ["lifestyle", "hs.lifestyle"]] as [Section, StringKey][]).map(([k, label]) => (
+        {([["measure", "hs.measure"], ["report", "rp.title"], ["blood", "hs.blood"], ["insights", "hs.insights"], ["lifestyle", "hs.lifestyle"]] as [Section, StringKey][]).map(([k, label]) => (
           <button key={k} type="button" onClick={() => setTab(k)}
-            className="flex-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-bold transition"
+            className="shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-bold transition"
             style={tab === k
               ? { background: "#fff", color: appBrand.primaryDark, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }
               : { color: appBrand.ink2 }}>
@@ -129,6 +130,7 @@ export default function Health() {
         ))}
       </div>
 
+      {tab === "report" && <Report />}
       {tab === "insights" && <DeviceOnly body={t("hs.insights.body")} />}
       {tab === "lifestyle" && <DeviceOnly body={t("hs.lifestyle.body")} />}
 
