@@ -10,7 +10,7 @@
 import React, { useMemo, useState } from "react";
 import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
-import { itemsForFocus, LOAD_IS } from "@/lib/hc/adaptive-program";
+import { hiitOnAt, itemsForFocus, LOAD_IS, trainingScore } from "@/lib/hc/adaptive-program";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
@@ -19,6 +19,7 @@ import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
 import SessionGuide from "./SessionGuide";
 import TrainingChanges, { ChangesButton } from "./TrainingChanges";
+import WeekBalance from "./WeekBalance";
 import SessionAlternatives from "./SessionAlternatives";
 import AddDayActivity from "./AddDayActivity";
 import ActivityIcon from "./ActivityIcon";
@@ -177,6 +178,15 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
     ...(training?.activities ?? []).filter((a) => a.day === tomorrowIdx).map((a) => a.name),
   ];
   const stage = training ? stageAt(training, planStart ?? null) : null;
+  /**
+   * The week's balance, scored across everything in it. hiitOn gates the
+   * HIIT row: during adaptation, or while cardio is limited, intervals are
+   * not on the table yet and a zero there would mark somebody down for
+   * correctly not doing them.
+   */
+  const balance = training
+    ? trainingScore(training, hiitOnAt(training, planStart ?? null), view.sessions)
+    : null;
 
   return (
     <div className="min-w-0 space-y-6">
@@ -384,6 +394,10 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
         {training && onSaveTraining && (
           <ChangesButton onClick={() => setChanges(true)} />
         )}
+
+        {/* What the week is made of. Directly under the hero and the
+            Breytingar button, because a gap here is a thing you fix there. */}
+        {balance && <WeekBalance score={balance} onFix={onSaveTraining ? () => setChanges(true) : undefined} />}
 
         {editable && controls}
         {stages}

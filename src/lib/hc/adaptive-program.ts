@@ -744,6 +744,17 @@ function zone2Item(st: Stage, s: TrainingSettings): ExerciseItem {
  * at all while cardio is "limited". Everyone else gets it, which is the
  * point: HIIT is the goal, reached when the body is ready for it.
  */
+/**
+ * Whether intervals are on the table yet, from a plan start date.
+ *
+ * hiitState wants a Stage, which is private to this module. Callers on the
+ * screen have a start date, not a stage, and should not be reaching in here
+ * for the STAGES table to bridge the two.
+ */
+export function hiitOnAt(s: TrainingSettings, planStart: string | null): boolean {
+  return hiitState(s, STAGES[stageAt(s, planStart).key]).on;
+}
+
 export function hiitState(s: TrainingSettings, st: Stage): { on: boolean; why: string | null } {
   if (s.cardio === "limited") return { on: false, why: "HIIT bíður þar til læknir gefur grænt ljós. Rólegt þol byggir undir það." };
   if (st.key === "adapt") return { on: false, why: "HIIT bætist við eftir aðlögunina — fyrst venjast sinar og vöðvar álaginu." };
@@ -840,11 +851,24 @@ export interface TrainingScore {
  * It scores what they already do, not what the plan adds — otherwise every
  * score would read 10 the moment a plan existed, which tells nobody anything.
  */
-export function trainingScore(s: TrainingSettings, hiitOn: boolean): TrainingScore {
+export function trainingScore(
+  s: TrainingSettings, hiitOn: boolean,
+  /** Structural on purpose: importing the personalised session type here
+      would close a cycle between this module and personalise.ts. */
+  sessions?: readonly { modality: Covers | "other" }[],
+): TrainingScore {
   const acts = s.activities ?? [];
+  // Prescribed sessions count when they are passed in. They are not passed
+  // in by the prescribing logic — that would feed back on itself, and the
+  // week would always report itself complete the moment a plan existed.
+  // The screen passes them, because to the person reading it there is one
+  // week, and a lift the plan put on Tuesday trains them exactly as much as
+  // one they put there themselves.
+  const prescribed = (sessions ?? []).filter((x) => x.modality !== "other");
   const per: ModalityScore[] = (["strength", "hiit", "cardio"] as Covers[]).map((c) => {
     const have = acts.filter((a) => a.covers.includes(c)).length
-      + acts.filter((a) => !a.covers.includes(c) && (a.partial ?? []).includes(c)).length * 0.5;
+      + acts.filter((a) => !a.covers.includes(c) && (a.partial ?? []).includes(c)).length * 0.5
+      + prescribed.filter((x) => x.modality === c).length;
     // HIIT is not on the table during adaptation or while cardio is limited,
     // so it is not scored then — a zero there would be a mark against someone
     // for correctly not doing it yet.
@@ -857,14 +881,19 @@ export function trainingScore(s: TrainingSettings, hiitOn: boolean): TrainingSco
     };
   });
   const counted = per.filter((x) => x.target > 0);
+  const over = per.filter((x) => x.target > 0 && x.have > x.target + 1);
   const overall = counted.length ? Math.round((counted.reduce((n, x) => n + x.score, 0) / counted.length) * 10) / 10 : 10;
   const worst = [...counted].sort((a, b) => a.score - b.score)[0];
   return {
     per, overall,
     summary: !worst || worst.score >= 10
-      ? "Vikan þín þekur allt sem þarf."
+      // A week can be complete and still lopsided: four hard days and the
+      // easy aerobic base nowhere is a week that reads 10 on every row.
+      ? over.length
+        ? `Allt þakið, en ${over.map((x) => x.label.toLowerCase()).join(" og ")} er ríflegt.`
+        : "Vikan þekur allt sem þarf."
       : worst.score === 0
-        ? `${worst.label} vantar alveg í vikuna þína.`
+        ? `${worst.label} vantar alveg í vikuna.`
         : `Veikasti hlekkurinn er ${worst.label.toLowerCase()}.`,
   };
 }
