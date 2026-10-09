@@ -8,6 +8,27 @@ html, body {
   height: auto !important;
 }
 
+/*
+ * ...except when we lock it on purpose.
+ *
+ * The rule above is a blanket !important, so it beats an inline style too —
+ * which meant every sheet in the journey that tried to freeze the page
+ * behind it silently failed. Verified: the inline styles were set to hidden
+ * and the computed value still read auto.
+ *
+ * A class selector plus the element outranks the bare element selector, so
+ * this wins while an SDK reaching for element.style still loses. The guard
+ * above keeps doing its job; useScrollLock() in src/lib/hc/use-scroll-lock.ts
+ * is the only thing that adds this class.
+ */
+html.hc-scroll-lock, body.hc-scroll-lock {
+  overflow: hidden !important;
+  overscroll-behavior: contain !important;
+}
+body.hc-scroll-lock {
+  touch-action: none !important;
+}
+
 :root {
   --background: #ecf0f3;
   --foreground: #1F2937;

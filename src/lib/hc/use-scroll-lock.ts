@@ -4,16 +4,30 @@
 //
 // Every sheet in the journey had the same problem: scrolling past the end of
 // the panel handed the scroll to the document underneath, so the page drifted
-// while you were reading the thing on top of it. Three ingredients, and all
-// three are needed:
+// while you were reading the thing on top of it.
 //
-//  · overscroll-contain on the panel, which stops the chain at its edges.
-//  · overflow: hidden on BOTH html and body. globals.css sets overflow-x:
-//    clip on html so a wide child cannot make the page draggable sideways,
-//    and that takes html out of `overflow: visible` — which makes html, not
-//    body, the element that scrolls the viewport. Locking body alone does
-//    nothing. Measured: touch-action applied and overflow stayed "auto".
-//  · touch-action: none on body, for a drag that starts on the backdrop.
+// ── Why this is a class and not an inline style ──────────────────────────
+//
+// globals.css opens with a blanket guard, added to stop third-party SDKs
+// locking the page:
+//
+//   html, body { overflow: auto !important; overscroll-behavior: auto !important }
+//
+// An !important declaration beats an inline style, so setting
+// element.style.overflow here did nothing at all — measured: the inline value
+// read "hidden" and the computed value still read "auto", and the page still
+// scrolled. Every scroll lock in this app was dead for that reason.
+//
+// So the lock is a class, `.hc-scroll-lock`, and globals.css gives it its own
+// !important under a class+element selector, which outranks the bare element
+// selector above. A deliberate lock wins; an SDK reaching for element.style
+// still loses.
+//
+// ── Why html and not only body ───────────────────────────────────────────
+//
+// The same guard sets overflow on html, which takes html out of `overflow:
+// visible` and makes it — not body — the element that scrolls the viewport.
+// Locking body alone would not be enough even without the !important.
 //
 // The scroll position is restored on the way out, because locking loses it
 // and you would otherwise close a sheet and find yourself at the top of a
@@ -21,23 +35,17 @@
 
 import { useEffect } from "react";
 
+const CLASS = "hc-scroll-lock";
+
 export function useScrollLock(active = true) {
   useEffect(() => {
     if (!active) return;
     const y = window.scrollY;
-    const html = document.documentElement;
-    const prev = {
-      html: html.style.overflow,
-      body: document.body.style.overflow,
-      touch: document.body.style.touchAction,
-    };
-    html.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
+    document.documentElement.classList.add(CLASS);
+    document.body.classList.add(CLASS);
     return () => {
-      html.style.overflow = prev.html;
-      document.body.style.overflow = prev.body;
-      document.body.style.touchAction = prev.touch;
+      document.documentElement.classList.remove(CLASS);
+      document.body.classList.remove(CLASS);
       window.scrollTo({ top: y, behavior: "instant" });
     };
   }, [active]);
