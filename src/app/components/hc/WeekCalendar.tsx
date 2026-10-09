@@ -12,6 +12,7 @@
 // clinic, so a stand-in can work someone else's week.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { CalendarPlus, ChevronLeft, ChevronRight, Link2, Loader2, Search, Video } from "lucide-react";
 import { APPT_EVENT, APPT_IS, APPT_KINDS, APPT_MINUTES, type ApptKind } from "@/lib/hc/appointment-kinds";
 
@@ -56,6 +57,8 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
   /** Show the calendar-subscription flow (Google / Apple / Outlook). */
   onConnect: () => void;
 }) {
+  // The page behind a sheet must not scroll with it.
+  useScrollLock();
   const [week, setWeek] = useState(() => monday(new Date()));
   const [scope, setScope] = useState<"mine" | "all">("all");
   const [events, setEvents] = useState<CalEvent[]>([]);
@@ -252,7 +255,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
   const when = `${WEEKDAYS_IS[new Date(at).getDay()]} ${new Date(at).getDate()}. ${MONTHS_IS[new Date(at).getMonth()]} kl. ${hhmm(at)}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center" onClick={onClose} role="presentation">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-slate-900/40 p-4 sm:items-center" onClick={onClose} role="presentation">
       <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Bóka tíma">
         <p className="font-bold text-slate-900">Bóka tíma</p>
         <p className="mt-0.5 text-sm text-slate-500">{when}</p>
@@ -287,7 +290,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
           </span>
         </label>
 
-        <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
+        <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto overscroll-contain">
           {hits.map((c) => (
             <li key={c.journey_id}>
               <button type="button" disabled={busy} onClick={() => book(c)}

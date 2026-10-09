@@ -5,6 +5,7 @@
 // the plan editor.
 
 import { useEffect, useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { Check, X } from "lucide-react";
 import * as cache from "@/lib/hc/client-cache";
 
@@ -54,16 +55,18 @@ export function ProgramList({ rows, current, onPick, tone }: { rows: ProgramRow[
 export default function ProgramPicker({ api, kind, current, onPick, onClose }: {
   api: Api; kind: "exercise" | "nutrition"; current: string | null; onPick: (key: string) => void; onClose: () => void;
 }) {
+  // The page behind a sheet must not scroll with it.
+  useScrollLock();
   const programs = usePrograms(api);
   const rows = programs?.[kind] ?? [];
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/40 sm:items-center" onClick={onClose} role="dialog" aria-modal="true">
       <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-slate-50 sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-3">
           <p className="min-w-0 flex-1 font-semibold text-slate-900">{kind === "exercise" ? "Veldu æfingaáætlun" : "Veldu næringaráætlun"}</p>
           <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
-        <div className="overflow-y-auto p-4">
+        <div className="overflow-y-auto overscroll-contain p-4">
           {!programs && <p className="text-sm text-slate-500">Hleð…</p>}
           <ProgramList rows={rows} current={current} onPick={(k) => { onPick(k); onClose(); }} tone={kind} />
           {kind === "exercise" && <p className="mt-3 text-xs text-slate-500">Ný áætlun byrjar á upphaflegu dögunum og æfingunum; þú getur svo raðað henni að þér.</p>}

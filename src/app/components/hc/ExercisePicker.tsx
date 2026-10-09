@@ -6,6 +6,7 @@
 // one pick in "replace" mode.
 
 import { useEffect, useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import type { LibraryExercise } from "@/lib/hc/types";
 import { CATEGORY_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 
@@ -20,6 +21,8 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
   onPick: (ex: LibraryExercise) => void;
   onClose: () => void;
 }) {
+  // The page behind a sheet must not scroll with it.
+  useScrollLock();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
   const [equip, setEquip] = useState("");
@@ -55,7 +58,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Æfingasafn" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-slate-900/40 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Æfingasafn" onClick={onClose}>
       <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="border-b border-slate-100 p-4 sm:p-5">
           <div className="flex items-center gap-3">
@@ -88,7 +91,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-5">
+        <div className="flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 sm:p-5">
           {rows === null && <p className="text-sm text-slate-500">Hleð…</p>}
           {rows?.length === 0 && <p className="text-sm text-slate-500">Ekkert fannst. Prófaðu enskt heiti eða slökktu á „Mest fyrir minnst“.</p>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -127,7 +130,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
 
       {open && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" onClick={(e) => { e.stopPropagation(); setOpen(null); }}>
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-lg font-bold text-[#0F172A]">{open.name_is || open.name}</h3>
               <button type="button" onClick={() => setOpen(null)} className="text-slate-400 hover:text-slate-700" aria-label="Loka">✕</button>

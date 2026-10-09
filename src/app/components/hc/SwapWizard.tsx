@@ -11,6 +11,7 @@
 // answer that particular reason.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { ArrowLeft, ChevronDown, Search, X } from "lucide-react";
 import { REGION_IS, REGIONS, type Region } from "@/lib/hc/adaptive-program";
 import { EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
@@ -85,6 +86,8 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
    */
   injuries?: Region[];
 }) {
+  // The page behind a sheet must not scroll with it.
+  useScrollLock();
   const [why, setWhy] = useState<Why | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
   const [all, setAll] = useState<LibEx[] | null>(null);
@@ -135,7 +138,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
   const title = item.name;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
       <div className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
         role="dialog" aria-modal="true" aria-label={heading ?? `Skipta út: ${title}`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
@@ -149,7 +152,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
 
         {/* 1 ─ why */}
         {!why && (
-          <div className="space-y-2 overflow-y-auto p-4">
+          <div className="space-y-2 overflow-y-auto overscroll-contain p-4">
             <p className="font-semibold text-slate-900">Af hverju viltu skipta?</p>
             {known && (
               <p className="rounded-xl bg-sky-50 p-3 text-xs text-sky-900 ring-1 ring-sky-200">
@@ -169,7 +172,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
 
         {/* 2 ─ which limitation */}
         {why === "limitation" && !region && (
-          <div className="space-y-2 overflow-y-auto p-4">
+          <div className="space-y-2 overflow-y-auto overscroll-contain p-4">
             <button type="button" onClick={() => setWhy(null)} className={`${hcBtn.ghost} mb-1`}>
               <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
             </button>
@@ -210,7 +213,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
                 </label>
               )}
             </div>
-            <ul className="divide-y divide-slate-100 overflow-y-auto">
+            <ul className="divide-y divide-slate-100 overflow-y-auto overscroll-contain">
               {all === null && <li className="p-4 text-sm text-slate-500">Hleð æfingum…</li>}
               {all !== null && suggestions.length === 0 && <li className="p-4 text-sm text-slate-500">Engin æfing fannst.</li>}
               {suggestions.map((e) => (

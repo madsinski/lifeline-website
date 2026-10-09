@@ -16,6 +16,7 @@
 //   Prógramm     — the whole plan
 
 import { useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { Activity, CalendarDays, ChevronRight, Dumbbell, HeartPulse, MapPin, X } from "lucide-react";
 import { CARDIO_IS, LOAD_IS, PLACE_IS, REGION_IS, REGIONS, type Region, type TrainingLevel, type TrainingSettings } from "@/lib/hc/adaptive-program";
 
@@ -44,6 +45,8 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onOpen
   onOpenProgram?: () => void;
   onClose: () => void;
 }) {
+  // The page behind a sheet must not scroll with it.
+  useScrollLock();
   const [open, setOpen] = useState<Section | null>(null);
 
   const set = (patch: Partial<TrainingSettings>) => onChange({ ...settings, ...patch });
@@ -51,7 +54,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onOpen
     set({ injuries: settings.injuries.includes(r) ? settings.injuries.filter((x) => x !== r) : [...settings.injuries, r] });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Breytingar á æfingaáætlun"
         className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}>
@@ -64,7 +67,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onOpen
             className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto overscroll-contain">
           {SECTIONS.map(({ key, label, blurb, Icon }) => {
             const isOpen = open === key;
             return (

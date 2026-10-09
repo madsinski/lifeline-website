@@ -22,6 +22,7 @@ import {
 } from "@/lib/hc/workout";
 import type { PSession } from "@/lib/hc/personalise";
 import Wheel from "./Wheel";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 
 const MO_SHORT = ["jan", "feb", "mar", "apr", "maí", "jún", "júl", "ágú", "sep", "okt", "nóv", "des"];
 /**
@@ -149,46 +150,8 @@ function Shell({ title, onClose, children }: { title: string; onClose: () => voi
     return () => window.removeEventListener("keydown", esc);
   }, [onClose]);
 
-  /**
-   * Freeze the page underneath while the runner is open.
-   *
-   * Scrolling past the end of the panel handed the scroll to the document
-   * behind it, so the workout drifted up the screen and you came out of a
-   * set somewhere else on the page. overscroll-contain on the panel stops
-   * the chaining; locking the body is what stops the background moving at
-   * all, including from a swipe that starts on the backdrop.
-   *
-   * The scroll position is restored on the way out, because setting
-   * position/overflow on the body loses it otherwise — you would close the
-   * runner and find yourself back at the top of a long page.
-   */
-  useEffect(() => {
-    const y = window.scrollY;
-    const html = document.documentElement;
-    /*
-     * html, not only body.
-     *
-     * globals.css sets overflow-x: clip on html to stop a wide child making
-     * the page draggable sideways. That takes html out of `overflow:
-     * visible`, which makes html the element that scrolls the viewport — so
-     * hiding body's overflow locked nothing and the page still moved.
-     * Measured: touch-action took effect and overflow did not.
-     */
-    const prev = {
-      htmlOverflow: html.style.overflow,
-      bodyOverflow: document.body.style.overflow,
-      touch: document.body.style.touchAction,
-    };
-    html.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    document.body.style.touchAction = "none";
-    return () => {
-      html.style.overflow = prev.htmlOverflow;
-      document.body.style.overflow = prev.bodyOverflow;
-      document.body.style.touchAction = prev.touch;
-      window.scrollTo({ top: y, behavior: "instant" });
-    };
-  }, []);
+  // Stops the page behind drifting while you are mid-set.
+  useScrollLock();
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/60 sm:items-center sm:p-4">
       <div role="dialog" aria-modal="true" aria-label={title}

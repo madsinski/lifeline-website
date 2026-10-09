@@ -9,6 +9,7 @@
 // adding football here and adding it there produce the same week.
 
 import { useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { Clock, X } from "lucide-react";
 import { ACTIVITY_GROUPS, ACTIVITY_PRESETS, asksStrengthFocus, REGION_IS, REGIONS, STRENGTH_FOCUS_IS, type Activity, type Region, type StrengthFocus } from "@/lib/hc/adaptive-program";
 import ActivityIcon, { CoverChips } from "./ActivityIcon";
@@ -21,6 +22,8 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
   onAdd: (a: Omit<Activity, "id">, injuries?: Region[]) => void;
   onClose: () => void;
 }) {
+  // The page behind a sheet must not scroll with it.
+  useScrollLock();
   const [group, setGroup] = useState<string>(ACTIVITY_GROUPS[0]);
   const [at, setAt] = useState("");
   /**
@@ -34,7 +37,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
   const [injuries, setInjuries] = useState<Region[]>([]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={`Bæta við á ${WEEKDAYS[weekday]}`}
         className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}>
@@ -48,7 +51,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
         </div>
 
         {lift ? (
-          <div className="space-y-4 overflow-y-auto p-4">
+          <div className="space-y-4 overflow-y-auto overscroll-contain p-4">
             <div>
               <p className="font-bold text-hc-ink">{lift.name}</p>
               <p className="text-xs text-slate-500">Hvað ætlarðu að taka?</p>
@@ -104,7 +107,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
             </div>
           </div>
         ) : (
-        <div className="space-y-3 overflow-y-auto p-4">
+        <div className="space-y-3 overflow-y-auto overscroll-contain p-4">
           <label className="flex w-fit items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
             <Clock className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
             <input type="time" value={at} onChange={(e) => setAt(e.target.value)} aria-label="Klukkan (valfrjálst)"

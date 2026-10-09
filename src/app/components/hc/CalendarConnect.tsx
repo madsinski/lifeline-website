@@ -7,6 +7,7 @@
 // the nurse workstation — the caller supplies how to talk to its own API.
 
 import { useCallback, useEffect, useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { ArrowLeft, Calendar, Check, CheckCircle2, Copy, ExternalLink, Link2, Mail, RefreshCw, X } from "lucide-react";
 import qrcode from "qrcode-generator";
 
@@ -107,6 +108,8 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
   onClose: () => void;
   intro: string;
 }) {
+  // The page behind a sheet must not scroll with it.
+  useScrollLock();
   const [choice, setChoice] = useState<Choice | null>(null);
   const [g, setG] = useState<GoogleStatus | null>(null);
   const [ics, setIcs] = useState<{ https: string; webcal: string } | null>(null);
@@ -179,7 +182,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/60 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="cal-title" onClick={close}>
-      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Dagatal</div>

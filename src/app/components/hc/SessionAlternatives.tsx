@@ -19,6 +19,7 @@
 // people stop opening.
 
 import { useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { Bike, CheckCircle2, Dumbbell, Footprints, Mountain, PersonStanding, Timer, Users, Waves, X, Zap } from "lucide-react";
 import type { Modality } from "@/lib/hc/personalise";
 import { hcBtn } from "./ui";
@@ -69,11 +70,13 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
   onPick: (info: { label: string; modality: Modality }) => void;
   onClose: () => void;
 }) {
+  // The page behind a sheet must not scroll with it.
+  useScrollLock();
   const [own, setOwn] = useState("");
   const set = BY_MODALITY[modality] ?? BY_MODALITY.other;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Gera eitthvað annað"
         className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}>
@@ -85,7 +88,7 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
           <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="space-y-4 overflow-y-auto p-4">
+        <div className="space-y-4 overflow-y-auto overscroll-contain p-4">
           {set.options.length > 0 && (
             <>
               <p className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">

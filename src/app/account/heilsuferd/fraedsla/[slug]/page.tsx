@@ -12,6 +12,7 @@ import { useParams, useRouter } from "next/navigation";
 import { CheckCircle2, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import BackLink from "@/app/components/hc/BackLink";
+import JourneyNav from "@/app/components/hc/JourneyNav";
 import { Markdown, SlideDeck, VideoEmbed } from "@/app/components/hc/LectureContent";
 import type { HcLecture } from "@/lib/hc/types";
 
@@ -49,8 +50,13 @@ export default function LecturePage() {
 
   return (
     <div className={hcPage.participant}>
-      <div className="mx-auto max-w-3xl px-4 pb-16 pt-24 sm:pt-28">
-        <BackLink href="/account/heilsuferd" label="Heilsuferðin" />
+      {/* This page sat outside the journey's navigation entirely: no tab
+          bar, a narrower column than every other page and the old double
+          top padding written for a navbar that is sticky, not fixed. Open a
+          lecture from the Í dag checklist and you left the app. */}
+      <div className="mx-auto max-w-4xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
+        <div className="sm:mb-4"><JourneyNav active="fraedsla" /></div>
+        <BackLink href="/account/heilsuferd/fraedsla" label="Fræðslan" />
         {error && <p className="mt-8 text-slate-600">{error}</p>}
         {lecture && (
           <article className="mt-5">
