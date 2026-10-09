@@ -57,6 +57,31 @@ export async function GET(req: NextRequest) {
     level: stored.signals[it.key] ?? null,
     reportWord: it.label,
     advice: it.advice ?? [],
+    trend: (it.trend ?? []).map((pt) => ({ date: pt.date, value: pt.value })),
+    /**
+     * What the row opens into. hc_knowledge already carries all of it and
+     * loadReport already returns it keyed by item — the rows simply had no
+     * way to open. summary says what the value measures, bands are the
+     * reference ranges with their Icelandic labels, improves/worsens are
+     * what moves it, components is what a composite score is made of.
+     */
+    reference: (() => {
+      const ref = stored.reference[it.key];
+      if (!ref) return null;
+      return {
+        title: ref.title,
+        summary: ref.summary,
+        unit: ref.unit,
+        higherBetter: ref.higher_better,
+        bands: (ref.bands ?? []).map((b) => ({
+          label: b.label, tone: b.tone, min: b.min ?? null, max: b.max ?? null,
+          sex: b.sex ?? null, note: b.note ?? null,
+        })),
+        improves: ref.improves ?? [],
+        worsens: ref.worsens ?? [],
+        components: ref.components ?? [],
+      };
+    })(),
     recommendations: (it.recommendations ?? []).map((r) => ({
       component: r.component, text: r.text, priority: r.priority,
     })),

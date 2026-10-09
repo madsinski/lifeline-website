@@ -78,6 +78,14 @@ export async function GET(req: NextRequest) {
     for (const p of people ?? []) nameById.set(p.id as string, (p.full_name as string) ?? "");
   }
 
+  // The accountability partner — three columns on clients, set by picking
+  // a friend (PeopleTab.tsx:285) and surfaced again on Home.
+  const { data: me } = await supabaseAdmin
+    .from("clients")
+    .select("accountability_partner_id, accountability_partner_name, accountability_partner_score")
+    .eq("id", user.id)
+    .maybeSingle();
+
   const myRank = (board ?? []).findIndex((b) => b.id === user.id);
   const joinedIds = new Set((joined ?? []).map((j) => j.event_id as string));
 
@@ -104,10 +112,23 @@ export async function GET(req: NextRequest) {
       cost: (e.cost as string | number) ?? null, reward: (e.reward as string | number) ?? null,
       joined: joinedIds.has(e.id as string),
     })),
+    partner: me?.accountability_partner_name
+      ? {
+          id: (me.accountability_partner_id as string) ?? null,
+          name: me.accountability_partner_name as string,
+          // The stored score is a snapshot from when they were chosen. The
+          // live figure is better when the partner is on the leaderboard.
+          points: Number(
+            (board ?? []).find((b) => b.id === me.accountability_partner_id)?.total_points
+              ?? me.accountability_partner_score ?? 0,
+          ),
+        }
+      : null,
     friends: (friends ?? []).map((f) => {
       const other = f.requester_id === user.id ? (f.addressee_id as string) : (f.requester_id as string);
       return {
         id: f.id as string,
+        clientId: other,
         name: nameById.get(other) || "—",
         status: (f.status as string) ?? null,
         // Who asked matters: a pending request you received needs an answer,

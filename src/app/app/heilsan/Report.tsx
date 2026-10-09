@@ -16,22 +16,14 @@ import { FileUp, Loader2, ShieldCheck } from "lucide-react";
 import { useApi } from "@/lib/hc/use-api";
 import { useT } from "./../useT";
 import { appBrand, appCard, appHeaderBar, greenHeader } from "./../ui";
+import MetricRow, { type Metric } from "./MetricRow";
 
-interface Item {
-  key: string; title: string; value: number; unit: string;
-  level: "green" | "yellow" | "red" | null; reportWord: string | null;
-  advice: string[];
-  recommendations: { component: string; text: string; priority: "green" | "yellow" | "red" }[];
-}
 interface Payload {
   canUpload: boolean; reason?: string;
   report: { date: string | null; source: string | null; uploadedAt: string | null;
-    method: string; flagged: number; items: Item[] } | null;
+    method: string; flagged: number; items: Metric[] } | null;
 }
 
-const DOT: Record<string, string> = {
-  red: appBrand.error, yellow: appBrand.accent, green: appBrand.primary,
-};
 
 export default function Report() {
   const api = useApi();
@@ -102,32 +94,7 @@ export default function Report() {
             {d.report.date && <span className="text-xs font-semibold opacity-90">{d.report.date}</span>}
           </div>
 
-          {d.report.items.map((it) => (
-            <div key={it.key} className={`${appCard} p-4`}>
-              <div className="flex items-baseline gap-2">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ background: DOT[it.level ?? "green"] ?? appBrand.ink4 }} aria-hidden />
-                <span className="min-w-0 flex-1 text-sm font-bold" style={{ color: appBrand.ink1 }}>{it.title}</span>
-                <span className="shrink-0 text-sm font-bold tabular-nums" style={{ color: appBrand.ink1 }}>
-                  {it.value}{it.unit ? ` ${it.unit}` : ""}
-                </span>
-              </div>
-              {it.reportWord && (
-                <p className="mt-0.5 pl-[18px] text-xs" style={{ color: appBrand.ink2 }}>{it.reportWord}</p>
-              )}
-              {it.recommendations.length > 0 && (
-                <ul className="mt-2 space-y-1 pl-[18px]">
-                  {it.recommendations.map((r, i) => (
-                    <li key={i} className="flex items-start gap-1.5 text-xs" style={{ color: appBrand.ink2 }}>
-                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full"
-                        style={{ background: DOT[r.priority] ?? appBrand.ink4 }} aria-hidden />
-                      <span><strong style={{ color: appBrand.ink1 }}>{r.component}</strong> — {r.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
+          {d.report.items.map((it) => <MetricRow key={it.key} m={it} />)}
         </>
       )}
     </div>

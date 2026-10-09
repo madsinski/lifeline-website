@@ -307,6 +307,33 @@ export const STRINGS = {
     en: "Uploading a report is part of the health journey. Get in touch if you have a Grunnheilsa report you want added.",
   },
 
+  // ── The expandable row ──────────────────────────────────────────────
+  "ex.what": { is: "Hvað er þetta?", en: "What is this?" },
+  "ex.ranges": { is: "Viðmið", en: "Reference ranges" },
+  "ex.improves": { is: "Hvað bætir", en: "What improves it" },
+  "ex.worsens": { is: "Hvað versnar", en: "What worsens it" },
+  "ex.components": { is: "Samsett úr", en: "Made up of" },
+  "ex.trend": { is: "Fyrri mælingar", en: "Earlier measurements" },
+  "ex.yours": { is: "Þitt gildi", en: "Your value" },
+  "ex.open": { is: "Sjá nánar", en: "More detail" },
+  "ex.sexNote": { is: "viðmið fyrir", en: "range for" },
+  "ex.male": { is: "karla", en: "men" },
+  "ex.female": { is: "konur", en: "women" },
+
+  // ── Accountability partner ──────────────────────────────────────────
+  "ap.title": { is: "Ábyrgðarfélagi", en: "Accountability partner" },
+  "ap.none": { is: "Enginn ábyrgðarfélagi valinn.", en: "No accountability partner chosen." },
+  "ap.blurb": {
+    is: "Veldu einhvern úr vinahópnum til að fylgjast með þér. Þið sjáið stigin hvort hjá öðru.",
+    en: "Pick someone from your friends to keep you honest. You each see the other's points.",
+  },
+  "ap.choose": { is: "Velja ábyrgðarfélaga", en: "Choose a partner" },
+  "ap.change": { is: "Skipta um", en: "Change" },
+  "ap.remove": { is: "Fjarlægja", en: "Remove" },
+  "ap.points": { is: "stig", en: "points" },
+  "ap.needFriends": { is: "Þú þarft að eiga vin til að velja ábyrgðarfélaga.", en: "You need a friend before you can choose a partner." },
+  "ap.failed": { is: "Tókst ekki að vista.", en: "Could not save." },
+
   // ── Weekdays, short — for the week strip ────────────────────────────
   "day.0": { is: "Su", en: "Sun" },
   "day.1": { is: "Má", en: "Mon" },
