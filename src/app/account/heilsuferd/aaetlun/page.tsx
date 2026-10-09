@@ -522,6 +522,10 @@ function PlanPageInner() {
                         session: { id: a.id, title: a.name, modality: activityModality(a), weekday: a.day },
                       })}
                       onSaveTraining={(next) => void saveTraining(next)}
+                      onActivityTime={(id, at) => void saveTraining({
+                        ...training,
+                        activities: training.activities.map((x) => (x.id === id ? { ...x, at } : x)),
+                      })}
                       onActivityLoad={(id, load) => void saveTraining({
                         ...training,
                         activities: training.activities.map((x) => (x.id === id ? { ...x, load } : x)),

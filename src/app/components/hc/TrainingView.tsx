@@ -7,7 +7,7 @@
 //     "Skipta" and tap), with the library's pictures, video and how-to
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
 import { itemsForFocus, LOAD_IS } from "@/lib/hc/adaptive-program";
@@ -40,7 +40,7 @@ type Payload =
 
 
 export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead, onAddDay,
-  onCompleteActivity, onMoveActivity, onActivityLoad, onSaveTraining, onRemoveActivity, onRemoveDay, doneToday }: {
+  onCompleteActivity, onMoveActivity, onActivityLoad, onActivityTime, onSaveTraining, onRemoveActivity, onRemoveDay, doneToday }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
   exercise: PlanExercise;
@@ -74,6 +74,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   onMoveActivity?: (id: string, weekday: number) => void;
   /** Per-session load, −2…+2. */
   onActivityLoad?: (id: string, load: number) => void;
+  /** Change the time on one session, or clear it. */
+  onActivityTime?: (id: string, at: string | null) => void;
   /** Saving the whole settings object from the changes sheet. */
   onSaveTraining?: (next: import("@/lib/hc/adaptive-program").TrainingSettings) => void;
   onRemoveActivity?: (id: string) => void;
@@ -97,6 +99,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   const [todayIdx] = useState(() => weekdayOf(new Date()));
   // One sheet for every setting, instead of four scattered entry points.
   const [changes, setChanges] = useState(false);
+  /** The activity chip whose controls are open, if any. */
+  const [editing, setEditing] = useState<string | null>(null);
   /**
    * The day the list below is showing. Clicking anything in the week picks
    * its day; the week and the detail are one thing now rather than a grid
@@ -273,14 +277,18 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                       </span>
                     </button>
                   ))}
-                  {/* Their own commitments: outlined, because the plan did not
-                      put them there. */}
+                  {/* Sessions the person put in the week themselves. They
+                      used to be drawn and labelled as something apart —
+                      "þitt eigið" — but a Thursday football match is as much
+                      the week's training as a prescribed lift. There is one
+                      programme, and this is it. */}
                   {mine.map((a) => {
                     const am = activityModality(a);
                     const mm = MODALITY_IS[am === "other" ? "other" : am];
                     return (
-                      <button key={a.id} type="button" {...(onMoveActivity ? handle({ kind: "activity", id: a.id }, a.name) : {})}
-                        onClick={() => { setPickedDay(a.day); }}
+                      <React.Fragment key={a.id}>
+                      <button type="button" {...(onMoveActivity ? handle({ kind: "activity", id: a.id }, a.name) : {})}
+                        onClick={() => { setPickedDay(a.day); setEditing(editing === a.id ? null : a.id); }}
                         title={`${a.name}${a.at ? ` · ${a.at}` : ""} — ${activityFocus(a)}`}
                         aria-label={`${a.name}, ${WEEKDAYS[a.day].toLowerCase()}`}
                         className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} flex min-h-10 select-none flex-col justify-center rounded-lg px-2 py-1 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 ${mm.cls} ${shownDay === a.day ? "outline outline-2 outline-hc-ink" : ""}`}>
@@ -298,6 +306,29 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                           {a.at ? ` · ${a.at}` : ""}
                         </span>
                       </button>
+                      {/* Tapped: time, swap, remove — in place, because
+                          sending somebody to a settings page to move a
+                          football match by an hour is a trip for nothing. */}
+                      {editing === a.id && (
+                        <span className="order-last w-full rounded-lg bg-white p-2 ring-1 ring-slate-200 sm:order-none">
+                          <span className="flex items-center gap-1.5">
+                            <input type="time" defaultValue={a.at ?? ""} aria-label={`Klukkan fyrir ${a.name}`}
+                              onChange={(e) => onActivityTime?.(a.id, e.target.value || null)}
+                              className="min-w-0 flex-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] outline-none" />
+                            <button type="button" aria-label={`Skipta um ${a.name}`}
+                              onClick={() => { onRemoveActivity?.(a.id); setAddDay(a.day); setEditing(null); }}
+                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">
+                              Skipta
+                            </button>
+                            <button type="button" aria-label={`Taka ${a.name} af`}
+                              onClick={() => { onRemoveActivity?.(a.id); setEditing(null); }}
+                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-red-700 ring-1 ring-red-200 hover:bg-red-50">
+                              Taka af
+                            </button>
+                          </span>
+                        </span>
+                      )}
+                    </React.Fragment>
                     );
                   })}
                   {/* A day that already has something can take more. Two
@@ -788,7 +819,7 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
             tile={<ActivityIcon name={a.name} />}
             eyebrow={`${WEEKDAYS[a.day]}${today ? " · í dag" : ""}${a.at ? ` · ${a.at}` : ""}`}
             title={a.name}
-            subtitle={`${activityFocus(a)} · þitt eigið`}
+            subtitle={activityFocus(a)}
             minutes={a.minutes}
             today={today}
             actions={(onComplete || onRemove) && (
