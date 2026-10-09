@@ -1217,7 +1217,13 @@ export function sanitizeTraining(b: Record<string, unknown>): TrainingSettings {
   const cardio: CardioLimit = b.cardio === "easy" || b.cardio === "limited" ? b.cardio : "full";
   // At least two days, or there is no programme to lay out.
   const picked = [...new Set((Array.isArray(b.days) ? b.days : []).map((d) => Math.round(Number(d))).filter((d) => d >= 0 && d <= 6))].sort((x, y) => x - y);
-  const days = picked.length >= 2 ? picked : DEFAULT_DAYS;
+  /*
+   * The same rule as buildSessions, and the reason fixing it there was not
+   * enough: this one runs on the way INTO the database. Saving a one-day
+   * week stored [0,2,4] instead, so "Taka þennan dag af" wrote the defaults
+   * back and the session reappeared on a Monday. One day is a choice.
+   */
+  const days = picked.length ? picked : DEFAULT_DAYS;
   return {
     level, load, injuries: [...new Set(injuries)], started_on,
     places: places.length ? places : ["gym"],

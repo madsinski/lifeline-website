@@ -304,8 +304,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                       stack under it on a wide screen. */}
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 sm:contents">
                   {here.map((s) => (
-                    <button key={s.id} type="button" {...handle({ kind: "session", id: s.id }, s.title)}
-                      onClick={() => { setPickedDay(i); setOpenSession(s.id); }}
+                    <React.Fragment key={s.id}>
+                    <button type="button" {...handle({ kind: "session", id: s.id }, s.title)}
+                      onClick={() => { setPickedDay(i); setOpenSession(s.id); setEditing(editing === s.id ? null : s.id); }}
                       aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}`}
                       className={`flex min-h-10 select-none flex-col justify-center rounded-lg px-2 py-1 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${shownDay === i ? "outline outline-2 outline-hc-ink" : ""}`}>
                       <span className="block truncate">{s.title}</span>
@@ -317,6 +318,32 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                         {s.minutes ? ` · ${s.minutes} mín` : ""}
                       </span>
                     </button>
+                      {/* The programme's own sessions get the same panel
+                          the person's activities do — tapping one and
+                          having nothing happen is the inconsistency, not
+                          the panel. Different controls, because a generated
+                          session has no time of its own and is not swapped
+                          one-for-one: opening it and taking the day off are
+                          what there is to do. */}
+                      {editing === s.id && (
+                        <span className="order-last w-full rounded-lg bg-white p-2 ring-1 ring-slate-200 sm:absolute sm:left-0 sm:top-full sm:z-30 sm:mt-1 sm:w-56 sm:p-2.5 sm:shadow-xl sm:ring-slate-300">
+                          <span className="flex items-center gap-1.5 sm:flex-col sm:items-stretch sm:gap-2">
+                            <button type="button"
+                              onClick={() => { setEditing(null); document.getElementById(`session-${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
+                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 sm:w-full sm:py-1.5 sm:text-xs">
+                              Sjá æfinguna
+                            </button>
+                            {onRemoveDay && (
+                              <button type="button" aria-label={`Taka ${WEEKDAYS[i].toLowerCase()} af`}
+                                onClick={() => { onRemoveDay(i); setEditing(null); }}
+                                className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-red-700 ring-1 ring-red-200 hover:bg-red-50 sm:w-full sm:py-1.5 sm:text-xs">
+                                Taka daginn af
+                              </button>
+                            )}
+                          </span>
+                        </span>
+                      )}
+                    </React.Fragment>
                   ))}
                   {/* Sessions the person put in the week themselves. They
                       used to be drawn and labelled as something apart —
