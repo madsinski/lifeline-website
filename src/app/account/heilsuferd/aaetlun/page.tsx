@@ -10,7 +10,7 @@
 
 import EmptyState from "@/app/components/hc/EmptyState";
 import BackLink from "@/app/components/hc/BackLink";
-import { hcBtn, hcCard, hcPage } from "@/app/components/hc/ui";
+import { hcBtn, hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
 import { actionForSession, isoDay } from "@/lib/hc/adherence";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -584,15 +584,52 @@ function PlanPageInner() {
               )}
               {tab === "report" && data.report && (
                 <div className="space-y-4 print:hidden">
-                  {!plan && (
-                    <div className={`${hcCard.hero} flex flex-wrap items-center gap-4 p-5`}>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-lg font-bold">Búðu til áætlunina þína</p>
-                        <p className="text-sm text-emerald-100">Tillögur byggðar á skýrslunni. Þú velur, raðar og breytir, og hjúkrunarfræðingurinn fer yfir hana með þér í viðtalinu.</p>
-                      </div>
-                      <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Byrja →</button>
+                  {/* The top row: the main card, and a quarter-width slot for
+                      adding a newer report. Three-to-one rather than
+                      half-and-half, because adding a report is a thing you do
+                      a couple of times a year and reading one is why you are
+                      on the page. It stacks on a phone. */}
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    <div className="sm:col-span-3">
+                      {!plan ? (
+                        <div className={`${hcCard.hero} flex h-full flex-wrap items-center gap-4 p-5`}>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-lg font-bold">Búðu til áætlunina þína</p>
+                            <p className="text-sm text-emerald-100">Tillögur byggðar á skýrslunni. Þú velur, raðar og breytir, og hjúkrunarfræðingurinn fer yfir hana með þér í viðtalinu.</p>
+                          </div>
+                          <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Byrja →</button>
+                        </div>
+                      ) : (
+                        /* With a plan there was no hero here at all, so the
+                           small card had nothing to sit beside. This is the
+                           report in one line: when it was taken, and how much
+                           of it needs attention. */
+                        <div className={`${hcCard.base} flex h-full flex-wrap items-center gap-4 p-5`}>
+                          <div className="min-w-0 flex-1">
+                            <p className={`${hcKicker} text-slate-500`}>Skýrslan þín</p>
+                            <p className="text-lg font-bold text-hc-ink">
+                              {data.flagged.length > 0
+                                ? `${data.flagged.length} atriði þarfnast athygli`
+                                : "Ekkert utan marka"}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Fullbúna skýrslan er í sjúklingagáttinni.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    <div className={`${hcCard.base} flex flex-col justify-center p-4`}>
+                      <p className={`${hcKicker} text-slate-500`}>Ný skýrsla</p>
+                      <p className="mt-0.5 text-xs leading-snug text-hc-ink-2">
+                        Komin með nýja úr sjúklingagáttinni?
+                      </p>
+                      <div className="mt-2">
+                        <ReportUpload api={api} compact onDone={() => setReloadKey((k) => k + 1)} />
+                      </div>
+                    </div>
+                  </div>
                   {data.compare && <BeforeAfter c={data.compare} />}
                   <ReportView report={data.report.report} signals={data.report.signals}
                     reference={data.report.reference} sex={data.report.sex} audience="client" />
