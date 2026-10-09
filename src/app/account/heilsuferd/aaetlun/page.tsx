@@ -33,7 +33,7 @@ import type { Upcoming } from "@/lib/hc/upcoming";
 import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
-import { TodayPartner, TodayStats, TodayUrgent, useToday } from "@/app/components/hc/TodayCards";
+import { StatusRow, TodayPartner, TodayStats, TodayUrgent, useToday } from "@/app/components/hc/TodayCards";
 import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
 import { peek } from "@/lib/hc/client-cache";
@@ -454,8 +454,19 @@ function PlanPageInner() {
                         ofToday={(plan.modules ?? []).filter((m) => (m.frequency ?? "").toLowerCase() === "daglega" || m.pillar !== "exercise").length
                           + (exercise?.sessions.filter((sx) => sx.weekday === ((new Date().getDay() + 6) % 7)).length ?? 0)} />
                     )} />
-                  {today && <TodayUrgent items={today.urgent} />}
+                  {/* The two status rows, stacked and identical, so the
+                      comparison actually holds. Same four measures, same
+                      widths, yours on top. */}
+                  {today && (
+                    <div className="space-y-1.5">
+                      <StatusRow label="Þú" stats={today.stats} tone="#047857" you />
+                      {today.partner && (
+                        <StatusRow label={today.partner.name.split(" ")[0]} stats={today.partner.stats} tone="#475569" />
+                      )}
+                    </div>
+                  )}
                   {today && <TodayPartner d={today} api={api} onNudged={() => void reloadToday()} />}
+                  {today && <TodayUrgent items={today.urgent} />}
                   <MyActions api={api} journeyId={data.journey_id} plan={plan}
                     onEditPillar={(pl) => { setEditPillar(pl); setEditing(true); }} logs={data.logs} prefs={data.prefs}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }}

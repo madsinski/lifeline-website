@@ -15,14 +15,33 @@ export const runtime = "nodejs";
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const daysAgo = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d; };
 
-/** Days with at least one action logged, out of the last n. */
-async function activeDays(journeyId: string | null, clientId: string, n: number) {
-  if (!journeyId) return 0;
+/**
+ * The same three numbers for whoever is asked about.
+ *
+ * One function for both people on purpose: the point of putting your row
+ * above your partner's is that they can be compared, which only holds if
+ * they are measured identically. Two call sites computing "days active"
+ * slightly differently would make the comparison a lie.
+ */
+async function stats(journeyId: string | null) {
+  if (!journeyId) return null;
   const { data } = await supabaseAdmin
     .from("hc_action_logs").select("done_on")
-    .eq("journey_id", journeyId).gte("done_on", iso(daysAgo(n - 1)));
-  void clientId;
-  return new Set((data ?? []).map((r) => String(r.done_on))).size;
+    .eq("journey_id", journeyId).gte("done_on", iso(daysAgo(59)));
+  const done = new Set((data ?? []).map((r) => String(r.done_on)));
+  const within = (n: number) => {
+    let c = 0;
+    for (let i = 0; i < n; i++) if (done.has(iso(daysAgo(i)))) c++;
+    return c;
+  };
+  // Yesterday still counts, so the streak does not read as broken before
+  // the day's first tick.
+  let streak = 0;
+  for (let i = 0; i < 60; i++) {
+    if (done.has(iso(daysAgo(i)))) streak++;
+    else if (i > 0) break;
+  }
+  return { days7: within(7), days14: within(14), days28: within(28), streak };
 }
 
 export async function GET(req: NextRequest) {
@@ -31,9 +50,8 @@ export async function GET(req: NextRequest) {
   const journey = await currentJourney(user.id);
   const jid = journey?.id ?? null;
 
-  const [d7, d28, me, { data: appts }, { data: nudges }, { data: logs }] = await Promise.all([
-    activeDays(jid, user.id, 7),
-    activeDays(jid, user.id, 28),
+  const [mine, me, { data: appts }, { data: nudges }] = await Promise.all([
+    stats(jid),
     supabaseAdmin.from("clients")
       .select("accountability_partner_id, accountability_partner_name").eq("id", user.id).maybeSingle()
       .then((r) => r.data),
@@ -45,20 +63,7 @@ export async function GET(req: NextRequest) {
       .select("id, sender_id, content, created_at")
       .eq("receiver_id", user.id).eq("read", false)
       .order("created_at", { ascending: false }).limit(5),
-    supabaseAdmin.from("hc_action_logs").select("done_on")
-      .eq("journey_id", jid ?? "00000000-0000-0000-0000-000000000000")
-      .gte("done_on", iso(daysAgo(60))),
   ]);
-
-  // Current run of consecutive days ending today or yesterday. Yesterday
-  // counts so the number does not read as broken before the day's first tick.
-  const done = new Set((logs ?? []).map((r) => String(r.done_on)));
-  let streak = 0;
-  for (let i = 0; i < 60; i++) {
-    const day = iso(daysAgo(i));
-    if (done.has(day)) streak++;
-    else if (i > 0) break;
-  }
 
   // Only what is genuinely ahead: the column is text, so this is parsed.
   const now = Date.now();
@@ -91,21 +96,18 @@ export async function GET(req: NextRequest) {
     if (byName?.length === 1) partnerId = byName[0].id as string;
   }
 
-  let partnerDays: number | null = null;
+  let theirs: Awaited<ReturnType<typeof stats>> = null;
   if (partnerId) {
     const { data: pj } = await supabaseAdmin
       .from("hc_journeys").select("id").eq("client_id", partnerId).is("cancelled_at", null).limit(1);
-    if (pj?.[0]) partnerDays = await activeDays(pj[0].id as string, partnerId, 14);
+    if (pj?.[0]) theirs = await stats(pj[0].id as string);
   }
 
   return NextResponse.json({
-    stats: {
-      days7: d7, days28: d28, streak,
-      // The share of the last 28 days with something done. A percentage of
-      // days is honest in a way "% of actions" is not: it does not punish a
-      // person for having a long plan.
-      percent28: Math.round((d28 / 28) * 100),
-    },
+    // The share of the last 28 days with something done. A percentage of
+    // days is honest in a way "% of actions" is not: it does not punish a
+    // person for having a long plan.
+    stats: mine ? { ...mine, percent28: Math.round((mine.days28 / 28) * 100) } : null,
     urgent: [
       ...upcoming.slice(0, 2).map((u) => ({
         kind: "appointment" as const,
@@ -125,13 +127,26 @@ export async function GET(req: NextRequest) {
       })),
     ],
     partner: partnerName
-      ? { id: partnerId ?? null, name: partnerName, days: partnerDays, of: 14, canNudge: Boolean(partnerId) }
+      ? {
+          id: partnerId ?? null, name: partnerName, canNudge: Boolean(partnerId),
+          // Same shape as `stats`, so the two rows are the same measures.
+          stats: theirs ? { ...theirs, percent28: Math.round((theirs.days28 / 28) * 100) } : null,
+        }
       : null,
-    me: { days: await activeDays(jid, user.id, 14), of: 14 },
   });
 }
 
-/** Poke the partner. One a day — a nudge that can be spammed is noise. */
+/**
+ * Send the partner something. One a day — a poke that can be spammed stops
+ * being encouragement and becomes noise, which is how people mute each
+ * other.
+ */
+export const NUDGES: Record<string, string> = {
+  cheer: "sendir þér hvatningu",
+  proud: "er stoltur af þér",
+  missing: "saknar þín í vikunni",
+  together: "stingur upp á því að þið æfið saman",
+};
 export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
@@ -150,6 +165,10 @@ export async function POST(req: NextRequest) {
   }
   if (!partnerId) return NextResponse.json({ error: "no-partner" }, { status: 400 });
 
+  const body = await req.json().catch(() => null);
+  const kind = typeof body?.kind === "string" && NUDGES[body.kind] ? body.kind : "cheer";
+  const note = typeof body?.note === "string" ? body.note.trim().slice(0, 140) : "";
+
   const { data: recent } = await supabaseAdmin
     .from("peer_messages").select("id")
     .eq("sender_id", user.id).eq("receiver_id", partnerId)
@@ -161,9 +180,11 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabaseAdmin.from("peer_messages").insert({
     sender_id: user.id, receiver_id: partnerId, read: false,
-    content: `${(me?.full_name as string) ?? "Félagi þinn"} sendir þér hvatningu 💪`,
+    content: note
+      ? `${(me?.full_name as string) ?? "Félagi þinn"}: ${note}`
+      : `${(me?.full_name as string) ?? "Félagi þinn"} ${NUDGES[kind]}`,
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await hcAudit(`self:${user.id}`, "partner_nudged", null, { partner: partnerId });
+  await hcAudit(`self:${user.id}`, "partner_nudged", null, { partner: partnerId, kind });
   return NextResponse.json({ ok: true });
 }
