@@ -10,6 +10,7 @@
 import { useMemo, useState } from "react";
 import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
+import { LOAD_IS } from "@/lib/hc/adaptive-program";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
@@ -17,6 +18,7 @@ import { activityFocus, activityModality, hardDays, stageAt, type Activity, type
 import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
 import SessionGuide from "./SessionGuide";
+import TrainingChanges, { ChangesButton } from "./TrainingChanges";
 import SessionAlternatives from "./SessionAlternatives";
 import AddDayActivity from "./AddDayActivity";
 import ActivityIcon from "./ActivityIcon";
@@ -38,7 +40,7 @@ type Payload =
 
 
 export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead, onAddDay,
-  onCompleteActivity, onMoveActivity, onRemoveActivity, onRemoveDay, doneToday }: {
+  onCompleteActivity, onMoveActivity, onActivityLoad, onSaveTraining, onRemoveActivity, onRemoveDay, doneToday }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
   exercise: PlanExercise;
@@ -70,6 +72,10 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   /** Marking one of their own sessions done. */
   onCompleteActivity?: (a: Activity) => void;
   onMoveActivity?: (id: string, weekday: number) => void;
+  /** Per-session load, −2…+2. */
+  onActivityLoad?: (id: string, load: number) => void;
+  /** Saving the whole settings object from the changes sheet. */
+  onSaveTraining?: (next: import("@/lib/hc/adaptive-program").TrainingSettings) => void;
   onRemoveActivity?: (id: string) => void;
   /** Session and activity ids marked done today. */
   doneToday?: Set<string>;
@@ -83,12 +89,14 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
    */
   onRemoveDay?: (weekday: number) => void;
   /** Tapping an empty day: add a sport or class that needs no programme. */
-  onAddDay?: (a: Omit<import("@/lib/hc/adaptive-program").Activity, "id">) => void;
+  onAddDay?: (a: Omit<import("@/lib/hc/adaptive-program").Activity, "id">, injuries?: import("@/lib/hc/adaptive-program").Region[]) => void;
 }) {
   const view = useMemo(
     () => personalise(exercise, personal, training ? hardDays(training) : []),
     [exercise, personal, training]);
   const [todayIdx] = useState(() => weekdayOf(new Date()));
+  // One sheet for every setting, instead of four scattered entry points.
+  const [changes, setChanges] = useState(false);
   /**
    * The day the list below is showing. Clicking anything in the week picks
    * its day; the week and the detail are one thing now rather than a grid
@@ -294,6 +302,12 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             })}
           </div>
 
+          {/* Under the calendar, where somebody who has just looked at the
+              week decides to change it. */}
+          {training && onSaveTraining && (
+            <div className="mt-3"><ChangesButton onClick={() => setChanges(true)} /></div>
+          )}
+
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
             {(Object.keys(counts) as (keyof typeof MODALITY_IS)[]).map((m) => (
               <span key={m} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-2.5 py-1 font-semibold text-slate-600">
@@ -342,7 +356,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           </div>
 
           {dayActivities.length > 0 && (
-            <ActivityCards activities={dayActivities} todayIdx={todayIdx} done={doneToday}
+            <ActivityCards activities={dayActivities} todayIdx={todayIdx} done={doneToday} onLoad={onActivityLoad}
               onComplete={onCompleteActivity} onRemove={onRemoveActivity} />
           )}
 
@@ -413,7 +427,13 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
       {addDay !== null && (
         <AddDayActivity weekday={addDay}
           onClose={() => setAddDay(null)}
-          onAdd={(a) => { onAddDay?.(a); setAddDay(null); }} />
+          onAdd={(a, inj) => { onAddDay?.(a, inj); setAddDay(null); }} />
+      )}
+
+      {changes && training && onSaveTraining && (
+        <TrainingChanges settings={training} onChange={(next) => onSaveTraining(next)}
+          onOpenWeek={onCustomise} onOpenProgram={onChangeProgram}
+          onClose={() => setChanges(false)} />
       )}
 
       {swapSession && (
@@ -716,9 +736,11 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
  * Monday with an hour of football on it look like a rest day in the plan.
  * An hour of football IS the hard lota for that day; it belongs in the list.
  */
-function ActivityCards({ activities, todayIdx, onComplete, onRemove, done }: {
+function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, done }: {
   activities: Activity[]; todayIdx: number; onComplete?: (a: Activity) => void;
   onRemove?: (id: string) => void;
+  /** Nudge this one session heavier or lighter, −2…+2. */
+  onLoad?: (id: string, load: number) => void;
   /** Ids marked done today. */
   done?: Set<string>;
 }) {
@@ -748,6 +770,28 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, done }: {
                     className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-50">
                     <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
                   </button>
+                )}
+                {/* Álag on the session itself. The programme has a global
+                    load dial, but a person who finds Friday's lift too heavy
+                    means Friday's lift — not every session this month. */}
+                {onLoad && a.focus && (
+                  <div className="flex w-full items-center justify-between gap-2 rounded-2xl bg-slate-50 px-3 py-2">
+                    <span className="text-xs font-semibold text-slate-600">
+                      Álag
+                      <span className="ml-1.5 font-normal text-slate-500">{LOAD_IS[a.load ?? 0] ?? "eins og venjulega"}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <button type="button" aria-label="Minnka álag" disabled={(a.load ?? 0) <= -2}
+                        onClick={() => onLoad(a.id, Math.max(-2, (a.load ?? 0) - 1))}
+                        className="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 disabled:opacity-30">−</button>
+                      <span className="w-6 text-center text-sm font-bold tabular-nums text-slate-900">
+                        {(a.load ?? 0) > 0 ? `+${a.load}` : a.load ?? 0}
+                      </span>
+                      <button type="button" aria-label="Auka álag" disabled={(a.load ?? 0) >= 2}
+                        onClick={() => onLoad(a.id, Math.min(2, (a.load ?? 0) + 1))}
+                        className="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 disabled:opacity-30">+</button>
+                    </span>
+                  </div>
                 )}
                 {onRemove && (
                   <button type="button" onClick={() => onRemove(a.id)}

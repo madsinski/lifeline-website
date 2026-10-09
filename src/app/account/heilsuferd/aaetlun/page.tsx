@@ -512,6 +512,11 @@ function PlanPageInner() {
                         minutes: a.minutes ?? 60, rpe: a.intensity === "hard" ? 7 : a.intensity === "easy" ? 3 : 5,
                         session: { id: a.id, title: a.name, modality: activityModality(a), weekday: a.day },
                       })}
+                      onSaveTraining={(next) => void saveTraining(next)}
+                      onActivityLoad={(id, load) => void saveTraining({
+                        ...training,
+                        activities: training.activities.map((x) => (x.id === id ? { ...x, load } : x)),
+                      })}
                       onMoveActivity={(id, weekday) => void saveTraining({
                         ...training,
                         activities: training.activities.map((x) => (x.id === id ? { ...x, day: weekday } : x)),
@@ -527,8 +532,14 @@ function PlanPageInner() {
                       onRemoveDay={(weekday) => void saveTraining({
                         ...training, days: (training.days ?? []).filter((d) => d !== weekday),
                       })}
-                      onAddDay={(a) => void saveTraining({
+                      onAddDay={(a, inj) => void saveTraining({
                         ...training,
+                        // An injury named while adding a lift belongs to the
+                        // settings, not to that Friday — it should change
+                        // every session the programme writes, not one.
+                        injuries: inj?.length
+                          ? Array.from(new Set([...(training.injuries ?? []), ...inj]))
+                          : training.injuries,
                         activities: [...training.activities, { ...a, id: Math.random().toString(36).slice(2, 10) }],
                       })}
                       onInstead={(info) => void finishWorkout({

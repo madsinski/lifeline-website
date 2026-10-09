@@ -103,7 +103,31 @@ export interface Activity {
   /** What it is good for when it replaces none of the three. */
   benefits?: Benefit[];
   intensity: Intensity;
+  /**
+   * Which split a strength session is, when the person knows.
+   *
+   * "Lyftingar" on a Friday says nothing about what is being trained, so the
+   * core cannot tell whether the week already covers legs. Asking once, when
+   * it is added, is cheaper than guessing every week — and it is what lets
+   * the session card say which areas are loaded.
+   */
+  focus?: StrengthFocus | null;
+  /** Per-session load offset, −2…+2, on top of the programme's own. */
+  load?: number | null;
 }
+
+export type StrengthFocus = "full" | "upper" | "lower" | "core";
+
+export const STRENGTH_FOCUS_IS: Record<StrengthFocus, { label: string; blurb: string; areas: string[] }> = {
+  full:  { label: "Allur líkaminn", blurb: "Blandað — fætur, bak, bringa, axlir", areas: ["Mjóbak", "Hné", "Axlir"] },
+  upper: { label: "Efri hluti",     blurb: "Bak, bringa, axlir, armar",           areas: ["Axlir", "Olnbogar"] },
+  lower: { label: "Neðri hluti",    blurb: "Fætur, rass, aftanlæri",              areas: ["Hné", "Mjóbak", "Aftanlæri"] },
+  core:  { label: "Kviður og bol",  blurb: "Kviður, mjóbak, stöðugleiki",          areas: ["Mjóbak"] },
+};
+
+/** Which presets are a lift, and therefore worth asking the split for. */
+export const asksStrengthFocus = (covers: string[], name: string) =>
+  covers.includes("strength") && /lyfting|styrk|ræktin|gym/i.test(name);
 
 /** The usual suspects, so adding one is two taps rather than a form. */
 export interface ActivityPreset {
