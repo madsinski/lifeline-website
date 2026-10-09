@@ -80,12 +80,12 @@ export default function Footer() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={submitting}
-                    className="newsletter-input flex-1 md:w-64 px-4 py-2.5 rounded-full bg-gray-800 border border-gray-600 text-white text-sm placeholder:text-gray-500 outline-none transition-all disabled:opacity-60"
+                    className="newsletter-input min-w-0 flex-1 md:w-64 px-4 py-2.5 rounded-full bg-gray-800 border border-gray-600 text-white text-sm placeholder:text-gray-500 outline-none transition-all disabled:opacity-60"
                   />
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 whitespace-nowrap disabled:opacity-60"
+                    className="shrink-0 px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 whitespace-nowrap disabled:opacity-60"
                   >
                     {submitting ? "…" : t('footer.newsletter.submit', 'Gerast áskrifandi')}
                   </button>
