@@ -969,7 +969,18 @@ export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[]
   const strengthMinutes = Math.round(5 + 4 * st.sets * 2.5);
   const hiit = hiitState(s, st);
 
-  const days = s.days.length >= 2 ? s.days : DEFAULT_DAYS;
+  /*
+   * One day is a choice; none is an absence.
+   *
+   * This read `>= 2`, so taking a day off a two-day week silently replaced
+   * the remaining one with the default [0,2,4] — the session the person had
+   * just removed came back, on three other days. "Taka þennan dag af"
+   * looked broken when it was the generator overruling it.
+   *
+   * An empty list still falls back, because that is what a journey looks
+   * like before anybody has chosen anything.
+   */
+  const days = s.days.length ? s.days : DEFAULT_DAYS;
 
   // What the week already contains. Someone doing CrossFit twice does not
   // need two more strength days bolted on top; they need whatever is missing.

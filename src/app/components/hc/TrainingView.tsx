@@ -521,7 +521,7 @@ const TONE: Record<Modality, { band: string; ring: string; today: string; tile: 
 };
 
 /** The shell and header both cards share. */
-function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id, open, onToggle, actions, children }: {
+function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id, open, onToggle, actions, guide, children }: {
   modality: Modality;
   tile: React.ReactNode;
   eyebrow: string;
@@ -534,6 +534,8 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
   open?: boolean;
   onToggle?: () => void;
   actions?: React.ReactNode;
+  /** The collapsed "what this loads / warm-up / cool-down" block. */
+  guide?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const t = TONE[modality];
@@ -556,8 +558,9 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
       {onToggle
         ? <button type="button" onClick={onToggle} aria-expanded={open}
             className={`flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left ${t.band}`}>{head}</button>
-        : <div className={`flex w-full items-center gap-3 px-4 py-3 ${t.band} ${actions || children ? "border-b border-slate-100" : ""}`}>{head}</div>}
+        : <div className={`flex w-full items-center gap-3 px-4 py-3 ${t.band} ${actions || guide || children ? "border-b border-slate-100" : ""}`}>{head}</div>}
       {actions}
+      {guide}
       {children}
     </div>
   );
@@ -834,6 +837,12 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
             subtitle={activityFocus(a)}
             minutes={a.minutes}
             today={today}
+            /* What this kind of training loads, where it tends to go wrong,
+               and what to do before and after. The prescribed sessions have
+               had this since it was written; the person's own football and
+               CrossFit are the sessions most likely to hurt them and had
+               nothing. Same component, same collapsed-by-default. */
+            guide={<SessionGuide name={a.name} modality={am} />}
             actions={(onComplete || onRemove) && (
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-3">
                 {done?.has(a.id) ? (
