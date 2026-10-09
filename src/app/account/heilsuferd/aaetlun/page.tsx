@@ -94,6 +94,18 @@ function PlanSkeleton() {
   );
 }
 
+/**
+ * Every field of the arrangement that the Æfingar view can change.
+ *
+ * savePersonal sends only the fields it is handed, and the server applies
+ * only the keys it receives — so a field missing from this list is a control
+ * that posts 200 and does nothing. "drops" and "extra" were missing, which
+ * is exactly what made "Taka út" and "Bæta við æfingu" silently no-ops: the
+ * component built the right object and the request dropped it on the way
+ * out. Spelled out as one constant so the two call sites cannot drift.
+ */
+const PERSONAL_FIELDS: (keyof Personal)[] = ["program_key", "days", "hiit_split", "swaps", "drops", "extra"];
+
 export default function PlanPage() {
   return <Suspense><PlanPageInner /></Suspense>;
 }
@@ -513,12 +525,12 @@ function PlanPageInner() {
                       onClose={() => setCustomise(false)}
                       arrange={
                         <TrainingView api={api} exercise={baseExercise} personal={personal} arranging
-                          onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
+                          onSave={(p) => void savePersonal(p, PERSONAL_FIELDS)}
                           onChangeProgram={() => setPicker("exercise")} />
                       } />
                   ) : (
                     <TrainingView api={api} exercise={baseExercise} personal={personal}
-                      onSave={(p) => void savePersonal(p, ["program_key", "days", "hiit_split", "swaps"])}
+                      onSave={(p) => void savePersonal(p, PERSONAL_FIELDS)}
                       onChangeProgram={() => setPicker("exercise")}
                       training={training} planStart={plan.start_date}
                       onFinish={(info) => void finishWorkout(info)} body={body}

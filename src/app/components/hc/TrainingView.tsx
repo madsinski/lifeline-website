@@ -595,6 +595,17 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
   const blocks = (["warmup", "main", "finisher"] as ExerciseBlock[])
     .map((key) => ({ key, items: s.items.filter((it) => (it.block ?? "main") === key) }))
     .filter((b) => b.items.length);
+  /**
+   * The one exercise that IS the session, if that is what this is.
+   *
+   * Matched on the name rather than just "one item", because a one-exercise
+   * strength session is still a real exercise with an illustration and a
+   * swap worth offering. The cardio case is different: the name is the
+   * session's own name, so the row repeats the heading above it.
+   */
+  const soleExercise = s.items.length === 1
+    && s.items[0].name.trim().toLowerCase() === String(s.title).trim().toLowerCase()
+    ? s.items[0] : null;
   return (
     <ItemCard
       id={`session-${s.id}`}
@@ -651,7 +662,37 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
       {/* What this kind of training loads and where it tends to go wrong.
           Collapsed by default: useful the first few times, noise after. */}
       {open && <SessionGuide name={typeof s.title === "string" ? s.title : String(s.title)} modality={s.modality} />}
-      {open && (
+
+      {/*
+        * A session that IS its one exercise.
+        *
+        * Zone 2 and HIIT come out of the builder as a single item whose name
+        * is the session's name — so the full exercise-list treatment printed
+        * "Þrekhjól með hóflegri mótstöðu" as the heading, again as the only
+        * row, and a third time as its own alternative, wrapped in an image
+        * tile, a block header and swap/take-out/add controls. That is how a
+        * 45-minute bike ride became the tallest card on the page.
+        *
+        * Here it is the prescription and the cues, inline. Taking the only
+        * exercise out of a session is not a thing anybody means either —
+        * "Taka þennan dag af" above is what that is — so those controls go
+        * with it.
+        */}
+      {open && soleExercise && (
+        <div className="space-y-1.5 px-3 py-3 sm:px-4">
+          {soleExercise.prescription && <p className="font-semibold text-slate-900">{soleExercise.prescription}</p>}
+          {soleExercise.note && <p className="text-sm leading-snug text-slate-600">{soleExercise.note}</p>}
+          {soleExercise.cues?.length ? (
+            <ul className="space-y-0.5 pt-0.5">
+              {soleExercise.cues.slice(0, 4).map((c, i) => (
+                <li key={i} className="text-sm leading-snug text-slate-600">· {c}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      )}
+
+      {open && !soleExercise && (
         <div className="divide-y divide-slate-100">
           {blocks.map((b) => (
             <div key={b.key} className="px-3 py-3 sm:px-4">

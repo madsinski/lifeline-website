@@ -694,7 +694,7 @@ function hiitItem(st: Stage, s: TrainingSettings, extra = 0): ExerciseItem {
     name: `${primaryMode(mode)} — lotur`,
     prescription: `${rounds} × ${st.hiit.work} sek. hratt / ${st.hiit.rest} sek. rólega`,
     note: [
-      `Um ${min} mín. Má líka vera: ${mode}.`,
+      [`Um ${min} mín.`, otherModes(mode, primaryMode(mode))].filter(Boolean).join(" "),
       st.key === "adapt" ? "„Hratt“ þýðir rösklega: þú getur sagt nokkur orð en ekki heila setningu." : "„Hratt“ þýðir nálægt hámarki í hverri lotu.",
       note,
     ].filter(Boolean).join(" "),
@@ -723,13 +723,30 @@ export function primaryMode(mode: string): string {
   return first.charAt(0).toUpperCase() + first.slice(1);
 }
 
+/** "Má líka vera: …" for the options other than the one on the card, or null. */
+function otherModes(mode: string, named: string): string | null {
+  const rest = mode.split(/,| eða /).map((x) => x.trim()).filter(Boolean)
+    .filter((x) => x.toLowerCase() !== named.toLowerCase());
+  return rest.length ? `Má líka vera: ${rest.join(", ")}.` : null;
+}
+
 function zone2Item(st: Stage, s: TrainingSettings): ExerciseItem {
   const { mode } = hiitMode(s.injuries, effectivePlace(s.places));
   const minutes = st.key === "adapt" ? 30 : st.key === "s1" ? 35 : st.key === "s2" ? 40 : 45;
+  const name = primaryMode(mode);
   return {
-    name: primaryMode(mode),
+    name,
     prescription: `${clamp(minutes + s.load * 5, 20, 60)} mín. á jöfnum, rólegum hraða`,
-    note: `Má líka vera: ${mode}. Þú átt að geta haldið uppi samtali allan tímann — ef þú nærð ekki að tala í heilum setningum ertu að fara of hratt.`,
+    /*
+     * The alternatives, minus the one already named.
+     *
+     * name is the first entry in mode and the note listed all of them, so
+     * when an injury narrows the options to one the card read "Þrekhjól með
+     * hóflegri mótstöðu — Má líka vera: Þrekhjól með hóflegri mótstöðu."
+     * No alternatives left means no sentence about alternatives.
+     */
+    note: [otherModes(mode, name), "Þú átt að geta haldið uppi samtali allan tímann — ef þú nærð ekki að tala í heilum setningum ertu að fara of hratt."]
+      .filter(Boolean).join(" "),
     muscles: [],
     cues: ["Jafn hraði allan tímann — engar lotur.", "Neföndun ef þú getur; það heldur þér á réttum stað."],
     rest: null,
