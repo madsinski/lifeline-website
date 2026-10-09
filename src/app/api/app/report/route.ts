@@ -110,10 +110,15 @@ export async function GET(req: NextRequest) {
     }),
   })).sort((a, b) => (rank[a.level ?? "green"] ?? 3) - (rank[b.level ?? "green"] ?? 3));
 
+  // Approved only, to match the payload. Without this filter the newest row
+  // wins whether or not the person has confirmed it, so a report still
+  // awaiting approval lent its date and source to the one actually shown —
+  // the values from one report under another's date.
   const { data: row } = await supabaseAdmin
     .from("hc_reports")
     .select("report_date, source, created_at")
     .eq("journey_id", journey.id)
+    .not("client_approved_at", "is", null)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

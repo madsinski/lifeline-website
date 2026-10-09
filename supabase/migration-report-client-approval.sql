@@ -29,11 +29,20 @@ comment on column public.hc_reports.approval_requested_at is
 comment on column public.hc_reports.client_approved_at is
   'The client confirmed, in their own authenticated session, that this report is theirs and that they asked for it to be entered. Provenance, not Art. 9(2)(a) consent.';
 
--- A self-upload needs no approval: the person did it themselves, from their
--- own session. Backfill so existing self rows are not hidden.
+-- Backfill, so nothing already in the system is hidden by this change.
+--
+-- Only an ON-BEHALF upload needs confirming. A self-upload was done by the
+-- person from their own session, and a plain staff import is ordinary
+-- clinical work the person was not asked to vouch for — neither is a
+-- provenance question, so both count as settled.
+--
+-- Getting this wrong once put two real reports in limbo: hidden from their
+-- owners with no prompt to approve, because the gate was on
+-- client_approved_at while the backfill only covered 'self'.
 update public.hc_reports
    set client_approved_at = coalesce(client_approved_at, created_at)
- where source = 'self' and client_approved_at is null;
+ where client_approved_at is null
+   and (source = 'self' or (source <> 'staff_on_behalf' and on_behalf_consent_at is null));
 
 -- The client-facing read. Mirrors hc_report_latest but shows only what the
 -- person has approved. Staff keep using hc_report_latest: reading the report
