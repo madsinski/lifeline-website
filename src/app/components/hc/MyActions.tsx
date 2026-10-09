@@ -16,6 +16,7 @@ import { useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, Flame, RotateCcw, Sliders } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
 import { adherence, isoDay, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
+import { weekdayOf, type PersonalExercise, type PSession } from "@/lib/hc/personalise";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -33,7 +34,8 @@ export interface ActionLinks {
   lecture?: (p: Pillar) => { title: string; href: string } | null;
 }
 
-export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links, onEditPillar }: {
+export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links, onEditPillar,
+  exercise, doneToday, onCompleteSession }: {
   api: Api;
   journeyId: string;
   plan: ActionPlan;
@@ -42,6 +44,17 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   links?: ActionLinks;
   /** Opens the plan editor with this pillar already chosen. */
   onEditPillar?: (p: Pillar) => void;
+  /**
+   * The exercise programme, which is the authority on what training happens
+   * on which day. Í dag used to list the plan's exercise MODULES, which are
+   * the same every day — so a Saturday with no session still showed
+   * "Styrktarþjálfun", and a Monday showed it without saying it was Upper A.
+   */
+  exercise?: PersonalExercise | null;
+  /** Session ids and titles already finished today. */
+  doneToday?: Set<string>;
+  /** Tick a session off here exactly as Æfingar would. */
+  onCompleteSession?: (s: PSession) => void;
 }) {
   const [logs, setLogs] = useState<ActionLog[]>(initialLogs);
   const [prefs, setPrefs] = useState<ActionPref[]>(initialPrefs);
@@ -95,7 +108,24 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
     }), () => setPrefs(before));
   };
 
-  const byPillar = (p: Pillar) => live.filter((a) => a.pillar === p);
+  /**
+   * Today's training, from the programme rather than from the module list.
+   *
+   * A module carries a frequency. "Daglega" is a real daily habit — a walk
+   * after dinner belongs on every day's list. Anything else ("2–3 sinnum í
+   * viku") is a session, and the exercise programme already says which days
+   * those fall on and what they are. Showing both means the same instruction
+   * twice, at two resolutions, one of them wrong about today.
+   *
+   * So when a programme exists, non-daily exercise modules step aside and
+   * the day's actual sessions take their place.
+   */
+  const todaysSessions: PSession[] = exercise?.sessions.filter((s: PSession) => s.weekday === weekdayOf(new Date())) ?? [];
+  const programmeOwnsTraining = Boolean(exercise?.sessions.length);
+  const supersededByProgramme = (a: PlanItem) =>
+    programmeOwnsTraining && a.pillar === "exercise" && (a.frequency ?? "").toLowerCase() !== "daglega";
+
+  const byPillar = (p: Pillar) => live.filter((a) => a.pillar === p && !supersededByProgramme(a));
   const doneCount = live.filter((a) => doneOn(a.uid, today)).length;
 
   return (
@@ -144,7 +174,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         </p>
       )}
 
-      {PILLARS.filter((p) => byPillar(p).length).map((p) => {
+      {PILLARS.filter((p) => byPillar(p).length || (p === "exercise" && programmeOwnsTraining)).map((p) => {
         const meta = PILLAR_META[p];
         return (
           <div key={p} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
@@ -152,10 +182,46 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               <PillarIcon pillar={p} size="sm" />
               <p className="font-bold" style={{ color: meta.ink }}>{meta.label}</p>
               <span className="ml-auto text-xs font-semibold" style={{ color: meta.ink }}>
-                {byPillar(p).filter((a) => doneOn(a.uid, today)).length}/{byPillar(p).length}
+                {byPillar(p).filter((a) => doneOn(a.uid, today)).length + (p === "exercise" ? todaysSessions.filter((s: PSession) => doneToday?.has(s.id)).length : 0)}
+                /{byPillar(p).length + (p === "exercise" ? todaysSessions.length : 0)}
               </span>
             </div>
             <ul className="divide-y divide-slate-100">
+              {/* The programme's own sessions for today, first. */}
+              {p === "exercise" && todaysSessions.map((s: PSession) => {
+                const done = Boolean(doneToday?.has(s.id) || doneToday?.has(s.title));
+                return (
+                  <li key={s.id} className="flex items-start gap-3 px-4 py-3">
+                    <button type="button" onClick={() => !done && onCompleteSession?.(s)} disabled={done}
+                      aria-pressed={done} aria-label={`Merkja ${s.title} sem lokið`}
+                      className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition disabled:opacity-100"
+                      style={{ borderColor: done ? meta.ink : "#cbd5e1", background: done ? meta.ink : "transparent" }}>
+                      {done && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} aria-hidden />}
+                    </button>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: meta.ink }}>
+                          Æfing dagsins
+                        </span>
+                        {s.minutes ? <span className="text-[10px] text-slate-400">· {s.minutes} mín</span> : null}
+                      </span>
+                      <span className={`mt-0.5 block text-sm font-bold ${done ? "text-slate-400 line-through" : "text-hc-ink"}`}>
+                        {s.title}
+                      </span>
+                    </span>
+                    {links?.exercise && (
+                      <button type="button" onClick={links.exercise}
+                        className="shrink-0 self-center text-xs font-bold" style={{ color: meta.ink }}>
+                        Opna
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+              {/* A rest day says so, instead of showing a habit that is not on. */}
+              {p === "exercise" && programmeOwnsTraining && todaysSessions.length === 0 && (
+                <li className="px-4 py-3 text-sm text-slate-500">Engin æfing á dagskrá í dag — hvíldardagur.</li>
+              )}
               {byPillar(p).map((a) => (
                 <ActionRow key={a.uid} a={a} meta={meta} today={today} week={week} doneOn={doneOn} onToggle={toggle}
                   onOpen={() => setSheet(a)} onEdit={onEditPillar ? () => onEditPillar(p) : undefined} />
