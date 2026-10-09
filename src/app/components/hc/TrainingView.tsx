@@ -8,7 +8,7 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import React, { useMemo, useState } from "react";
-import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Play, RotateCcw, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
 import { hiitOnAt, itemsForFocus, LOAD_IS, trainingScore } from "@/lib/hc/adaptive-program";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
@@ -40,7 +40,7 @@ type Payload =
   | { kind: "exercise"; ex: LibEx };
 
 
-export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, onCustomise, arranging = false, training, planStart, onFinish, body, onInstead, onAddDay,
+export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, training, planStart, onFinish, body, onInstead, onAddDay,
   onCompleteActivity, onMoveActivity, onActivityLoad, onActivityTime, onSaveTraining, onRemoveActivity, onRemoveDay, doneToday }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
@@ -58,9 +58,6 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
    * the training: the dials, the drag-and-drop and the exercise swapping all
    * move behind that one button.
    */
-  onCustomise?: () => void;
-  /** Rendered inside that sheet, where rearranging is the whole point. */
-  arranging?: boolean;
   /** For "where am I in the programme" in the hero. */
   training?: TrainingSettings;
   planStart?: string | null;
@@ -119,8 +116,15 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   const [addDay, setAddDay] = useState<number | null>(null);
   const [openSession, setOpenSession] = useState<string | null>(() => view.sessions.find((s) => s.weekday === todayIdx)?.id ?? view.sessions[0]?.id ?? null);
   const mine = !personal.program_key || personal.program_key === exercise.key;
-  // Read-only on the main page; everything that edits lives in the sheet.
-  const editable = !onCustomise || arranging;
+  /**
+   * The calendar edits in place.
+   *
+   * It used to be read-only here, with a separate "Breyta" mode rendering
+   * the same grid again in a sheet — so the page showed you a week you
+   * could not touch and offered a button to show it to you again, editable.
+   * The grid is the editor now.
+   */
+  const editable = true;
 
   const save = (patch: Partial<Personal>) => onSave({ ...personal, ...(mine ? {} : { days: {}, swaps: {}, hiit_split: false }), program_key: exercise.key, ...patch });
   const moveSession = (id: string, day: number) => save({ days: { ...(mine ? personal.days : {}), [id]: day } });
@@ -253,16 +257,15 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Æfingaáætlunin mín</p>
               <h2 className="mt-1 text-2xl font-bold text-slate-900">{exercise.name}</h2>
             </div>
+            {/* The hero had its own "Breyta", which opened a second editor
+                holding a second copy of this calendar plus settings that
+                Breytingar below already covers. One way in now — and the
+                calendar itself is the editor, which is how TrueCoach and
+                Hevy do it: drag a session, tap one for its controls, "+" on
+                a day. A mode switch to do what the page already does is a
+                step for nothing. */}
             <div className="flex shrink-0 flex-wrap gap-2">
-              {onChangeProgram && !onCustomise && <button type="button" onClick={onChangeProgram} className="rounded-full border border-orange-200 px-3 py-1 text-sm font-semibold text-orange-800 hover:bg-orange-50">Skipta um æfingaáætlun</button>}
-              {/* Was a full-width block under the hero. The page is for the
-                  next session; changing the plan is the rarer errand. */}
-              {onCustomise && !arranging && (
-                <button type="button" onClick={onCustomise}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 px-3 py-1 text-sm font-semibold text-orange-800 transition hover:bg-orange-50">
-                  <Sliders className="h-3.5 w-3.5" aria-hidden /> Breyta
-                </button>
-              )}
+              {onChangeProgram && <button type="button" onClick={onChangeProgram} className="rounded-full border border-orange-200 px-3 py-1 text-sm font-semibold text-orange-800 hover:bg-orange-50">Skipta um æfingaáætlun</button>}
             </div>
           </div>
 
@@ -457,9 +460,11 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           onAdd={(a, inj) => { onAddDay?.(a, inj); setAddDay(null); }} />
       )}
 
+      {/* No onOpenWeek any more: the week that entry used to open is this
+          page's own calendar, a scroll up. */}
       {changes && training && onSaveTraining && (
         <TrainingChanges settings={training} onChange={(next) => onSaveTraining(next)}
-          onOpenWeek={onCustomise} onOpenProgram={onChangeProgram}
+          onOpenProgram={onChangeProgram}
           onClose={() => setChanges(false)} />
       )}
 

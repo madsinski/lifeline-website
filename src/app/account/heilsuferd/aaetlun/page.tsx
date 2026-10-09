@@ -42,7 +42,6 @@ import { Info, Pencil } from "lucide-react";
 import TrainingView from "@/app/components/hc/TrainingView";
 import CalendarCard from "@/app/components/hc/CalendarCard";
 import TrainingWizard from "@/app/components/hc/TrainingWizard";
-import TrainingCustomise from "@/app/components/hc/TrainingCustomise";
 import NutritionView from "@/app/components/hc/NutritionView";
 import NutritionWizard from "@/app/components/hc/NutritionWizard";
 import { DEFAULT_NUTRITION, type NutritionPrefs } from "@/lib/hc/nutrition";
@@ -144,7 +143,6 @@ function PlanPageInner() {
   // the programme is still running on defaults nobody has confirmed.
   const [setup, setSetup] = useState(false);
   // "Hvað viltu breyta?" for the training programme.
-  const [customise, setCustomise] = useState(false);
   /** Which pillar the plan editor should open on, when it was opened from an action. */
   const [editPillar, setEditPillar] = useState<Pillar | null>(null);
   // The same, for the nutrition plan.
@@ -379,7 +377,7 @@ function PlanPageInner() {
   // end looking at the footer.
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
-  }, [editing, customise, nutritionSetup]);
+  }, [editing, nutritionSetup]);
 
   // Measured values, loaded when the Niðurstöður tab is actually opened —
   // most visits never go there.
@@ -418,10 +416,10 @@ function PlanPageInner() {
             is visible wherever you are. */}
         {/* The "Aðgangurinn minn" link is gone — the navbar already has it.
             A back link out of an editor is a different thing and stays. */}
-        {(editing || customise || nutritionSetup) && (
+        {(editing || nutritionSetup) && (
           <div className="mb-3 print:hidden">
             <BackLink label="Til baka í áætlunina"
-              onBack={() => { setEditing(false); setEditPillar(null); setCustomise(false); setNutritionSetup(false); }} />
+              onBack={() => { setEditing(false); setEditPillar(null); setNutritionSetup(false); }} />
           </div>
         )}
 
@@ -517,17 +515,12 @@ function PlanPageInner() {
                       signals={reportSignalsBySlug} titles={reportTitlesBySlug} gym={gym} saving={saving}
                       onSave={(next) => { void saveTraining(next); setSetup(false); }}
                       onCancel={() => setSetup(false)} />
-                  ) : customise && isAdaptive(plan.exercise?.key) ? (
-                    <TrainingCustomise
-                      settings={training} planStart={plan.start_date}
-                      signals={reportSignalsBySlug} titles={reportTitlesBySlug} gym={gym} saving={saving}
-                      onSave={(next) => void saveTraining(next)}
-                      onClose={() => setCustomise(false)}
-                      arrange={
-                        <TrainingView api={api} exercise={baseExercise} personal={personal} arranging
-                          onSave={(p) => void savePersonal(p, PERSONAL_FIELDS)}
-                          onChangeProgram={() => setPicker("exercise")} />
-                      } />
+                  /* TrainingCustomise was the other half of a duplicated
+                     system: "Breyta" opened it, and it held a second copy of
+                     this calendar plus Uppsetningin and Álagið — both of
+                     which Breytingar already covers, alongside Meiðsli, Hvar
+                     og hvernig and Prógrammið that it did not. One sheet
+                     now, and the calendar edits in place. */
                   ) : (
                     <TrainingView api={api} exercise={baseExercise} personal={personal}
                       onSave={(p) => void savePersonal(p, PERSONAL_FIELDS)}
@@ -576,12 +569,12 @@ function PlanPageInner() {
                         minutes: 0, rpe: 5,
                         session: { ...info.session, modality: info.modality, title: info.label },
                       })}
-                      onCustomise={isAdaptive(plan.exercise?.key) ? () => setCustomise(true) : undefined} />
+                      />
                   )}
                   {/* Last on the tab: the week belongs in the calendar they
                       already live in, but it is a once-only errand and does
                       not deserve a place above the training itself. */}
-                  {!customise && <CalendarCard api={api} />}
+                  <CalendarCard api={api} />
                 </div>
               )}
               {tab === "nutrition" && plan?.nutrition && (
