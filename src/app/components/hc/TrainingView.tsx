@@ -8,7 +8,7 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import React, { useMemo, useState } from "react";
-import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Play, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, ListChecks, Plus, X, Dumbbell, Play, RotateCcw, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
 import { hiitOnAt, itemsForFocus, LOAD_IS, trainingScore } from "@/lib/hc/adaptive-program";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
@@ -18,6 +18,7 @@ import { activityFocus, activityModality, hardDays, stageAt, type Activity, type
 import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
 import SessionGuide from "./SessionGuide";
+import SessionBuilder from "./SessionBuilder";
 import TrainingChanges, { ChangesButton } from "./TrainingChanges";
 import WeekBalance from "./WeekBalance";
 import SessionAlternatives from "./SessionAlternatives";
@@ -99,6 +100,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   const [changes, setChanges] = useState(false);
   /** The activity chip whose controls are open, if any. */
   const [editing, setEditing] = useState<string | null>(null);
+  /** The lift whose exercise list is open for editing. */
+  const [building, setBuilding] = useState<Activity | null>(null);
   /**
    * The day the list below is showing. Clicking anything in the week picks
    * its day; the week and the detail are one thing now rather than a grid
@@ -206,6 +209,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
           {dayActivities.length > 0 && (
             <ActivityCards activities={dayActivities} todayIdx={todayIdx} done={doneToday} onLoad={onActivityLoad}
+              onBuild={onSaveTraining && training ? (a) => setBuilding(a) : undefined}
               onRun={training ? (a) => {
                 // A lift the person put in the week is a training day like
                 // any other: the focus they chose decides the movements, and
@@ -214,7 +218,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                 setRunning({
                   id: a.id, title: a.name, day: WEEKDAYS[a.day], weekday: a.day,
                   modality: "strength", minutes: a.minutes ?? 60,
-                  items: itemsForFocus(a.focus, training, planStart ?? null, a.load ?? 0),
+                  items: itemsForFocus(a.focus, training, planStart ?? null, a.load ?? 0, a.slots),
                 } as PSession);
               } : undefined}
               onComplete={onCompleteActivity} onRemove={onRemoveActivity} />
@@ -462,6 +466,20 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
       {/* No onOpenWeek any more: the week that entry used to open is this
           page's own calendar, a scroll up. */}
+      {building?.focus && training && onSaveTraining && (
+        <SessionBuilder
+          name={building.name} focus={building.focus} slots={building.slots ?? null}
+          settings={training} planStart={planStart ?? null} load={building.load ?? 0}
+          onClose={() => setBuilding(null)}
+          onSave={(keys) => {
+            onSaveTraining({
+              ...training,
+              activities: training.activities.map((x) => (x.id === building.id ? { ...x, slots: keys } : x)),
+            });
+            setBuilding(null);
+          }} />
+      )}
+
       {changes && training && onSaveTraining && (
         <TrainingChanges settings={training} onChange={(next) => onSaveTraining(next)}
           onOpenProgram={onChangeProgram}
@@ -812,13 +830,15 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
  * Monday with an hour of football on it look like a rest day in the plan.
  * An hour of football IS the hard lota for that day; it belongs in the list.
  */
-function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onRun, done }: {
+function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onRun, onBuild, done }: {
   activities: Activity[]; todayIdx: number; onComplete?: (a: Activity) => void;
   onRemove?: (id: string) => void;
   /** Nudge this one session heavier or lighter, −2…+2. */
   onLoad?: (id: string, load: number) => void;
   /** Start it as a real workout — only a lift has movements to run. */
   onRun?: (a: Activity) => void;
+  /** Open its exercise list for editing. */
+  onBuild?: (a: Activity) => void;
   /** Ids marked done today. */
   done?: Set<string>;
 }) {
@@ -851,6 +871,12 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                   </p>
                 ) : (
                   <span className="flex w-full flex-col gap-2">
+                    {onBuild && a.focus && (
+                      <button type="button" onClick={() => onBuild(a)}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-50">
+                        <ListChecks className="h-4 w-4" aria-hidden /> Sjá æfingar
+                      </button>
+                    )}
                     {onRun && a.focus && (
                       <button type="button" onClick={() => onRun(a)}
                         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 px-4 py-3 font-bold text-white transition hover:bg-orange-700">

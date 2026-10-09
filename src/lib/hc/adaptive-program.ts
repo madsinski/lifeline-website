@@ -114,6 +114,17 @@ export interface Activity {
   focus?: StrengthFocus | null;
   /** Per-session load offset, −2…+2, on top of the programme's own. */
   load?: number | null;
+  /**
+   * Which movement patterns this lift is made of, in order.
+   *
+   * Patterns rather than exercises on purpose: the person chooses to train
+   * a hinge, and the programme still picks which hinge for their stage,
+   * their load and the knee they are sparing. Freezing a named exercise
+   * here would opt them out of every adaptation the plan makes.
+   *
+   * Unset means the default list for the focus.
+   */
+  slots?: string[] | null;
 }
 
 export type StrengthFocus = "full" | "upper" | "lower" | "core";
@@ -954,14 +965,76 @@ const FOCUS_SLOTS: Record<StrengthFocus, Slot[]> = {
   core: [CORE, CARRY, HINGE],
 };
 
-export function itemsForFocus(
-  focus: StrengthFocus, s: TrainingSettings, planStart: string | null, extraLoad = 0,
+/**
+ * The movement patterns a session can be built from.
+ *
+ * `group` is what the structure rules reason about: a session of nothing but
+ * presses and push-ups trains one half of one plane, and the builder exists
+ * to make that hard to do by accident.
+ */
+export type SlotGroup = "lower" | "push" | "pull" | "core" | "carry";
+export const STRENGTH_SLOTS: { key: string; label: string; group: SlotGroup; slot: Slot }[] = [
+  { key: "squat", label: "Hnébeygja", group: "lower", slot: SQUAT },
+  { key: "hinge", label: "Mjaðmahreyfing", group: "lower", slot: HINGE },
+  { key: "lunge", label: "Framstig", group: "lower", slot: LUNGE },
+  { key: "push", label: "Að ýta (lárétt)", group: "push", slot: PUSH },
+  { key: "press", label: "Að ýta (upp)", group: "push", slot: PRESS },
+  { key: "pull", label: "Að toga", group: "pull", slot: PULL },
+  { key: "core", label: "Kviður og bol", group: "core", slot: CORE },
+  { key: "carry", label: "Að bera", group: "carry", slot: CARRY },
+];
+const SLOT_BY_KEY = new Map(STRENGTH_SLOTS.map((x) => [x.key, x]));
+export const GROUP_IS: Record<SlotGroup, string> = {
+  lower: "Fætur", push: "Ýta", pull: "Toga", core: "Kviður", carry: "Bera",
+};
+
+/** The default pattern list for a focus, as slot keys. */
+export const slotKeysFor = (focus: StrengthFocus): string[] =>
+  FOCUS_SLOTS[focus].map((sl) => STRENGTH_SLOTS.find((x) => x.slot === sl)?.key).filter((x): x is string => !!x);
+
+/**
+ * What is wrong with this list, in one line, or null.
+ *
+ * Deliberately advisory rather than enforced: somebody rehabilitating a knee
+ * may genuinely want a session with no lower body in it, and a rule that
+ * refuses would be wrong about them. It says what is missing and lets them
+ * decide.
+ */
+export function slotAdvice(focus: StrengthFocus, keys: string[]): string | null {
+  const has = (g: SlotGroup) => keys.some((k) => SLOT_BY_KEY.get(k)?.group === g);
+  if (!keys.length) return "Veldu að minnsta kosti eina æfingu.";
+  if (focus === "full") {
+    const missing = (["lower", "push", "pull", "core"] as SlotGroup[]).filter((g) => !has(g));
+    if (missing.length) return `Heilan líkama vantar: ${missing.map((g) => GROUP_IS[g].toLowerCase()).join(", ")}.`;
+  }
+  if (focus === "upper" && !(has("push") && has("pull"))) {
+    return has("push") ? "Efri hluti án togæfingar þjálfar bara framhliðina." : "Bættu við æfingu sem ýtir.";
+  }
+  if (focus === "lower" && !has("lower")) return "Neðri hluti þarf að minnsta kosti eina fótaæfingu.";
+  if (focus === "core" && !has("core")) return "Bættu við kviðæfingu.";
+  return null;
+}
+
+/** Build from an explicit pattern list — the person's own arrangement. */
+export function itemsForSlots(
+  keys: string[], s: TrainingSettings, planStart: string | null, extraLoad = 0,
 ): ExerciseItem[] {
   const info = stageAt(s, planStart);
   const st = STAGES[info.key];
-  // The session's own ±álag rides on top of the programme's.
   const tuned: TrainingSettings = { ...s, load: clamp(s.load + extraLoad, -2, 2) };
-  return FOCUS_SLOTS[focus].map((slot) => strengthItem(slot, st, tuned));
+  return keys.map((k) => SLOT_BY_KEY.get(k)).filter((x) => !!x)
+    .map((x) => strengthItem(x!.slot, st, tuned));
+}
+
+export function itemsForFocus(
+  focus: StrengthFocus, s: TrainingSettings, planStart: string | null, extraLoad = 0,
+  /** Their own arrangement, when they have made one. */
+  keys?: string[] | null,
+): ExerciseItem[] {
+  // The session's own ±álag rides on top of the programme's, inside
+  // itemsForSlots. Which patterns is theirs to choose; which variant of each
+  // pattern stays the programme's, so stage, load and injuries keep applying.
+  return itemsForSlots(keys?.length ? keys : slotKeysFor(focus), s, planStart, extraLoad);
 }
 
 export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[] {
@@ -1204,8 +1277,11 @@ export function sanitizeActivities(v: unknown): Activity[] {
     const focus = stored ?? (Object.entries(STRENGTH_FOCUS_IS)
       .find(([, v]) => name.toLowerCase().endsWith(v.label.toLowerCase()))?.[0] as StrengthFocus | undefined) ?? null;
     const load = Number.isFinite(Number(a.load)) ? clamp(Math.round(Number(a.load)), -2, 2) : null;
+    const slots = Array.isArray(a.slots)
+      ? [...new Set(a.slots.map((x) => String(x)))].filter((k) => STRENGTH_SLOTS.some((x) => x.key === k)).slice(0, 10)
+      : null;
     return day >= 0 && day <= 6
-      ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], partial: [...new Set(partial)], benefits: [...new Set(benefits)], intensity, focus, load }
+      ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], partial: [...new Set(partial)], benefits: [...new Set(benefits)], intensity, focus, load, slots }
       : null;
   }).filter((a): a is Activity => !!a);
 }
