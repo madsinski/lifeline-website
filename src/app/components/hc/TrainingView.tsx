@@ -262,10 +262,15 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                     <button key={s.id} type="button" {...handle({ kind: "session", id: s.id }, s.title)}
                       onClick={() => { setPickedDay(i); setOpenSession(s.id); }}
                       aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}`}
-                      className={`flex min-h-9 select-none items-center rounded-lg px-2 py-1.5 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${shownDay === i ? "outline outline-2 outline-hc-ink" : ""}`}>
-                      <span className={`mb-0.5 hidden h-1 w-5 rounded-full sm:block ${MODALITY_IS[s.modality].dot}`} />
-                      <span className="block truncate sm:hidden">{s.title}</span>
-                      <span className="hidden line-clamp-2 sm:block">{s.title.length > 11 ? MODALITY_IS[s.modality].label : s.title}</span>
+                      className={`flex min-h-10 select-none flex-col justify-center rounded-lg px-2 py-1 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${shownDay === i ? "outline outline-2 outline-hc-ink" : ""}`}>
+                      <span className="block truncate">{s.title}</span>
+                      {/* What it trains, under the name. The little coloured
+                          bar that used to sit here said the same thing in a
+                          code nobody has the key to. */}
+                      <span className="block truncate text-[10px] font-semibold opacity-70">
+                        {MODALITY_IS[s.modality].label}
+                        {s.minutes ? ` · ${s.minutes} mín` : ""}
+                      </span>
                     </button>
                   ))}
                   {/* Their own commitments: outlined, because the plan did not
@@ -278,13 +283,20 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                         onClick={() => { setPickedDay(a.day); }}
                         title={`${a.name}${a.at ? ` · ${a.at}` : ""} — ${activityFocus(a)}`}
                         aria-label={`${a.name}, ${WEEKDAYS[a.day].toLowerCase()}`}
-                        className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} flex min-h-9 select-none items-center rounded-lg px-2 py-1.5 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 ${mm.cls} ${shownDay === a.day ? "outline outline-2 outline-hc-ink" : ""}`}>
-                        <span className={`mb-0.5 block h-1 w-5 rounded-full ${mm.dot}`} />
+                        className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} flex min-h-10 select-none flex-col justify-center rounded-lg px-2 py-1 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 ${mm.cls} ${shownDay === a.day ? "outline outline-2 outline-hc-ink" : ""}`}>
                         <span className="flex items-center gap-1">
                           <ActivityIcon name={a.name} className="h-3 w-3 shrink-0" />
                           <span className="truncate">{a.name}</span>
                         </span>
-                        {a.at && <span className="block text-[9px] font-normal opacity-70">{a.at}</span>}
+                        {/* Everything it covers, not just the headline one:
+                            CrossFit is strength AND hiit, and a week that
+                            counts it once is a week that double-books. */}
+                        <span className="block truncate text-[10px] font-semibold opacity-70">
+                          {(a.covers?.length ? a.covers : [am])
+                            .map((c) => MODALITY_IS[c]?.label ?? c)
+                            .join(" + ")}
+                          {a.at ? ` · ${a.at}` : ""}
+                        </span>
                       </button>
                     );
                   })}
