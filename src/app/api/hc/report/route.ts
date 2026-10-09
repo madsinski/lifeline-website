@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { currentJourney, decryptKennitala, getClientProfile, hcAudit, requireUser } from "@/lib/hc/server";
+import { decryptKennitala, getClientProfile, getOrCreateJourney, hcAudit, requireUser } from "@/lib/hc/server";
 import { readReport } from "@/lib/hc/report-local";
 import type { ReportFile } from "@/lib/hc/report-import";
 
@@ -26,8 +26,19 @@ const MAX_BYTES = 12 * 1024 * 1024;
 export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
-  const journey = await currentJourney(user.id);
-  if (!journey) return NextResponse.json({ error: "Engin heilsuferð fannst." }, { status: 404 });
+  /**
+   * A journey is created if there is none.
+   *
+   * hc_reports.journey_id is NOT NULL, so a report needs one to hang on, and
+   * refusing without one meant 123 of 126 clients could not read their own
+   * report at all. Creating it is safe now that stageFor no longer treats a
+   * self-upload as a clinical milestone (stages.ts): the person stays in
+   * their own customer-side stage and does not appear in the vinnustöð
+   * queue. They are a viewer of their own data, not a patient in a pipeline
+   * — which is the lawful basis working as intended rather than a
+   * convenience.
+   */
+  const journey = await getOrCreateJourney(user.id);
 
   const form = await req.formData().catch(() => null);
   const uploaded = form?.getAll("files").filter((f): f is File => f instanceof File) ?? [];

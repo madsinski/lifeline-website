@@ -24,8 +24,8 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.13";
-export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-08";
+export const SECURITY_POSTURE_VERSION = "v1.14";
+export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-09";
 
 export function renderSecurityPosture(): string {
   return `LIFELINE HEALTH — SECURITY & PRIVACY POSTURE STATEMENT
@@ -571,6 +571,19 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.14 (2026-10-09)
+  Self-uploaded reports no longer imply a care relationship. A person who
+  imports their own Medalia report is a viewer of their own data: the
+  report stays in Medalia, this account renders it. stageFor no longer
+  counts own_report_at as a clinical milestone, so such a person keeps
+  their customer-side stage and does not enter the vinnustöð queue.
+  Art. 9(2)(h) covers processing for care by a health professional, and
+  that relationship begins when a clinician takes the person on — not
+  when the person reads their own results. A clinician-generated or
+  staff-imported report still advances the journey. Self-upload now
+  creates the journey row it needs, so importing a report no longer
+  requires an existing heilsuferð.
 
 v1.13 (2026-10-08)
   Lagagrundvöllur heilsufarsgagna færður úr 9. gr. (2)(a) samþykki í
@@ -1243,6 +1256,19 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.14 (2026-10-09)
+  Self-uploaded reports no longer imply a care relationship. A person who
+  imports their own Medalia report is a viewer of their own data: the
+  report stays in Medalia, this account renders it. stageFor no longer
+  counts own_report_at as a clinical milestone, so such a person keeps
+  their customer-side stage and does not enter the vinnustöð queue.
+  Art. 9(2)(h) covers processing for care by a health professional, and
+  that relationship begins when a clinician takes the person on — not
+  when the person reads their own results. A clinician-generated or
+  staff-imported report still advances the journey. Self-upload now
+  creates the journey row it needs, so importing a report no longer
+  requires an existing heilsuferð.
 
 v1.12 (2026-10-08)
   Added an automated hourly account scan (security_findings,

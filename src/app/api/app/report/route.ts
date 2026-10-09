@@ -34,10 +34,11 @@ export async function GET(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
 
+  // No journey yet simply means nothing uploaded yet: POST /api/hc/report
+  // creates one, and a self-upload no longer puts anybody in a clinical
+  // queue (stages.ts). So uploading is always offered.
   const journey = await currentJourney(user.id);
-  if (!journey) {
-    return NextResponse.json({ canUpload: false, reason: "no-journey", report: null });
-  }
+  if (!journey) return NextResponse.json({ canUpload: true, report: null });
 
   const stored = await loadReport(journey.id, user.id);
   if (!stored) return NextResponse.json({ canUpload: true, report: null });

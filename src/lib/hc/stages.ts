@@ -161,7 +161,24 @@ export function stageFor(j: HcJourney, profileComplete: boolean): string {
   // clinical milestones before the customer-only steps are done. The
   // workstation works from the clinical side, so that wins; otherwise the
   // client sits in "profile" for ever and never reaches the to-do list.
-  const reportIn = j.report_generated_at || j.report_imported_at || j.own_report_at;
+  //
+  // own_report_at is deliberately NOT one of those milestones.
+  //
+  // A person who uploads their own Medalia report is reading their own data.
+  // That is the viewer relationship: the report lives in Medalia, this
+  // account shows it to them. It is not a care relationship, nobody at
+  // Lifeline has taken them on, and 9(2)(h) covers processing for care BY a
+  // health professional — which has not started.
+  //
+  // Counting it here advanced such a person to "interview", and "interview"
+  // is inside the vinnustöð queue filter. That put somebody who only looked
+  // at their own results into a clinician's worklist, waiting for an
+  // appointment they never booked and have not paid for. Wrong clinically,
+  // wrong operationally, and the wrong story about what the relationship is.
+  //
+  // A clinician-side report (generated or imported by staff) still advances
+  // the journey, because that one does mean somebody has taken them on.
+  const reportIn = j.report_generated_at || j.report_imported_at;
   if (CUSTOMER_ONLY.has(current.key) && (reportIn || j.blood_results_at || j.measurements_done_at || j.interview_booked_for || j.plan_published_at)) {
     if (!(j.blood_test_done_at || j.blood_results_at) || !j.measurements_done_at) {
       if (!reportIn && !j.interview_booked_for && !j.plan_published_at) return "tests";

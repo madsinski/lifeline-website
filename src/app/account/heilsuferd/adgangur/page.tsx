@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import JourneyNav from "@/app/components/hc/JourneyNav";
 import SettingsCard from "@/app/components/hc/SettingsCard";
 import NudgeSettings from "@/app/components/hc/NudgeSettings";
+import PartnerCard from "@/app/components/hc/PartnerCard";
 import BillingPanel from "@/app/components/BillingPanel";
 import ContextSwitcher from "@/app/components/ContextSwitcher";
 import SignedDocumentsList from "@/app/account/SignedDocumentsList";
@@ -93,6 +94,7 @@ function Adgangur() {
 
         <SettingsCard />
         <NudgeSettings api={api} />
+        <PartnerCard api={api} />
 
         <section className={card} aria-labelledby="acc-pay">
           <h2 id="acc-pay" className="mb-3 text-lg font-bold text-slate-900">Greiðslur og kvittanir</h2>
