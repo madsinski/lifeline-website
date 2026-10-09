@@ -884,6 +884,37 @@ export const SCORE_TONE = (score: number) =>
  * the remaining days they said they could train, and HIIT replaces one of
  * those once it has been earned.
  */
+/**
+ * A real session for a lift the person put in the week themselves.
+ *
+ * "Lyftingar" on a Friday used to be a chip with a name and nothing behind
+ * it — no exercises, no weights, nothing to run. It is a training day like
+ * any other, so it gets the same treatment: the slots its focus implies,
+ * built by strengthItem, which already handles the stage, the load, where
+ * they train and which joints to spare.
+ *
+ * Which slots per focus is the ordinary split. Full body takes the five
+ * patterns that cover it; upper and lower take their half; core takes the
+ * trunk work plus a hinge, because a core day with no hinge trains the
+ * front of the body only.
+ */
+const FOCUS_SLOTS: Record<StrengthFocus, Slot[]> = {
+  full: [SQUAT, HINGE, PUSH, PULL, CORE],
+  upper: [PUSH, PULL, PRESS, CARRY],
+  lower: [SQUAT, HINGE, LUNGE, CORE],
+  core: [CORE, CARRY, HINGE],
+};
+
+export function itemsForFocus(
+  focus: StrengthFocus, s: TrainingSettings, planStart: string | null, extraLoad = 0,
+): ExerciseItem[] {
+  const info = stageAt(s, planStart);
+  const st = STAGES[info.key];
+  // The session's own ±álag rides on top of the programme's.
+  const tuned: TrainingSettings = { ...s, load: clamp(s.load + extraLoad, -2, 2) };
+  return FOCUS_SLOTS[focus].map((slot) => strengthItem(slot, st, tuned));
+}
+
 export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[] {
   const it = (slot: Slot) => strengthItem(slot, st, s);
   const strengthMinutes = Math.round(5 + 4 * st.sets * 2.5);

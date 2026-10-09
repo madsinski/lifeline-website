@@ -59,9 +59,16 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
   // in the Æfingar week and counted when deciding what to prescribe — was
   // invisible on the surface people actually read.
   const myToday = (training?.activities ?? []).filter((a) => a.day === today);
-  const next = exercise && !todays.length
-    ? [...exercise.sessions].sort((a, b) => ((a.weekday - today + 7) % 7) - ((b.weekday - today + 7) % 7)).find((s) => s.weekday >= 0)
-    : null;
+  /**
+   * Tomorrow, specifically — not "the next session", which could be four
+   * days away and reads as a promise about a day nobody is thinking about.
+   * Tomorrow is the one you can still plan around tonight.
+   */
+  const tomorrowIdx = (today + 1) % 7;
+  const tomorrow = [
+    ...(exercise?.sessions ?? []).filter((s) => s.weekday === tomorrowIdx).map((s) => s.title),
+    ...(training?.activities ?? []).filter((a) => a.day === tomorrowIdx).map((a) => a.name),
+  ];
   // The same restrictions as the Næring tab: a vegetarian must not be shown a
   // lamb casserole here either, which is the surface they actually read.
   // Today's meals, not Monday's: dayFor defaults to day 0, which would have
@@ -71,7 +78,7 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         {exercise && (
-          <button type="button" onClick={() => onOpenExercise(todays[0]?.id ?? next?.id)}
+          <button type="button" onClick={() => onOpenExercise(todays[0]?.id)}
             className="flex flex-col rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 p-4 text-left text-white shadow-sm transition hover:shadow-md sm:p-5">
             <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-white/85"><Dumbbell className="h-4 w-4" aria-hidden />{todays.length || myToday.length ? "Æfing dagsins" : "Hvíldardagur"}</span>
             {myToday.length > 0 && (
@@ -91,10 +98,15 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
               </span>
             )) : (
               <span className="mt-1 block text-sm text-white/95">
-                {myToday.length ? "Þetta er það sem þú gerir í dag." : "Rösk ganga eða útivera telur samt."}
-                {next ? <> Næst: <strong>{next.title}</strong>, {WEEKDAYS[next.weekday].toLowerCase()}.</> : null}
+                {myToday.length ? null : "Rösk ganga eða útivera telur samt."}
               </span>
             )}
+            {/* Tomorrow as a chip — the same treatment as the Æfingar hero,
+                so the two pages read alike. */}
+            <span className="mt-2 inline-flex w-fit max-w-full items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
+              <span className="opacity-80">Á morgun</span>
+              <span className="truncate">{tomorrow.length ? tomorrow.join(" + ") : "hvíld"}</span>
+            </span>
             {todays[0]?.items.some((i) => i.image) && (
               <span className="mt-3 flex -space-x-2">
                 {todays[0].items.filter((i) => i.image).slice(0, 5).map((i, k) => (

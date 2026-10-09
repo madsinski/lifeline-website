@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, CalendarClock, FileCheck2, Hand, MessageCircle } from "lucide-react";
-import { hcCard, hcKicker } from "./ui";
+import { hcCard } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -50,27 +50,24 @@ export function useNotifications(api: Api) {
   return { items, unread, reloadNotifications: load, markSeen };
 }
 
-/** The strip beside "Hæ Mads": a dot, and what the newest thing is. */
-export function NotificationBell({ items, unread }: { items: Note[]; unread: number }) {
-  const newest = items.find((i) => i.unread) ?? items[0] ?? null;
+/**
+ * Beside "Hæ Mads": the bell and the count, nothing else.
+ *
+ * It carried the newest item's title too, which on a phone took half the
+ * line and pushed the greeting around as the text changed length. The
+ * count already says there is something; the title is one tap away.
+ */
+export function NotificationBell({ unread }: { unread: number }) {
   return (
     <Link href="/account/heilsuferd/tilkynningar"
-      className="group flex max-w-[55%] shrink-0 items-center gap-2 text-right"
-      aria-label={unread ? `${unread} ný skilaboð` : "Tilkynningar"}>
-      <span className="min-w-0 text-right">
-        <span className={`${hcKicker} block text-slate-400`}>Tilkynningar</span>
-        <span className="block truncate text-xs font-semibold text-hc-ink-2 group-hover:text-hc-ink">
-          {newest ? newest.title : "Ekkert nýtt"}
+      className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+      aria-label={unread ? `Tilkynningar, ${unread} ný` : "Tilkynningar"}>
+      <Bell className="h-5 w-5" aria-hidden />
+      {unread > 0 && (
+        <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          {unread > 9 ? "9+" : unread}
         </span>
-      </span>
-      <span className="relative shrink-0">
-        <Bell className="h-5 w-5 text-slate-400 group-hover:text-slate-600" aria-hidden />
-        {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </span>
+      )}
     </Link>
   );
 }

@@ -10,7 +10,7 @@
 import { useMemo, useState } from "react";
 import { ArrowLeftRight, Check, ChevronDown, Plus, X, Dumbbell, Info, Play, RotateCcw, Sliders, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
-import { LOAD_IS } from "@/lib/hc/adaptive-program";
+import { itemsForFocus, LOAD_IS } from "@/lib/hc/adaptive-program";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
@@ -160,9 +160,18 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   // Today's sessions, and the next one when today is a rest day — the two
   // things the hero is for.
   const todays = view.sessions.filter((x) => x.weekday === todayIdx);
-  const nextUp = [...view.sessions]
-    .sort((a, b) => ((a.weekday - todayIdx + 7) % 7) - ((b.weekday - todayIdx + 7) % 7))
-    .find((x) => x.weekday !== todayIdx) ?? null;
+  /**
+   * The hero read view.sessions alone, so a day holding only the person's
+   * own activities — football, CrossFit, a lift they added — announced
+   * "Hvíldardagur" while the calendar underneath showed the session. Both
+   * kinds count: you are training either way.
+   */
+  const myToday = (training?.activities ?? []).filter((a) => a.day === todayIdx);
+  const tomorrowIdx = (todayIdx + 1) % 7;
+  const tomorrow = [
+    ...view.sessions.filter((x) => x.weekday === tomorrowIdx).map((x) => x.title),
+    ...(training?.activities ?? []).filter((a) => a.day === tomorrowIdx).map((a) => a.name),
+  ];
   const stage = training ? stageAt(training, planStart ?? null) : null;
 
   return (
@@ -193,21 +202,23 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               from the week, and none of it the question someone opens this
               page with. */}
           <div className="mt-4 rounded-2xl bg-orange-600 p-4 text-white">
-            {todays.length > 0 ? (
-              <>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-orange-100">Í dag</p>
-                <p className="mt-0.5 text-lg font-bold">{todays.map((x) => x.title).join(" + ")}</p>
-                <p className="text-sm text-orange-50">
-                  {[todays[0].focus, todays[0].minutes ? `um ${todays[0].minutes} mín.` : null].filter(Boolean).join(" · ")}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-orange-100">Í dag</p>
-                <p className="mt-0.5 text-lg font-bold">Hvíldardagur</p>
-                {nextUp && <p className="text-sm text-orange-50">Næst: {nextUp.title} á {WEEKDAYS[nextUp.weekday].toLowerCase()}</p>}
-              </>
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-orange-100">Í dag</p>
+            <p className="mt-0.5 text-lg font-bold">
+              {todays.length > 0 || myToday.length > 0
+                ? [...todays.map((x) => x.title), ...myToday.map((a) => a.name)].join(" + ")
+                : "Hvíldardagur"}
+            </p>
+            {todays.length > 0 && (
+              <p className="text-sm text-orange-50">
+                {[todays[0].focus, todays[0].minutes ? `um ${todays[0].minutes} mín.` : null].filter(Boolean).join(" · ")}
+              </p>
             )}
+            {/* Tomorrow as a chip, not a sentence — the same treatment as
+                the Í dag hero, so the two pages read alike. */}
+            <span className="mt-2 inline-flex w-fit max-w-full items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold ring-1 ring-white/25">
+              <span className="opacity-80">Á morgun</span>
+              <span className="truncate">{tomorrow.length ? tomorrow.join(" + ") : "hvíld"}</span>
+            </span>
           </div>
 
           {stage && (
@@ -251,7 +262,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                     <button key={s.id} type="button" {...handle({ kind: "session", id: s.id }, s.title)}
                       onClick={() => { setPickedDay(i); setOpenSession(s.id); }}
                       aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}`}
-                      className={`select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${shownDay === i ? "outline outline-2 outline-hc-ink" : ""}`}>
+                      className={`flex min-h-9 select-none items-center rounded-lg px-2 py-1.5 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${shownDay === i ? "outline outline-2 outline-hc-ink" : ""}`}>
                       <span className={`mb-0.5 hidden h-1 w-5 rounded-full sm:block ${MODALITY_IS[s.modality].dot}`} />
                       <span className="block truncate sm:hidden">{s.title}</span>
                       <span className="hidden line-clamp-2 sm:block">{s.title.length > 11 ? MODALITY_IS[s.modality].label : s.title}</span>
@@ -267,7 +278,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                         onClick={() => { setPickedDay(a.day); }}
                         title={`${a.name}${a.at ? ` · ${a.at}` : ""} — ${activityFocus(a)}`}
                         aria-label={`${a.name}, ${WEEKDAYS[a.day].toLowerCase()}`}
-                        className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} select-none rounded-lg px-1 py-1.5 text-left text-[10px] font-bold leading-tight shadow-sm ring-1 sm:text-[11px] ${mm.cls} ${shownDay === a.day ? "outline outline-2 outline-hc-ink" : ""}`}>
+                        className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} flex min-h-9 select-none items-center rounded-lg px-2 py-1.5 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 ${mm.cls} ${shownDay === a.day ? "outline outline-2 outline-hc-ink" : ""}`}>
                         <span className={`mb-0.5 block h-1 w-5 rounded-full ${mm.dot}`} />
                         <span className="flex items-center gap-1">
                           <ActivityIcon name={a.name} className="h-3 w-3 shrink-0" />
@@ -286,14 +297,12 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                       aria-label={here.length === 0 && mine.length === 0
                         ? `Bæta við æfingu á ${WEEKDAYS[i].toLowerCase()}`
                         : `Bæta við öðru á ${WEEKDAYS[i].toLowerCase()}`}
-                      className="mt-auto rounded-lg py-1 text-center text-[10px] font-semibold text-slate-400 transition hover:bg-orange-50 hover:text-orange-700">
-                      {here.length === 0 && mine.length === 0
-                        ? <>Hvíld <span aria-hidden className="block text-sm leading-none">+</span></>
-                        : <span aria-hidden className="block text-sm leading-none">+</span>}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-base font-semibold text-slate-400 ring-1 ring-slate-200 transition hover:bg-orange-50 hover:text-orange-700 sm:mt-auto sm:h-7 sm:w-full">
+                      <span aria-hidden>+</span>
                     </button>
                   )}
-                  {!onAddDay && here.length === 0 && mine.length === 0 && (
-                    <p className="mt-auto pb-1 text-center text-[10px] text-slate-400">Hvíld</p>
+                  {here.length === 0 && mine.length === 0 && (
+                    <p className="flex min-h-9 items-center text-[11px] text-slate-400 sm:mt-auto sm:min-h-0 sm:justify-center sm:pb-1">Hvíld</p>
                   )}
                   </div>
                 </div>
@@ -355,6 +364,17 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
           {dayActivities.length > 0 && (
             <ActivityCards activities={dayActivities} todayIdx={todayIdx} done={doneToday} onLoad={onActivityLoad}
+              onRun={training ? (a) => {
+                // A lift the person put in the week is a training day like
+                // any other: the focus they chose decides the movements, and
+                // strengthItem applies their stage, load, place and injuries.
+                if (!a.focus) return;
+                setRunning({
+                  id: a.id, title: a.name, day: WEEKDAYS[a.day], weekday: a.day,
+                  modality: "strength", minutes: a.minutes ?? 60,
+                  items: itemsForFocus(a.focus, training, planStart ?? null, a.load ?? 0),
+                } as PSession);
+              } : undefined}
               onComplete={onCompleteActivity} onRemove={onRemoveActivity} />
           )}
 
@@ -734,11 +754,13 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
  * Monday with an hour of football on it look like a rest day in the plan.
  * An hour of football IS the hard lota for that day; it belongs in the list.
  */
-function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, done }: {
+function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onRun, done }: {
   activities: Activity[]; todayIdx: number; onComplete?: (a: Activity) => void;
   onRemove?: (id: string) => void;
   /** Nudge this one session heavier or lighter, −2…+2. */
   onLoad?: (id: string, load: number) => void;
+  /** Start it as a real workout — only a lift has movements to run. */
+  onRun?: (a: Activity) => void;
   /** Ids marked done today. */
   done?: Set<string>;
 }) {
@@ -763,11 +785,21 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, don
                   <p className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 py-2.5 font-bold text-emerald-800 ring-1 ring-emerald-200">
                     <Check className="h-4 w-4" aria-hidden /> Búið í dag
                   </p>
-                ) : onComplete && (
-                  <button type="button" onClick={() => onComplete(a)}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-50">
-                    <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
-                  </button>
+                ) : (
+                  <span className="flex w-full flex-col gap-2">
+                    {onRun && a.focus && (
+                      <button type="button" onClick={() => onRun(a)}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 px-4 py-3 font-bold text-white transition hover:bg-orange-700">
+                        <Play className="h-4 w-4" aria-hidden /> Byrja æfinguna
+                      </button>
+                    )}
+                    {onComplete && (
+                      <button type="button" onClick={() => onComplete(a)}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-50">
+                        <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
+                      </button>
+                    )}
+                  </span>
                 )}
                 {/* Álag on the session itself. The programme has a global
                     load dial, but a person who finds Friday's lift too heavy
