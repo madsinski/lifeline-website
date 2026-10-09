@@ -51,6 +51,16 @@ export interface HcPackage {
 export interface HcJourney {
   id: string;
   client_id: string;
+  /**
+   * The worker who coaches this person.
+   *
+   * Distinct from interviewer_id, which records who took the intake —
+   * an event, not a relationship. Backfilled from it, then free to change.
+   */
+  coach_id?: string | null;
+  coach_changed_at?: string | null;
+  /** Video calls the month allows. Default 2; per journey so it can differ. */
+  video_consults_per_month?: number | null;
   location_id: string | null;
   stage: string;
   entry: "b2c" | "b2b" | "heilsugaesla";

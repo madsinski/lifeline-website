@@ -25,7 +25,7 @@ import type { ReportReference } from "@/lib/hc/knowledge";
 import type { ActionPlan, LectureRef, Pillar } from "@/lib/hc/types";
 import { DEFAULT_TRAINING, activityModality, adaptExercise, hardDays, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
-import HelpCard from "@/app/components/hc/HelpCard";
+import CoachView from "@/app/components/hc/CoachView";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
 import JourneyNav, { type JourneyPlace } from "@/app/components/hc/JourneyNav";
@@ -504,7 +504,10 @@ function PlanPageInner() {
                   which is the last place someone with a hurt knee would look. */}
               {tab === "coach" && (
                 <div className="print:hidden">
-                  <HelpCard api={api} />
+                  {/* Was HelpCard alone — one form behind one button. The
+                      page is now the conversation, the coach and the diary,
+                      with the request form kept inside the first of them. */}
+                  <CoachView api={api} />
                 </div>
               )}
               {tab === "exercise" && plan && baseExercise && (
