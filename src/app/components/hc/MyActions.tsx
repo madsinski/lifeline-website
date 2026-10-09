@@ -155,12 +155,10 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
 
       {err && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-800">{err}</p>}
 
-      {live.length > 0 && (
-        <p className="text-xs text-slate-500">
-          Stóri hringurinn merkir daginn í dag. Reitirnir til hægri eru vikan, mánudagur til sunnudags —
-          ýttu á dag til að fylla inn í ef þú gleymdir að merkja.
-        </p>
-      )}
+      {/* An instruction line stood here explaining the circle and the week
+          squares. A daily checklist should not need a legend — the controls
+          read as what they are, and a sentence above them is read once and
+          then skipped forever. */}
 
       {PILLARS.filter((p) => byPillar(p).length || (p === "exercise" && programmeOwnsTraining)).map((p) => {
         const meta = PILLAR_META[p];
