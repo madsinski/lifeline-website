@@ -21,7 +21,7 @@
 // where they disagree we say so quietly rather than pretend.
 
 import { useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, Minus, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { ChevronDown, Minus, Plus, TrendingDown, TrendingUp, Upload } from "lucide-react";
 import { PILLAR_META, type Pillar } from "@/lib/hc/types";
 import { SIGNAL_LABEL, type Grunnheilsa, type ReportItem, type Signal } from "@/lib/hc/grunnheilsa";
 import type { KnowledgeBand, ReportReference } from "@/lib/hc/knowledge";
@@ -81,7 +81,7 @@ const SECTIONS: { key: string; title: string; blurb: string; accent: string; key
   { key: "rest", title: "Annað úr skýrslunni", blurb: "", accent: "#64748B" },
 ];
 
-export default function ReportView({ report, signals, reference, sex, audience = "staff" }: {
+export default function ReportView({ report, signals, reference, sex, audience = "staff", onUpload }: {
   report: Grunnheilsa;
   /** Traffic lights from Lifeline's reference ranges, computed on the server. */
   signals: Record<string, Signal | null>;
@@ -91,6 +91,9 @@ export default function ReportView({ report, signals, reference, sex, audience =
   sex?: "m" | "f" | null;
   /** The client sees their own report; staff see the name in the header. */
   audience?: "staff" | "client";
+  /** Jump to the upload. In the hero, because a new report is why most
+      people come back to this page at all. */
+  onUpload?: () => void;
 }) {
   const lit = useMemo(
     () => report.items.map((item) => ({ item, signal: signals[item.key] ?? null })),
@@ -131,10 +134,15 @@ export default function ReportView({ report, signals, reference, sex, audience =
             ))}
           </div>
         </div>
-        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-emerald-50/90">
-          Hver lína hér að neðan opnast. Þar sérðu viðmiðin, af hverju gildið skiptir máli og hvað
-          hefur áhrif á það — til góðs og til hins verra.
-        </p>
+        {/* The sentence that was here explained that the rows open — which
+            the chevron on every row says more cheaply. The errand people
+            come back with is a newer report, so that is the button. */}
+        {onUpload && (
+          <button type="button" onClick={onUpload}
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-hc-element bg-white px-5 font-bold text-hc-hero-to transition hover:bg-emerald-50">
+            <Upload className="h-4 w-4" aria-hidden /> Hlaða upp skýrslu
+          </button>
+        )}
       </section>
 
       {/* 2 ── What matters most now */}

@@ -288,7 +288,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               const over = drag?.over === `day:${i}`;
               return (
                 <div key={d} data-drop={`day:${i}`}
-                  className={`flex items-center gap-1.5 rounded-xl border p-1.5 transition sm:min-h-[92px] sm:flex-col sm:items-stretch sm:gap-1 sm:p-1 ${
+                  className={`relative flex items-center gap-1.5 rounded-xl border p-1.5 transition sm:min-h-[92px] sm:flex-col sm:items-stretch sm:gap-1 sm:p-1 ${
                     over ? "border-orange-400 bg-orange-50" : i === todayIdx ? "border-orange-300 bg-orange-50/60" : "border-slate-200 bg-white"}`}>
                   <p className={`w-9 shrink-0 text-[11px] font-bold uppercase sm:w-auto sm:text-center ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>
                     {d}
@@ -343,20 +343,31 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                       {/* Tapped: time, swap, remove — in place, because
                           sending somebody to a settings page to move a
                           football match by an hour is a trip for nothing. */}
+                      {/*
+                        * Inline on a phone, a popover on a wide screen.
+                        *
+                        * A phone draws each day as a full-width row, so
+                        * the controls have the whole width to sit in. The
+                        * grid gives a day about 110px, and a time field
+                        * next to two buttons does not go in 110px — they
+                        * came out stacked and clipped. So from sm up this
+                        * floats out of the column at its own width and the
+                        * grid stops constraining it.
+                        */}
                       {editing === a.id && (
-                        <span className="order-last w-full rounded-lg bg-white p-2 ring-1 ring-slate-200 sm:order-none">
-                          <span className="flex items-center gap-1.5">
+                        <span className="order-last w-full rounded-lg bg-white p-2 ring-1 ring-slate-200 sm:absolute sm:left-0 sm:top-full sm:z-30 sm:mt-1 sm:w-56 sm:p-2.5 sm:shadow-xl sm:ring-slate-300">
+                          <span className="flex items-center gap-1.5 sm:flex-col sm:items-stretch sm:gap-2">
                             <input type="time" defaultValue={a.at ?? ""} aria-label={`Klukkan fyrir ${a.name}`}
                               onChange={(e) => onActivityTime?.(a.id, e.target.value || null)}
-                              className="min-w-0 flex-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] outline-none" />
+                              className="min-w-0 flex-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] outline-none sm:w-full sm:flex-none sm:py-1.5 sm:text-xs" />
                             <button type="button" aria-label={`Skipta um ${a.name}`}
                               onClick={() => { onRemoveActivity?.(a.id); setAddDay(a.day); setEditing(null); }}
-                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50">
-                              Skipta
+                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 sm:w-full sm:py-1.5 sm:text-xs">
+                              Skipta um
                             </button>
                             <button type="button" aria-label={`Taka ${a.name} af`}
                               onClick={() => { onRemoveActivity?.(a.id); setEditing(null); }}
-                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-red-700 ring-1 ring-red-200 hover:bg-red-50">
+                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-red-700 ring-1 ring-red-200 hover:bg-red-50 sm:w-full sm:py-1.5 sm:text-xs">
                               Taka af
                             </button>
                           </span>

@@ -615,15 +615,13 @@ function PlanPageInner() {
                     </div>
                   )}
 
-                  {/* Full width, at the top. The "Skýrslan þín" summary that
-                      sat beside it repeated what the rows below already say,
-                      and the duplicate upload at the bottom is gone. */}
-                  <ReportUpload api={api} onDone={() => setReloadKey((k) => k + 1)}
-                    heading="Ný skýrsla"
-                    blurb="Sóttu nýja Grunnheilsa-skýrslu í sjúklingagáttina og settu hana hér inn — áætlunin uppfærist eftir nýju niðurstöðunum." />
+                  {/* The upload moved to the foot of the page, with the
+                      hero's "Hlaða upp skýrslu" button scrolling to it. It
+                      was a card at the top, above the report somebody opened
+                      the page to read. */}
 
                   {data.compare && <BeforeAfter c={data.compare} />}
-                  <ReportView report={data.report.report} signals={data.report.signals}
+                  <ReportView onUpload={() => document.getElementById("hc-report-upload")?.scrollIntoView({ behavior: "smooth", block: "center" })} report={data.report.report} signals={data.report.signals}
                     reference={data.report.reference} sex={data.report.sex} audience="client" />
                   <p className="mt-4 px-1 text-xs leading-relaxed text-slate-500">
                     Þetta er heilsufarsskýrslan þín í einfaldaðri mynd. Læknir fer yfir niðurstöðurnar með þér og
