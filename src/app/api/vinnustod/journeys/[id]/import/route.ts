@@ -108,7 +108,26 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         payload: read.report,
         imported_by: actor.label,
         source: onBehalf ? "staff_on_behalf" : "staff",
-        on_behalf_consent_at: onBehalf ? new Date().toISOString() : null,
+        /**
+         * The nurse ASKS; the client answers.
+         *
+         * on_behalf_consent_at used to be stamped here from the nurse's own
+         * answer to "Hvernig kom skýrslan hingað?" — the interested party
+         * vouching for their own conduct, under a name implying the client
+         * had agreed. Now an on-behalf upload is only requested: the report
+         * is held off the client's surfaces until they confirm it is theirs
+         * from their own authenticated session, which writes
+         * client_approved_at.
+         *
+         * The consultation does not wait for that. Staff read the report
+         * through hc_report_latest regardless, because reading it to do the
+         * care IS the care (Art. 9(2)(h)). What waits is the client's copy.
+         */
+        approval_requested_at: onBehalf ? new Date().toISOString() : null,
+        approval_requested_by: onBehalf ? actor.label : null,
+        // A report the person did not ask to be entered on their behalf is
+        // ordinary clinical work and needs no provenance confirmation.
+        client_approved_at: onBehalf ? null : new Date().toISOString(),
       });
       await supabaseAdmin
         .from("hc_journeys")

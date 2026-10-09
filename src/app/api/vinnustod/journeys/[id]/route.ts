@@ -57,12 +57,42 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note").eq("journey_id", journey.id),
   ]);
   const storedReport = await loadReport(journey.id, journey.client_id);
+
+  /**
+   * The provenance of the report, for the nurse to see — and to show later
+   * if anyone asks how a Medalia report came to be in Lifeline.
+   *
+   * Three states: the client entered it themselves, a member of staff
+   * entered it on their behalf and the client confirmed (with the time they
+   * did), or it is still waiting on them.
+   */
+  const { data: rep } = await supabaseAdmin
+    .from("hc_reports")
+    .select("source, imported_by, report_date, approval_requested_at, approval_requested_by, client_approved_at, created_at")
+    .eq("journey_id", journey.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const reportProvenance = rep
+    ? {
+        source: rep.source as string,
+        reportDate: (rep.report_date as string) ?? null,
+        enteredBy: (rep.imported_by as string) ?? null,
+        requestedBy: (rep.approval_requested_by as string) ?? null,
+        requestedAt: (rep.approval_requested_at as string) ?? null,
+        approvedAt: (rep.client_approved_at as string) ?? null,
+        state: rep.client_approved_at
+          ? (rep.source === "self" ? "self" : "confirmed")
+          : rep.approval_requested_at ? "awaiting" : "staff",
+      }
+    : null;
   const { data: results } = await supabaseAdmin
     .from("hc_results_decrypted")
     .select("marker, value, unit, measured_at, source, note, entered_by, updated_at")
     .eq("journey_id", journey.id);
 
   return NextResponse.json({
+    reportProvenance,
     journey,
     patient: {
       full_name: profile?.full_name ?? null,

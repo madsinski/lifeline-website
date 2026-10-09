@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.14";
+export const SECURITY_POSTURE_VERSION = "v1.15";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-09";
 
 export function renderSecurityPosture(): string {
@@ -571,6 +571,20 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.15 (2026-10-09)
+  The client now confirms a report staff entered on their behalf. Until
+  they do, it is held off their own surfaces (hc_report_latest_approved);
+  staff keep reading it for the consultation, which is the care itself.
+  Previously on_behalf_consent_at was stamped from the NURSE's answer to
+  how the report arrived — the interested party vouching for their own
+  conduct, under a name implying the client had agreed. The confirmation
+  happens in the client's own authenticated session and is written to
+  hc_audit with their user id, so it can be shown as proof later.
+  Recorded as confirmation of PROVENANCE, not Art. 9(2)(a) consent: the
+  basis stays 9(2)(h), and declining removes the client's copy without
+  affecting their care. The PDF itself is still never stored on any path
+  — only the parsed result, encrypted.
 
 v1.14 (2026-10-09)
   Self-uploaded reports no longer imply a care relationship. A person who
@@ -1256,6 +1270,20 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.15 (2026-10-09)
+  The client now confirms a report staff entered on their behalf. Until
+  they do, it is held off their own surfaces (hc_report_latest_approved);
+  staff keep reading it for the consultation, which is the care itself.
+  Previously on_behalf_consent_at was stamped from the NURSE's answer to
+  how the report arrived — the interested party vouching for their own
+  conduct, under a name implying the client had agreed. The confirmation
+  happens in the client's own authenticated session and is written to
+  hc_audit with their user id, so it can be shown as proof later.
+  Recorded as confirmation of PROVENANCE, not Art. 9(2)(a) consent: the
+  basis stays 9(2)(h), and declining removes the client's copy without
+  affecting their care. The PDF itself is still never stored on any path
+  — only the parsed result, encrypted.
 
 v1.14 (2026-10-09)
   Self-uploaded reports no longer imply a care relationship. A person who

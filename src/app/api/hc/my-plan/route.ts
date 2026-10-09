@@ -66,7 +66,9 @@ export async function GET(req: NextRequest) {
     supabaseAdmin.from("hc_action_plans_decrypted").select("id, status, goals, modules, lecture_slugs, headline, version, edited_by_client_at, exercise, nutrition").eq("journey_id", journey.id).maybeSingle(),
   ]);
   const canSee = !!(journey.report_generated_at || journey.own_report_at);
-  const stored = canSee ? await loadReport(journey.id, user.id) : null;
+  // approvedOnly: a staff upload is not shown to the person until they
+  // have confirmed it is theirs.
+  const stored = canSee ? await loadReport(journey.id, user.id, true) : null;
   // Planning lights, so a domain whose components are flagged is not treated
   // as settled just because its composite score is good.
   const priorities = pillarPriorities(stored?.report ?? null, stored?.actionSignals ?? {});

@@ -36,10 +36,20 @@ export interface StoredReport {
 }
 
 /** The newest report for a journey, with Lifeline's traffic lights applied. */
-export async function loadReport(journeyId: string, clientId: string): Promise<StoredReport | null> {
+/**
+ * @param approvedOnly  Client-facing surfaces pass true: a report a member of
+ *   staff uploaded is not shown to the person until they have confirmed it is
+ *   theirs. Staff surfaces pass false (the default) — reading the report to
+ *   run the consultation is the care itself and does not wait on a tap.
+ */
+export async function loadReport(
+  journeyId: string, clientId: string, approvedOnly = false,
+): Promise<StoredReport | null> {
   const [{ data: row }, { data: entries }, { data: profile }] = await Promise.all([
     // Stored encrypted (migration-hc-reports-encrypt.sql); this RPC decrypts.
-    supabaseAdmin.rpc("hc_report_latest", { p_journey: journeyId }).maybeSingle<{ payload: unknown; method: string; source: string; created_at: string }>(),
+    supabaseAdmin
+      .rpc(approvedOnly ? "hc_report_latest_approved" : "hc_report_latest", { p_journey: journeyId })
+      .maybeSingle<{ payload: unknown; method: string; source: string; created_at: string }>(),
     supabaseAdmin
       .from("hc_knowledge")
       .select("slug, bands, unit, title, summary, higher_better, improves, worsens, components")

@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
   const flagged = journey.report_generated_at ? trafficLights(rows, (entries || []) as KnowledgeEntry[], sexOf(profile?.sex)) : [];
   // The client sees the report once a doctor has confirmed it — or at once
   // when it is their own (they put it in, or staff did at their request).
-  const report = journey.report_generated_at || journey.own_report_at ? await loadReport(journey.id, user.id) : null;
+  const report = journey.report_generated_at || journey.own_report_at ? await loadReport(journey.id, user.id, true) : null;
 
   return NextResponse.json({
     journey_id: journey.id,

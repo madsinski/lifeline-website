@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   const journey = await currentJourney(user.id);
   if (!journey) return NextResponse.json({ canUpload: true, report: null });
 
-  const stored = await loadReport(journey.id, user.id);
+  const stored = await loadReport(journey.id, user.id, true);
   if (!stored) return NextResponse.json({ canUpload: true, report: null });
 
   // Flagged rows first — a report is read for what is off, not for the

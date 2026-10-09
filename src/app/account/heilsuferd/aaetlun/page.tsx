@@ -33,6 +33,7 @@ import type { Upcoming } from "@/lib/hc/upcoming";
 import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
+import ReportApproval from "@/app/components/hc/ReportApproval";
 import { peek } from "@/lib/hc/client-cache";
 import { Info, Pencil } from "lucide-react";
 import TrainingView from "@/app/components/hc/TrainingView";
@@ -418,6 +419,9 @@ function PlanPageInner() {
 
         {!editing && hasSomething && data && (
           <>
+            <div className="mb-4">
+              <ReportApproval api={api} onDone={() => setReloadKey((k) => k + 1)} />
+            </div>
             <JourneyNav active={place} hasReport={!!data.report || !!data.flagged.length}
               hasExercise={!!plan?.exercise} hasNutrition={!!plan?.nutrition} hasPlan={!!plan}
               onSelect={(k) => {
