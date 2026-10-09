@@ -16,6 +16,20 @@ import { syncOwner } from "@/lib/hc/calendar-sync";
 
 export const runtime = "nodejs";
 
+/**
+ * How long each measurement takes, and the only place that says so.
+ *
+ * The page adds these up to show a total; the endpoint adds them up again to
+ * decide what actually goes in the diary. Two readings of one table rather
+ * than the server trusting a number the page sent.
+ */
+const MEASURE_MINUTES: Record<string, number> = {
+  bloodpressure: 10,
+  bodycomp: 5,
+  vo2max: 30,
+  strength: 20,
+};
+
 const WORKER_COLS = "id, name, role, organization, credentials, bio, photo_url, specialties, accepting_clients, active";
 
 /** First and last instant of the month a date falls in, in UTC. */
@@ -108,8 +122,22 @@ export async function POST(req: NextRequest) {
   // ── Book something ────────────────────────────────────────────────────
   if (typeof body.kind === "string" && typeof body.starts_at === "string") {
     const kind = body.kind;
-    if (!["video", "measurement", "vo2max", "strength"].includes(kind)) {
+    if (!["video", "measurement"].includes(kind)) {
       return NextResponse.json({ error: "bad_kind" }, { status: 400 });
+    }
+    /*
+     * A measurement visit is a list, and its length is its duration.
+     *
+     * Minutes are summed here rather than taken from the page: the page can
+     * show whatever it likes, but what goes in the diary — and in the
+     * coach's day — has to come from the same table the page read.
+     */
+    const items: string[] = kind === "measurement"
+      ? [...new Set((Array.isArray(body.items) ? (body.items as unknown[]) : []).map((x) => String(x)))]
+        .filter((x) => Object.hasOwn(MEASURE_MINUTES, x))
+      : [];
+    if (kind === "measurement" && !items.length) {
+      return NextResponse.json({ error: "no_items" }, { status: 400 });
     }
     const when = new Date(body.starts_at);
     if (Number.isNaN(when.getTime()) || when.getTime() < Date.now()) {
@@ -128,8 +156,8 @@ export async function POST(req: NextRequest) {
     }
     const { data, error } = await supabaseAdmin.from("hc_bookings").insert({
       journey_id: journey.id, client_id: user.id, coach_id: journey.coach_id ?? null,
-      kind, starts_at: when.toISOString(),
-      minutes: kind === "video" ? 30 : kind === "vo2max" ? 60 : 30,
+      kind, starts_at: when.toISOString(), items,
+      minutes: kind === "video" ? 30 : items.reduce((n, k) => n + (MEASURE_MINUTES[k] ?? 0), 0),
       note: typeof body.note === "string" ? body.note.slice(0, 500) : null,
     }).select("id").maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

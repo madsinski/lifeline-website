@@ -59,7 +59,17 @@ function longDateIs(iso: string | null): string | null {
  * Rows are matched by key so the order is ours, not the PDF's. Anything the
  * report grows that we have not listed still lands in the last group.
  */
-const SECTIONS: { key: string; title: string; blurb: string; accent: string; keys?: string[]; pillar?: Pillar }[] = [
+const SECTIONS: {
+  key: string; title: string; blurb: string; accent: string; keys?: string[];
+  /** One of the four questionnaire pillars; its header shows their average. */
+  pillar?: Pillar;
+  /**
+   * A section with a single composite score of its own, which belongs in
+   * the heading rather than as the first row underneath it — the row and
+   * the heading would otherwise print the same number twice.
+   */
+  scoreKey?: string;
+}[] = [
   { pillar: "sleep" as Pillar, key: "sleep", title: "Svefn", blurb: "", accent: PILLAR_META.sleep.color,
     keys: ["svefn_vandamal", "svefn_venjur", "koffin"] },
   { pillar: "exercise" as Pillar, key: "exercise", title: "Hreyfing", blurb: "", accent: PILLAR_META.exercise.color,
@@ -70,9 +80,9 @@ const SECTIONS: { key: string; title: string; blurb: string; accent: string; key
     keys: ["andleg_heilsa", "streita", "vellidan", "skjanotkun", "fjarhaettuspil"] },
   { key: "habits", title: "Ávanar", blurb: "Nikótín, áfengi og önnur efni. 10 þýðir engin notkun.", accent: "#78716C",
     keys: ["nikotin", "afengi", "onnur_efni"] },
-  { key: "metabolic", title: "Efnaskipti", blurb: "Hvernig líkaminn heldur blóðsykri í skefjum. Hér sést álag fyrst.", accent: "#0D9488",
+  { scoreKey: "efnaskiptaheilsa", key: "metabolic", title: "Efnaskipti", blurb: "Hvernig líkaminn heldur blóðsykri í skefjum. Hér sést álag fyrst.", accent: "#0D9488",
     keys: ["efnaskiptaheilsa", "blodsykur", "insulin", "hba1c", "homa_ir"] },
-  { key: "heart", title: "Hjarta og blóðfitur", blurb: "Blóðþrýstingur og blóðfitur — það sem ræður áhættunni til langs tíma.", accent: "#E11D48",
+  { scoreKey: "hjartaheilsa", key: "heart", title: "Hjarta og blóðfitur", blurb: "Blóðþrýstingur og blóðfitur — það sem ræður áhættunni til langs tíma.", accent: "#E11D48",
     keys: ["hjartaheilsa", "bp_efri", "bp_nedri", "kolesterol", "hdl", "ldl", "thriglyserid"] },
   { key: "liver", title: "Lifur", blurb: "Lifrarensím. Þau svara vel breytingum á áfengi, sykri og þyngd.", accent: "#CA8A04",
     keys: ["alat", "asat"] },
@@ -203,9 +213,11 @@ export default function ReportView({ report, signals, reference, sex, audience =
 
       {/* 4 ── The detail */}
       {SECTIONS.map((s) => {
-        const avg = s.pillar ? pillarAvg.get(s.pillar) : undefined;
+        const composite = s.scoreKey ? lit.find((x) => x.item.key === s.scoreKey)?.item.value : undefined;
+        const avg = s.pillar ? pillarAvg.get(s.pillar) : composite;
         const rows = s.keys
-          ? s.keys.map((k) => lit.find((x) => x.item.key === k)).filter((x): x is (typeof lit)[number] => !!x)
+          ? s.keys.filter((k) => k !== s.scoreKey)
+              .map((k) => lit.find((x) => x.item.key === k)).filter((x): x is (typeof lit)[number] => !!x)
           : lit.filter((x) => !claimed.has(x.item.key));
         if (!rows.length) return null;
         const off = rows.filter((r) => r.signal === "red").length;
@@ -221,10 +233,13 @@ export default function ReportView({ report, signals, reference, sex, audience =
               {/* The section's own score, where the four summary cards used
                   to put it. "af 10" rather than a sentence explaining the
                   scale: the scale needs saying once, not four times. */}
+              {/* ml-auto: the score sits on the right edge, where the eye
+                  can run down a column of them instead of hunting for each
+                  one after a title of a different length. */}
               {avg !== undefined && (
-                <span className="flex items-baseline gap-1">
-                  <span className="text-lg font-bold tabular-nums leading-none" style={{ color: s.accent }}>{fmt1(avg)}</span>
-                  <span className="text-[11px] font-semibold text-slate-500">af 10</span>
+                <span className="order-last ml-auto flex items-baseline gap-1">
+                  <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: s.accent }}>{fmt1(avg)}</span>
+                  <span className="text-xs font-semibold text-slate-500">af 10</span>
                 </span>
               )}
               {s.pillar && s.pillar === weakest && (

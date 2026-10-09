@@ -132,3 +132,23 @@ drop policy if exists "Block client access" on hc_bookings;
 create policy "Block client access" on hc_bookings for all using (false) with check (false);
 
 notify pgrst, 'reload schema';
+
+-- ── 5. One appointment can hold several measurements ────────────────────
+--
+-- "Mælingar" was one bookable thing. It is really four, and people come for
+-- more than one in a visit: blóðþrýstingur takes 10 minutes, líkamssamsetning
+-- 5, þrekpróf 30, styrktarmæling 20. Booking them separately would put four
+-- slots in a diary for one visit, so the kinds collapse to 'measurement' with
+-- a list of what is being measured and minutes as their sum.
+alter table hc_bookings add column if not exists items text[] not null default '{}';
+
+alter table hc_bookings drop constraint if exists hc_bookings_kind_check;
+alter table hc_bookings add constraint hc_bookings_kind_check
+  check (kind in ('video', 'measurement'));
+
+-- vo2max and strength are items now, not kinds. The table is empty, so
+-- nothing needs moving; this is here so a rerun is still correct.
+update hc_bookings set items = array[kind], kind = 'measurement'
+ where kind in ('vo2max', 'strength');
+
+notify pgrst, 'reload schema';
