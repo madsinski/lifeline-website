@@ -34,6 +34,7 @@ import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import { TodayCard, useToday } from "@/app/components/hc/TodayCards";
+import { NotificationBell, useNotifications } from "@/app/components/hc/Notifications";
 import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
 import { peek } from "@/lib/hc/client-cache";
@@ -154,6 +155,7 @@ function PlanPageInner() {
   }, []);
   // Stats, urgent items and the partner for Í dag — one request for three cards.
   const { today, reloadToday } = useToday(api);
+  const { items: notes, unread } = useNotifications(api);
 
   useEffect(() => {
     let first = true;
@@ -435,11 +437,11 @@ function PlanPageInner() {
               <ReportApproval api={api} onDone={() => setReloadKey((k) => k + 1)} />
               <RetentionReview api={api} onDone={() => setReloadKey((k) => k + 1)} />
             </div>
-            <JourneyNav active={place} hasReport={!!data.report || !!data.flagged.length}
+            <JourneyNav active={place} unread={unread} hasReport={!!data.report || !!data.flagged.length}
               hasExercise={!!plan?.exercise} hasNutrition={!!plan?.nutrition} hasPlan={!!plan}
               onSelect={(k) => {
                 // These are pages of their own, not tabs on this one.
-                if (k === "journey" || k === "account" || k === "fraedsla") return false;
+                if (k === "journey" || k === "account" || k === "fraedsla" || k === "notifications") return false;
                 if ((k === "today" || k === "exercise" || k === "nutrition") && !plan) return false;
                 setTab(k === "report" ? (data.report ? "report" : "results") : k);
                 return true;
@@ -448,7 +450,7 @@ function PlanPageInner() {
             <div className="mt-4">
               {tab === "today" && plan && (
                 <div className="space-y-4 print:hidden">
-                  <TodayHeader name={name} />
+                  <TodayHeader name={name} right={<NotificationBell items={notes} unread={unread} />} />
                   {/* The urgent card carries the next appointment now, so
                       AppointmentCard no longer repeats it here. */}
                   <TodayOverview plan={plan} exercise={exercise} training={training}

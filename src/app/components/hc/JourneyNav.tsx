@@ -9,9 +9,9 @@
 import Link from "next/link";
 import { hcTabs } from "./ui";
 import { useState } from "react";
-import { BookOpen, CircleUser, Compass, Dumbbell, FileHeart, MessageCircle, MoreHorizontal, Sun, Utensils } from "lucide-react";
+import { Bell, BookOpen, CircleUser, Compass, Dumbbell, FileHeart, MessageCircle, MoreHorizontal, Sun, Utensils } from "lucide-react";
 
-export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "coach" | "report" | "journey" | "account";
+export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "coach" | "report" | "journey" | "notifications" | "account";
 
 const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun }[] = [
   { key: "today", label: "Í dag", href: "/account/heilsuferd/aaetlun?tab=today", Icon: Sun },
@@ -21,11 +21,14 @@ const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun 
   { key: "coach", label: "Þjálfari", href: "/account/heilsuferd/aaetlun?tab=coach", Icon: MessageCircle },
   { key: "report", label: "Skýrslan", href: "/account/heilsuferd/aaetlun?tab=report", Icon: FileHeart },
   { key: "journey", label: "Ferðin", href: "/account/heilsuferd?ferd=1", Icon: Compass },
+  { key: "notifications", label: "Tilkynningar", href: "/account/heilsuferd/tilkynningar", Icon: Bell },
   { key: "account", label: "Aðgangur", href: "/account/heilsuferd/adgangur", Icon: CircleUser },
 ];
 
-export default function JourneyNav({ active, hasReport = true, hasExercise = true, hasNutrition = true, hasPlan = true, onSelect }: {
+export default function JourneyNav({ active, hasReport = true, hasExercise = true, hasNutrition = true, hasPlan = true, unread = 0, onSelect }: {
   active: JourneyPlace;
+  /** Lights the dot on the Tilkynningar tab. */
+  unread?: number;
   hasReport?: boolean;
   hasExercise?: boolean;
   hasNutrition?: boolean;
@@ -44,7 +47,12 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
         className={mobile
           ? `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${on ? "text-hc-brand-dark" : "text-slate-500"}`
           : `${hcTabs.tab(on)} flex items-center justify-center gap-2`}>
-        <i.Icon className={mobile ? "h-6 w-6" : "h-4 w-4"} strokeWidth={on && mobile ? 2.4 : 2} aria-hidden />
+        <span className="relative">
+          <i.Icon className={mobile ? "h-6 w-6" : "h-4 w-4"} strokeWidth={on && mobile ? 2.4 : 2} aria-hidden />
+          {i.key === "notifications" && unread > 0 && (
+            <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${unread} ný`} />
+          )}
+        </span>
         {i.label}
       </Link>
     );

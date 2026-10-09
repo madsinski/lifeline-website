@@ -15,7 +15,7 @@ import { PILLAR_META, type ActionPlan } from "@/lib/hc/types";
 
 const MO = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
 
-export function TodayHeader({ name }: { name: string | null }) {
+export function TodayHeader({ name, right }: { name: string | null; right?: React.ReactNode }) {
   const [now] = useState(() => new Date());
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -23,6 +23,9 @@ export function TodayHeader({ name }: { name: string | null }) {
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-hc-brand-dark">{WEEKDAYS[weekdayOf(now)]} {now.getDate()}. {MO[now.getMonth()]}</p>
         <h1 className="text-2xl font-bold text-hc-ink sm:text-3xl">{name ? `Hæ ${name.split(" ")[0]}` : "Í dag"}</h1>
       </div>
+      {/* The notification strip sits here, on the same line as the
+          greeting, because that is the first line anybody reads. */}
+      {right}
       {/* "Breyta áætluninni" and "Prenta" were here. Editing is reachable
           from the checklist below and from Breytingar on Æfingar; printing a
           plan nobody prints was two taps of chrome at the top of the page
