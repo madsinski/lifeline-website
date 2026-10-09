@@ -1164,8 +1164,17 @@ export function sanitizeActivities(v: unknown): Activity[] {
      * Unlike covers, these two are the person's own answer about their own
      * session, so the stored value is the only source for them.
      */
-    const focus = a.focus === "full" || a.focus === "upper" || a.focus === "lower" || a.focus === "core"
+    const stored = a.focus === "full" || a.focus === "upper" || a.focus === "lower" || a.focus === "core"
       ? a.focus : null;
+    /**
+     * Rows saved before focus survived this function lost it, and the only
+     * copy left is in the name the picker wrote — "Lyftingar — Allur
+     * líkaminn". Reading it back costs nothing and heals every one of them
+     * on its next save, which a one-off backfill would not do for rows that
+     * are added by an older client afterwards.
+     */
+    const focus = stored ?? (Object.entries(STRENGTH_FOCUS_IS)
+      .find(([, v]) => name.toLowerCase().endsWith(v.label.toLowerCase()))?.[0] as StrengthFocus | undefined) ?? null;
     const load = Number.isFinite(Number(a.load)) ? clamp(Math.round(Number(a.load)), -2, 2) : null;
     return day >= 0 && day <= 6
       ? { id: typeof a.id === "string" && a.id ? a.id.slice(0, 40) : `a${i}`, name, day, at, minutes, covers: [...new Set(covers)], partial: [...new Set(partial)], benefits: [...new Set(benefits)], intensity, focus, load }
