@@ -2,7 +2,7 @@
 // for the adaptive programme on /account/heilsuferd/aaetlun.
 // GET ?journey=<id> → settings; POST → save. Own journey only.
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, hcAudit, requireUser } from "@/lib/hc/server";
 import { loadPlanPrefs, saveTraining } from "@/lib/hc/training-server";
@@ -44,10 +44,19 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const { settings, personal, nutrition } = await saveTraining(journeyId, user.id, body, "client");
-    // A commitment with an hour on it belongs in their calendar, so a change
-    // to the week is a change to the calendar. Fire-and-forget: a Google
-    // outage must not cost someone their saved settings.
-    if ("activities" in body) void syncOwner("client", user.id).catch(() => {});
+    /**
+     * A commitment with an hour on it belongs in their calendar, so a change
+     * to the week is a change to the calendar.
+     *
+     * after(), not a bare void. A promise left running when the response
+     * returns is killed with the invocation on Vercel, so the sync simply
+     * never happened — the same way refresh_user_meters silently never ran.
+     * It still cannot fail the save: a Google outage must not cost someone
+     * their settings, so the error is swallowed inside the callback.
+     */
+    if ("activities" in body) {
+      after(async () => { await syncOwner("client", user.id).catch(() => {}); });
+    }
     await hcAudit("client", "training_settings", journeyId, { level: settings.level, load: settings.load, injuries: settings.injuries });
     return NextResponse.json({ settings, personal, nutrition });
   } catch (e) {

@@ -40,6 +40,7 @@ import RetentionReview from "@/app/components/hc/RetentionReview";
 import { peek } from "@/lib/hc/client-cache";
 import { Info, Pencil } from "lucide-react";
 import TrainingView from "@/app/components/hc/TrainingView";
+import CalendarCard from "@/app/components/hc/CalendarCard";
 import TrainingWizard from "@/app/components/hc/TrainingWizard";
 import TrainingCustomise from "@/app/components/hc/TrainingCustomise";
 import NutritionView from "@/app/components/hc/NutritionView";
@@ -565,6 +566,10 @@ function PlanPageInner() {
                       })}
                       onCustomise={isAdaptive(plan.exercise?.key) ? () => setCustomise(true) : undefined} />
                   )}
+                  {/* Last on the tab: the week belongs in the calendar they
+                      already live in, but it is a once-only errand and does
+                      not deserve a place above the training itself. */}
+                  {!customise && <CalendarCard api={api} />}
                 </div>
               )}
               {tab === "nutrition" && plan?.nutrition && (

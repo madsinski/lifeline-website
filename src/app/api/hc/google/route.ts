@@ -1,9 +1,10 @@
-// Customer's Google Calendar connection: status, pause/resume + sync now, disconnect.
+// Customer's Google Calendar connection: status, connect, pause/resume + sync now, disconnect.
 
 import { NextRequest, NextResponse, after } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { disconnect, purgeEvents, statusFor, syncOwner } from "@/lib/hc/calendar-sync";
 import { requireUser } from "@/lib/hc/server";
+import * as G from "@/lib/google-calendar";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,22 @@ export async function GET(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
   return NextResponse.json(await statusFor("client", user.id));
+}
+
+/**
+ * Where to send someone to connect their Google calendar.
+ *
+ * The consent URL has to be built here: it carries a signed state, and the
+ * signing secret is server-side. The client asks for the link and follows
+ * it rather than assembling one itself.
+ */
+export async function POST(req: NextRequest) {
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
+  if (!G.googleConfigured()) return NextResponse.json({ error: "not_configured" }, { status: 503 });
+  const body = (await req.json().catch(() => ({}))) as { returnTo?: unknown };
+  const returnTo = typeof body.returnTo === "string" ? body.returnTo.slice(0, 200) : "";
+  return NextResponse.json({ url: G.consentUrl(user.id, "client", returnTo, user.email ?? null) });
 }
 
 /** { enabled } toggles; { sync: true } syncs now and returns the result. */
