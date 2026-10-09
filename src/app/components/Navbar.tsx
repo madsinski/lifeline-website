@@ -116,11 +116,16 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
     >
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[4.5rem]">
-          {/* Logo — slight negative left offset so the mark sits visually
-              flush with the page gutter (the new wordmark is right-heavy,
-              so anchoring the mark at x=0 makes the whole logo read
-              shifted right). */}
-          <Link href="/" className="flex items-center mr-8 -ml-2">
+          {/* Logo — a slight negative left offset so the mark sits visually
+              flush with the page gutter (the wordmark is right-heavy, so
+              anchoring the mark at x=0 makes the whole logo read shifted
+              right).
+              
+              Not on a phone. There the gutter is 20px and the pull left
+              12px, which stops reading as optical alignment and starts
+              reading as touching the edge. The trick needs room to be a
+              trick. */}
+          <Link href="/" className="flex items-center mr-8 sm:-ml-2">
             <LifelineLogo size="sm" />
           </Link>
 
