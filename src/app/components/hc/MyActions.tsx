@@ -13,9 +13,9 @@ import * as cache from "@/lib/hc/client-cache";
 import PillarIcon from "./PillarIcon";
 import ActionSheet from "./ActionSheet";
 import { useRef, useState } from "react";
-import { Check, ChevronRight, EyeOff, Flame, RotateCcw, Sliders } from "lucide-react";
+import { Check, ChevronRight, EyeOff, RotateCcw, Sliders } from "lucide-react";
 import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
-import { adherence, isoDay, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
+import { isoDay, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { weekdayOf, type PersonalExercise, type PSession } from "@/lib/hc/personalise";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -90,7 +90,6 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const actions = plan.modules ?? [];
   const live = actions.filter((a) => !hidden.has(a.uid));
   const put = actions.filter((a) => hidden.has(a.uid));
-  const stats = adherence(actions, logs, prefs);
 
   const doneOn = (uid: string, day: string) => logs.some((l) => l.action_uid === uid && l.done_on === day);
 
@@ -126,29 +125,18 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
     programmeOwnsTraining && a.pillar === "exercise" && (a.frequency ?? "").toLowerCase() !== "daglega";
 
   const byPillar = (p: Pillar) => live.filter((a) => a.pillar === p && !supersededByProgramme(a));
-  const doneCount = live.filter((a) => doneOn(a.uid, today)).length;
 
   return (
     <section className="space-y-4">
-      {/* The gradient hero that used to sit here said "Aðgerðirnar mínar" and
-          then repeated, in large type, the count that every category header
-          below already carries. On the daily surface that is a screenful
-          between the person and the thing they came to tick, so it is one
-          line now and the categories start at the top. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="text-sm font-semibold text-hc-ink">
-          {doneCount === 0 ? "Byrjum á einu atriði" : doneCount === live.length ? "Dagurinn kláraður" : `${doneCount} af ${live.length} búin í dag`}
-        </p>
-        <div className="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-slate-200">
-          <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${live.length ? (doneCount / live.length) * 100 : 0}%` }} />
-        </div>
-        <p className="flex items-center gap-3 text-xs text-slate-500">
-          <span><span className="font-bold text-slate-700">{stats.percent}%</span> síðustu 7 daga</span>
-          {stats.streak > 1 && (
-            <span className="flex items-center gap-1"><Flame className="h-3.5 w-3.5 text-amber-500" aria-hidden /><span className="font-bold text-slate-700">{stats.streak}</span> dagar í röð</span>
-          )}
-        </p>
-      </div>
+      {/* The progress line that stood here is now the "Staðan þín" card
+          beside the hero, which is where it was asked to go.
+          
+          It was not merely duplicated — it disagreed. This one read
+          "20% síðustu 7 daga" (share of prescribed action-instances done)
+          while the card read 50% (share of days with anything done). Both
+          were live and both were right about different questions, sitting
+          two inches apart. One number now, and the card says which question
+          it answers. */}
 
       {sheet && (
         <ActionSheet a={sheet}

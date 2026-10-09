@@ -157,7 +157,6 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   });
 
   const custom = mine && (Object.keys(personal.days).length > 0 || Object.keys(personal.swaps).length > 0 || personal.hiit_split);
-  const counts = view.sessions.reduce<Record<string, number>>((a, s) => ({ ...a, [s.modality]: (a[s.modality] ?? 0) + 1 }), {});
   // Today's sessions, and the next one when today is a rest day — the two
   // things the hero is for.
   const todays = view.sessions.filter((x) => x.weekday === todayIdx);
@@ -302,20 +301,13 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             })}
           </div>
 
-          {/* Under the calendar, where somebody who has just looked at the
-              week decides to change it. */}
-          {training && onSaveTraining && (
-            <div className="mt-3"><ChangesButton onClick={() => setChanges(true)} /></div>
-          )}
-
-          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-            {(Object.keys(counts) as (keyof typeof MODALITY_IS)[]).map((m) => (
-              <span key={m} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-2.5 py-1 font-semibold text-slate-600">
-                <span className={`h-2 w-2 rounded-full ${MODALITY_IS[m].dot}`} />{MODALITY_IS[m].label} {counts[m]}×
-              </span>
-            ))}
-            <span className="text-slate-500">Ýttu á dag til að sjá hann. Dragðu æfingu á annan dag til að færa hana.</span>
-          </div>
+          {/* The modality tally ("Þol 1×") was here. The calendar above
+              already shows what the week holds, day by day, with the colour
+              and the name — counting the same sessions again underneath
+              said nothing new. */}
+          <p className="mt-4 text-xs text-slate-500">
+            Ýttu á dag til að sjá hann. Dragðu æfingu á annan dag til að færa hana.
+          </p>
 
           {editable && (canSplitHiit(exercise) || custom) && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -334,6 +326,12 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             </div>
           )}
         </section>
+
+        {/* Under the hero card, not inside it. Somebody who has just read
+            the week decides to change it here. */}
+        {training && onSaveTraining && (
+          <ChangesButton onClick={() => setChanges(true)} />
+        )}
 
         {editable && controls}
         {stages}
