@@ -25,6 +25,7 @@ import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import WeekCalendar from "@/app/components/hc/WeekCalendar";
 import ClientsView from "@/app/components/hc/ClientsView";
+import CoachInbox from "@/app/components/hc/CoachInbox";
 import TeachingLibrary from "@/app/components/hc/TeachingLibrary";
 import { hcBtn, hcPage, hcTabs } from "@/app/components/hc/ui";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
@@ -97,7 +98,7 @@ interface Detail {
 }
 /** The workstation is either on the home screen or on one client. */
 /** The three places on the home side, plus a client's workspace. */
-type HomeTab = "today" | "calendar" | "clients" | "teaching";
+type HomeTab = "today" | "messages" | "calendar" | "clients" | "teaching";
 type View = { home: HomeTab } | { patient: string; compose?: boolean; step?: string };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -339,7 +340,11 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
             : (
               <div className="space-y-4">
                 <nav className={hcTabs.bar} aria-label="Vinnustöðin">
-                  {([["today", "Í dag"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"], ["teaching", "Fræðsla og þjálfun"]] as const).map(([k, label]) => (
+                  {/* Skilaboð sits second: it is the one tab where somebody
+                      is waiting on an answer, and the only reason the
+                      participants' Þjálfari page is a conversation rather
+                      than an outbox. */}
+                  {([["today", "Í dag"], ["messages", "Skilaboð"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"], ["teaching", "Fræðsla og þjálfun"]] as const).map(([k, label]) => (
                     <button key={k} type="button" onClick={() => setView({ home: k })}
                       aria-current={view.home === k ? "page" : undefined}
                       className={hcTabs.tab(view.home === k)}>
@@ -351,6 +356,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                 {view.home === "calendar" && (
                   <WeekCalendar api={api} onOpenClient={(id) => open(id)} onConnect={() => setShowCal(true)} />
                 )}
+                {view.home === "messages" && <CoachInbox api={api} />}
                 {view.home === "clients" && <ClientsView api={api} onOpenClient={(id) => open(id)} />}
                 {view.home === "teaching" && <TeachingLibrary api={api} />}
               </div>

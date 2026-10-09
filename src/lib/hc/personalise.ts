@@ -93,7 +93,19 @@ const keepGuidance = (note: string | null | undefined) =>
  * another programme are ignored (a new programme starts clean).
  */
 export type PersonalExercise = Omit<PlanExercise, "sessions"> & { sessions: PSession[] };
-export function personalise(e: PlanExercise, p: Personal, blockedDays: number[] = []): PersonalExercise {
+export function personalise(
+  e: PlanExercise, p: Personal, blockedDays: number[] = [],
+  /**
+   * The days the programme is allowed to use at all.
+   *
+   * A pin to a day that is no longer a training day is honoured otherwise,
+   * which is how "Taka þennan dag af" came to do nothing: the generator
+   * stopped putting a session on Tuesday and the saved arrangement put one
+   * straight back. Empty or omitted means no restriction, for callers that
+   * do not know the settings.
+   */
+  allowedDays: number[] = [],
+): PersonalExercise {
   const mine = !p.program_key || p.program_key === e.key;
   /**
    * A saved arrangement must not drop a session onto a day that is already
@@ -112,8 +124,10 @@ export function personalise(e: PlanExercise, p: Personal, blockedDays: number[] 
    * know about the commitments — stands when it does not.
    */
   const blocked = new Set(blockedDays);
+  const allowed = allowedDays.length ? new Set(allowedDays) : null;
   const days = mine
-    ? Object.fromEntries(Object.entries(p.days).filter(([, d]) => !blocked.has(d)))
+    ? Object.fromEntries(Object.entries(p.days)
+        .filter(([, d]) => !blocked.has(d) && (!allowed || allowed.has(d))))
     : {};
   const swaps = mine ? p.swaps : {};
   const drops = new Set(mine ? (p.drops ?? []) : []);

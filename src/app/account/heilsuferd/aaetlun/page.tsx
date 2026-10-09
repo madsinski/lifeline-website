@@ -236,7 +236,7 @@ function PlanPageInner() {
   };
   // The programme as written (adaptive ones computed from the settings), then arranged their way.
   const baseExercise = plan?.exercise ? (isAdaptive(plan.exercise.key) ? adaptExercise(plan.exercise, training, plan.start_date) : plan.exercise) : null;
-  const exercise = baseExercise ? personalise(baseExercise, personal, hardDays(training)) : null;
+  const exercise = baseExercise ? personalise(baseExercise, personal, hardDays(training), training?.days ?? []) : null;
   const qs = journey ? `?journey=${encodeURIComponent(journey)}` : "";
 
   /** Save the participant's arrangement at once; the server's answer (with library snapshots) replaces it. */
@@ -562,9 +562,19 @@ function PlanPageInner() {
                       // training day. Deleting it by id would not hold: the
                       // programme is generated from these settings, so the
                       // session would be back the next time the week is built.
-                      onRemoveDay={(weekday) => void saveTraining({
-                        ...training, days: (training.days ?? []).filter((d) => d !== weekday),
-                      })}
+                      onRemoveDay={(weekday) => {
+                        // The pins go with the day. The render-time filter
+                        // already ignores a pin to a day that is gone, but
+                        // leaving one behind means the stored arrangement
+                        // claims something that is not true.
+                        void savePersonal({
+                          ...personal,
+                          days: Object.fromEntries(Object.entries(personal.days ?? {}).filter(([, d]) => d !== weekday)),
+                        }, PERSONAL_FIELDS);
+                        void saveTraining({
+                          ...training, days: (training.days ?? []).filter((d) => d !== weekday),
+                        });
+                      }}
                       onAddDay={(a, inj) => void saveTraining({
                         ...training,
                         // An injury named while adding a lift belongs to the
