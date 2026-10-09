@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   ] = await Promise.all([
     supabaseAdmin
       .from("clients")
-      .select("consistency_score, intensity_score, consistency_depth_score, completion_score, consistency_score_7d, completion_score_7d, consistency_narrative")
+      .select("consistency_score, intensity_score, consistency_depth_score, completion_score, consistency_score_7d, completion_score_7d, consistency_narrative, consistency_narrative_at")
       .eq("id", user.id)
       .maybeSingle(),
     supabaseAdmin.rpc("get_consistency_grid", { p_client_id: user.id }),
@@ -99,7 +99,22 @@ export async function GET(req: NextRequest) {
       completion: c?.completion_score ?? null,
       consistency7d: c?.consistency_score_7d ?? null,
       completion7d: c?.completion_score_7d ?? null,
-      narrative: c?.consistency_narrative ?? null,
+      /**
+       * The nightly line, but only while it still describes the present.
+       *
+       * It is written by /api/ai/refresh-consistency-narratives and stored
+       * with a timestamp. When that job stops running the sentence stays in
+       * the column and goes on asserting things: this account's line was
+       * written 2026-05-29 and still claims "10/28 days done" although there
+       * has not been a completion since 2026-08-05. A number that confident
+       * and that wrong is worse than no number, so it expires.
+       */
+      narrative: (() => {
+        const at = c?.consistency_narrative_at ? new Date(c.consistency_narrative_at as string) : null;
+        if (!c?.consistency_narrative || !at) return null;
+        const days = (Date.now() - at.getTime()) / 86_400_000;
+        return days <= 14 ? c.consistency_narrative : null;
+      })(),
     },
     /** [{ date, done_count }] — one row per day with completions. */
     grid: (grid as { date: string; done_count: number }[] | null) ?? [],
