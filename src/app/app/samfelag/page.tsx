@@ -13,6 +13,8 @@ import { Award, CalendarDays, Trophy, Users } from "lucide-react";
 import { useApi } from "@/lib/hc/use-api";
 import { useT, useShortDateTime } from "./../useT";
 import { appBrand, appCard, appHeaderBar, greenHeader, darkHeader } from "./../ui";
+import { BADGE, feedLine } from "./../badges";
+import { useI18n } from "@/lib/i18n";
 
 interface Payload {
   me: { points: number; rank: number | null };
@@ -26,6 +28,8 @@ export default function Community() {
   const api = useApi();
   const t = useT();
   const at = useShortDateTime();
+  const { locale } = useI18n();
+  const lang = locale === "en" ? "en" : "is";
   const [d, setD] = useState<Payload | null | undefined>(undefined);
 
   useEffect(() => {
@@ -110,7 +114,9 @@ export default function Community() {
                           Rendering it raw printed the word, so the badge's
                           own colour carries the distinction instead. */}
                       <Award className="h-5 w-5" style={{ color: b.colour || appBrand.accent }} aria-hidden />
-                      <p className="text-xs font-bold" style={{ color: b.colour || appBrand.ink1 }}>{b.title}</p>
+                      <p className="text-xs font-bold" style={{ color: b.colour || appBrand.ink1 }}>
+                        {BADGE[b.key]?.[lang] ?? b.title}
+                      </p>
                       {b.description && (
                         <p className="text-[11px] leading-snug" style={{ color: appBrand.ink2 }}>{b.description}</p>
                       )}
@@ -164,7 +170,7 @@ export default function Community() {
                           style={{ color: f.isMe ? appBrand.primaryDark : appBrand.ink1 }}>
                           {f.isMe ? t("social.you") : f.who}
                         </span>
-                        <span className="text-sm" style={{ color: appBrand.ink2 }}> {f.action}</span>
+                        <span className="text-sm" style={{ color: appBrand.ink2 }}> {feedLine(f.action, lang)}</span>
                       </span>
                       {f.points > 0 && (
                         <span className="shrink-0 text-xs font-bold tabular-nums" style={{ color: appBrand.primaryDark }}>
