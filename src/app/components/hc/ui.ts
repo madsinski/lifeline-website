@@ -13,11 +13,29 @@ export const hcBtn = {
   ghost: `${base} text-slate-600 hover:bg-slate-100`,
 };
 
+/**
+ * One card, three weights. Everything on these pages uses one of them.
+ *
+ * The page is #F8FAFC and a card is white, so the edge is doing all the
+ * work of separating them. It used to be ring-slate-100 (#F1F5F9), which
+ * against that background is a 2% difference — effectively invisible, which
+ * is why the new cards read as floating text rather than as cards.
+ *
+ * slate-200 with a real shadow is still quiet. The restraint is deliberate:
+ * these pages are mostly cards, and if every one of them asserts itself
+ * then none of them does. Colour is reserved for the two weights below and
+ * for state (a flag, a warning, a done tick) — everything else is the slate
+ * scale.
+ */
 export const hcCard = {
-  /** Content card: white, hairline, soft shadow. */
-  base: "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-slate-100",
-  /** Hero block: dark emerald gradient. */
+  /** The default. Quiet, but visibly an edge. */
+  base: "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-slate-200",
+  /** One step up, for the card on a screen that should be read first. */
+  raised: "rounded-hc-card bg-hc-surface shadow-hc-raised ring-1 ring-slate-200",
+  /** Hero block: dark emerald gradient. The only card that shouts. */
   hero: "rounded-hc-hero bg-gradient-to-br from-hc-hero-from to-hc-hero-to text-white shadow-hc-raised",
+  /** Needs an answer — a pending approval, a warning. Brand edge, no fill. */
+  accent: "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-slate-200 border-l-4 border-l-hc-brand",
 };
 
 /** Page backgrounds: one colour for the workstation, a light wash for the participant. */

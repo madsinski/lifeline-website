@@ -326,7 +326,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         </nav>
       </div>
 
-      <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100">
+      <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="flex flex-wrap items-center gap-2 px-4 py-3"
           style={pillar ? { background: PILLAR_META[pillar].soft } : undefined}>
           {pillar && <PillarIcon pillar={pillar} size="sm" />}

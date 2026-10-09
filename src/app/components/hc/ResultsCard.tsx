@@ -357,7 +357,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             const unknown = sexUnknown(e, sex);
             const b = unknown ? null : bandForValue(e, v, sex);
             return (
-              <li key={e.slug} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-slate-100">
+              <li key={e.slug} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-slate-200">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-slate-900">{e.title}</span>
                   <span className="block text-xs text-slate-500">
@@ -384,7 +384,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Önnur gildi úr skýrslunni</p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {extras.map((r) => (
-              <li key={r.marker} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-slate-100">
+              <li key={r.marker} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-slate-200">
                 <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{r.note || r.marker.replace(/^x:/, "")}</span>
                 <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-sm font-bold tabular-nums text-slate-700 ring-1 ring-slate-200">
                   {String(r.value).replace(".", ",")}{r.unit ? ` ${r.unit}` : ""}

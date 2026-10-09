@@ -368,7 +368,7 @@ function SessionCard({ s, n }: { s: ExerciseSession; n: number }) {
               {b.items.map((it, j) => b.key === "main"
                 ? <ExerciseRow key={j} it={it} />
                 : (
-                  <li key={j} className="flex items-center gap-2 rounded-full bg-slate-50 py-1 pl-1 pr-3 text-sm ring-1 ring-slate-100">
+                  <li key={j} className="flex items-center gap-2 rounded-full bg-slate-50 py-1 pl-1 pr-3 text-sm ring-1 ring-slate-200">
                     {it.image
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={it.image} alt="" className="h-7 w-7 rounded-full object-cover" />
@@ -389,7 +389,7 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
   const [open, setOpen] = useState(false);
   const how = !!(it.cues?.length || it.video);
   return (
-    <li className="rounded-2xl ring-1 ring-slate-100">
+    <li className="rounded-2xl ring-1 ring-slate-200">
       <div className="flex gap-3 p-2">
         <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-orange-50 sm:h-24 sm:w-24">
           {it.image

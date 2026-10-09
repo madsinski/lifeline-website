@@ -101,7 +101,7 @@ function VerticalSteps({ steps, onOpen }: { steps: Checkpoint[]; onOpen?: (key: 
   const shown = all ? steps : steps.slice(done, done + 2);
   const hidden = steps.length - done - shown.length;
   return (
-    <section className="rounded-hc-card bg-hc-surface p-3 shadow-hc-card ring-1 ring-slate-100" aria-label="Skref heilsuferðarinnar">
+    <section className="rounded-hc-card bg-hc-surface p-3 shadow-hc-card ring-1 ring-slate-200" aria-label="Skref heilsuferðarinnar">
       {done > 0 && !all && (
         <button type="button" onClick={() => setAll(true)} className="flex w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left text-sm text-slate-600">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white"><Check className="h-3.5 w-3.5" /></span>

@@ -15,7 +15,7 @@ export default function BeforeAfter({ c }: { c: Comparison }) {
   const better = c.rows.filter((r) => r.better === true).length;
   const worse = c.rows.filter((r) => r.better === false).length;
   return (
-    <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100" aria-label="Þá og nú">
+    <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200" aria-label="Þá og nú">
       <div className="bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-5 text-white">
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-300">Þá og nú</p>
         <p className="mt-1 text-lg font-bold">{d(c.beforeDate)} → {d(c.afterDate)}</p>

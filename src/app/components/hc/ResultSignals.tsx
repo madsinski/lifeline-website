@@ -46,7 +46,7 @@ export default function ResultSignals({ flagged }: { flagged: FlaggedValue[] }) 
       </div>
 
       {counts.filter((g) => g.items.length).map((g) => (
-        <div key={g.signal} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+        <div key={g.signal} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
           <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5">
             <span className={`h-2.5 w-2.5 rounded-full ${g.dot}`} aria-hidden />
             <p className="font-bold text-slate-900">{g.title}</p>

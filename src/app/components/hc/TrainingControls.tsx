@@ -46,7 +46,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
 
       {/* The practical setup, as answered in the wizard. Shown rather than
           re-asked: the level/load/injury dials below are the day-to-day ones. */}
-      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100 sm:p-5">
+      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-sm font-semibold text-slate-800">Uppsetningin þín</p>
           {onSetup && <button type="button" onClick={onSetup} className="text-sm font-semibold text-orange-700 underline hover:text-orange-900">Breyta uppsetningu</button>}
@@ -69,7 +69,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
 
       <div className="grid gap-3 sm:grid-cols-3">
         {/* Level */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <p className="text-sm font-semibold text-slate-800">{you ? "Hvar ertu stödd/staddur?" : "Byrjunarstig"}</p>
           <div className="mt-2 grid gap-1.5">
             {([["beginner", "Að byrja", "4 vikna aðlögun fyrst"], ["active", "Æfi nú þegar", "Beint á stig 1"]] as const).map(([k, label, hint]) => (
@@ -83,7 +83,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
         </div>
 
         {/* Load */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <p className="text-sm font-semibold text-slate-800">Álag</p>
           <div className="mt-3 flex items-center justify-between gap-2">
             <button type="button" disabled={!edit || saving || settings.load <= -2} onClick={() => set({ load: settings.load - 1 })} aria-label="Minnka álag"
@@ -99,7 +99,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
         </div>
 
         {/* Injuries */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <p className="text-sm font-semibold text-slate-800">{you ? "Meiðsli eða verkir" : "Meiðsli"}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {REGIONS.map((r) => {

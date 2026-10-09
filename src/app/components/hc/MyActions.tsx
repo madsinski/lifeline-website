@@ -165,7 +165,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       {PILLARS.filter((p) => byPillar(p).length || (p === "exercise" && programmeOwnsTraining)).map((p) => {
         const meta = PILLAR_META[p];
         return (
-          <div key={p} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+          <div key={p} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
             <div className="flex items-center gap-2 px-4 py-2.5" style={{ background: meta.soft }}>
               <PillarIcon pillar={p} size="sm" />
               <p className="font-bold" style={{ color: meta.ink }}>{meta.label}</p>

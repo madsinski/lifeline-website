@@ -346,7 +346,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   // sign-out live. Without it there was no visible way off this page at all.
   return (
     <div className={hcPage.participant}>
-      <div className="mx-auto max-w-5xl px-4 pb-28 pt-24 sm:pb-16 sm:pt-28">
+      <div className="mx-auto max-w-5xl px-4 pb-28 pt-20 sm:pb-16 sm:pt-28">
         <div className="mb-3 print:hidden">
           <BackLink href="/account/heilsuferd/adgangur" label="Aðgangurinn minn" />
         </div>

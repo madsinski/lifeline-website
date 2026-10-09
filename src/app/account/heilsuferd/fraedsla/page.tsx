@@ -52,7 +52,7 @@ function Fraedsla() {
 
   return (
     <div className={hcPage.participant}>
-      <div className="mx-auto max-w-4xl space-y-4 px-4 pb-28 pt-24 sm:pb-16 sm:pt-28">
+      <div className="mx-auto max-w-4xl space-y-4 px-4 pb-28 pt-20 sm:pb-16 sm:pt-28">
         <div className="mb-1 print:hidden">
           <BackLink href="/account/heilsuferd/adgangur" label="Aðgangurinn minn" />
         </div>

@@ -116,7 +116,9 @@ html, body {
   --radius-hc-hero: 1.5rem;
   --radius-hc-card: 1rem;
   --radius-hc-element: 0.75rem;
-  --shadow-hc-card: 0 1px 2px rgb(15 23 42 / 0.05);
+  /* Raised from 0.05: a white card on a #F8FAFC page needs the edge
+     and the shadow together to read as a card at all. */
+  --shadow-hc-card: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
   --shadow-hc-raised: 0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.05);
   --shadow-hc-overlay: 0 10px 15px -3px rgb(15 23 42 / 0.10), 0 4px 6px -4px rgb(15 23 42 / 0.08);
 }

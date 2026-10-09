@@ -70,7 +70,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           stage bar, and the week inside it rather than as a section below.
           The gradient panel it replaced carried the programme name, some
           chips and little else. */}
-      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6">
+      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime-700">Næringaráætlunin mín</p>
@@ -183,7 +183,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
             {SLOTS.map((slot) => {
               const m = day[slot];
               return (
-                <div key={slot} className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100">
+                <div key={slot} className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
                   {m ? (
                     <button type="button" onClick={() => setRecipe(m)} className="block w-full text-left">
                       <span className="relative block aspect-[16/9] bg-lime-50">
@@ -243,7 +243,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
       {recipe && <Recipe m={recipe} onClose={() => setRecipe(null)} />}
       {(nutrition.description || nutrition.goal || nutrition.principles.length > 0) && (
-        <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+        <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-slate-800">
             <Info className="h-4 w-4 text-lime-700" aria-hidden />
             Um áætlunina — það sem skiptir mestu

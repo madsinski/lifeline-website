@@ -155,7 +155,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
       );
     case "fullimage":
       return (
-        <figure className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-100">
+        <figure className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-200">
           {slide.image_url
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={slide.image_url} alt={slide.caption || slide.title} className="h-auto w-full" />
@@ -243,7 +243,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
       );
     case "sources":
       return (
-        <div className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-100">
+        <div className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-200">
           <div className="min-h-[340px] p-7 sm:p-10">
             {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{counter}</p>}
             <h2 className="mt-2 flex items-center gap-2 text-2xl font-bold text-[#0F172A]"><BookOpen className="h-6 w-6 text-slate-400" aria-hidden />{slide.title || "Heimildir"}</h2>

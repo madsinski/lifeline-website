@@ -24,7 +24,7 @@ export default function EmptyState({ variant = "empty", title, body, action, com
   const { Icon, disc, icon } = LOOK[variant];
   const btn = "mt-4 inline-flex min-h-10 items-center rounded-hc-element bg-hc-ink px-4 text-sm font-semibold text-white hover:bg-slate-700";
   return (
-    <div className={`flex flex-col items-center text-center ${compact ? "rounded-hc-card border border-dashed border-slate-300 bg-hc-surface p-6" : "rounded-hc-hero bg-hc-surface p-8 shadow-hc-card ring-1 ring-slate-100"}`}>
+    <div className={`flex flex-col items-center text-center ${compact ? "rounded-hc-card border border-dashed border-slate-300 bg-hc-surface p-6" : "rounded-hc-hero bg-hc-surface p-8 shadow-hc-card ring-1 ring-slate-200"}`}>
       <span className={`flex items-center justify-center rounded-full ${disc} ${compact ? "h-11 w-11" : "h-14 w-14"}`} aria-hidden>
         <Icon className={`${compact ? "h-5 w-5" : "h-7 w-7"} ${icon}`} strokeWidth={2} />
       </span>

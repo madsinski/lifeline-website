@@ -377,7 +377,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           ))}
 
           {daySessions.length === 0 && dayActivities.length === 0 && (
-            <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-slate-100">
+            <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-slate-200">
               <p className="font-semibold text-slate-800">Hvíldardagur</p>
               <p className="mt-1 text-sm text-slate-500">Ekkert á dagskrá {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}.</p>
               {onAddDay && (
@@ -395,7 +395,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             and the sessions were pushed down by both. They are one disclosure
             now, at the end, for whoever does want them. */}
         {(exercise.description || !!exercise.principles?.length) && (
-          <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+          <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
             <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-slate-800">
               <Info className="h-4 w-4 text-orange-700" aria-hidden />
               Um áætlunina — af hverju þetta virkar

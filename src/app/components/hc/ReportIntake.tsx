@@ -228,7 +228,7 @@ export default function ReportIntake({ api, onOpen }: {
             <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Gildi úr skýrslunni</p>
             <ul className="grid gap-1 sm:grid-cols-2">
               {result.values.map((v, i) => (
-                <li key={`${v.code}-${i}`} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm ring-1 ring-slate-100">
+                <li key={`${v.code}-${i}`} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm ring-1 ring-slate-200">
                   <input type="checkbox" checked={!!take[i]} onChange={(e) => setTake({ ...take, [i]: e.target.checked })}
                     aria-label={`Vista ${v.label}`} className="h-4 w-4 accent-emerald-600" />
                   <span className="min-w-0 flex-1 truncate text-slate-700">{v.label}</span>

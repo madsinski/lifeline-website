@@ -95,7 +95,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
   const inWeek = dates.inWeek;
 
   return (
-    <section className="rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-slate-100 print:hidden">
+    <section className="rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-slate-200 print:hidden">
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center gap-3 p-4 text-left">
         <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${active && !paused ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-slate-100 text-slate-500"}`}>
           {active && !paused ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}

@@ -111,7 +111,7 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
       </div>
 
       {(plan.goals?.length ?? 0) > 0 && (
-        <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100 sm:p-5">
+        <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-hc-brand-dark" aria-hidden />
             <p className="flex-1 font-semibold text-slate-900">Markmiðin mín</p>
