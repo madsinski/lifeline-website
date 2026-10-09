@@ -48,7 +48,7 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
   };
 
   return (
-    <section className={`${hcCard.base} p-5`} role="region" aria-label="Geymsla skýrslu">
+    <section className={`${hcCard.base} mb-4 p-5`} role="region" aria-label="Geymsla skýrslu">
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100">
           <Archive className="h-5 w-5 text-slate-600" aria-hidden />

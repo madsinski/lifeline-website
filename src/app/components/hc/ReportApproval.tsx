@@ -53,7 +53,7 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
   };
 
   return (
-    <section className={`${hcCard.base} border-l-4 border-l-hc-brand p-5`} role="region"
+    <section className={`${hcCard.base} border-l-4 border-l-hc-brand mb-4 p-5`} role="region"
       aria-label="Staðfesta skýrslu">
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50">

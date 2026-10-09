@@ -433,10 +433,11 @@ function PlanPageInner() {
 
         {!editing && hasSomething && data && (
           <>
-            <div className="mb-4">
-              <ReportApproval api={api} onDone={() => setReloadKey((k) => k + 1)} />
-              <RetentionReview api={api} onDone={() => setReloadKey((k) => k + 1)} />
-            </div>
+            {/* Both of these render null most of the time. A wrapper with a
+                margin around them spent 16px on nothing on every normal
+                visit, so the spacing lives inside the cards instead. */}
+            <ReportApproval api={api} onDone={() => setReloadKey((k) => k + 1)} />
+            <RetentionReview api={api} onDone={() => setReloadKey((k) => k + 1)} />
             <JourneyNav active={place} unread={unread} hasReport={!!data.report || !!data.flagged.length}
               hasExercise={!!plan?.exercise} hasNutrition={!!plan?.nutrition} hasPlan={!!plan}
               onSelect={(k) => {
