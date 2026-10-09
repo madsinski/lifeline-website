@@ -60,12 +60,36 @@ const MEASURES = [
 ] as const;
 const MEASURE_LABEL = new Map(MEASURES.map((m) => [m.key as string, m.label]));
 
-/** Starters for the thread, from the old request form's own list. */
+/**
+ * Whole messages, not openings.
+ *
+ * These were fragments ending in a dash for the person to finish, which is
+ * the one thing a prompt should not ask for: somebody who taps a chip is
+ * saying "send this for me", not "help me start". Each one now reads as a
+ * complete, sendable message — and it stays editable, so anybody with more
+ * to say adds it.
+ */
 const PROMPTS = [
-  { label: "Spurning", opener: "" },
-  { label: "Áætlunin passar ekki", opener: "Áætlunin passar ekki alveg — " },
-  { label: "Ég meiddi mig", opener: "Ég meiddi mig: " },
-  { label: "Vil mæla mig aftur", opener: "Mig langar að láta mæla mig aftur — " },
+  {
+    label: "Áætlunin er of mikil",
+    text: "Áætlunin er meiri en ég kem í verk eins og er. Getum við létt hana?",
+  },
+  {
+    label: "Áætlunin er of létt",
+    text: "Mér finnst áætlunin of létt núna. Má ég fá meira að gera?",
+  },
+  {
+    label: "Ég meiddi mig",
+    text: "Ég meiddi mig og get ekki æft eins og áætlunin segir. Hvað á ég að gera í staðinn?",
+  },
+  {
+    label: "Vil mæla mig aftur",
+    text: "Mig langar að láta mæla mig aftur. Hvenær passar það?",
+  },
+  {
+    label: "Spurning um skýrsluna",
+    text: "Ég er með spurningu um eitt gildi í skýrslunni minni.",
+  },
 ];
 
 const MO = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
@@ -200,11 +224,11 @@ function Talk({ data, draft, setDraft, busy, box, end, onSend, onPost }: {
   const c = data.coach;
   const first = c?.name?.split(" ")[0] ?? "þjálfarann þinn";
 
-  const start = (opener: string) => {
-    setDraft(opener);
+  const start = (text: string) => {
+    setDraft(text);
     box.current?.focus();
-    // The caret after the opener, not before it.
-    requestAnimationFrame(() => box.current?.setSelectionRange(opener.length, opener.length));
+    // Caret at the end, so adding to it is the natural next keystroke.
+    requestAnimationFrame(() => box.current?.setSelectionRange(text.length, text.length));
   };
 
   return (
@@ -312,7 +336,7 @@ function Talk({ data, draft, setDraft, busy, box, end, onSend, onPost }: {
         {!draft && (
           <div className="flex flex-wrap gap-1.5 border-t border-slate-100 px-3 pt-3">
             {PROMPTS.map((x) => (
-              <button key={x.label} type="button" onClick={() => start(x.opener)}
+              <button key={x.label} type="button" onClick={() => start(x.text)}
                 className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-hc-brand/10 hover:text-hc-brand-dark">
                 {x.label}
               </button>

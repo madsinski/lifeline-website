@@ -583,8 +583,11 @@ function PlanPageInner() {
                   )}
                   {/* Last on the tab: the week belongs in the calendar they
                       already live in, but it is a once-only errand and does
-                      not deserve a place above the training itself. */}
-                  <CalendarCard api={api} />
+                      not deserve a place above the training itself.
+                      mt-6 because TrainingView's own space-y-6 governs its
+                      children, not its siblings — so this sat flush against
+                      the card above it. */}
+                  <div className="mt-6"><CalendarCard api={api} /></div>
                 </div>
               )}
               {tab === "nutrition" && plan?.nutrition && (
