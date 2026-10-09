@@ -278,7 +278,7 @@ export default function Community() {
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold" style={{ color: appBrand.ink1 }}>
                           {f.name}
                         </span>
-                        {f.status === "accepted" && d.partner?.id !== f.clientId && (
+                        {f.status === "accepted" && d.partner?.id !== f.clientId && d.partner?.name !== f.name && (
                           <button type="button" onClick={() => setConfirming({ clientId: f.clientId, name: f.name })}
                             className="shrink-0 text-[10px] font-bold uppercase" style={{ color: appBrand.primaryDark }}>
                             {d.partner ? t("ap.change") : t("ap.choose")}
@@ -289,7 +289,7 @@ export default function Community() {
                             background: f.status === "accepted" ? `${appBrand.primary}14` : appBrand.cardAlt,
                             color: f.status === "accepted" ? appBrand.primaryDark : appBrand.ink2,
                           }}>
-                          {d.partner?.id === f.clientId ? t("ap.title") : f.status === "accepted" ? t("sc.accepted") : f.incoming ? t("sc.incoming") : t("sc.pending")}
+                          {d.partner?.id === f.clientId || d.partner?.name === f.name ? t("ap.title") : f.status === "accepted" ? t("sc.accepted") : f.incoming ? t("sc.incoming") : t("sc.pending")}
                         </span>
                       </div>
                     ))}

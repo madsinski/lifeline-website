@@ -86,6 +86,22 @@ export async function GET(req: NextRequest) {
     .eq("id", user.id)
     .maybeSingle();
 
+  /**
+   * Look the partner up directly rather than hoping they are in the top 20.
+   * The first attempt searched the leaderboard slice and missed — Mads'
+   * partner sits well below rank 20, so she resolved to nothing and her
+   * score stayed 0.
+   */
+  const partnerName = me?.accountability_partner_name as string | undefined;
+  const partnerId = me?.accountability_partner_id as string | undefined;
+  interface PartnerRow { id: string; full_name: string; total_points: number }
+  let partnerRow: PartnerRow | null = null;
+  if (partnerId || partnerName) {
+    const q = supabaseAdmin.from("leaderboard").select("id, full_name, total_points").limit(1);
+    const { data } = partnerId ? await q.eq("id", partnerId) : await q.eq("full_name", partnerName!);
+    partnerRow = (data?.[0] as PartnerRow | undefined) ?? null;
+  }
+
   const myRank = (board ?? []).findIndex((b) => b.id === user.id);
   const joinedIds = new Set((joined ?? []).map((j) => j.event_id as string));
 
@@ -123,16 +139,12 @@ export async function GET(req: NextRequest) {
        * name when the app did, otherwise an app-chosen partner can never
        * be matched to a person and their score stays frozen at zero.
        */
-      const byId = me?.accountability_partner_id
-        ? (board ?? []).find((b) => b.id === me.accountability_partner_id)
-        : null;
-      const byName = byId ?? (board ?? []).find((b) => (b.full_name as string) === name);
       return {
-        id: (me?.accountability_partner_id as string) ?? (byName?.id as string) ?? null,
+        id: partnerId ?? partnerRow?.id ?? null,
         name,
-        points: Number(byName?.total_points ?? me?.accountability_partner_score ?? 0),
+        points: Number(partnerRow?.total_points ?? me?.accountability_partner_score ?? 0),
         /** True when it came from the app and we matched it by name. */
-        resolvedByName: !me?.accountability_partner_id && Boolean(byName),
+        resolvedByName: !partnerId && Boolean(partnerRow),
       };
     })(),
     friends: (friends ?? []).map((f) => {
