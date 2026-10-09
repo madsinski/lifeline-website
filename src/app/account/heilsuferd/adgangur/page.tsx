@@ -57,7 +57,7 @@ function Adgangur() {
 
   return (
     <div className={hcPage.participant}>
-      <div className="mx-auto max-w-4xl space-y-4 px-4 pb-28 pt-20 sm:pb-16 sm:pt-28">
+      <div className="mx-auto max-w-4xl space-y-4 px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
         {/* Never gated on anything. The session check below is a round trip,
             and a participant with no published plan still has a journey to
             get back to — gating this on hasPlan left them with no way out of

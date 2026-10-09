@@ -56,8 +56,8 @@ function Tilkynningar() {
 
   return (
     <div className={hcPage.participant}>
-      <div className="mx-auto max-w-2xl px-4 pb-28 pt-20 sm:pb-16 sm:pt-28">
-        <div className="mb-4"><JourneyNav active="notifications" /></div>
+      <div className="mx-auto max-w-2xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
+        <div className="sm:mb-4"><JourneyNav active="notifications" /></div>
         <h1 className="mb-4 text-2xl font-bold text-hc-ink sm:text-3xl">Tilkynningar</h1>
         {ready
           ? <NotificationList items={items} />

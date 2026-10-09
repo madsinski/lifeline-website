@@ -398,7 +398,7 @@ function PlanPageInner() {
 
   return (
     <div className={`${hcPage.participant} print:bg-white`}>
-      <div className="mx-auto max-w-4xl px-4 pb-28 pt-20 sm:pb-16 sm:pt-28 print:max-w-none print:p-0">
+      <div className="mx-auto max-w-4xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8 print:max-w-none print:p-0">
         {/* The way back. "Aðgangur" is the sixth slot in JourneyNav, which on a
             phone puts it behind "Meira", and /account bounces a participant
             straight back here — so the account needs a button of its own that

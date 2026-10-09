@@ -165,7 +165,9 @@ function Heilsuferd() {
 
   return (
     <Shell>
-      {data.plan && <div className="mb-4"><JourneyNav active="journey" /></div>}
+      {/* sm:mb-4 — on a phone JourneyNav draws nothing here (its bar is
+          fixed to the bottom), so the margin was 16px of nothing. */}
+      {data.plan && <div className="sm:mb-4"><JourneyNav active="journey" /></div>}
       {/* First thing on the page: a report somebody else entered is not
           shown anywhere until the person says it is theirs. */}
       <div className="mb-4"><ReportApproval api={api} onDone={() => load(true)} /></div>
@@ -346,7 +348,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   // sign-out live. Without it there was no visible way off this page at all.
   return (
     <div className={hcPage.participant}>
-      <div className="mx-auto max-w-5xl px-4 pb-28 pt-20 sm:pb-16 sm:pt-28">
+      <div className="mx-auto max-w-5xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
         <div className="mb-3 print:hidden">
           <BackLink href="/account/heilsuferd/adgangur" label="Aðgangurinn minn" />
         </div>
