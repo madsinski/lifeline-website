@@ -115,7 +115,17 @@ const CATALOG: CatalogEntry[] = [
   { key: "vodvamassi", title: "Vöðvamassi", kind: "measure", slug: "vodvamassi", match: /vöðvamassi/, unit: "%" },
 
   { key: "blodsykur", title: "Fastandi blóðsykur", kind: "blood", slug: "fastandi-blodsykur", match: /blood glucose|blóðsykur/, unit: "mmol/L" },
-  { key: "insulin", title: "Insúlín", kind: "blood", slug: "insulin", match: /^insulin|insúlín/, unit: "mIU/L" },
+  /*
+   * Unanchored, like every other blood row.
+   *
+   * This was /^insulin|insúlín/ — and ^ binds only to the first alternative,
+   * so the English spelling had to start the line exactly. Any prefix the lab
+   * puts in front ("s-insulin", "fastandi insúlín") missed, and insulin was
+   * the one metabolic row absent from a real report that carried HOMA-IR,
+   * which is computed from it. Nothing else in the catalogue contains
+   * "insul", so matching it loosely cannot steal another row.
+   */
+  { key: "insulin", title: "Insúlín", kind: "blood", slug: "insulin", match: /ins[uú]l[ií]n/, unit: "mIU/L" },
   { key: "hba1c", title: "HbA1c", kind: "blood", slug: "hba1c", match: /hemoglobin a1c|hba1c/, unit: "mmol/mol" },
   { key: "homa_ir", title: "HOMA-IR", kind: "blood", slug: "homa-ir", match: /homa-ir/, unit: "" },
   { key: "kolesterol", title: "Heildarkólesteról", kind: "blood", slug: "heildarkolesterol", match: /total cholesterol|heildarkólesteról/, unit: "mmol/L" },

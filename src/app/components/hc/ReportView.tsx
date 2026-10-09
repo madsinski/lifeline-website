@@ -59,14 +59,14 @@ function longDateIs(iso: string | null): string | null {
  * Rows are matched by key so the order is ours, not the PDF's. Anything the
  * report grows that we have not listed still lands in the last group.
  */
-const SECTIONS: { key: string; title: string; blurb: string; accent: string; keys?: string[] }[] = [
-  { key: "sleep", title: "Svefn", blurb: "Úr spurningalistanum. 0–10, hærra er betra.", accent: PILLAR_META.sleep.color,
+const SECTIONS: { key: string; title: string; blurb: string; accent: string; keys?: string[]; pillar?: Pillar }[] = [
+  { pillar: "sleep" as Pillar, key: "sleep", title: "Svefn", blurb: "", accent: PILLAR_META.sleep.color,
     keys: ["svefn_vandamal", "svefn_venjur", "koffin"] },
-  { key: "exercise", title: "Hreyfing", blurb: "Úr spurningalistanum. 0–10, hærra er betra.", accent: PILLAR_META.exercise.color,
+  { pillar: "exercise" as Pillar, key: "exercise", title: "Hreyfing", blurb: "", accent: PILLAR_META.exercise.color,
     keys: ["hreyfing_vandamal", "hreyfing_venjur"] },
-  { key: "nutrition", title: "Næring", blurb: "Úr spurningalistanum. 0–10, hærra er betra.", accent: PILLAR_META.nutrition.color,
+  { pillar: "nutrition" as Pillar, key: "nutrition", title: "Næring", blurb: "", accent: PILLAR_META.nutrition.color,
     keys: ["naering_vandamal", "naering_venjur", "matarhegdun"] },
-  { key: "mental", title: "Andleg líðan", blurb: "Úr spurningalistanum. 0–10, hærra er betra.", accent: PILLAR_META.mental.color,
+  { pillar: "mental" as Pillar, key: "mental", title: "Andleg líðan", blurb: "", accent: PILLAR_META.mental.color,
     keys: ["andleg_heilsa", "streita", "vellidan", "skjanotkun", "fjarhaettuspil"] },
   { key: "habits", title: "Ávanar", blurb: "Nikótín, áfengi og önnur efni. 10 þýðir engin notkun.", accent: "#78716C",
     keys: ["nikotin", "afengi", "onnur_efni"] },
@@ -95,6 +95,29 @@ export default function ReportView({ report, signals, reference, sex, audience =
       people come back to this page at all. */
   onUpload?: () => void;
 }) {
+  /**
+   * The average score per pillar, which used to be four cards at the top of
+   * the page under "Stoðirnar fjórar".
+   *
+   * Four cards summarising four sections that sit directly underneath them
+   * is the same page twice — and the card carried the number while the
+   * section it summarised did not. The number belongs on the section.
+   */
+  const pillarAvg = useMemo(() => {
+    const out = new Map<Pillar, number>();
+    for (const p of ["sleep", "exercise", "nutrition", "mental"] as Pillar[]) {
+      const rows = report.items.filter((i) => i.pillar === p && i.kind === "score");
+      if (rows.length) out.set(p, rows.reduce((n, i) => n + i.value, 0) / rows.length);
+    }
+    return out;
+  }, [report.items]);
+  /** Where the plan starts, kept from the cards: the weakest of the four. */
+  const weakest = useMemo(() => {
+    let k: Pillar | null = null, v = Infinity;
+    for (const [p, a] of pillarAvg) if (a < v) { v = a; k = p; }
+    return k;
+  }, [pillarAvg]);
+
   const lit = useMemo(
     () => report.items.map((item) => ({ item, signal: signals[item.key] ?? null })),
     [report.items, signals],
@@ -177,16 +200,15 @@ export default function ReportView({ report, signals, reference, sex, audience =
       )}
 
       {/* 3 ── The four pillars */}
-      <Pillars lit={lit} />
 
       {/* 4 ── The detail */}
       {SECTIONS.map((s) => {
+        const avg = s.pillar ? pillarAvg.get(s.pillar) : undefined;
         const rows = s.keys
           ? s.keys.map((k) => lit.find((x) => x.item.key === k)).filter((x): x is (typeof lit)[number] => !!x)
           : lit.filter((x) => !claimed.has(x.item.key));
         if (!rows.length) return null;
         const off = rows.filter((r) => r.signal === "red").length;
-        const watch = rows.filter((r) => r.signal === "yellow").length;
         return (
           <section key={s.key}
             className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
@@ -194,14 +216,26 @@ export default function ReportView({ report, signals, reference, sex, audience =
             {/* A wash of the section's own colour behind the heading. Enough
                 to break the page into blocks, not enough to compete with the
                 traffic lights, which are the only thing that means anything. */}
-            <div className="flex flex-wrap items-center gap-2 px-4 py-2.5" style={{ backgroundColor: `${s.accent}14` }}>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2.5" style={{ backgroundColor: `${s.accent}14` }}>
               <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: s.accent }}>{s.title}</h3>
-              {off > 0 ? (
+              {/* The section's own score, where the four summary cards used
+                  to put it. "af 10" rather than a sentence explaining the
+                  scale: the scale needs saying once, not four times. */}
+              {avg !== undefined && (
+                <span className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold tabular-nums leading-none" style={{ color: s.accent }}>{fmt1(avg)}</span>
+                  <span className="text-[11px] font-semibold text-slate-500">af 10</span>
+                </span>
+              )}
+              {s.pillar && s.pillar === weakest && (
+                <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>
+              )}
+              {/* Only the red one survives. The amber chip and "Allt í lagi"
+                  said what every row below says with its own traffic light,
+                  and the score now carries the summary. A value outside the
+                  reference range is the one thing worth saying twice. */}
+              {off > 0 && (
                 <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800">{off} utan viðmiða</span>
-              ) : watch > 0 ? (
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">{watch} til að fylgjast með</span>
-              ) : (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-900">Allt í lagi</span>
               )}
               {s.blurb && <p className="w-full text-xs font-normal normal-case tracking-normal text-slate-500">{s.blurb}</p>}
             </div>
@@ -221,57 +255,11 @@ function SectionTitle({ children }: { children: ReactNode }) {
   return <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-700">{children}</h3>;
 }
 
-function Pillars({ lit }: { lit: { item: ReportItem; signal: Signal | null }[] }) {
-  const pillars: Pillar[] = ["sleep", "exercise", "nutrition", "mental"];
-  const cards = pillars
-    .map((p) => {
-      const rows = lit.filter((x) => x.item.pillar === p && x.item.kind === "score");
-      if (!rows.length) return null;
-      const avg = rows.reduce((n, x) => n + x.item.value, 0) / rows.length;
-      return { pillar: p, avg, rows };
-    })
-    .filter((x): x is { pillar: Pillar; avg: number; rows: typeof lit } => !!x);
-  if (!cards.length) return null;
-
-  // The lowest pillar is where the plan starts, so say so rather than leaving
-  // the nurse to compare four numbers.
-  const worst = cards.reduce((a, b) => (b.avg < a.avg ? b : a));
-
-  return (
-    <section>
-      <SectionTitle>Stoðirnar fjórar</SectionTitle>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map(({ pillar, avg, rows }) => {
-          const meta = PILLAR_META[pillar];
-          const signal: Signal = avg >= 7.5 ? "green" : avg >= 5 ? "yellow" : "red";
-          const first = pillar === worst.pillar;
-          return (
-            <div key={pillar}
-              className={`rounded-2xl border bg-white p-4 ${first ? "border-slate-900/20 shadow-sm ring-1 ring-slate-900/5" : "border-slate-200"}`}>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: meta.ink }}>{meta.label}</p>
-                {first && <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>}
-              </div>
-              <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{fmt1(avg)}</p>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                <div className={`h-full rounded-full ${DOT[signal]}`} style={{ width: `${Math.min(100, avg * 10)}%` }} />
-              </div>
-              <ul className="mt-2 space-y-0.5">
-                {rows.map(({ item, signal: s }) => (
-                  <li key={item.key} className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${s ? DOT[s] : "bg-slate-300"}`} aria-hidden />
-                    <span className="min-w-0 flex-1 truncate">{item.title.replace(/^[^—]+—\s*/, "")}</span>
-                    <span className="tabular-nums">{fmt(item.value)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
+/* Pillars lived here: four cards headed "Stoðirnar fjórar", each summarising
+   one of the four sections immediately below them. Four cards above four
+   sections saying the same thing is the page twice, and the card held the
+   number while the section it summarised did not. The number moved into the
+   section heading, "byrjum hér" with it. */
 
 function Row({ item, signal, entry, sex }: {
   item: ReportItem;

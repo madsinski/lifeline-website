@@ -628,9 +628,15 @@ function PlanPageInner() {
                       results tab, which is not where anybody goes after an
                       endurmat hands them a new PDF — and it is also the way
                       back if a retention review removed the old copy. */}
-                  <ReportUpload api={api} onDone={() => setReloadKey((k) => k + 1)}
-                    heading="Ný skýrsla"
-                    blurb="Komin með nýja Grunnheilsu-skýrslu úr sjúklingagáttinni? Settu hana inn og áætlunin uppfærist eftir nýju niðurstöðunum." />
+                  {/* The id is what the hero's "Hlaða upp skýrslu" scrolls
+                      to. It was lost when the duplicate upload card above
+                      the report was removed, so the button scrolled to
+                      nothing at all. */}
+                  <div id="hc-report-upload">
+                    <ReportUpload api={api} onDone={() => setReloadKey((k) => k + 1)}
+                      heading="Ný skýrsla"
+                      blurb="Komin með nýja Grunnheilsu-skýrslu úr sjúklingagáttinni? Settu hana inn og áætlunin uppfærist eftir nýju niðurstöðunum." />
+                  </div>
                 </div>
               )}
               {tab === "results" && (
