@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import JourneyNav from "@/app/components/hc/JourneyNav";
 import SettingsCard from "@/app/components/hc/SettingsCard";
 import NudgeSettings from "@/app/components/hc/NudgeSettings";
+import InstallGuide from "@/app/components/hc/InstallGuide";
 import PartnerCard from "@/app/components/hc/PartnerCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import BillingPanel from "@/app/components/BillingPanel";
@@ -97,6 +98,7 @@ function Adgangur() {
         </section>
 
         <SettingsCard />
+        <InstallGuide />
         <NudgeSettings api={api} />
         {/* A permanent home for this, independent of journey stage.
             Everywhere else it appears is conditional — the report tab needs

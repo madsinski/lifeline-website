@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { hcTabs } from "./ui";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { Zap, BookOpen, Compass, Dumbbell, FileHeart, MoreHorizontal, Settings, Sun, UserRound, Utensils } from "lucide-react";
 
@@ -170,7 +171,18 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
         const spill = [...primary.slice(slots.length), ...rest];
         const spillActive = spill.some((i) => i.key === active);
         const spillUnread = spill.some((i) => i.key === "notifications") && count > 0;
-        return (
+        /*
+         * Into <body>, like the sheets.
+         *
+         * This is position:fixed, and on Stillingar it was a child of a
+         * space-y-4 wrapper — Tailwind puts margin-bottom on every child
+         * but the last, and a bottom margin on a fixed, bottom-0 element
+         * lifts it off the edge. Measured: margin 0 0 16px, a 16px strip of
+         * page under the navbar, on that page and no other. Resetting the
+         * margin would fix this page and wait for the next one, so the bar
+         * is mounted on the viewport's own element instead.
+         */
+        const bar = (
           <nav aria-label="Heilsuferðin" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden print:hidden"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
             {slots.map((i) => item(i, true))}
@@ -198,6 +210,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
             )}
           </nav>
         );
+        return typeof document === "undefined" ? bar : createPortal(bar, document.body);
       })()}
     </>
   );
