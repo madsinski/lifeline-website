@@ -21,6 +21,7 @@ import SessionGuide from "./SessionGuide";
 import SessionBuilder from "./SessionBuilder";
 import TrainingChanges from "./TrainingChanges";
 import WeekBalance from "./WeekBalance";
+import Sheet from "./Sheet";
 import SessionAlternatives from "./SessionAlternatives";
 import AddDayActivity from "./AddDayActivity";
 import ActivityIcon from "./ActivityIcon";
@@ -98,6 +99,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   const [todayIdx] = useState(() => weekdayOf(new Date()));
   // One sheet for every setting, instead of four scattered entry points.
   const [changes, setChanges] = useState(false);
+  /** The stage-and-balance sleeve. */
+  const [detail, setDetail] = useState(false);
   /** The activity chip whose controls are open, if any. */
   const [editing, setEditing] = useState<string | null>(null);
   /** The lift whose exercise list is open for editing. */
@@ -260,6 +263,18 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Æfingaáætlunin mín</p>
               <h2 className="mt-1 text-2xl font-bold text-slate-900">{exercise.name}</h2>
+              {/* The stage and the week's balance used to be a card of their
+                  own below the calendar. They answer "is this going
+                  anywhere", which is a question you ask occasionally and
+                  not while looking for today's session — so they are a
+                  sleeve now, opened from under the name they describe. */}
+              {balance && (
+                <button type="button" onClick={() => setDetail(true)}
+                  className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-orange-800 hover:underline">
+                  {stage ? stage.title : "Nánar"}
+                  <ChevronDown className="h-3.5 w-3.5 -rotate-90" aria-hidden />
+                </button>
+              )}
             </div>
             {/* Breytingar sits beside the programme's name, because that is
                 the thing it changes. "Skipta um æfingaáætlun" used to be
@@ -464,9 +479,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             the week decides to change it here. */}
         {/* What the week is made of. Directly under the hero and the
             Breytingar button, because a gap here is a thing you fix there. */}
-        {balance && <WeekBalance score={balance} stage={stage}
-          description={exercise.description} principles={exercise.principles}
-          onFix={onSaveTraining ? () => setChanges(true) : undefined} />}
+
 
         {editable && controls}
         {stages}
@@ -503,6 +516,16 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             });
             setBuilding(null);
           }} />
+      )}
+
+      {detail && balance && (
+        <Sheet title="Áætlunin þín" onClose={() => setDetail(false)} canvas>
+          <div className="p-3 sm:p-4">
+            <WeekBalance score={balance} stage={stage}
+              description={exercise.description} principles={exercise.principles}
+              onFix={onSaveTraining ? () => { setDetail(false); setChanges(true); } : undefined} />
+          </div>
+        </Sheet>
       )}
 
       {changes && training && onSaveTraining && (
