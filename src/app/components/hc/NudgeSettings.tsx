@@ -62,17 +62,71 @@ export default function NudgeSettings({ api }: { api: Api }) {
     return true;
   };
 
-  /** Ask this device for permission and register it. */
+  /*
+   * Ask this device for permission and register it.
+   *
+   * Every exit says why. This used to be a chain of awaits whose caller
+   * ended in `.catch(() => false)`, so anything that threw — a browser that
+   * refuses the Push API, a permission already denied from an earlier
+   * dismissal, a service worker that will not register — produced a button
+   * that did nothing at all when pressed. Silence is the worst of the
+   * possible answers here, because the reasons are mostly things the person
+   * can act on.
+   */
   const enablePush = async (): Promise<boolean> => {
     const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!key || !env.pushable) { setMsg("Þessi vafri styður ekki tilkynningar."); return false; }
-    const perm = await Notification.requestPermission();
-    if (perm !== "granted") { setMsg("Tilkynningar eru ekki leyfðar. Þú getur leyft þær í stillingum vafrans."); return false; }
-    const reg = await navigator.serviceWorker.register("/sw.js");
-    await navigator.serviceWorker.ready;
-    const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) }));
+    if (!key) { setMsg("Tilkynningar eru ekki uppsettar á þjóninum."); return false; }
+    if (!env.pushable) {
+      setMsg(env.ios && !env.standalone
+        ? "Á iPhone þarf Lifeline að vera á heimaskjánum til að fá tilkynningar."
+        : "Þessi vafri styður ekki tilkynningar.");
+      return false;
+    }
+
+    // Already turned down once: requestPermission resolves "denied" without
+    // asking again, so the only way forward is the browser's own settings.
+    if (Notification.permission === "denied") {
+      setMsg("Tilkynningar eru bannaðar fyrir þessa síðu í vafranum. Leyfðu þær í stillingum vafrans (táknið við veffangið) og prófaðu aftur.");
+      return false;
+    }
+
+    let perm: NotificationPermission;
+    try {
+      perm = await Notification.requestPermission();
+    } catch {
+      setMsg("Vafrinn leyfði ekki að spyrja um tilkynningar.");
+      return false;
+    }
+    if (perm !== "granted") {
+      setMsg("Tilkynningar eru ekki leyfðar. Þú getur leyft þær í stillingum vafrans og prófað aftur.");
+      return false;
+    }
+
+    let sub: PushSubscription;
+    try {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+      sub = (await reg.pushManager.getSubscription())
+        ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) }));
+    } catch (e) {
+      /*
+       * The common ones are worth naming. Chrome refuses the Push API in
+       * a private window and says so only by throwing, and a service
+       * worker cannot register when site data is blocked.
+       */
+      const m = String((e as Error)?.message ?? e);
+      setMsg(/incognito|private/i.test(m)
+        ? "Tilkynningar virka ekki í huliðsglugga. Opnaðu síðuna í venjulegum vafra."
+        : `Tækið náðist ekki að skrá: ${m.slice(0, 120)}`);
+      return false;
+    }
+
     const r = await api("/api/hc/push", { method: "POST", body: JSON.stringify({ subscription: sub.toJSON() }) });
-    if (!r.ok) { setMsg("Tókst ekki að skrá tækið."); return false; }
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      setMsg((j as { error?: string }).error || "Tókst ekki að skrá tækið.");
+      return false;
+    }
     return true;
   };
 
@@ -81,7 +135,12 @@ export default function NudgeSettings({ api }: { api: Api }) {
     const on = prefs.channels.includes(c);
     if (!on && c === "push") {
       setBusy(true);
-      const ok = await enablePush().catch(() => false);
+      // A backstop: enablePush reports its own failures, so anything that
+      // reaches here threw somewhere unexpected and must still say so.
+      const ok = await enablePush().catch((e) => {
+        setMsg(`Eitthvað brást: ${String((e as Error)?.message ?? e).slice(0, 120)}`);
+        return false;
+      });
       setBusy(false);
       if (!ok) return;
     }
@@ -172,7 +231,14 @@ export default function NudgeSettings({ api }: { api: Api }) {
               ? <button type="button" disabled={busy} onClick={() => void save({ ...prefs, paused_until: null })} className={`${hcBtn.secondary} min-h-9`}>Halda áfram</button>
               : <button type="button" disabled={busy} onClick={() => void save({ ...prefs, paused_until: inWeek })} className={`${hcBtn.ghost} min-h-9`}>Hlé í viku</button>)}
           </div>
-          {msg && <p role="status" className="text-sm text-hc-ink-2">{msg}</p>}
+          {/* Was plain grey body text, which is easy to miss under a
+              button you just pressed — and these lines are now the only
+              explanation of why nothing happened. */}
+          {msg && (
+            <p role="status" className="rounded-hc-element bg-slate-100 px-3 py-2 text-sm font-medium text-hc-ink ring-1 ring-slate-200">
+              {msg}
+            </p>
+          )}
         </div>
       )}
     </section>
