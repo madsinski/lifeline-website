@@ -1,0 +1,204 @@
+"use client";
+
+// You and your partner, in a sleeve behind a face on the hero.
+//
+// This was "Dagurinn", a card sitting between the hero and the checklist
+// carrying the day bar, two fortnight counts, the next thing and a nudge
+// menu. It took 195px of the best space on the page to report on the past,
+// above the list of what to do now — and status above action is the wrong
+// way round on a page people open to tick something off.
+//
+// It is a button in the corner of the hero now. The information did not
+// shrink; it grew. Behind the face: a full card each, your fortnight against
+// theirs, and what they are actually training today and tomorrow, which is
+// the thing that makes a partner an accountability partner rather than a
+// number beside yours.
+
+import { useState } from "react";
+import { Dumbbell, Flame, Hand, Send, X } from "lucide-react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import { hcBtn } from "./ui";
+import type { Stats } from "./TodayCards";
+
+type Api = (url: string, init?: RequestInit) => Promise<Response>;
+
+export interface Partner {
+  id: string | null;
+  name: string;
+  canNudge: boolean;
+  stats: Stats | null;
+  training?: { today: string[]; tomorrow: string[] } | null;
+}
+
+/** What a nudge can say, so nobody has to find words to be kind. */
+const NUDGE_KINDS: { key: string; label: string }[] = [
+  { key: "cheer", label: "Vel gert!" },
+  { key: "check", label: "Hvernig gengur?" },
+  { key: "join", label: "Eigum við að hreyfa okkur saman?" },
+];
+
+export function PeopleButton({ onClick, done, of }: { onClick: () => void; done: number; of: number }) {
+  // The face follows the day rather than being decoration: it is the one
+  // glance the button is for, and it has to be legible at 44px.
+  const share = of > 0 ? done / of : 0;
+  const face = share >= 1 ? "😄" : share >= 0.5 ? "🙂" : share > 0 ? "😐" : "😴";
+  return (
+    <button type="button" onClick={onClick}
+      aria-label={`Staðan þín og félagans — ${done} af ${of} í dag`}
+      className="absolute bottom-3 right-3 flex h-12 items-center gap-1.5 rounded-full bg-white/20 px-3 text-white ring-1 ring-white/30 backdrop-blur transition hover:bg-white/30">
+      <span className="text-xl leading-none" aria-hidden>{face}</span>
+      <span className="text-sm font-bold tabular-nums">{done}/{of}</span>
+    </button>
+  );
+}
+
+export default function PeopleSheet({ api, mine, partner, done, of, onClose, onNudged }: {
+  api: Api;
+  mine: Stats | null;
+  partner: Partner | null;
+  done: number;
+  of: number;
+  onClose: () => void;
+  onNudged: () => void;
+}) {
+  useScrollLock();
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [note, setNote] = useState("");
+
+  const nudge = async (kind: string, text?: string) => {
+    setSending(true);
+    const r = await api("/api/hc/today", {
+      method: "POST", body: JSON.stringify({ nudge: true, kind, note: text ?? "" }),
+    }).catch(() => null);
+    setSending(false);
+    if (r?.ok) { setSent(true); setNote(""); onNudged(); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/60 sm:items-center sm:p-4"
+      onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="Staðan"
+        onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-hc-canvas sm:rounded-3xl">
+        <div className="flex items-center gap-3 bg-white p-4">
+          <p className="min-w-0 flex-1 text-lg font-bold text-hc-ink">Staðan</p>
+          <button type="button" onClick={onClose} aria-label="Loka"
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+        </div>
+
+        <div className="flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4">
+          <PersonCard name="Þú" stats={mine} today={done} of={of} highlight />
+          {partner
+            ? <PersonCard name={partner.name} stats={partner.stats}
+                training={partner.training ?? null} />
+            : (
+              <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200">
+                Þú ert ekki með ábyrgðarfélaga. Veldu einn í appinu — það er auðveldara að halda áfram þegar einhver sér það.
+              </p>
+            )}
+
+          {partner?.canNudge && (
+            <section className="rounded-hc-card bg-white p-4 ring-1 ring-slate-200">
+              <p className="flex items-center gap-2 font-semibold text-hc-ink">
+                <Hand className="h-4 w-4 text-hc-brand-dark" aria-hidden /> Ýta við {partner.name.split(" ")[0]}
+              </p>
+              {sent ? (
+                <p className="mt-2 text-sm font-semibold text-hc-brand-dark">Sent. Þau fá þetta í símann.</p>
+              ) : (
+                <>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {NUDGE_KINDS.map((k) => (
+                      <button key={k.key} type="button" disabled={sending} onClick={() => void nudge(k.key)}
+                        className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-hc-brand/10 hover:text-hc-brand-dark disabled:opacity-40">
+                        {k.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex items-end gap-2">
+                    <input value={note} onChange={(e) => setNote(e.target.value)}
+                      placeholder="Eða skrifaðu eitthvað…" aria-label="Skilaboð með ýtingunni"
+                      className="min-h-11 min-w-0 flex-1 rounded-hc-element border border-slate-200 px-3 text-sm outline-none focus:border-hc-brand" />
+                    <button type="button" disabled={sending || !note.trim()} onClick={() => void nudge("note", note.trim())}
+                      aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
+                      <Send className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** One person, big enough to read at a glance. */
+function PersonCard({ name, stats, today, of, training, highlight = false }: {
+  name: string;
+  stats: Stats | null;
+  today?: number;
+  of?: number;
+  training?: { today: string[]; tomorrow: string[] } | null;
+  highlight?: boolean;
+}) {
+  return (
+    <section className={`rounded-hc-card bg-white p-4 ring-1 sm:p-5 ${highlight ? "ring-hc-brand/40" : "ring-slate-200"}`}>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="min-w-0 truncate text-lg font-bold text-hc-ink">{name}</p>
+        {today !== undefined && of !== undefined && (
+          <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-500">{today}/{of} í dag</p>
+        )}
+      </div>
+
+      {stats ? (
+        <>
+          {/* The fortnight as a bar, because fourteen dots is a thing you
+              count and a bar is a thing you see. */}
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-bold tabular-nums text-hc-ink">{stats.days14}</span>
+            <span className="text-sm text-slate-500">af 14 dögum með virkni</span>
+          </div>
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-full rounded-full bg-hc-brand transition-all" style={{ width: `${Math.round((stats.days14 / 14) * 100)}%` }} aria-hidden />
+          </div>
+          <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            <div className="flex items-center gap-1.5">
+              <Flame className="h-4 w-4 text-amber-500" aria-hidden />
+              <dt className="text-slate-500">Röð</dt>
+              <dd className="font-bold tabular-nums text-hc-ink">{stats.streak}</dd>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <dt className="text-slate-500">Síðustu 28</dt>
+              <dd className="font-bold tabular-nums text-hc-ink">{stats.percent28}%</dd>
+            </div>
+          </dl>
+        </>
+      ) : (
+        <p className="mt-2 text-sm text-slate-500">Engar tölur enn.</p>
+      )}
+
+      {/* What they are actually doing — the part that makes a partner an
+          accountability partner rather than a number beside yours. */}
+      {training && (
+        <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3">
+          <p className="flex items-center gap-2 text-sm">
+            <Dumbbell className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+            <span className="text-slate-500">Í dag:</span>
+            <span className="min-w-0 flex-1 font-semibold text-hc-ink">
+              {training.today.length ? training.today.join(" + ") : "hvíld"}
+            </span>
+          </p>
+          <p className="flex items-center gap-2 text-sm">
+            <span className="w-4 shrink-0" aria-hidden />
+            <span className="text-slate-500">Á morgun:</span>
+            <span className="min-w-0 flex-1 text-slate-700">
+              {training.tomorrow.length ? training.tomorrow.join(" + ") : "hvíld"}
+            </span>
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}

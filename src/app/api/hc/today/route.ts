@@ -44,6 +44,30 @@ async function stats(journeyId: string | null) {
   return { days7: within(7), days14: within(14), days28: within(28), streak };
 }
 
+/**
+ * What the partner is training today and tomorrow — titles only.
+ *
+ * The point of an accountability partner is knowing what the other one is
+ * meant to be doing, which is why the stats are already shared both ways.
+ * Titles and nothing else: no exercises, no weights, no notes. Seeing that
+ * somebody has a lift today is the accountability; seeing what they lift is
+ * their business.
+ */
+async function trainingOf(clientId: string): Promise<{ today: string[]; tomorrow: string[] } | null> {
+  const { data: j } = await supabaseAdmin.from("hc_journeys")
+    .select("id").eq("client_id", clientId).is("cancelled_at", null)
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!j) return null;
+  const { data: ts } = await supabaseAdmin.from("hc_training_settings")
+    .select("activities").eq("journey_id", j.id).maybeSingle();
+  const acts = Array.isArray(ts?.activities) ? (ts!.activities as { name?: unknown; day?: unknown }[]) : [];
+  const dow = (new Date().getDay() + 6) % 7;
+  const pick = (d: number) => acts
+    .filter((a) => Math.round(Number(a.day)) === d)
+    .map((a) => String(a.name ?? "")).filter(Boolean);
+  return { today: pick(dow), tomorrow: pick((dow + 1) % 7) };
+}
+
 export async function GET(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
@@ -131,6 +155,7 @@ export async function GET(req: NextRequest) {
           id: partnerId ?? null, name: partnerName, canNudge: Boolean(partnerId),
           // Same shape as `stats`, so the two rows are the same measures.
           stats: theirs ? { ...theirs, percent28: Math.round((theirs.days28 / 28) * 100) } : null,
+          training: partnerId ? await trainingOf(partnerId) : null,
         }
       : null,
   });

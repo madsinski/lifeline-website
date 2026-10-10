@@ -34,7 +34,7 @@ export function TodayHeader({ name, right }: { name: string | null; right?: Reac
   );
 }
 
-export default function TodayOverview({ plan, exercise, training, onOpenExercise, onEdit, aside }: {
+export default function TodayOverview({ plan, exercise, training, onOpenExercise, onEdit, people }: {
   plan: ActionPlan;
   exercise: PersonalExercise | null;
   /** What they eat; restrictions are a hard filter on the meal library. */
@@ -46,7 +46,14 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
    * a tab of their own and what belongs next to today's session is how the
    * week is actually going.
    */
-  aside?: React.ReactNode;
+  /**
+   * The face in the hero's corner, opening you-and-your-partner.
+   *
+   * A sibling rather than a child: the hero is itself a button, and a
+   * button inside a button is invalid and unclickable in roughly that
+   * order.
+   */
+  people?: React.ReactNode;
   onEdit: () => void;
 }) {
   const [today] = useState(() => weekdayOf(new Date()));
@@ -76,7 +83,10 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* One column now. The status card that sat beside this became the
+          face in its corner, so the hero gets the full width it was
+          sharing. */}
+      <div className="relative">
         {exercise && (
           <button type="button" onClick={() => onOpenExercise(todays[0]?.id)}
             className="flex flex-col rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 p-4 text-left text-white shadow-sm transition hover:shadow-md sm:p-5">
@@ -119,10 +129,7 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
           </button>
         )}
 
-        {/* The meals card stood here. Today's food lives on the Næring tab,
-            and the slot beside the workout is better spent on whether the
-            week is actually going — the thing the person came to check. */}
-        {aside}
+        {people}
       </div>
 
       {(plan.goals?.length ?? 0) > 0 && (

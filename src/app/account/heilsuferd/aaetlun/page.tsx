@@ -33,9 +33,10 @@ import type { Upcoming } from "@/lib/hc/upcoming";
 import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
-import { TodayCard, useToday } from "@/app/components/hc/TodayCards";
+import { useToday } from "@/app/components/hc/TodayCards";
 import { NotificationBell, useNotifications } from "@/app/components/hc/Notifications";
 import { UpcomingSoon, useUpcoming } from "@/app/components/hc/Upcoming";
+import PeopleSheet, { PeopleButton } from "@/app/components/hc/PeopleSheet";
 import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
 import { peek } from "@/lib/hc/client-cache";
@@ -169,6 +170,7 @@ function PlanPageInner() {
   const { today, reloadToday } = useToday(api);
   const { unread } = useNotifications(api);
   const { items: upcoming } = useUpcoming(api);
+  const [people, setPeople] = useState(false);
   /**
    * Swiped away for today only.
    *
@@ -427,6 +429,20 @@ function PlanPageInner() {
   const hasSomething = !!plan || !!data?.report;
 
   const place: JourneyPlace = tab === "exercise" ? "exercise" : tab === "nutrition" ? "nutrition" : tab === "coach" ? "coach" : tab === "report" || tab === "results" ? "report" : "today";
+  /**
+   * How much of today is done, and of how much.
+   *
+   * One definition, read by the face on the hero and by the card in the
+   * sleeve behind it: they were two copies of the same long expression,
+   * which is two places for them to drift apart.
+   */
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayDow = (new Date().getDay() + 6) % 7;
+  const doneCount = (plan?.modules ?? []).filter((m) => (liveLogs ?? data?.logs ?? []).some((l) => l.action_uid === m.uid && l.done_on === todayStr)).length
+    + (exercise?.sessions.filter((sx) => sx.weekday === todayDow && doneToday.has(sx.id)).length ?? 0);
+  const ofCount = (plan?.modules ?? []).filter((m) => (m.frequency ?? "").toLowerCase() === "daglega" || m.pillar !== "exercise").length
+    + (exercise?.sessions.filter((sx) => sx.weekday === todayDow).length ?? 0);
+
   const next = appointments[0] ?? null;
 
   return (
@@ -438,7 +454,12 @@ function PlanPageInner() {
             is visible wherever you are. */}
         {/* The "Aðgangurinn minn" link is gone — the navbar already has it.
             A back link out of an editor is a different thing and stays. */}
-        {(editing || nutritionSetup) && (
+        {people && (
+        <PeopleSheet api={api} mine={today?.stats ?? null} partner={today?.partner ?? null}
+          done={doneCount} of={ofCount}
+          onClose={() => setPeople(false)} onNudged={() => void reloadToday()} />
+      )}
+      {(editing || nutritionSetup) && (
           <div className="mb-3 print:hidden">
             <BackLink label="Til baka í áætlunina"
               onBack={() => { setEditing(false); setEditPillar(null); setNutritionSetup(false); }} />
@@ -489,13 +510,7 @@ function PlanPageInner() {
                       AppointmentCard no longer repeats it here. */}
                   <TodayOverview plan={plan} exercise={exercise} training={training}
                     onOpenExercise={(id) => setTab("exercise", id)} onEdit={() => setEditing(true)}
-                    aside={today && (
-                      <TodayCard d={today} api={api} onNudged={() => void reloadToday()}
-                        doneToday={(plan.modules ?? []).filter((m) => (liveLogs ?? data.logs).some((l) => l.action_uid === m.uid && l.done_on === new Date().toISOString().slice(0, 10))).length
-                          + (exercise?.sessions.filter((sx) => sx.weekday === ((new Date().getDay() + 6) % 7) && doneToday.has(sx.id)).length ?? 0)}
-                        ofToday={(plan.modules ?? []).filter((m) => (m.frequency ?? "").toLowerCase() === "daglega" || m.pillar !== "exercise").length
-                          + (exercise?.sessions.filter((sx) => sx.weekday === ((new Date().getDay() + 6) % 7)).length ?? 0)} />
-                    )} />
+                    people={<PeopleButton onClick={() => setPeople(true)} done={doneCount} of={ofCount} />} />
                   {/* Only when something is today or tomorrow, and amber
                       because that is the whole reason it appeared. The full
                       list lives behind the lightning bolt, where nothing is
