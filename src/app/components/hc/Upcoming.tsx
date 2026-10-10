@@ -179,9 +179,15 @@ function Row({ x, urgent = false }: { x: Upcoming; urgent?: boolean }) {
           </span>
         )}
       </span>
+      {/* Its own line on a phone, beside the text when there is room.
+          It was shrink-0 on the same line, so on a narrow screen it took
+          its ~130px first and left the title and the time to crop into
+          what was left. A row of text and a button competing for one line
+          has no good width; giving the button the next line costs nothing
+          and the text gets all of it. */}
       {video && (
         <a href={x.meetingUrl!} target="_blank" rel="noopener noreferrer"
-          className="relative z-10 shrink-0 rounded-hc-element bg-hc-brand px-3 py-1.5 text-sm font-bold text-white transition hover:bg-hc-brand-dark">
+          className="relative z-10 w-full shrink-0 rounded-hc-element bg-hc-brand px-3 py-2 text-center text-sm font-bold text-white transition hover:bg-hc-brand-dark sm:w-auto sm:py-1.5 sm:text-left">
           Fara á fundinn
         </a>
       )}
