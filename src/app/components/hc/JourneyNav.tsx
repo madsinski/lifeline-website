@@ -8,7 +8,8 @@
 
 import Link from "next/link";
 import { hcTabs } from "./ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { Zap, BookOpen, Compass, Dumbbell, FileHeart, MoreHorizontal, Settings, Sun, UserRound, Utensils } from "lucide-react";
 
 export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "coach" | "report" | "journey" | "notifications" | "account";
@@ -50,9 +51,49 @@ const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun;
   { key: "account", label: "Aðgangur", href: "/account/heilsuferd/adgangur", Icon: Settings },
 ];
 
-export default function JourneyNav({ active, hasReport = true, hasExercise = true, hasNutrition = true, hasPlan = true, unread = 0, onSelect }: {
+/*
+ * How many things are waiting, when the page has not said.
+ *
+ * `unread` was a prop with a default of 0, and five of the six pages that
+ * render this nav never passed it — so the dot was missing everywhere
+ * except the plan page. Six callers, five of them wrong, is a sign the
+ * prop was the wrong shape: showing the dot is this component's job, not
+ * something every page has to remember to supply.
+ *
+ * A page that already has the number still passes it and skips the fetch.
+ */
+function useNavUnread(enabled: boolean) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true;
+    const load = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const r = await fetch("/api/hc/notifications", {
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+      }).catch(() => null);
+      if (!r?.ok || !alive) return;
+      const j = await r.json().catch(() => null);
+      if (alive) setTimeout(() => setN(Number(j?.unread ?? 0)), 0);
+    };
+    void load();
+    // Same cadence as the bell: a poll while visible, and on return.
+    const tick = () => { if (document.visibilityState === "visible") void load(); };
+    const id = window.setInterval(tick, 15_000);
+    window.addEventListener("focus", tick);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+      window.removeEventListener("focus", tick);
+    };
+  }, [enabled]);
+  return n;
+}
+
+export default function JourneyNav({ active, hasReport = true, hasExercise = true, hasNutrition = true, hasPlan = true, unread, onSelect }: {
   active: JourneyPlace;
-  /** Lights the dot on the Tilkynningar tab. */
+  /** Lights the dot on the Tilkynningar tab. Omit it and the nav counts. */
   unread?: number;
   hasReport?: boolean;
   hasExercise?: boolean;
@@ -62,13 +103,15 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
   onSelect?: (k: JourneyPlace) => boolean;
 }) {
   const [more, setMore] = useState(false);
+  const own = useNavUnread(unread === undefined);
+  const count = unread ?? own;
   const items = ITEMS.filter((i) =>
     (i.key !== "report" || hasReport) && (i.key !== "exercise" || (hasPlan && hasExercise)) && (i.key !== "nutrition" || (hasPlan && hasNutrition)) && (i.key !== "today" || hasPlan));
   const primary = items.filter((i) => i.primary);
   const rest = items.filter((i) => !i.primary);
   const restActive = rest.some((i) => i.key === active);
   /** Unread lives on a hidden item, so the overflow button has to say so. */
-  const restUnread = rest.some((i) => i.key === "notifications") && unread > 0;
+  const restUnread = rest.some((i) => i.key === "notifications") && count > 0;
 
   const item = (i: (typeof ITEMS)[number], mobile: boolean) => {
     const on = i.key === active;
@@ -80,8 +123,8 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
           : `${hcTabs.tab(on)} flex items-center justify-center gap-2`}>
         <span className="relative">
           <i.Icon className={mobile ? "h-6 w-6" : "h-4 w-4"} strokeWidth={on && mobile ? 2.4 : 2} aria-hidden />
-          {i.key === "notifications" && unread > 0 && (
-            <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${unread} ný`} />
+          {i.key === "notifications" && count > 0 && (
+            <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${count} ný`} />
           )}
         </span>
         {i.label}
@@ -98,7 +141,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
               className={`${hcTabs.tab(restActive)} flex items-center justify-center gap-2`}>
               <span className="relative">
                 <MoreHorizontal className="h-4 w-4" aria-hidden />
-                {restUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${unread} ný`} />}
+                {restUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${count} ný`} />}
               </span>
               Meira
             </button>
@@ -108,8 +151,8 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
                   <Link key={i.key} href={i.href} onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
                     className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-700 hover:bg-slate-50"}`}>
                     <i.Icon className="h-5 w-5" aria-hidden />{i.label}
-                    {i.key === "notifications" && unread > 0 && (
-                      <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{unread > 9 ? "9+" : unread}</span>
+                    {i.key === "notifications" && count > 0 && (
+                      <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{count > 9 ? "9+" : count}</span>
                     )}
                   </Link>
                 ))}
@@ -126,7 +169,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
         const slots = primary.length > 4 ? primary.slice(0, 4) : primary;
         const spill = [...primary.slice(slots.length), ...rest];
         const spillActive = spill.some((i) => i.key === active);
-        const spillUnread = spill.some((i) => i.key === "notifications") && unread > 0;
+        const spillUnread = spill.some((i) => i.key === "notifications") && count > 0;
         return (
           <nav aria-label="Heilsuferðin" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden print:hidden"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
@@ -137,7 +180,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
                   className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${spillActive ? "text-hc-brand-dark" : "text-slate-500"}`}>
                   <span className="relative">
                     <MoreHorizontal className="h-6 w-6" aria-hidden />
-                    {spillUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${unread} ný`} />}
+                    {spillUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${count} ný`} />}
                   </span>
                   Meira
                 </button>
