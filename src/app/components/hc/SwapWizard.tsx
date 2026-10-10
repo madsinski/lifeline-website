@@ -11,7 +11,7 @@
 // answer that particular reason.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import Sheet from "./Sheet";
 import { ArrowLeft, ChevronDown, Search, X } from "lucide-react";
 import { REGION_IS, REGIONS, type Region } from "@/lib/hc/adaptive-program";
 import { EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
@@ -86,8 +86,6 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
    */
   injuries?: Region[];
 }) {
-  // The page behind a sheet must not scroll with it.
-  useScrollLock();
   const [why, setWhy] = useState<Why | null>(null);
   const [region, setRegion] = useState<Region | null>(null);
   const [all, setAll] = useState<LibEx[] | null>(null);
@@ -138,9 +136,8 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
   const title = item.name;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
-      <div className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
-        role="dialog" aria-modal="true" aria-label={heading ?? `Skipta út: ${title}`} onClick={(e) => e.stopPropagation()}>
+    <Sheet title={heading ?? `Skipta út: ${title}`} onClose={onClose} max="max-w-lg"
+      header={
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{heading ? "Bæta við" : "Skipta út"}</p>
@@ -149,6 +146,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
           </div>
           <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
+      }>
 
         {/* 1 ─ why */}
         {!why && (
@@ -242,7 +240,6 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
             )}
           </>
         )}
-      </div>
-    </div>
+    </Sheet>
   );
 }
