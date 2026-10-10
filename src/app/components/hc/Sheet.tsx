@@ -20,6 +20,7 @@
 // a quick flick is a dismissal even when it is short.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 
@@ -126,7 +127,27 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
     window.addEventListener("pointercancel", up);
   };
 
-  return (
+  /*
+   * Rendered into <body>, not where it is written.
+   *
+   * The overlay is position:fixed with inset-0, and it was inheriting
+   * layout from whatever happened to contain it. Tailwind's space-y-*
+   * puts margin-bottom on every child but the last, so a sheet written as
+   * a non-last child of a space-y-4 container picked up margin-bottom:16px
+   * — and a bottom margin on a fixed, inset-0 box shrinks it: 844 - 16 =
+   * 828, which is the strip of page and bottom navbar showing under some
+   * sleeves and not others. A transformed or filtered ancestor would
+   * reposition it entirely, and an overflow-hidden one would clip it.
+   *
+   * A modal belongs to the viewport, so it is mounted on the viewport's own
+   * element and nothing in the tree above it can reach it.
+   */
+  // No state for this: there is nothing to synchronise, and setting it in
+  // an effect would cost a render and trip the compiler's rule for it.
+  const host = typeof document === "undefined" ? null : document.body;
+  if (!host) return null;
+
+  return createPortal(
     <div
       className={`fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/60 transition-opacity duration-200 sm:items-center sm:p-4 ${
         shown && !closing ? "opacity-100" : "opacity-0"}`}
@@ -169,6 +190,7 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
         </div>
 
       </div>
-    </div>
+    </div>,
+    host,
   );
 }
