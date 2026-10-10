@@ -17,9 +17,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Activity, CalendarPlus, Check, ChevronDown, Dumbbell, Gauge, HeartPulse,
-  MessageCircle, Send, Sparkles, UserRound, Video, X,
+  MessageCircle, MessageSquarePlus, Send, Sparkles, UserRound, Video, X,
 } from "lucide-react";
 import { hcBtn, hcCard } from "./ui";
+import Sheet from "./Sheet";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -204,6 +205,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
   onSend: () => Promise<void>; onPost: (p: Record<string, unknown>) => Promise<boolean>;
 }) {
   const [switching, setSwitching] = useState(false);
+  const [prompts, setPrompts] = useState(false);
   const [about, setAbout] = useState(false);
   const c = data.coach;
   const first = c?.name?.split(" ")[0] ?? "þjálfarann þinn";
@@ -323,20 +325,17 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
           <div ref={end} />
         </div>
 
-        {/* The old request form's list, as starters. Only while the box is
-            empty: once there are words in it, four buttons offering to
-            replace them is in the way. */}
-        {!draft && (
-          <div className="flex flex-wrap gap-1.5 border-t border-slate-100 px-3 pt-3">
-            {PROMPTS.map((x) => (
-              <button key={x.label} type="button" onClick={() => start(x.text)}
-                className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-hc-brand/10 hover:text-hc-brand-dark">
-                {x.label}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* A sheet, not a row of chips.
+            They are whole sentences now, and a chip truncates a sentence to
+            a label you then send unread. The sheet shows each one in full,
+            so you choose the message rather than its title — and it stays
+            out of the way until asked for, which a permanent row did not. */}
         <div className="flex items-end gap-2 p-3">
+          <button type="button" onClick={() => setPrompts(true)}
+            aria-label="Tilbúin skilaboð"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-hc-brand-dark">
+            <MessageSquarePlus className="h-5 w-5" aria-hidden />
+          </button>
           <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void onSend(); } }}
             placeholder="Skrifaðu skilaboð…" aria-label="Skilaboð til þjálfarans"
@@ -347,6 +346,26 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
           </button>
         </div>
       </section>
+
+      {prompts && (
+        <Sheet title="Tilbúin skilaboð" onClose={() => setPrompts(false)}>
+          <ul className="divide-y divide-slate-100">
+            {PROMPTS.map((x) => (
+              <li key={x.label}>
+                <button type="button"
+                  onClick={() => { setPrompts(false); start(x.text); }}
+                  className="w-full px-4 py-3.5 text-left transition hover:bg-slate-50">
+                  <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">{x.label}</span>
+                  <span className="mt-0.5 block text-sm leading-snug text-hc-ink">{x.text}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="px-4 py-3 text-xs text-slate-500">
+            Skilaboðin fara í reitinn — þú getur breytt þeim áður en þú sendir.
+          </p>
+        </Sheet>
+      )}
     </>
   );
 }
