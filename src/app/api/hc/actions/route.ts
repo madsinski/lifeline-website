@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const [{ data: plan }, { data: logs }, { data: prefs }, { data: results }, { data: entries }, { data: profile }] = await Promise.all([
     supabaseAdmin.from("hc_action_plans_decrypted").select("id, modules, headline, published_at, review_date").eq("journey_id", journey.id).eq("status", "published").maybeSingle(),
     supabaseAdmin.from("hc_action_logs").select("action_uid, done_on").eq("journey_id", journey.id).gte("done_on", since),
-    supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note").eq("journey_id", journey.id),
+    supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note, sort_index").eq("journey_id", journey.id),
     supabaseAdmin.from("hc_results_decrypted").select("marker, value, unit, measured_at, note").eq("journey_id", journey.id),
     supabaseAdmin.from("hc_knowledge").select("slug, category, title, aliases, unit, summary, body_md, bands, higher_better, sources, tags, sort").eq("active", true),
     supabaseAdmin.from("clients_decrypted").select("sex").eq("id", user.id).maybeSingle(),
@@ -64,12 +64,43 @@ export async function GET(req: NextRequest) {
   });
 }
 
+/** Logs and prefs as they now stand — what every mutation answers with. */
+async function currentState(journeyId: string) {
+  const [{ data: logs }, { data: prefs }] = await Promise.all([
+    supabaseAdmin.from("hc_action_logs").select("action_uid, done_on").eq("journey_id", journeyId).gte("done_on", lastDays(28)[0]),
+    supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note, sort_index").eq("journey_id", journeyId),
+  ]);
+  return { logs: logs || [], prefs: prefs || [] };
+}
+
 export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
   const body = await req.json().catch(() => ({}));
   const journey = await ownJourney(user.id, typeof body.journey_id === "string" ? body.journey_id : null);
   if (!journey) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  /*
+   * A reordered section, in one request.
+   *
+   * Dragging one row changes the position of everything it passed, so the
+   * client sends the whole section's order rather than a row at a time —
+   * one upsert, and no window where half the list has moved.
+   */
+  if (Array.isArray(body.order)) {
+    const uids = (body.order as unknown[]).map(String).filter(Boolean).slice(0, 200);
+    if (uids.length) {
+      const now = new Date().toISOString();
+      const rows = uids.map((uid, i) => ({
+        journey_id: journey.id, client_id: user.id, action_uid: uid,
+        sort_index: i, updated_at: now,
+      }));
+      const { error } = await supabaseAdmin
+        .from("hc_action_prefs").upsert(rows, { onConflict: "journey_id,action_uid" });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json(await currentState(journey.id));
+  }
 
   const actionUid = typeof body.action_uid === "string" ? body.action_uid.slice(0, 64) : "";
   if (!actionUid) return NextResponse.json({ error: "bad_request" }, { status: 400 });
@@ -96,9 +127,5 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from("hc_action_prefs").upsert(patch, { onConflict: "journey_id,action_uid" });
   }
 
-  const [{ data: logs }, { data: prefs }] = await Promise.all([
-    supabaseAdmin.from("hc_action_logs").select("action_uid, done_on").eq("journey_id", journey.id).gte("done_on", lastDays(28)[0]),
-    supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note").eq("journey_id", journey.id),
-  ]);
-  return NextResponse.json({ logs: logs || [], prefs: prefs || [] });
+  return NextResponse.json(await currentState(journey.id));
 }

@@ -11,11 +11,12 @@
 
 import * as cache from "@/lib/hc/client-cache";
 import ActionSheet from "./ActionSheet";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, RotateCcw } from "lucide-react";
 import { PILLAR_META, type ActionPlan, type Pillar, type PlanItem, type WhenOfDay } from "@/lib/hc/types";
 import { Sun, Sunrise, Moon, Clock } from "lucide-react";
 import { useSwipe } from "@/lib/hc/use-swipe";
+import { useReorder } from "@/lib/hc/use-reorder";
 
 /**
  * The parts of the day, in the order they happen.
@@ -214,8 +215,45 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const bucket = (w: WhenOfDay | null | undefined): WhenOfDay =>
     w === "morning" || w === "midday" || w === "evening" ? w : "midday";
 
-  const inWhen = (w: WhenOfDay) => live.filter((a) =>
-    !supersededByProgramme(a) && bucket(a.when) === w);
+  /*
+   * The participant's order, where they have one.
+   *
+   * The plan lists modules in the order the nurse composed them, which is a
+   * clinical order and not the order anybody does things in the morning. A
+   * null sort_index means "wherever the plan put it", so an untouched list
+   * looks exactly as it did; dragging one row writes positions for that
+   * whole section.
+   */
+  /*
+   * Saving a drag.
+   *
+   * The whole section goes up in one request: moving one row changes the
+   * position of everything it passed, and sending them one at a time would
+   * leave a window where half the list had moved. Written optimistically so
+   * the row stays where it was dropped rather than springing back while the
+   * request is in flight.
+   */
+  const commitOrder = useCallback(async (order: string[]) => {
+    setPrefs((ps) => {
+      const next = ps.slice();
+      order.forEach((uid, i) => {
+        const at = next.findIndex((x) => x.action_uid === uid);
+        if (at >= 0) next[at] = { ...next[at], sort_index: i };
+        else next.push({ action_uid: uid, hidden: false, note: null, sort_index: i });
+      });
+      return next;
+    });
+    await api("/api/hc/actions", { method: "POST", body: JSON.stringify({ order }) }).catch(() => null);
+  }, [api]);
+
+  const reorder = useReorder(commitOrder);
+
+  const sortIdx = new Map(prefs.filter((x) => x.sort_index != null).map((x) => [x.action_uid, x.sort_index as number]));
+  const inWhen = (w: WhenOfDay) => live
+    .filter((a) => !supersededByProgramme(a) && bucket(a.when) === w)
+    .map((a, i) => ({ a, i }))
+    .sort((x, y) => (sortIdx.get(x.a.uid) ?? 1000 + x.i) - (sortIdx.get(y.a.uid) ?? 1000 + y.i))
+    .map(({ a }) => a);
 
   /** Today's training sits where its hour says, or with the all-day work. */
   const sessionWhen = (x: (typeof todaysSessions)[number]): WhenOfDay => {
@@ -390,11 +428,20 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               )}
               {/* Each row wears its own pillar, which is how Svefn and
                   Næring stay legible once the headings are hours. */}
-              {items.map((a) => (
+              {/* Mid-drag the carried row sits where the finger is, so the
+                  list shows the result before you let go. */}
+              {(() => {
+                const ids = items.map((x) => x.uid);
+                const shown = reorder.order && reorder.order.some((u) => ids.includes(u))
+                  ? reorder.order.map((u) => items.find((x) => x.uid === u)).filter(Boolean) as typeof items
+                  : items;
+                return shown.map((a) => (
                 <ActionRow key={a.uid} a={a} meta={PILLAR_META[a.pillar]} today={today} doneOn={doneOn} onToggle={toggle}
+                  drag={reorder.handlers(a.uid, ids)} lifted={reorder.dragging === a.uid}
                   onOpen={() => setSheet(a)}
                   onHide={() => setPref(a.uid, { hidden: true })} />
-              ))}
+                ));
+              })()}
             </ul>
           </div>
         );
@@ -435,7 +482,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   );
 }
 
-function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide }: {
+function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lifted = false }: {
   a: PlanItem;
   meta: { color: string; soft: string; ring: string; label: string; ink: string };
   today: string;
@@ -445,6 +492,10 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide }: {
   onHide?: () => void;
   /** Opens the change sheet for this action. */
   onOpen: () => void;
+  /** Tap-and-hold to reorder: the pointer handler and the row's ref. */
+  drag?: { onPointerDown: (e: React.PointerEvent) => void; ref: (el: HTMLElement | null) => void };
+  /** Being carried right now — raised, and its swipe suspended. */
+  lifted?: boolean;
   links?: ActionLinks;
 }) {
   const swipe = useSwipe();
@@ -455,7 +506,8 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide }: {
        It sets the habit aside rather than deleting it — the plan is the
        nurse's, and a swipe should not be able to destroy part of it. Same
        action the sheet offers under "Leggja þessa til hliðar í bili". */
-    <li className="relative overflow-hidden">
+    <li ref={drag?.ref} onPointerDown={drag?.onPointerDown}
+      className={`relative transition-shadow ${lifted ? "z-10 overflow-visible shadow-lg" : "overflow-hidden"}`}>
       {onHide && (
         <button type="button" onClick={() => { onHide(); swipe.close(); }}
           aria-label={`Leggja ${a.title} til hliðar`}
@@ -479,9 +531,12 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide }: {
           transitionDuration: swipe.dx === 0 || swipe.open ? "160ms" : "0ms",
           touchAction: "pan-y",
           background: done ? "#FFFFFF" : meta.soft,
+          // Lifted: scaled a touch and opaque, so it reads as being held
+          // above the list rather than part of it.
+          ...(lifted ? { transform: "scale(1.02)", background: "#FFFFFF" } : null),
           borderLeft: `3px solid ${done ? "transparent" : meta.color}`,
         }}
-        {...(onHide ? swipe.handlers : {})}>
+        {...(onHide && !lifted ? swipe.handlers : {})}>
       <div className="flex items-start gap-3">
         <button type="button" onClick={() => onToggle(a.uid)}
           aria-pressed={done} aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${a.title}`}

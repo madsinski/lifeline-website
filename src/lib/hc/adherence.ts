@@ -6,7 +6,14 @@
 import type { PlanItem } from "./types";
 
 export interface ActionLog { action_uid: string; done_on: string }
-export interface ActionPref { action_uid: string; hidden: boolean; note: string | null }
+export interface ActionPref {
+  action_uid: string;
+  hidden: boolean;
+  note: string | null;
+  /** The participant's own position in their time-of-day section, or null
+   *  to keep the order the plan was composed in. */
+  sort_index?: number | null;
+}
 
 /** ISO date (yyyy-mm-dd) in the viewer's own timezone, not UTC. */
 export function isoDay(d: Date = new Date()): string {
