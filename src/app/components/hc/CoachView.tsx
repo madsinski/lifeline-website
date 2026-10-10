@@ -547,16 +547,20 @@ function Slots({ minutes, busy, onBook }: {
     <div className="space-y-3 px-4 py-3.5 sm:px-5">
       <div>
         <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Dagur</p>
-        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        {/* Wider cards and a hidden scrollbar. The strip is a horizontal
+            list on a surface that already scrolls vertically, and a visible
+            bar under it reads as a second thing to drag. The fade on the
+            right is what says there is more. */}
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {days.map((d) => {
             const on = day?.toDateString() === d.toDateString();
             return (
               <button key={d.toISOString()} type="button" onClick={() => setDay(d)}
-                className={`flex min-w-14 shrink-0 flex-col items-center rounded-xl px-2 py-2 text-center transition ${
+                className={`flex w-16 shrink-0 flex-col items-center gap-0.5 rounded-xl px-2 py-2.5 text-center transition ${
                   on ? "bg-hc-brand text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
-                <span className="text-[10px] font-bold uppercase opacity-70">{DAY_SHORT[d.getDay()]}</span>
-                <span className="text-lg font-bold leading-none tabular-nums">{d.getDate()}</span>
-                <span className="text-[10px] opacity-70">{MO[d.getMonth()]}</span>
+                <span className="text-[11px] font-bold uppercase opacity-70">{DAY_SHORT[d.getDay()]}</span>
+                <span className="text-xl font-bold leading-none tabular-nums">{d.getDate()}</span>
+                <span className="text-[11px] opacity-70">{MO[d.getMonth()]}</span>
               </button>
             );
           })}
