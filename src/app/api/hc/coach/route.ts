@@ -188,9 +188,19 @@ export async function POST(req: NextRequest) {
      * it. after(), not a bare void: a promise still running when the
      * response returns is killed with the invocation on Vercel.
      */
+    /*
+     * Coach first, then participant. The order is the whole point.
+     *
+     * Only the coach's sync asks Google for the conference, and it writes
+     * the link back onto the booking. Syncing the participant first wrote
+     * their event while meeting_url was still null — so their copy had no
+     * Meet link and nothing ever came back to fix it. Mads opened the
+     * 12 October call on his phone and found exactly that: a link on the
+     * coach's calendar and none on his own.
+     */
     after(async () => {
-      await syncOwner("client", user.id).catch(() => {});
       if (journey.coach_id) await syncOwner("worker", journey.coach_id).catch(() => {});
+      await syncOwner("client", user.id).catch(() => {});
     });
     return NextResponse.json({ ok: true, id: data?.id });
   }
@@ -217,9 +227,19 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (!moved) return NextResponse.json({ error: "not_found" }, { status: 404 });
     await hcAudit("client", "booking_moved", journey.id, { id: body.move, starts_at: when.toISOString() });
+    /*
+     * Coach first, then participant. The order is the whole point.
+     *
+     * Only the coach's sync asks Google for the conference, and it writes
+     * the link back onto the booking. Syncing the participant first wrote
+     * their event while meeting_url was still null — so their copy had no
+     * Meet link and nothing ever came back to fix it. Mads opened the
+     * 12 October call on his phone and found exactly that: a link on the
+     * coach's calendar and none on his own.
+     */
     after(async () => {
-      await syncOwner("client", user.id).catch(() => {});
       if (journey.coach_id) await syncOwner("worker", journey.coach_id).catch(() => {});
+      await syncOwner("client", user.id).catch(() => {});
     });
     return NextResponse.json({ ok: true });
   }
@@ -231,9 +251,19 @@ export async function POST(req: NextRequest) {
       .eq("id", body.cancel).eq("client_id", user.id);
     // A cancelled booking has to leave both calendars, or it sits there
     // looking like it is still happening.
+    /*
+     * Coach first, then participant. The order is the whole point.
+     *
+     * Only the coach's sync asks Google for the conference, and it writes
+     * the link back onto the booking. Syncing the participant first wrote
+     * their event while meeting_url was still null — so their copy had no
+     * Meet link and nothing ever came back to fix it. Mads opened the
+     * 12 October call on his phone and found exactly that: a link on the
+     * coach's calendar and none on his own.
+     */
     after(async () => {
-      await syncOwner("client", user.id).catch(() => {});
       if (journey.coach_id) await syncOwner("worker", journey.coach_id).catch(() => {});
+      await syncOwner("client", user.id).catch(() => {});
     });
     return NextResponse.json({ ok: true });
   }

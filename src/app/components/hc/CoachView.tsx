@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { hcBtn, hcCard } from "./ui";
 import Sheet from "./Sheet";
+import { MEASURE_PREP } from "@/lib/hc/appointment-kinds";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -52,35 +53,6 @@ interface CoachData {
   place?: { site: string | null; address: string | null; info: string | null } | null;
 }
 
-/**
- * What to know before a measurement, per measurement.
- *
- * Every one of these is about the number coming out right rather than about
- * health: a body-composition reading moves with a big meal, blood pressure
- * with the coffee on the way over. Saying so beforehand is the difference
- * between a measurement and a measurement you have to repeat.
- */
-const PREP: Record<string, string[]> = {
-  bodycomp: [
-    "Komdu í léttum fötum — skórnir og sokkarnir fara af.",
-    "Sleppa stórri máltíð og harðri æfingu síðustu tvo tímana.",
-    "Drekktu vatn eins og venjulega; þurrkur breytir tölunni.",
-  ],
-  bloodpressure: [
-    "Ekkert kaffi eða nikótín síðustu hálftímann.",
-    "Við sitjum í fimm mínútur áður en mælt er.",
-    "Laus ermi eða stutterma — það þarf að komast að upphandleggnum.",
-  ],
-  strength: [
-    "Föt sem þú getur hreyft þig í og skór með gripi.",
-    "Ekki taka þunga æfingu sama daginn.",
-  ],
-  vo2max: [
-    "Æfingaföt, skór og handklæði.",
-    "Léttur matur svona tveimur tímum áður — ekki fastandi.",
-    "Taktu með vatnsbrúsa.",
-  ],
-};
 
 const ROLE_IS: Record<string, string> = {
   nurse: "Hjúkrunarfræðingur", doctor: "Læknir", coach: "Þjálfari",
@@ -693,7 +665,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
     : items.map((k) => MEASURE_LABEL.get(k) ?? k).join(" + ") || "Mælingar";
 
   /** Prep lines for everything being measured, without repeats. */
-  const prep = Array.from(new Set(items.flatMap((k) => PREP[k] ?? [])));
+  const prep = Array.from(new Set(items.flatMap((k) => MEASURE_PREP[k] ?? [])));
 
   const move = async (iso: string) => {
     const ok = await onPost({ move: booking.id, starts_at: iso });

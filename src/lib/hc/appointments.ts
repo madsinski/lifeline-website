@@ -8,6 +8,7 @@
 // health information, and it lives in a third party's calendar.
 
 import { FASTING_IS, MEASURE_IS } from "./logistics";
+import { MEASURE_IS as MEASURE_LABELS, MEASURE_PREP } from "./appointment-kinds";
 import { createHash } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sanitizeActivities } from "./adaptive-program";
@@ -123,7 +124,9 @@ export async function clientAppointments(clientId: string): Promise<CalItem[]> {
   }
   // The repeatable coach bookings. No wantsMeet here: the coach's copy is
   // the one that asks, or the same call gets two conferences.
-  for (const b of await bookings("client", clientId)) out.push(bookingItem(b, false, null, null));
+  for (const b of await bookings("client", clientId)) {
+    out.push(bookingItem(b, false, null, null, locs.get(journeyLocationId(b) ?? "")));
+  }
 
   return out;
 }
@@ -143,6 +146,12 @@ const BOOKING_IS: Record<string, { label: string; what: string }> = {
 interface BookingRow {
   id: string; journey_id: string; client_id: string; coach_id: string | null;
   kind: string; starts_at: string; minutes: number; meeting_url: string | null; note: string | null;
+  /** What is being measured, for a measurement booking. */
+  items: string[] | null;
+  /** Joined from the journey, for the site address. Supabase hands a
+   *  to-one embed back as an object or a one-element array depending on
+   *  how it infers the relationship, so both shapes are accepted. */
+  journey?: { location_id: string | null } | { location_id: string | null }[] | null;
 }
 
 /**
@@ -156,24 +165,64 @@ interface BookingRow {
  */
 async function bookings(where: "client" | "coach", id: string): Promise<BookingRow[]> {
   const q = supabaseAdmin.from("hc_bookings")
-    .select("id, journey_id, client_id, coach_id, kind, starts_at, minutes, meeting_url, note")
+    .select("id, journey_id, client_id, coach_id, kind, starts_at, minutes, meeting_url, note, items, journey:hc_journeys(location_id)")
     .neq("status", "cancelled")
     .gte("starts_at", windowStart())
     .order("starts_at");
   const { data } = await (where === "client" ? q.eq("client_id", id) : q.eq("coach_id", id));
-  return (data ?? []) as BookingRow[];
+  return (data ?? []) as unknown as BookingRow[];
 }
 
-function bookingItem(b: BookingRow, forCoach: boolean, who: string | null, guestEmail: string | null): CalItem {
+/**
+ * A coach booking as a calendar entry.
+ *
+ * The description used to be a fixed sentence per kind and the location the
+ * literal string "Lifeline", so a measurement in Google Calendar said
+ * nothing about what was being measured, where to go, or what to bring —
+ * while the same booking in the app said all three. Everything the sheet
+ * shows goes in here, because the calendar is where people actually look
+ * the evening before.
+ */
+/** The journey's location id, whichever shape the embed came back as. */
+function journeyLocationId(b: BookingRow): string | null {
+  const j = b.journey;
+  if (!j) return null;
+  return Array.isArray(j) ? j[0]?.location_id ?? null : j.location_id ?? null;
+}
+
+function bookingItem(
+  b: BookingRow, forCoach: boolean, who: string | null, guestEmail: string | null,
+  loc?: Record<string, string | null> | null,
+): CalItem {
   const t = BOOKING_IS[b.kind] ?? { label: "Tími hjá Lifeline", what: "" };
   const video = b.kind === "video";
+  const items = b.items ?? [];
+
+  // "Líkamssamsetning + blóðþrýstingur" rather than a generic sentence.
+  const what = !video && items.length
+    ? items.map((k) => MEASURE_LABELS[k]?.label ?? k).join(" + ")
+    : t.what;
+
+  // What to bring and what shifts the reading, from the same source the
+  // app's booking sheet uses.
+  const prep = video ? [] : Array.from(new Set(items.flatMap((k) => MEASURE_PREP[k] ?? [])));
+
+  const site = video ? null : place(loc?.measurement_site, loc?.measurement_address);
+
   return {
     id: `b${b.id.replace(/-/g, "").slice(0, 24)}`,
     start: b.starts_at, minutes: b.minutes,
     summary: forCoach && who ? `${t.label} – ${who}` : `Lifeline – ${t.label}`,
-    description: [t.what, b.note, b.meeting_url ? `Myndsímtal: ${b.meeting_url}` : null]
-      .filter(Boolean).join("\n"),
-    location: video ? (b.meeting_url ?? "Myndsímtal") : "Lifeline",
+    description: [
+      what,
+      prep.length ? `\nGott að vita:\n${prep.map((x) => `• ${x}`).join("\n")}` : null,
+      site ? `\nStaðsetning: ${site}` : null,
+      loc?.measurement_info && !video ? `\n${loc.measurement_info}` : null,
+      b.note,
+      b.meeting_url ? `\nMyndsímtal: ${b.meeting_url}` : null,
+      "\nhttps://www.lifelinehealth.is/account/heilsuferd/aaetlun?tab=coach",
+    ].filter(Boolean).join("\n"),
+    location: video ? (b.meeting_url ?? "Myndsímtal") : (site ?? "Lifeline"),
     reminderMinutes: 30,
     // Only the coach hosts, and only while there is no link yet.
     wantsMeet: forCoach && video && !b.meeting_url,

@@ -55,3 +55,33 @@ export function measureLabel(items: string[] | null | undefined): string {
   if (!l.length) return BOOK_IS.measurement.label;
   return l[0] + l.slice(1).map((x) => ` + ${x.toLowerCase()}`).join("");
 }
+
+/**
+ * What to know before a measurement, per measurement.
+ *
+ * Every one of these is about the number coming out right rather than about
+ * health: a body-composition reading moves with a big meal, blood pressure
+ * with the coffee on the way over. Saying so beforehand is the difference
+ * between a measurement and a measurement you have to repeat.
+ */
+export const MEASURE_PREP: Record<string, string[]> = {
+  bodycomp: [
+    "Komdu í léttum fötum — skórnir og sokkarnir fara af.",
+    "Sleppa stórri máltíð og harðri æfingu síðustu tvo tímana.",
+    "Drekktu vatn eins og venjulega; þurrkur breytir tölunni.",
+  ],
+  bloodpressure: [
+    "Ekkert kaffi eða nikótín síðustu hálftímann.",
+    "Við sitjum í fimm mínútur áður en mælt er.",
+    "Laus ermi eða stutterma — það þarf að komast að upphandleggnum.",
+  ],
+  strength: [
+    "Föt sem þú getur hreyft þig í og skór með gripi.",
+    "Ekki taka þunga æfingu sama daginn.",
+  ],
+  vo2max: [
+    "Æfingaföt, skór og handklæði.",
+    "Léttur matur svona tveimur tímum áður — ekki fastandi.",
+    "Taktu með vatnsbrúsa.",
+  ],
+};

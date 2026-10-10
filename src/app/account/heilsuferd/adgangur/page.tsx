@@ -21,7 +21,6 @@ import SignedDocumentsList from "@/app/account/SignedDocumentsList";
 import DataPrivacyPanel from "@/app/components/account/DataPrivacyPanel";
 import { DeleteAccountCard, PasswordCard, ProfileCard, SignOutButton } from "@/app/components/account/AccountCards";
 import { hcPage } from "@/app/components/hc/ui";
-import BackLink from "@/app/components/hc/BackLink";
 import * as cache from "@/lib/hc/client-cache";
 
 export default function AdgangurPage() {
@@ -62,15 +61,6 @@ function Adgangur() {
   return (
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-4xl space-y-4 px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
-        {/* Never gated on anything. The session check below is a round trip,
-            and a participant with no published plan still has a journey to
-            get back to — gating this on hasPlan left them with no way out of
-            the page at all. */}
-        <div className="mb-3 print:hidden">
-          <BackLink
-            href={hasPlan ? "/account/heilsuferd/aaetlun?tab=today" : "/account/heilsuferd"}
-            label="Heilsuferðin" />
-        </div>
         {hasPlan && <JourneyNav active="account" />}
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="flex-1 text-2xl font-bold text-slate-900 sm:text-3xl">Stillingar</h1>
