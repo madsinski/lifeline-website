@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.17";
+export const SECURITY_POSTURE_VERSION = "v1.18";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-09";
 
 export function renderSecurityPosture(): string {
@@ -585,6 +585,19 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.18 (2026-10-10)
+  Skráð samþykki fyrir skýrslu sem þátttakandi setur inn sjálfur. Skýrsla
+  sem hjúkrunarfræðingur flytur inn er unnin skv. 9. gr. 2. mgr. h-lið
+  (umönnun heilbrigðisstarfsmanns); skýrsla sem fólk setur inn sjálft er
+  það ekki — enginn klínískur aðili er kominn að málinu, og þess vegna
+  færir own_report_at ekki stigið áfram. Grundvöllurinn er a-liður:
+  afdráttarlaust samþykki. Hakið er ótikkað í upphafi, þjónninn hafnar
+  innsendingu án þess (HTTP 428), og vistað er bæði hvenær og HVAÐA texti
+  var samþykktur (self_consent_version) — 7. gr. 1. mgr. krefst þess að
+  hægt sé að sýna hverju var samþykkt, sem boolean gerir ekki. Textinn býr
+  í src/lib/hc/consent.ts og fær nýtt útgáfunúmer þegar honum er breytt.
+  Afturköllun er óbreytt: að eyða skýrslunni eyðir gögnunum.
 
 v1.17 (2026-10-09)
   Calendar paths written down. Both existed in code and neither was in
@@ -1327,6 +1340,19 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.18 (2026-10-10)
+  Recorded consent for a self-uploaded report. A report a nurse imports is
+  processed under Art. 9(2)(h), care by a health professional; a report
+  somebody uploads themselves is not that — no clinician has entered the
+  picture, which is why own_report_at deliberately does not advance the
+  stage. The basis is Art. 9(2)(a), explicit consent. The box starts
+  unticked, the server refuses an upload without it (HTTP 428), and the row
+  stores both when and WHICH wording was agreed (self_consent_version),
+  because Art. 7(1) requires showing what was consented to and a boolean
+  does not. The wording lives in src/lib/hc/consent.ts and takes a new
+  version whenever it changes. Withdrawal is unchanged: deleting the report
+  deletes the data.
 
 v1.17 (2026-10-09)
   Calendar paths written down. Both existed in code and neither was in

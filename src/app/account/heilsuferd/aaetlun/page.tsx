@@ -33,6 +33,7 @@ import type { Upcoming } from "@/lib/hc/upcoming";
 import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
+import Sheet from "@/app/components/hc/Sheet";
 import { useToday } from "@/app/components/hc/TodayCards";
 import { NotificationBell, NotificationSheet, useNotifications } from "@/app/components/hc/Notifications";
 import { UpcomingList, UpcomingSoon, useUpcoming } from "@/app/components/hc/Upcoming";
@@ -172,6 +173,7 @@ function PlanPageInner() {
   const [notesOpen, setNotesOpen] = useState(false);
   const { items: upcoming } = useUpcoming(api);
   const [people, setPeople] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   /**
    * Swiped away for today only.
    *
@@ -455,7 +457,18 @@ function PlanPageInner() {
             is visible wherever you are. */}
         {/* The "Aðgangurinn minn" link is gone — the navbar already has it.
             A back link out of an editor is a different thing and stays. */}
-        {notesOpen && (
+        {uploadOpen && (
+        <Sheet title="Ný skýrsla" onClose={() => setUploadOpen(false)}>
+          <div className="p-4">
+            <p className="text-sm text-hc-ink-2">
+              Sæktu PDF-skýrsluna „Grunnheilsa“ í sjúklingagáttina og settu hana hér inn. Áætlunin uppfærist eftir nýju niðurstöðunum.
+            </p>
+            <ReportUpload api={api} compact
+              onDone={() => { setReloadKey((k) => k + 1); setUploadOpen(false); }} />
+          </div>
+        </Sheet>
+      )}
+      {notesOpen && (
         <NotificationSheet items={notes} onClose={() => setNotesOpen(false)}
           upcoming={<UpcomingList items={upcoming} />} />
       )}
@@ -678,7 +691,7 @@ function PlanPageInner() {
                       the page to read. */}
 
                   {data.compare && <BeforeAfter c={data.compare} />}
-                  <ReportView onUpload={() => document.getElementById("hc-report-upload")?.scrollIntoView({ behavior: "smooth", block: "center" })} report={data.report.report} signals={data.report.signals}
+                  <ReportView onUpload={() => setUploadOpen(true)} report={data.report.report} signals={data.report.signals}
                     reference={data.report.reference} sex={data.report.sex} audience="client" />
                   <p className="mt-4 px-1 text-xs leading-relaxed text-slate-500">
                     Þetta er heilsufarsskýrslan þín í einfaldaðri mynd. Læknir fer yfir niðurstöðurnar með þér og
@@ -689,15 +702,11 @@ function PlanPageInner() {
                       results tab, which is not where anybody goes after an
                       endurmat hands them a new PDF — and it is also the way
                       back if a retention review removed the old copy. */}
-                  {/* The id is what the hero's "Hlaða upp skýrslu" scrolls
-                      to. It was lost when the duplicate upload card above
-                      the report was removed, so the button scrolled to
-                      nothing at all. */}
-                  <div id="hc-report-upload">
-                    <ReportUpload api={api} onDone={() => setReloadKey((k) => k + 1)}
-                      heading="Ný skýrsla"
-                      blurb="Komin með nýja Grunnheilsu-skýrslu úr sjúklingagáttinni? Settu hana inn og áætlunin uppfærist eftir nýju niðurstöðunum." />
-                  </div>
+                  {/* The upload card stood here at the foot of the tab.
+                      It is a sleeve from the hero's icon now: a once-in-a-
+                      while errand does not need a permanent card under the
+                      report, and the consent it carries deserves a surface
+                      of its own rather than a footer. */}
                 </div>
               )}
               {tab === "results" && (

@@ -27,6 +27,14 @@ import { SIGNAL_LABEL, type Grunnheilsa, type ReportItem, type Signal } from "@/
 import type { KnowledgeBand, ReportReference } from "@/lib/hc/knowledge";
 
 const DOT: Record<Signal, string> = { green: "bg-emerald-500", yellow: "bg-amber-400", red: "bg-red-500" };
+/* The hero's count boxes, tinted to match the dots so a box and a dot say
+   the same thing. Light on a mid-green hero, not the full row colours,
+   which at that size would shout. */
+const HERO_CHIP: Record<Signal, string> = {
+  green: "bg-emerald-400/25 ring-emerald-200/40 text-white",
+  yellow: "bg-amber-300/25 ring-amber-200/40 text-white",
+  red: "bg-rose-400/25 ring-rose-200/50 text-white",
+};
 const CHIP: Record<Signal, string> = {
   green: "bg-emerald-50 text-emerald-800 ring-emerald-200",
   yellow: "bg-amber-50 text-amber-800 ring-amber-200",
@@ -75,7 +83,7 @@ const SECTIONS: {
   { pillar: "exercise" as Pillar, key: "exercise", title: "Hreyfing", blurb: "", accent: PILLAR_META.exercise.color,
     keys: ["hreyfing_vandamal", "hreyfing_venjur"] },
   { pillar: "nutrition" as Pillar, key: "nutrition", title: "Næring", blurb: "", accent: PILLAR_META.nutrition.color,
-    keys: ["naering_vandamal", "naering_venjur", "matarhegdun"] },
+    keys: ["naering_vandamal", "naering_venjur"] },
   { pillar: "mental" as Pillar, key: "mental", title: "Andleg líðan", blurb: "", accent: PILLAR_META.mental.color,
     keys: ["andleg_heilsa", "streita", "vellidan"] },
   { key: "habits", title: "Ávanar", blurb: "Nikótín, áfengi og önnur efni. 10 þýðir engin notkun.", accent: "#78716C",
@@ -83,7 +91,7 @@ const SECTIONS: {
     // questionnaire files their score under. A number in the Svefn heading
     // that counted caffeine while caffeine was listed elsewhere would
     // describe rows the reader cannot see.
-    keys: ["nikotin", "afengi", "onnur_efni", "koffin", "skjanotkun", "fjarhaettuspil"] },
+    keys: ["nikotin", "afengi", "onnur_efni", "koffin", "skjanotkun", "fjarhaettuspil", "matarhegdun"] },
   { scoreKey: "efnaskiptaheilsa", key: "metabolic", title: "Efnaskipti", blurb: "Hvernig líkaminn heldur blóðsykri í skefjum. Hér sést álag fyrst.", accent: "#0D9488",
     keys: ["efnaskiptaheilsa", "blodsykur", "insulin", "hba1c", "homa_ir"] },
   { key: "heart", title: "Hjarta og blóðfitur", blurb: "Blóðþrýstingur og blóðfitur — það sem ræður áhættunni til langs tíma.", accent: "#E11D48",
@@ -163,10 +171,14 @@ export default function ReportView({ report, signals, reference, sex, audience =
   return (
     <div className="space-y-6">
       {/* 1 ── Where you stand */}
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-5 text-white sm:p-6">
+      {/* A lighter hero.
+          It was near-black green, which made the whole page open on its
+          darkest note and left the traffic lights — the only things here
+          that mean anything — competing with the background. */}
+      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-hc-hero-from to-hc-hero-to p-5 text-white sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Heilsufarsskýrsla</p>
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-200">Heilsufarsskýrsla</p>
             <h2 className="mt-1 text-2xl font-bold sm:text-3xl">
               {overall ? `Lífstílseinkunn ${fmt(overall.value)}` : "Niðurstöður"}
             </h2>
@@ -175,24 +187,32 @@ export default function ReportView({ report, signals, reference, sex, audience =
               {report.patient.name && audience === "staff" ? ` · ${report.patient.name}` : ""}
             </p>
           </div>
-          <div className="flex gap-2">
-            {(["red", "yellow", "green"] as const).map((s) => (
-              <div key={s} className="min-w-[4.5rem] rounded-2xl bg-white/10 px-3 py-2 text-center">
+
+          {/* Good first, and each box in its own colour.
+              Worst-first is a clinician's reading order — it puts the alarm
+              at the front. For the person whose report it is, starting on
+              what is fine and working toward what is not is the same
+              information without opening on bad news. The tints are the
+              same three the rows use, so a box and a dot mean one thing.
+              The upload shares this line as an icon: it is an errand, not a
+              finding, and a full-width button made it look like the page's
+              main action. */}
+          <div className="flex shrink-0 items-stretch gap-2">
+            {(["green", "yellow", "red"] as const).map((s) => (
+              <div key={s} className={`min-w-[4.5rem] rounded-2xl px-3 py-2 text-center ring-1 ${HERO_CHIP[s]}`}>
                 <p className="text-xl font-bold tabular-nums">{counts[s]}</p>
-                <p className="text-[11px] leading-tight text-emerald-100">{SIGNAL_LABEL[s]}</p>
+                <p className="text-[11px] leading-tight opacity-80">{SIGNAL_LABEL[s]}</p>
               </div>
             ))}
+            {onUpload && (
+              <button type="button" onClick={onUpload} aria-label="Hlaða upp skýrslu"
+                title="Hlaða upp skýrslu"
+                className="grid w-12 shrink-0 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/25 transition hover:bg-white/25">
+                <Upload className="h-5 w-5" aria-hidden />
+              </button>
+            )}
           </div>
         </div>
-        {/* The sentence that was here explained that the rows open — which
-            the chevron on every row says more cheaply. The errand people
-            come back with is a newer report, so that is the button. */}
-        {onUpload && (
-          <button type="button" onClick={onUpload}
-            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-hc-element bg-white px-5 font-bold text-hc-hero-to transition hover:bg-emerald-50">
-            <Upload className="h-4 w-4" aria-hidden /> Hlaða upp skýrslu
-          </button>
-        )}
       </section>
 
       {/* 2 ── What matters most now */}
@@ -249,17 +269,18 @@ export default function ReportView({ report, signals, reference, sex, audience =
               {/* The section's own score, where the four summary cards used
                   to put it. "af 10" rather than a sentence explaining the
                   scale: the scale needs saying once, not four times. */}
-              {/* ml-auto: the score sits on the right edge, where the eye
-                  can run down a column of them instead of hunting for each
-                  one after a title of a different length. */}
+              {/* ml-auto on the chip, so it and the score travel together
+                  to the right edge: the score is what the eye runs down,
+                  and "byrjum hér" belongs beside its own number rather than
+                  next to a title three words long. */}
+              {s.pillar && s.key === weakest && (
+                <span className="ml-auto rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>
+              )}
               {avg !== undefined && (
-                <span className="ml-auto flex items-baseline gap-1">
+                <span className={`flex items-baseline gap-1 ${s.pillar && s.key === weakest ? "" : "ml-auto"}`}>
                   <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: s.accent }}>{fmt1(avg)}</span>
                   <span className="text-xs font-semibold text-slate-500">af 10</span>
                 </span>
-              )}
-              {s.pillar && s.key === weakest && (
-                <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>
               )}
               {/* Only the red one survives. The amber chip and "Allt í lagi"
                   said what every row below says with its own traffic light,

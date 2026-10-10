@@ -16,6 +16,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { decryptKennitala, getClientProfile, getOrCreateJourney, hcAudit, requireUser } from "@/lib/hc/server";
 import { readReport } from "@/lib/hc/report-local";
 import type { ReportFile } from "@/lib/hc/report-import";
+import { SELF_CONSENT_VERSION } from "@/lib/hc/consent";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -41,6 +42,8 @@ export async function POST(req: NextRequest) {
   const journey = await getOrCreateJourney(user.id);
 
   const form = await req.formData().catch(() => null);
+  // Which wording the page showed, so the row can record it.
+  const consentVersion = typeof form?.get("consent") === "string" ? String(form.get("consent")) : null;
   const uploaded = form?.getAll("files").filter((f): f is File => f instanceof File) ?? [];
   if (!uploaded.length) return NextResponse.json({ error: "Engin skrá fylgdi." }, { status: 400 });
   if (uploaded.length > MAX_FILES) return NextResponse.json({ error: `Mest ${MAX_FILES} skrár í einu.` }, { status: 400 });
@@ -75,8 +78,24 @@ export async function POST(req: NextRequest) {
     }, { status: 422 });
   }
 
+  /*
+   * The tick, checked here and not only drawn in the page.
+   *
+   * Explicit consent under Art. 9(2)(a) is the basis for storing health
+   * data somebody uploads about themselves, and a consent the server does
+   * not verify is a consent that can be skipped by anything that is not
+   * our own form. Refused rather than defaulted: the absence of a tick is
+   * not a tick.
+   */
+  if (consentVersion !== SELF_CONSENT_VERSION) {
+    await hcAudit(`self:${user.id}`, "report_self_upload_no_consent", journey.id, { got: consentVersion ?? null });
+    return NextResponse.json({ error: "Samþykki vantar." }, { status: 428 });
+  }
+
   const now = new Date().toISOString();
   const { error } = await supabaseAdmin.from("hc_reports").insert({
+    self_consent_at: now,
+    self_consent_version: SELF_CONSENT_VERSION,
     journey_id: journey.id,
     client_id: user.id,
     report_date: read.reportDate,
