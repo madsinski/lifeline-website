@@ -8,7 +8,7 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import React, { useMemo, useState } from "react";
-import { ArrowLeftRight, Check, ChevronDown, ListChecks, Plus, X, Dumbbell, Play, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, ListChecks, Plus, Sliders, X, Dumbbell, Play, RotateCcw, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
 import { hiitOnAt, itemsForFocus, LOAD_IS, trainingScore } from "@/lib/hc/adaptive-program";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
@@ -19,7 +19,7 @@ import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
 import SessionGuide from "./SessionGuide";
 import SessionBuilder from "./SessionBuilder";
-import TrainingChanges, { ChangesButton } from "./TrainingChanges";
+import TrainingChanges from "./TrainingChanges";
 import WeekBalance from "./WeekBalance";
 import SessionAlternatives from "./SessionAlternatives";
 import AddDayActivity from "./AddDayActivity";
@@ -261,16 +261,18 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Æfingaáætlunin mín</p>
               <h2 className="mt-1 text-2xl font-bold text-slate-900">{exercise.name}</h2>
             </div>
-            {/* The hero had its own "Breyta", which opened a second editor
-                holding a second copy of this calendar plus settings that
-                Breytingar below already covers. One way in now — and the
-                calendar itself is the editor, which is how TrueCoach and
-                Hevy do it: drag a session, tap one for its controls, "+" on
-                a day. A mode switch to do what the page already does is a
-                step for nothing. */}
-            <div className="flex shrink-0 flex-wrap gap-2">
-              {onChangeProgram && <button type="button" onClick={onChangeProgram} className="rounded-full border border-orange-200 px-3 py-1 text-sm font-semibold text-orange-800 hover:bg-orange-50">Skipta um æfingaáætlun</button>}
-            </div>
+            {/* Breytingar sits beside the programme's name, because that is
+                the thing it changes. "Skipta um æfingaáætlun" used to be
+                here as a second button; it is one of the five sections
+                inside the sleeve already, so having it out here as well was
+                the same door twice — and the rarer of the two errands
+                taking the more prominent slot. */}
+            {training && onSaveTraining && (
+              <button type="button" onClick={() => setChanges(true)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-orange-200 px-3 py-1.5 text-sm font-semibold text-orange-800 transition hover:bg-orange-50">
+                <Sliders className="h-3.5 w-3.5" aria-hidden /> Breytingar
+              </button>
+            )}
           </div>
 
           {/* The hero carried an "Í dag" block — the day's title, its focus,
@@ -460,10 +462,6 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
         {/* Under the hero card, not inside it. Somebody who has just read
             the week decides to change it here. */}
-        {training && onSaveTraining && (
-          <ChangesButton onClick={() => setChanges(true)} />
-        )}
-
         {/* What the week is made of. Directly under the hero and the
             Breytingar button, because a gap here is a thing you fix there. */}
         {balance && <WeekBalance score={balance} stage={stage}
