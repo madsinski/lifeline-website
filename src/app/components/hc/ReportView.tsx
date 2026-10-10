@@ -27,14 +27,7 @@ import { SIGNAL_LABEL, type Grunnheilsa, type ReportItem, type Signal } from "@/
 import type { KnowledgeBand, ReportReference } from "@/lib/hc/knowledge";
 
 const DOT: Record<Signal, string> = { green: "bg-emerald-500", yellow: "bg-amber-400", red: "bg-red-500" };
-/* The hero's count boxes, tinted to match the dots so a box and a dot say
-   the same thing. Light on a mid-green hero, not the full row colours,
-   which at that size would shout. */
-const HERO_CHIP: Record<Signal, string> = {
-  green: "bg-emerald-400/25 ring-emerald-200/40 text-white",
-  yellow: "bg-amber-300/25 ring-amber-200/40 text-white",
-  red: "bg-rose-400/25 ring-rose-200/50 text-white",
-};
+
 const CHIP: Record<Signal, string> = {
   green: "bg-emerald-50 text-emerald-800 ring-emerald-200",
   yellow: "bg-amber-50 text-amber-800 ring-amber-200",
@@ -153,6 +146,9 @@ export default function ReportView({ report, signals, reference, sex, audience =
     return k;
   }, [sectionAvg]);
 
+  /** Show only one colour, or all of them. */
+  const [only, setOnly] = useState<Signal | null>(null);
+
   const lit = useMemo(
     () => report.items.map((item) => ({ item, signal: signals[item.key] ?? null })),
     [report.items, signals],
@@ -171,18 +167,20 @@ export default function ReportView({ report, signals, reference, sex, audience =
   return (
     <div className="space-y-6">
       {/* 1 ── Where you stand */}
-      {/* A lighter hero.
-          It was near-black green, which made the whole page open on its
-          darkest note and left the traffic lights — the only things here
-          that mean anything — competing with the background. */}
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-hc-hero-from to-hc-hero-to p-5 text-white sm:p-6">
+      {/* A pale hero, so the counts can wear the row colours.
+          It was a dark green card with the boxes washed into it at 25%
+          opacity — three tints of white, legible only as "not the same".
+          The boxes use CHIP now, the exact classes every pill further down
+          the page uses, which means the hero cannot be dark: a green chip
+          needs a light ground to be green on. */}
+      <section className="overflow-hidden rounded-3xl bg-white p-5 shadow-hc-card ring-1 ring-slate-200 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-200">Heilsufarsskýrsla</p>
-            <h2 className="mt-1 text-2xl font-bold sm:text-3xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-hc-brand-dark">Heilsufarsskýrsla</p>
+            <h2 className="mt-1 text-2xl font-bold text-hc-ink sm:text-3xl">
               {overall ? `Lífstílseinkunn ${fmt(overall.value)}` : "Niðurstöður"}
             </h2>
-            <p className="mt-1 text-sm text-emerald-100">
+            <p className="mt-1 text-sm text-slate-500">
               {report.reportDate ? `Skýrsla ${longDateIs(report.reportDate)}` : "Úr heilsufarsskoðuninni"}
               {report.patient.name && audience === "staff" ? ` · ${report.patient.name}` : ""}
             </p>
@@ -198,16 +196,25 @@ export default function ReportView({ report, signals, reference, sex, audience =
               finding, and a full-width button made it look like the page's
               main action. */}
           <div className="flex shrink-0 items-stretch gap-2">
-            {(["green", "yellow", "red"] as const).map((s) => (
-              <div key={s} className={`min-w-[4.5rem] rounded-2xl px-3 py-2 text-center ring-1 ${HERO_CHIP[s]}`}>
-                <p className="text-xl font-bold tabular-nums">{counts[s]}</p>
-                <p className="text-[11px] leading-tight opacity-80">{SIGNAL_LABEL[s]}</p>
-              </div>
+            {/* Each box filters the page to its own colour. A count you
+                cannot act on is trivia; "4 ábótavant" is only useful if the
+                next thing you can do is see which four. Pressing it again
+                puts everything back. */}
+            {(["green", "yellow", "red"] as const).map((sig) => (
+              <button key={sig} type="button" aria-pressed={only === sig}
+                onClick={() => setOnly(only === sig ? null : sig)}
+                disabled={!counts[sig]}
+                aria-label={`Sýna aðeins: ${SIGNAL_LABEL[sig]}`}
+                className={`min-w-[4.5rem] rounded-2xl px-3 py-2 text-center ring-1 transition disabled:opacity-40 ${CHIP[sig]} ${
+                  only === sig ? "ring-2 ring-offset-1" : "hover:brightness-95"}`}>
+                <p className="text-xl font-bold tabular-nums">{counts[sig]}</p>
+                <p className="text-[11px] font-semibold leading-tight">{SIGNAL_LABEL[sig]}</p>
+              </button>
             ))}
             {onUpload && (
               <button type="button" onClick={onUpload} aria-label="Hlaða upp skýrslu"
                 title="Hlaða upp skýrslu"
-                className="grid w-12 shrink-0 place-items-center rounded-2xl bg-white/15 text-white ring-1 ring-white/25 transition hover:bg-white/25">
+                className="grid w-12 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-200">
                 <Upload className="h-5 w-5" aria-hidden />
               </button>
             )}
@@ -215,8 +222,18 @@ export default function ReportView({ report, signals, reference, sex, audience =
         </div>
       </section>
 
+      {only && (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-hc-element bg-slate-100 px-4 py-2.5">
+          <p className="min-w-0 flex-1 text-sm font-semibold text-slate-700">
+            Sýni aðeins: {SIGNAL_LABEL[only].toLowerCase()} ({counts[only]})
+          </p>
+          <button type="button" onClick={() => setOnly(null)}
+            className="shrink-0 text-sm font-bold text-hc-brand-dark hover:underline">Sýna allt</button>
+        </div>
+      )}
+
       {/* 2 ── What matters most now */}
-      {focus.length > 0 && (
+      {!only && focus.length > 0 && (
         <section>
           <SectionTitle>Það sem skiptir mestu núna</SectionTitle>
           <ul className="grid gap-2 sm:grid-cols-2">
@@ -255,7 +272,10 @@ export default function ReportView({ report, signals, reference, sex, audience =
           ? s.keys.filter((k) => k !== s.scoreKey)
               .map((k) => lit.find((x) => x.item.key === k)).filter((x): x is (typeof lit)[number] => !!x)
           : lit.filter((x) => !claimed.has(x.item.key));
-        if (!rows.length) return null;
+        /* Filtered to one colour, a section with nothing of that colour is
+           not an empty section — it is not a section. */
+        const shown = only ? rows.filter((r) => r.signal === only) : rows;
+        if (!shown.length) return null;
         const off = rows.filter((r) => r.signal === "red").length;
         return (
           <section key={s.key}
@@ -294,7 +314,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
               {s.blurb && <p className="order-last w-full text-xs font-normal normal-case tracking-normal text-slate-500">{s.blurb}</p>}
             </div>
             <ul className="divide-y divide-slate-100">
-              {rows.map(({ item, signal }) => (
+              {shown.map(({ item, signal }) => (
                 <Row key={item.key} item={item} signal={signal} entry={reference?.[item.key]} sex={sex ?? null} />
               ))}
             </ul>
