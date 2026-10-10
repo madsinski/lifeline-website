@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { hcTabs } from "./ui";
 import { useState } from "react";
-import { Bell, BookOpen, CircleUser, Compass, Dumbbell, FileHeart, MessageCircle, MoreHorizontal, Sun, Utensils } from "lucide-react";
+import { Bell, BookOpen, Compass, Dumbbell, FileHeart, MoreHorizontal, Settings, Sun, UserRound, Utensils } from "lucide-react";
 
 export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "coach" | "report" | "journey" | "notifications" | "account";
 
@@ -29,11 +29,25 @@ const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun;
   { primary: true, key: "exercise", label: "Æfingar", href: "/account/heilsuferd/aaetlun?tab=exercise", Icon: Dumbbell },
   { primary: true, key: "nutrition", label: "Næring", href: "/account/heilsuferd/aaetlun?tab=nutrition", Icon: Utensils },
   { key: "fraedsla", label: "Fræðsla", href: "/account/heilsuferd/fraedsla", Icon: BookOpen },
-  { primary: true, key: "coach", label: "Þjálfari", href: "/account/heilsuferd/aaetlun?tab=coach", Icon: MessageCircle },
+  /*
+   * A person, not a speech bubble.
+   *
+   * MessageCircle said "messages", which was true when the tab was only a
+   * contact form and is not now it holds the coach, the thread and the
+   * diary. The evidence on tab icons is that the label does the work and
+   * the clearest icon for "a human who helps me" is simply a person — a
+   * stethoscope reads as clinician and sets an expectation of diagnosis,
+   * which is the one thing this product must not imply, and a handshake
+   * is the least recognised of the obvious candidates.
+   *
+   * Aðgangur gives up CircleUser for a gear so the two are not two people
+   * side by side; settings behind a cog is as conventional as it gets.
+   */
+  { primary: true, key: "coach", label: "Þjálfari", href: "/account/heilsuferd/aaetlun?tab=coach", Icon: UserRound },
   { primary: true, key: "report", label: "Skýrslan", href: "/account/heilsuferd/aaetlun?tab=report", Icon: FileHeart },
   { key: "journey", label: "Ferðin", href: "/account/heilsuferd?ferd=1", Icon: Compass },
   { key: "notifications", label: "Tilkynningar", href: "/account/heilsuferd/tilkynningar", Icon: Bell },
-  { key: "account", label: "Aðgangur", href: "/account/heilsuferd/adgangur", Icon: CircleUser },
+  { key: "account", label: "Aðgangur", href: "/account/heilsuferd/adgangur", Icon: Settings },
 ];
 
 export default function JourneyNav({ active, hasReport = true, hasExercise = true, hasNutrition = true, hasPlan = true, unread = 0, onSelect }: {
