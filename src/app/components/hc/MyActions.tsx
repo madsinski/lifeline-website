@@ -257,17 +257,23 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 pillar is a habit yet. */}
             <button type="button" aria-expanded={open}
               onClick={() => setShut((xs) => { const n = new Set(xs); if (n.has(p)) n.delete(p); else n.add(p); return n; })}
-              className="w-full px-4 py-2.5 text-left" style={{ background: meta.soft }}>
+              /* Slate, deliberately.
+                 These headers had a palette of their own — amber, sky,
+                 violet — competing with the pillar colours inside them, so
+                 the list carried two colour languages and neither read.
+                 Time of day is structure: it says where you are in the day,
+                 and the icon and the word say it without a colour. Pillar
+                 is meaning, and it gets the colour. */
+              className="w-full bg-slate-50 px-4 py-2.5 text-left">
               <span className="flex items-center gap-2">
-                <meta.Icon className="h-5 w-5 shrink-0" style={{ color: meta.ink }} aria-hidden />
-                <span className="font-bold" style={{ color: meta.ink }}>{meta.label}</span>
-                <span className="ml-auto text-xs font-semibold tabular-nums" style={{ color: meta.ink }}>
+                <meta.Icon className="h-5 w-5 shrink-0 text-slate-500" aria-hidden />
+                <span className="font-bold text-slate-800">{meta.label}</span>
+                <span className="ml-auto text-xs font-semibold tabular-nums text-slate-600">
                   {dayDone}/{dayOf} í dag
                 </span>
-                <ChevronRight className={`h-4 w-4 shrink-0 transition ${open ? "rotate-90" : ""}`}
-                  style={{ color: meta.ink, opacity: 0.5 }} aria-hidden />
+                <ChevronRight className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-90" : ""}`} aria-hidden />
               </span>
-              <span className="mt-1 flex items-center gap-3 pl-7 text-[11px]" style={{ color: meta.ink, opacity: 0.75 }}>
+              <span className="mt-1 flex items-center gap-3 pl-7 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1">
                   {/* Seven marks: the week at a glance, no legend needed. */}
                   {week.map((d) => {
@@ -290,13 +296,24 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                      line under it. It was a 24px circle with a 10px kicker
                      above a text-sm title, which read as a different kind of
                      thing in a list where it is the most important one. */
-                  <li key={s.id} className="flex items-start gap-3 px-3 py-3 sm:px-4">
+                  /* Same tint and bar as every other row, in Hreyfing's
+                     colour — this is a training session, and the list only
+                     reads as one list if the most important row in it
+                     follows the same rule as the rest. */
+                  <li key={s.id} className="flex items-start gap-3 px-3 py-3 sm:px-4"
+                    style={{
+                      background: done ? "#FFFFFF" : PILLAR_META.exercise.soft,
+                      borderLeft: `3px solid ${done ? "transparent" : PILLAR_META.exercise.color}`,
+                    }}>
                     <button type="button"
                       onClick={() => { if (done) return; if (s.session) onCompleteSession?.(s.session); else if (s.activity) onCompleteActivity?.(s.activity); }}
                       disabled={done}
                       aria-pressed={done} aria-label={`Merkja ${s.title} sem lokið`}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-90 disabled:opacity-100"
-                      style={{ borderColor: done ? PILLAR_META.exercise.ink : "#e2e8f0", background: done ? PILLAR_META.exercise.ink : "transparent" }}>
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-white transition active:scale-90 disabled:opacity-100"
+                      style={{
+                        borderColor: done ? "transparent" : PILLAR_META.exercise.ring,
+                        background: done ? PILLAR_META.exercise.color : "#FFFFFF",
+                      }}>
                       <Check className={`h-5 w-5 ${done ? "text-white" : "text-transparent"}`} strokeWidth={3} aria-hidden />
                     </button>
                     <span className="min-w-0 flex-1">
@@ -373,7 +390,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
 
 function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide }: {
   a: PlanItem;
-  meta: { color: string; soft: string; label: string; ink: string };
+  meta: { color: string; soft: string; ring: string; label: string; ink: string };
   today: string;
   doneOn: (uid: string, day: string) => boolean;
   onToggle: (uid: string, day?: string) => void;
@@ -400,14 +417,29 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide }: {
           Leggja til hliðar
         </button>
       )}
-      <div className="relative bg-white px-3 py-3 transition-transform sm:px-4"
-        style={{ transform: `translateX(${swipe.dx}px)`, transitionDuration: swipe.dx === 0 || swipe.open ? "160ms" : "0ms", touchAction: "pan-y" }}
+      {/* The row says which pillar it belongs to, before anything is
+          ticked.
+          Every row was white, and the only pillar colour in the list was
+          inside the checkbox — which is empty until you tick it, so the one
+          thing that told you whether this was sleep or food appeared only
+          after you no longer needed telling. The row now carries its
+          pillar's pale tint and a bar of its colour down the left edge.
+          Ticked rows drain to white: colour means "still to do", which is
+          what a checklist is for. */}
+      <div className="relative px-3 py-3 transition-transform sm:px-4"
+        style={{
+          transform: `translateX(${swipe.dx}px)`,
+          transitionDuration: swipe.dx === 0 || swipe.open ? "160ms" : "0ms",
+          touchAction: "pan-y",
+          background: done ? "#FFFFFF" : meta.soft,
+          borderLeft: `3px solid ${done ? "transparent" : meta.color}`,
+        }}
         {...(onHide ? swipe.handlers : {})}>
       <div className="flex items-start gap-3">
         <button type="button" onClick={() => onToggle(a.uid)}
           aria-pressed={done} aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${a.title}`}
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-90 ${done ? "border-transparent text-white" : "border-slate-200 text-transparent hover:border-slate-400"}`}
-          style={done ? { background: meta.color } : undefined}>
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-white transition active:scale-90 ${done ? "border-transparent text-white" : "text-transparent"}`}
+          style={done ? { background: meta.color } : { borderColor: meta.ring }}>
           <Check className="h-5 w-5" strokeWidth={3} />
         </button>
         <div className="min-w-0 flex-1">
