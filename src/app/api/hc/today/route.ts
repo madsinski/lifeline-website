@@ -5,7 +5,8 @@
 // GET  → { stats, urgent[], partner }
 // POST { nudge: true } → poke your accountability partner.
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { sendPush } from "@/lib/hc/push";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, hcAudit, requireUser } from "@/lib/hc/server";
 import { parseAppointment } from "@/lib/app/appointment-date";
@@ -245,5 +246,24 @@ export async function POST(req: NextRequest) {
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   await hcAudit(`self:${user.id}`, "partner_nudged", null, { partner: partnerId, kind });
+
+  /*
+   * The whole point of a nudge is that it arrives.
+   *
+   * It landed in their notification list and waited for them to open the
+   * app, which is the opposite of what one person poking another is for.
+   * after(), so the send is not killed when this response returns, and
+   * caught, because a nudge that pushed is better than a nudge that failed
+   * to write because the push failed.
+   */
+  const from = (me?.full_name as string) ?? "Félagi þinn";
+  after(async () => {
+    await sendPush(partnerId, {
+      title: `${from} ${NUDGES[kind]}`,
+      body: note || "Opnaðu heilsuferðina til að sjá.",
+      url: "/account/heilsuferd/aaetlun?tab=today",
+      tag: `nudge-from-${user.id}`,
+    }).catch(() => {});
+  });
   return NextResponse.json({ ok: true });
 }

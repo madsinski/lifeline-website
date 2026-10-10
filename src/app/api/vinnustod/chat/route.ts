@@ -7,7 +7,8 @@
 // Actor: workstation session or Lifeline staff (Bearer + AAL2), and only
 // journeys at the actor's own locations — the same gate as the queue.
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { sendPush } from "@/lib/hc/push";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
 
@@ -114,6 +115,30 @@ export async function POST(req: NextRequest) {
 
   await supabaseAdmin.from("hc_chat").update({ read_by_coach_at: new Date().toISOString() })
     .eq("journey_id", journeyId).eq("author_kind", "client").is("read_by_coach_at", null);
+
+  /*
+   * To the phone as well as the page.
+   *
+   * The dot and the chime only reach somebody who has the app open. A
+   * message from a coach is the one thing in the journey worth a push —
+   * it is a person waiting on an answer, not a reminder.
+   *
+   * after(), because a bare promise is killed when the response returns on
+   * Vercel, and a failure here must never fail the send: the message is
+   * already written and the notification is a courtesy on top of it.
+   */
+  const who = actor.kind === "worker" ? actor.worker.name : actor.label.replace(/\s*\(Lifeline\)$/, "");
+  after(async () => {
+    await sendPush(j.client_id, {
+      title: kind === "nudge" ? `Kveðja frá ${who}` : `Skilaboð frá ${who}`,
+      // The first line only. A notification is a knock on the door, not the
+      // conversation, and a health message does not belong on a lock screen
+      // in full.
+      body: text.length > 90 ? `${text.slice(0, 90)}…` : text,
+      url: "/account/heilsuferd/aaetlun?tab=coach",
+      tag: `chat-${journeyId}`,
+    }).catch(() => {});
+  });
   return NextResponse.json({ ok: true });
 }
 

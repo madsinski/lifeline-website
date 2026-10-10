@@ -17,9 +17,27 @@ export function pushConfigured(): boolean {
 
 export interface PushPayload { title: string; body: string; url?: string; tag?: string }
 
-/** Send to every device of this participant; returns how many accepted it. */
+/**
+ * Send to every device of this participant; returns how many accepted it.
+ *
+ * The channel preference is checked here rather than by each caller.
+ * Switching push off in Áminningar only removes it from hc_nudge_prefs.
+ * channels — the subscription row stays, because the browser permission and
+ * the device registration are still good — so a sender that looked only at
+ * hc_push_subscriptions would push to somebody who had turned it off. That
+ * is a consent question, not a bug to find later, so the gate lives in the
+ * one place every caller goes through.
+ *
+ * `paused_until` is deliberately not checked: pausing is for the daily
+ * reminder, and a message from a coach or a partner is a person, not a
+ * schedule. The cron checks it for its own sends.
+ */
 export async function sendPush(clientId: string, payload: PushPayload): Promise<number> {
   if (!pushConfigured()) return 0;
+  const { data: prefs } = await supabaseAdmin
+    .from("hc_nudge_prefs").select("channels").eq("client_id", clientId).maybeSingle();
+  const channels = (prefs?.channels as string[] | null) ?? [];
+  if (!channels.includes("push")) return 0;
   const { data: subs } = await supabaseAdmin.from("hc_push_subscriptions").select("id, endpoint, p256dh, auth").eq("client_id", clientId);
   let ok = 0;
   for (const s of subs || []) {

@@ -704,10 +704,9 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
   return (
     <Sheet title={title} onClose={onClose} max="max-w-md">
       <div className="space-y-4 p-4">
-        <div>
-          <p className="text-lg font-bold text-hc-ink">{title}</p>
-          <p className="mt-0.5 text-sm text-slate-600">{longWhen(booking.starts_at)} · {booking.minutes} mín.</p>
-        </div>
+        {/* The Sheet's own header already says what this is, so only the
+            when-and-how-long goes here. */}
+        <p className="text-sm text-slate-600">{longWhen(booking.starts_at)} · {booking.minutes} mín.</p>
 
         {/* First, because when it matters it matters more than anything
             else on this sheet. */}

@@ -86,7 +86,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
       if (!ok) return;
     }
     const channels = on ? prefs.channels.filter((x) => x !== c) : [...prefs.channels, c];
-    if (await save({ ...prefs, channels })) setMsg(on ? "Slökkt." : c === "push" ? "Tilkynningar virkar á þessu tæki." : "Kveikt.");
+    if (await save({ ...prefs, channels })) setMsg(on ? "Slökkt." : c === "push" ? "Tilkynningar virka á þessu tæki." : "Kveikt.");
   };
 
   if (!prefs) return null;
@@ -131,6 +131,15 @@ export default function NudgeSettings({ api }: { api: Api }) {
                 );
               })}
             </div>
+            {/* Push is no longer only the reminder, so the section cannot
+                go on implying that it is. The event ones ignore the hour
+                and the mode below, which is worth saying before somebody
+                sets a time and wonders why a message arrived at another. */}
+            {prefs.channels.includes("push") && (
+              <p className="mt-2 text-xs text-slate-500">
+                Tilkynningar í símann koma líka þegar þjálfarinn sendir þér skilaboð og þegar félagi ýtir við þér — um leið og það gerist, óháð tímanum hér fyrir neðan.
+              </p>
+            )}
             {env.ios && !env.standalone && (
               <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
                 Á iPhone koma tilkynningar aðeins þegar Lifeline er á heimaskjánum: ýttu á Deila og svo „Bæta á heimaskjá“, opnaðu þaðan og kveiktu hér.
