@@ -14,8 +14,8 @@
 // the thing that makes a partner an accountability partner rather than a
 // number beside yours.
 
-import { useState } from "react";
-import { Dumbbell, Flame, Hand, Send, UsersRound } from "lucide-react";
+import { useRef, useState } from "react";
+import { Camera, Dumbbell, Flame, Hand, Send, UserRound, UsersRound } from "lucide-react";
 import Sheet from "./Sheet";
 import { hcBtn } from "./ui";
 import type { Stats } from "./TodayCards";
@@ -81,22 +81,44 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [note, setNote] = useState("");
+  const [err, setErr] = useState("");
+  /** Seeded from the payload, replaced the moment an upload returns. */
+  const [face, setFace] = useState<string | null>(myAvatar ?? null);
 
   const nudge = async (kind: string, text?: string) => {
+    setErr("");
     setSending(true);
     const r = await api("/api/hc/today", {
       method: "POST", body: JSON.stringify({ nudge: true, kind, note: text ?? "" }),
     }).catch(() => null);
     setSending(false);
-    if (r?.ok) { setSent(true); setNote(""); onNudged(); }
+    if (r?.ok) { setSent(true); setNote(""); onNudged(); return; }
+    /*
+     * Say what happened.
+     *
+     * This was `if (r?.ok) { … }` with no else, so every refusal looked
+     * identical to nothing happening — and they were not rare: one a day is
+     * enforced server-side, and a partner with no account cannot receive
+     * one at all. Pressing a button and getting silence is the bug, not the
+     * refusal.
+     */
+    const j = r ? await r.json().catch(() => ({})) : {};
+    const m = j as { message?: string; error?: string };
+    setErr(
+      m.message
+        ?? (m.error === "no-partner" ? "Félaginn er ekki með aðgang til að taka við þessu."
+          : "Þetta fór ekki. Prófaðu aftur."),
+    );
   };
 
   return (
     <Sheet title="Staðan" onClose={onClose} canvas>
       <div className="space-y-3 p-3 sm:p-4">
-          <PersonCard name="Þú" avatar={myAvatar ?? null} stats={mine} today={done} of={of} highlight />
+          <PersonCard name="Þú" stats={mine} today={done} of={of} highlight
+            face={<MyFace api={api} src={face} onChanged={setFace} />} />
           {partner
-            ? <PersonCard name={partner.name} avatar={partner.avatar ?? null} stats={partner.stats}
+            ? <PersonCard name={partner.name} stats={partner.stats}
+                face={<Face src={partner.avatar ?? null} />}
                 training={partner.training ?? null} />
             : (
               <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200">
@@ -104,11 +126,26 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
               </p>
             )}
 
+          {/* A partner without an account cannot receive one — the button
+              used to appear anyway and fail on a foreign key. */}
+          {partner && !partner.canNudge && (
+            <p className="rounded-hc-card bg-white px-4 py-4 text-center text-sm text-slate-500 ring-1 ring-slate-200">
+              {/* No "búin(n)" and no pronoun: the sentence works for
+                  anybody without picking a gender for them. */}
+              {partner.name.split(" ")[0]} hefur ekki stofnað aðgang enn þá, svo ekki er hægt að senda hvatningu.
+            </p>
+          )}
+
           {partner?.canNudge && (
             <section className="rounded-hc-card bg-white p-4 ring-1 ring-slate-200">
               <p className="flex items-center gap-2 font-semibold text-hc-ink">
                 <Hand className="h-4 w-4 text-hc-brand-dark" aria-hidden /> Ýta við {partner.name.split(" ")[0]}
               </p>
+              {err && (
+                <p role="status" className="mt-2 rounded-hc-element bg-red-50 px-3 py-2 text-xs font-semibold text-red-800 ring-1 ring-red-200">
+                  {err}
+                </p>
+              )}
               {sent ? (
                 <p className="mt-2 text-sm font-semibold text-hc-brand-dark">Sent. Þau fá þetta í símann.</p>
               ) : (
@@ -150,10 +187,10 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
 }
 
 /** One person, big enough to read at a glance. */
-function PersonCard({ name, avatar, stats, today, of, training, highlight = false }: {
+function PersonCard({ name, face, stats, today, of, training, highlight = false }: {
   name: string;
-  /** Null for most people; initials stand in rather than a broken image. */
-  avatar?: string | null;
+  /** The avatar, already rendered — "you" get an upload button, they do not. */
+  face?: React.ReactNode;
   stats: Stats | null;
   today?: number;
   of?: number;
@@ -164,7 +201,7 @@ function PersonCard({ name, avatar, stats, today, of, training, highlight = fals
     <section className={`rounded-hc-card bg-white p-4 ring-1 sm:p-5 ${highlight ? "ring-hc-brand/40" : "ring-slate-200"}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <Face name={name} src={avatar ?? null} />
+          {face}
           <p className="min-w-0 truncate text-lg font-bold text-hc-ink">{name}</p>
         </div>
         {today !== undefined && of !== undefined && (
@@ -224,27 +261,93 @@ function PersonCard({ name, avatar, stats, today, of, training, highlight = fals
 }
 
 /**
- * A face, or the next best thing.
+ * A face, in all three shapes avatar_url actually comes in.
  *
- * Most members have no avatar, and an empty circle says less than two
- * letters do. Initials come from the name we already show, so the fallback
- * is never a stranger — and "Þú" becomes "Þ", which is correct.
+ *   "https://…"      a photo, from here or from the app
+ *   "avatar:\u{1F913}"        the app's emoji picker — not a URL, and feeding it to
+ *                    <img> rendered a broken-image icon, which is what this
+ *                    sheet was doing for both people
+ *   null             nothing chosen yet
+ *
+ * The empty case is a plain person glyph rather than initials: a partner
+ * who has not picked anything should look like an account without a photo,
+ * not like a monogram somebody designed.
  */
-function Face({ name, src }: { name: string; src: string | null }) {
-  const initials = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0] ?? "").join("").toUpperCase();
-  if (src) {
-    // Avatars come from arbitrary storage URLs, which next/image would need
-    // configured per host; a 40px circle is not worth that.
+function Face({ src, size = 40 }: { src: string | null; size?: number }) {
+  const emoji = src?.startsWith("avatar:") ? src.slice(7) : null;
+  const box = { width: size, height: size };
+
+  if (emoji) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" width={40} height={40}
-        className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-slate-200" />
+      <span style={{ ...box, fontSize: Math.round(size * 0.55) }}
+        className="grid shrink-0 place-items-center rounded-full bg-slate-100 ring-1 ring-slate-200">
+        {emoji}
+      </span>
     );
   }
+  if (src) {
+    // Arbitrary storage URLs, which next/image would want configured per
+    // host; a 40px circle is not worth that.
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt="" width={size} height={size}
+      style={box} className="shrink-0 rounded-full object-cover ring-1 ring-slate-200" />;
+  }
   return (
-    <span aria-hidden
-      className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-sm font-bold text-hc-brand-dark ring-1 ring-hc-brand/20">
-      {initials || "?"}
+    <span style={box} className="grid shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400 ring-1 ring-slate-200">
+      <UserRound style={{ width: size * 0.55, height: size * 0.55 }} aria-hidden />
+    </span>
+  );
+}
+
+/**
+ * Your own face, and a way to change it.
+ *
+ * One input with capture="user", which is what makes a phone offer the
+ * camera as well as the library — on a desktop it is just a file picker.
+ * The photo goes straight up and the sheet shows the new one without a
+ * reload, because waiting for a round trip to see your own face is the kind
+ * of delay that makes people press the button twice.
+ */
+function MyFace({ api, src, onChanged }: {
+  api: Api; src: string | null; onChanged: (url: string | null) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const input = useRef<HTMLInputElement>(null);
+
+  const pick = async (file: File) => {
+    setErr("");
+    setBusy(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    // No Content-Type: the browser has to set the multipart boundary.
+    const r = await api("/api/hc/avatar", { method: "POST", body: fd }).catch(() => null);
+    setBusy(false);
+    if (!r?.ok) {
+      const j = r ? await r.json().catch(() => ({})) : {};
+      setErr((j as { message?: string }).message || "Myndin fór ekki inn. Prófaðu aftur.");
+      return;
+    }
+    const j = await r.json().catch(() => null);
+    if (j?.avatar_url) onChanged(j.avatar_url as string);
+  };
+
+  return (
+    <span className="relative shrink-0">
+      <button type="button" onClick={() => input.current?.click()} disabled={busy}
+        aria-label={src ? "Skipta um mynd" : "Setja mynd"}
+        className="relative block rounded-full transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:opacity-50">
+        <Face src={src} />
+        {/* Always visible, because a face that happens to be tappable is a
+            face nobody taps. */}
+        <span aria-hidden
+          className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-hc-brand text-white ring-2 ring-white">
+          <Camera className="h-3 w-3" />
+        </span>
+      </button>
+      <input ref={input} type="file" accept="image/*" capture="user" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = ""; }} />
+      {err && <span className="absolute left-0 top-full mt-1 w-40 text-[11px] font-semibold text-red-700">{err}</span>}
     </span>
   );
 }

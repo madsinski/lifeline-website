@@ -120,6 +120,21 @@ export async function GET(req: NextRequest) {
     if (byName?.length === 1) partnerId = byName[0].id as string;
   }
 
+  /*
+   * Can they actually receive one?
+   *
+   * peer_messages.receiver_id references auth.users, and a partner can
+   * exist in `clients` with no account at all — invited, or entered by a
+   * nurse. canNudge used to mean only "a clients row resolved", so the
+   * button appeared, the insert hit the foreign key, and the 500 was
+   * swallowed by the page. Now it means what it says.
+   */
+  let partnerHasAccount = false;
+  if (partnerId) {
+    const { data: acct } = await supabaseAdmin.auth.admin.getUserById(partnerId);
+    partnerHasAccount = !!acct?.user;
+  }
+
   let theirs: Awaited<ReturnType<typeof stats>> = null;
   if (partnerId) {
     const { data: pj } = await supabaseAdmin
@@ -164,7 +179,7 @@ export async function GET(req: NextRequest) {
     ],
     partner: partnerName
       ? {
-          id: partnerId ?? null, name: partnerName, canNudge: Boolean(partnerId),
+          id: partnerId ?? null, name: partnerName, canNudge: partnerHasAccount,
           avatar: partnerId ? face.get(partnerId) ?? null : null,
           // Same shape as `stats`, so the two rows are the same measures.
           stats: theirs ? { ...theirs, percent28: Math.round((theirs.days28 / 28) * 100) } : null,
