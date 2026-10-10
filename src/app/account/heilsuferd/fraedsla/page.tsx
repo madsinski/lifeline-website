@@ -67,9 +67,9 @@ function Fraedsla() {
   }, [api, router]);
 
   const done = (lectures ?? []).filter((l) => l.completed).length;
+  const next = (lectures ?? []).find((l) => !l.completed) ?? null;
   /** Everything except the one offered at the top, so it is not listed twice. */
   const rest = (lectures ?? []).filter((l) => l.slug !== next?.slug);
-  const next = (lectures ?? []).find((l) => !l.completed) ?? null;
 
   return (
     <div className={hcPage.participant}>
