@@ -6,6 +6,7 @@
 // Picks are saved to hc_training_settings.meal_picks through onPick.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Salad, Sliders, X } from "lucide-react";
 import { dayFor, mealName, mealsFor, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { WEEKDAYS, WEEKDAYS_SHORT, weekdayOf } from "@/lib/hc/personalise";
@@ -270,6 +271,8 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 }
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  // Only mounted while the sheet is open, so the lock is unconditional.
+  useScrollLock();
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
       <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>

@@ -19,7 +19,7 @@
 // people stop opening.
 
 import { useState } from "react";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import Sheet from "./Sheet";
 import { Bike, CheckCircle2, Dumbbell, Footprints, Mountain, PersonStanding, Timer, Users, Waves, X, Zap } from "lucide-react";
 import type { Modality } from "@/lib/hc/personalise";
 import { hcBtn } from "./ui";
@@ -70,16 +70,12 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
   onPick: (info: { label: string; modality: Modality }) => void;
   onClose: () => void;
 }) {
-  // The page behind a sheet must not scroll with it.
-  useScrollLock();
   const [own, setOwn] = useState("");
   const set = BY_MODALITY[modality] ?? BY_MODALITY.other;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Gera eitthvað annað"
-        className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
-        onClick={(e) => e.stopPropagation()}>
+    <Sheet title="Gera eitthvað annað" onClose={onClose}
+      header={
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Í stað „{sessionTitle}“</p>
@@ -87,6 +83,8 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
           </div>
           <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
+      }>
+
 
         <div className="space-y-4 overflow-y-auto overscroll-contain p-4">
           {set.options.length > 0 && (
@@ -126,7 +124,6 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }

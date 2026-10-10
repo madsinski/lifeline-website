@@ -23,7 +23,7 @@ import {
   type StrengthFocus, type TrainingSettings,
 } from "@/lib/hc/adaptive-program";
 import { itemsForSlots } from "@/lib/hc/adaptive-program";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import Sheet from "./Sheet";
 import { hcBtn } from "./ui";
 
 export default function SessionBuilder({ name, focus, slots, settings, planStart, load, onSave, onClose }: {
@@ -37,7 +37,6 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
   onSave: (keys: string[]) => void;
   onClose: () => void;
 }) {
-  useScrollLock();
   const [keys, setKeys] = useState<string[]>(() => (slots?.length ? slots : slotKeysFor(focus)));
   const [adding, setAdding] = useState(false);
 
@@ -61,11 +60,8 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
   }, {});
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/60 sm:items-center sm:p-4"
-      onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={`Æfingarnar í ${name}`}
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl">
+    <Sheet title={`Æfingarnar í ${name}`} onClose={onClose}
+      header={
         <div className="flex items-center gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-bold text-slate-900">Æfingarnar þínar</p>
@@ -74,6 +70,8 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
           <button type="button" onClick={onClose} aria-label="Loka"
             className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
+      }>
+
 
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {/* What is missing, when something is. Advisory, and it names the
@@ -171,7 +169,6 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
           <button type="button" onClick={() => onSave(keys)} disabled={!keys.length}
             className={`${hcBtn.primary} disabled:opacity-40`}>Vista</button>
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }

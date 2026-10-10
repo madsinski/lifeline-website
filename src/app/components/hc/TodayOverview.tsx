@@ -86,10 +86,15 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
       {/* One column now. The status card that sat beside this became the
           face in its corner, so the hero gets the full width it was
           sharing. */}
-      <div className="relative">
+      {/* The hero is a div, not a button.
+          It used to be one whole tappable card, which meant the people
+          button had to be an absolutely-positioned sibling floating over
+          it — and floating over it is exactly what it looked like. The
+          actions are explicit children now, in a row at the foot of the
+          card, so the ring is inside the hero rather than on top of it. */}
+      <div>
         {exercise && (
-          <button type="button" onClick={() => onOpenExercise(todays[0]?.id)}
-            className="flex flex-col rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 p-4 text-left text-white shadow-sm transition hover:shadow-md sm:p-5">
+          <div className="flex flex-col rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 p-4 text-left text-white shadow-sm sm:p-5">
             <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-white/85"><Dumbbell className="h-4 w-4" aria-hidden />{todays.length || myToday.length ? "Æfing dagsins" : "Hvíldardagur"}</span>
             {myToday.length > 0 && (
               <span className="mt-1 flex flex-wrap gap-1.5">
@@ -125,11 +130,15 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
                 ))}
               </span>
             )}
-            <span className="mt-auto pt-3 text-sm font-semibold">Opna æfinguna →</span>
-          </button>
+            <span className="mt-auto flex items-center gap-3 pt-3">
+              <button type="button" onClick={() => onOpenExercise(todays[0]?.id)}
+                className="min-w-0 flex-1 text-left text-sm font-semibold underline-offset-4 hover:underline">
+                Opna æfinguna →
+              </button>
+              {people}
+            </span>
+          </div>
         )}
-
-        {people}
       </div>
 
       {(plan.goals?.length ?? 0) > 0 && (

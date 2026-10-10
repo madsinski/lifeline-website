@@ -12,7 +12,7 @@
 // actions in the editor with the pillar already chosen.
 
 import { useState } from "react";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import Sheet from "./Sheet";
 import { BookOpen, EyeOff, Pencil, X } from "lucide-react";
 import { PILLAR_META, type Pillar, type PlanItem } from "@/lib/hc/types";
 import PillarIcon from "./PillarIcon";
@@ -28,16 +28,12 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
   onClose: () => void;
   links?: { lecture?: { title: string; href: string } | null; go?: { label: string; onClick: () => void } | null };
 }) {
-  // The page behind a sheet must not scroll with it.
-  useScrollLock();
   const [v, setV] = useState(note);
   const meta = PILLAR_META[a.pillar];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={a.title}
-        className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
-        onClick={(e) => e.stopPropagation()}>
+    <Sheet title={a.title} onClose={onClose}
+      header={
         <div className="flex items-start gap-3 border-b border-slate-100 p-4" style={{ background: meta.soft }}>
           <PillarIcon pillar={a.pillar} />
           <div className="min-w-0 flex-1">
@@ -47,6 +43,8 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
           </div>
           <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-500 hover:bg-white/60"><X className="h-5 w-5" /></button>
         </div>
+      }>
+
 
         <div className="space-y-4 overflow-y-auto overscroll-contain p-4">
           {a.summary && <p className="text-sm text-slate-700">{a.summary}</p>}
@@ -86,7 +84,6 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }

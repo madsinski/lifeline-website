@@ -8,6 +8,7 @@
 // nurse is still typing — mid-consultation, that matters more than freshness.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { Search, X } from "lucide-react";
 import {
   CATEGORY_IS, TONE_CLASS, TONE_IS, bandForValue, bandRangeText, bandsFor, parseValue, searchKnowledge,
@@ -22,6 +23,8 @@ export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" 
   /** Prefill, e.g. "Insúlín 18" when opened from a recorded value. */
   initialQuery?: string;
 }) {
+  // The sheet stays mounted and hides, so the lock follows `open`.
+  useScrollLock(open);
   const [entries, setEntries] = useState<KnowledgeEntry[] | null>(null);
   const [q, setQ] = useState(initialQuery);
   const [sex, setSex] = useState<Sex>(null);

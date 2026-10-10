@@ -9,7 +9,7 @@
 // adding football here and adding it there produce the same week.
 
 import { useState } from "react";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import Sheet from "./Sheet";
 import { Clock, X } from "lucide-react";
 import { ACTIVITY_GROUPS, ACTIVITY_PRESETS, asksStrengthFocus, REGION_IS, REGIONS, STRENGTH_FOCUS_IS, type Activity, type Region, type StrengthFocus } from "@/lib/hc/adaptive-program";
 import ActivityIcon, { CoverChips } from "./ActivityIcon";
@@ -22,8 +22,6 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
   onAdd: (a: Omit<Activity, "id">, injuries?: Region[]) => void;
   onClose: () => void;
 }) {
-  // The page behind a sheet must not scroll with it.
-  useScrollLock();
   const [group, setGroup] = useState<string>(ACTIVITY_GROUPS[0]);
   const [at, setAt] = useState("");
   /**
@@ -37,10 +35,8 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
   const [injuries, setInjuries] = useState<Region[]>([]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={`Bæta við á ${WEEKDAYS[weekday]}`}
-        className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
-        onClick={(e) => e.stopPropagation()}>
+    <Sheet title={`Bæta við á ${WEEKDAYS[weekday]}`} onClose={onClose}
+      header={
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{WEEKDAYS[weekday]}</p>
@@ -49,6 +45,8 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
           </div>
           <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
+      }>
+
 
         {lift ? (
           <div className="space-y-4 overflow-y-auto overscroll-contain p-4">
@@ -148,7 +146,6 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
           <button type="button" onClick={onClose} className={`${hcBtn.ghost} w-full`}>Hætta við</button>
         </div>
         )}
-      </div>
-    </div>
+    </Sheet>
   );
 }

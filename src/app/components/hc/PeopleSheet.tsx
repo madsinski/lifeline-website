@@ -15,8 +15,8 @@
 // number beside yours.
 
 import { useState } from "react";
-import { Dumbbell, Flame, Hand, Send, X } from "lucide-react";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import { Dumbbell, Flame, Hand, Send, UsersRound } from "lucide-react";
+import Sheet from "./Sheet";
 import { hcBtn } from "./ui";
 import type { Stats } from "./TodayCards";
 
@@ -37,16 +37,30 @@ const NUDGE_KINDS: { key: string; label: string }[] = [
   { key: "join", label: "Eigum við að hreyfa okkur saman?" },
 ];
 
+/**
+ * The ring in the hero: today's share, and two people behind it.
+ *
+ * A yellow face was decoration that happened to encode something. A ring
+ * IS the number — it fills as the day does — and the two figures inside say
+ * what opening it gives you, which is the comparison. It sits on the hero's
+ * own gradient, so it is drawn in white at low opacity rather than in a
+ * colour of its own.
+ */
 export function PeopleButton({ onClick, done, of }: { onClick: () => void; done: number; of: number }) {
-  // The face follows the day rather than being decoration: it is the one
-  // glance the button is for, and it has to be legible at 44px.
-  const share = of > 0 ? done / of : 0;
-  const face = share >= 1 ? "😄" : share >= 0.5 ? "🙂" : share > 0 ? "😐" : "😴";
+  const share = of > 0 ? Math.min(1, done / of) : 0;
+  const R = 15, C = 2 * Math.PI * R;
   return (
     <button type="button" onClick={onClick}
       aria-label={`Staðan þín og félagans — ${done} af ${of} í dag`}
-      className="absolute bottom-3 right-3 flex h-12 items-center gap-1.5 rounded-full bg-white/20 px-3 text-white ring-1 ring-white/30 backdrop-blur transition hover:bg-white/30">
-      <span className="text-xl leading-none" aria-hidden>{face}</span>
+      className="flex shrink-0 items-center gap-2 rounded-full bg-white/15 py-1.5 pl-1.5 pr-3 text-white ring-1 ring-white/25 backdrop-blur transition hover:bg-white/25">
+      <span className="relative grid h-9 w-9 place-items-center">
+        <svg viewBox="0 0 36 36" className="absolute inset-0 -rotate-90" aria-hidden>
+          <circle cx="18" cy="18" r={R} fill="none" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+          <circle cx="18" cy="18" r={R} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"
+            strokeDasharray={C} strokeDashoffset={C * (1 - share)} style={{ transition: "stroke-dashoffset 400ms" }} />
+        </svg>
+        <UsersRound className="relative h-4 w-4" aria-hidden />
+      </span>
       <span className="text-sm font-bold tabular-nums">{done}/{of}</span>
     </button>
   );
@@ -61,7 +75,6 @@ export default function PeopleSheet({ api, mine, partner, done, of, onClose, onN
   onClose: () => void;
   onNudged: () => void;
 }) {
-  useScrollLock();
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [note, setNote] = useState("");
@@ -76,18 +89,8 @@ export default function PeopleSheet({ api, mine, partner, done, of, onClose, onN
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/60 sm:items-center sm:p-4"
-      onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Staðan"
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-hc-canvas sm:rounded-3xl">
-        <div className="flex items-center gap-3 bg-white p-4">
-          <p className="min-w-0 flex-1 text-lg font-bold text-hc-ink">Staðan</p>
-          <button type="button" onClick={onClose} aria-label="Loka"
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
-        </div>
-
-        <div className="flex-1 space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4">
+    <Sheet title="Staðan" onClose={onClose} canvas>
+      <div className="space-y-3 p-3 sm:p-4">
           <PersonCard name="Þú" stats={mine} today={done} of={of} highlight />
           {partner
             ? <PersonCard name={partner.name} stats={partner.stats}
@@ -128,9 +131,8 @@ export default function PeopleSheet({ api, mine, partner, done, of, onClose, onN
               )}
             </section>
           )}
-        </div>
       </div>
-    </div>
+    </Sheet>
   );
 }
 

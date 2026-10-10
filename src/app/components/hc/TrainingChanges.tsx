@@ -16,7 +16,7 @@
 //   Prógramm     — the whole plan
 
 import { useState } from "react";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import Sheet from "./Sheet";
 import { Activity, CalendarDays, ChevronRight, Dumbbell, HeartPulse, MapPin, X } from "lucide-react";
 import { CARDIO_IS, LOAD_IS, PLACE_IS, REGION_IS, REGIONS, type Region, type TrainingLevel, type TrainingSettings } from "@/lib/hc/adaptive-program";
 
@@ -45,8 +45,6 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onOpen
   onOpenProgram?: () => void;
   onClose: () => void;
 }) {
-  // The page behind a sheet must not scroll with it.
-  useScrollLock();
   const [open, setOpen] = useState<Section | null>(null);
 
   const set = (patch: Partial<TrainingSettings>) => onChange({ ...settings, ...patch });
@@ -54,10 +52,8 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onOpen
     set({ injuries: settings.injuries.includes(r) ? settings.injuries.filter((x) => x !== r) : [...settings.injuries, r] });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/50 sm:items-center sm:p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Breytingar á æfingaáætlun"
-        className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
-        onClick={(e) => e.stopPropagation()}>
+    <Sheet title="Breytingar á æfingaáætlun" onClose={onClose}
+      header={
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
             <p className="font-bold text-hc-ink">Breytingar</p>
@@ -66,6 +62,8 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onOpen
           <button type="button" onClick={onClose} aria-label="Loka"
             className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
+      }>
+
 
         <div className="overflow-y-auto overscroll-contain">
           {SECTIONS.map(({ key, label, blurb, Icon }) => {
@@ -171,8 +169,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onOpen
         <div className="border-t border-slate-100 p-3">
           <button type="button" onClick={onClose} className={`${hcBtn.primary} w-full`}>Loka</button>
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }
 

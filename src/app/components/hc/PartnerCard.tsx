@@ -12,6 +12,7 @@
 // someone see their progress should not have to guess what "progress" means.
 
 import { useCallback, useEffect, useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { Handshake, X } from "lucide-react";
 import { hcBtn, hcCard, hcKicker } from "./ui";
 
@@ -41,6 +42,8 @@ function Fortnight({ days, of, tone }: { days: number; of: number; tone: "me" | 
 export default function PartnerCard({ api }: { api: Api }) {
   const [d, setD] = useState<Data | null>(null);
   const [picking, setPicking] = useState(false);
+  // Inline rather than its own component, so the lock is conditional.
+  useScrollLock(picking);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 

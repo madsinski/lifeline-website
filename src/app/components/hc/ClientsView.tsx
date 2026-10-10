@@ -12,6 +12,7 @@
 // nurse should not be setting prices.
 
 import { useCallback, useEffect, useState } from "react";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { Building2, ChevronDown, Loader2, Plus, Search, Users } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -171,6 +172,8 @@ export default function ClientsView({ api, onOpenClient }: {
 }
 
 function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; onSaved: () => void }) {
+  // Only mounted while the sheet is open, so the lock is unconditional.
+  useScrollLock();
   const [f, setF] = useState({ name: "", contact_name: "", contact_email: "", contact_phone: "", address: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
