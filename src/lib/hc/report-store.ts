@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { bandForValue, type KnowledgeEntry, type ReportReference } from "./knowledge";
-import { actionSignalsForReport, signalsForReport, type Grunnheilsa, type Signal } from "./grunnheilsa";
+import { actionSignalsForReport, signalsForReport, type Grunnheilsa, type Signal, withCanonicalTitles } from "./grunnheilsa";
 import { sexOf } from "./sex";
 
 export type { ReportReference };
@@ -58,7 +58,17 @@ export async function loadReport(
   ]);
   if (!row?.payload) return null;
 
-  const report = row.payload as Grunnheilsa;
+  /*
+   * The catalogue's wording, not the payload's.
+   *
+   * A parsed report is stored whole, titles included, so renaming a row
+   * only reached reports imported afterwards. Mads' September report still
+   * read „Svefn — læknisfræðileg vandamál" long after that row became
+   * „Læknisfræðilegt". Every surface loads through here, so re-titling once
+   * on the way out fixes the lot and keeps the key as the stable thing.
+   */
+  const stored = row.payload as Grunnheilsa;
+  const report: Grunnheilsa = { ...stored, items: withCanonicalTitles(stored.items ?? []) };
   const sex = sexOf(profile?.sex);
   const bySlug = new Map((entries ?? []).map((e) => [e.slug, e as unknown as KnowledgeEntry]));
   const band = (slug: string, value: number): Signal | null => {

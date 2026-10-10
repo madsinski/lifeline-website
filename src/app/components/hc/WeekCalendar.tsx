@@ -13,7 +13,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Sheet from "./Sheet";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { CalendarPlus, ChevronLeft, ChevronRight, Link2, Loader2, Search, Video } from "lucide-react";
 import { APPT_EVENT, APPT_IS, APPT_KINDS, APPT_MINUTES, type ApptKind, BOOK_IS, type BookKind } from "@/lib/hc/appointment-kinds";
 
@@ -68,8 +67,13 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
   /** Show the calendar-subscription flow (Google / Apple / Outlook). */
   onConnect: () => void;
 }) {
-  // The page behind a sheet must not scroll with it.
-  useScrollLock();
+  /*
+   * No lock here. This is the Dagatal tab's own content, not a sheet — the
+   * comment that used to sit here ("the page behind a sheet must not
+   * scroll") described the dialog below, which is a <Sheet> and locks
+   * itself. Locking from here froze the workstation for as long as the tab
+   * was open.
+   */
   const [week, setWeek] = useState(() => monday(new Date()));
   const [scope, setScope] = useState<"mine" | "all">("all");
   const [events, setEvents] = useState<CalEvent[]>([]);

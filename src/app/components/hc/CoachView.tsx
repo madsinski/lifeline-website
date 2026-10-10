@@ -24,6 +24,14 @@ import Sheet from "./Sheet";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
+/**
+ * How many messages the conversation shows before "Sjá eldri skilaboð".
+ *
+ * Enough to hold the thread you are in the middle of, few enough that the
+ * page stays a page rather than becoming its own scroller again.
+ */
+const TAIL = 12;
+
 interface Worker {
   id: string; name: string | null; role: string | null; organization: string | null;
   credentials: string | null; bio: string | null; photo_url: string | null; specialties: string[] | null;
@@ -207,6 +215,8 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
   const [switching, setSwitching] = useState(false);
   const [prompts, setPrompts] = useState(false);
   const [about, setAbout] = useState(false);
+  /** The whole history, when asked for. Default is the recent end of it. */
+  const [showAll, setShowAll] = useState(false);
   const c = data.coach;
   const first = c?.name?.split(" ")[0] ?? "þjálfarann þinn";
 
@@ -288,18 +298,30 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
       </section>
 
       <section className={`${hcCard.base} flex flex-col overflow-hidden`}>
-        {/* No overscroll-contain here. It belongs inside a sheet, where
-            scrolling past the end should not drift the page behind it. On a
-            page this list is 48vh of the screen, so containing the
-            scroll stranded the page: a thumb over the conversation could not
-            move it at all. Reaching the end now hands the scroll onward. */}
-        <div className="max-h-[48vh] min-h-28 flex-1 space-y-2 overflow-y-auto bg-slate-50/60 p-4">
+        {/* One scroll, not two.
+            This was a 48vh box with its own scrollbar sitting inside the
+            page's, and the two fought: a drag over the conversation moved
+            the inner one until it ended and then jerked the page, and with
+            overscroll-contain it moved nothing at all. Nested scrollers are
+            the wrong tool on a page that already scrolls.
+            So the list has no height cap and no scrollbar of its own — the
+            page is the only thing that scrolls. It stays short because only
+            the last few messages render; the rest are one tap away, which
+            is also the right default for reading a conversation you already
+            know the beginning of. */}
+        <div className="space-y-2 bg-slate-50/60 p-4">
+          {data.thread.length > TAIL && !showAll && (
+            <button type="button" onClick={() => setShowAll(true)}
+              className="mx-auto block rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50">
+              Sjá eldri skilaboð ({data.thread.length - TAIL})
+            </button>
+          )}
           {data.thread.length === 0 && (
             <p className="py-6 text-center text-sm text-slate-500">
               Skrifaðu {first} hvað sem er. Svarið kemur hingað.
             </p>
           )}
-          {data.thread.map((m) => (
+          {(showAll ? data.thread : data.thread.slice(-TAIL)).map((m) => (
             <div key={m.id} className={`flex ${m.author_kind === "client" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${
                 m.author_kind === "client"

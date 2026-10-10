@@ -108,8 +108,17 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
   onClose: () => void;
   intro: string;
 }) {
-  // The page behind a sheet must not scroll with it.
-  useScrollLock();
+  /*
+   * Only while it is actually open.
+   *
+   * This was useScrollLock() with no argument — so it locked on mount, and
+   * the component returns null when closed. Any page that merely *renders*
+   * it was frozen from load with no overlay to explain why, and the lock
+   * was never released because the component never unmounts. Aðgangurinn
+   * minn mounts it from SettingsCard: a 5000px page that could not be
+   * scrolled at all.
+   */
+  useScrollLock(open);
   const [choice, setChoice] = useState<Choice | null>(null);
   const [g, setG] = useState<GoogleStatus | null>(null);
   const [ics, setIcs] = useState<{ https: string; webcal: string } | null>(null);

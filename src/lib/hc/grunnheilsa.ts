@@ -568,3 +568,25 @@ export function actionSignalsForReport(
   for (const item of report.items) out[item.key] = actionSignalForItem(item, band);
   return out;
 }
+
+/**
+ * Put the catalogue's own wording back on a stored report.
+ *
+ * A parsed report is saved whole, titles included, so renaming a row in
+ * CATALOG only affects reports imported afterwards. Mads' September report
+ * still carried „Svefn — læknisfræðileg vandamál" months after that row
+ * became „Læknisfræðilegt", because the words were in the payload rather
+ * than looked up.
+ *
+ * The key is the stable thing and the title is presentation, so the title
+ * is resolved from the key on the way out. Rows the catalogue does not know
+ * keep whatever the report called them — those genuinely have no canonical
+ * name, and Medalia's own wording beats a guess.
+ */
+export function withCanonicalTitles(items: ReportItem[]): ReportItem[] {
+  const byKey = new Map(CATALOG.map((c) => [c.key, c.title]));
+  return items.map((i) => {
+    const t = byKey.get(i.key);
+    return t && t !== i.title ? { ...i, title: t } : i;
+  });
+}
