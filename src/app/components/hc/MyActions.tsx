@@ -12,7 +12,7 @@
 import * as cache from "@/lib/hc/client-cache";
 import ActionSheet from "./ActionSheet";
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronRight, EyeOff, RotateCcw, Sliders } from "lucide-react";
+import { Check, ChevronRight, EyeOff, RotateCcw } from "lucide-react";
 import { PILLAR_META, type ActionPlan, type Pillar, type PlanItem, type WhenOfDay } from "@/lib/hc/types";
 import { Sun, Sunrise, Moon, Clock } from "lucide-react";
 import { useSwipe } from "@/lib/hc/use-swipe";
@@ -32,7 +32,7 @@ const WHEN_META: Record<WhenOfDay, { label: string; ink: string; soft: string; I
   anytime: { label: "Allan daginn", ink: "#334155", soft: "#F1F5F9", Icon: Clock },
 };
 
-import { isoDay, lastDays, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
+import { isoDay, lastDays, weekDays, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { type PersonalExercise, type PSession } from "@/lib/hc/personalise";
 import { trainingOn } from "@/lib/hc/todays-training";
 import type { Activity, TrainingSettings } from "@/lib/hc/adaptive-program";
@@ -41,8 +41,6 @@ type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
 // Monday-first, matching the exercise and meal calendars. Indexed by
 // Date#getDay(), which is Sunday-first, hence the order.
-const WEEKDAY_SHORT = ["Su", "Má", "Þr", "Mi", "Fi", "Fö", "La"];
-const WEEKDAY_LONG = ["sunnudagur", "mánudagur", "þriðjudagur", "miðvikudagur", "fimmtudagur", "föstudagur", "laugardagur"];
 
 export interface ActionLinks {
   /** Opens the exercise programme at today's session. */
@@ -209,6 +207,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
 
       {sheet && (
         <ActionSheet a={sheet}
+          week={week} today={today} doneOn={doneOn} onToggle={toggle}
           note={prefs.find((x) => x.action_uid === sheet.uid)?.note ?? ""}
           onNote={(note) => setPref(sheet.uid, { note })}
           onHide={() => setPref(sheet.uid, { hidden: true })}
@@ -328,8 +327,8 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               {/* Each row wears its own pillar, which is how Svefn and
                   Næring stay legible once the headings are hours. */}
               {items.map((a) => (
-                <ActionRow key={a.uid} a={a} meta={PILLAR_META[a.pillar]} today={today} week={week} doneOn={doneOn} onToggle={toggle}
-                  onOpen={() => setSheet(a)} onEdit={onEditPillar ? () => onEditPillar(a.pillar) : undefined}
+                <ActionRow key={a.uid} a={a} meta={PILLAR_META[a.pillar]} today={today} doneOn={doneOn} onToggle={toggle}
+                  onOpen={() => setSheet(a)}
                   onHide={() => setPref(a.uid, { hidden: true })} />
               ))}
             </ul>
@@ -372,29 +371,20 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   );
 }
 
-function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit, onHide }: {
+function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide }: {
   a: PlanItem;
   meta: { color: string; soft: string; label: string; ink: string };
   today: string;
-  week: string[];
   doneOn: (uid: string, day: string) => boolean;
   onToggle: (uid: string, day?: string) => void;
   /** Swiped away — the same "set aside" the sheet offers, not a deletion. */
   onHide?: () => void;
   /** Opens the change sheet for this action. */
   onOpen: () => void;
-  /**
-   * Opens the plan editor on this action's own pillar. On the row, because
-   * one big "change the plan" button at the bottom of the page is a long way
-   * from the thing you wanted to change.
-   */
-  onEdit?: () => void;
   links?: ActionLinks;
 }) {
   const swipe = useSwipe();
   const done = doneOn(a.uid, today);
-  const target = weeklyTarget(a.frequency);
-  const thisWeek = week.filter((d) => doneOn(a.uid, d)).length;
 
   return (
     /* The iOS list gesture: drag left, a red action appears behind the row.
@@ -426,58 +416,14 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit, onH
             <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
           </button>
 
-          {/* How often it is meant to happen, and how the last seven days
-              actually went, on one line: the week is the evidence for the
-              target standing next to it. Tapping a day fills in one that was
-              missed, which is why they are buttons and not dots. */}
-          <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-            <span className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-              <span>
-                {a.frequency || "Daglega"}
-                {target < 7 && <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-slate-400"}> · {thisWeek} af {target} í vikunni</span>}
-              </span>
-              {/* Where it came from. The plan is a rendering of the
-                  recommendations in the health report, and this is the
-                  participant being able to see that rather than being told
-                  it in a policy document. */}
-              {a.source && (
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${
-                  a.source.priority === "red"
-                    ? "bg-red-50 text-red-800 ring-red-200"
-                    : "bg-amber-50 text-amber-900 ring-amber-200"}`}
-                  title={`Úr skýrslunni þinni: ${a.source.text}`}>
-                  Úr skýrslunni · {a.source.priority === "red" ? "Forgangur 1" : "Forgangur 2"}
-                </span>
-              )}
-              {onEdit && (
-                <button type="button" onClick={onEdit} aria-label={`Breyta: ${a.title}`}
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-900">
-                  <Sliders className="h-3 w-3" aria-hidden /> Breyta
-                </button>
-              )}
-            </span>
-            <div className="ml-auto flex gap-1" role="group" aria-label={`Vikan fyrir „${a.title}“. Ýttu á dag til að merkja hann.`}>
-              {week.map((d) => {
-                const on = doneOn(a.uid, d);
-                const wd = new Date(`${d}T12:00:00`).getDay();
-                // The rest of the week is still to come. The server only
-                // accepts today and the six days behind it, so a button here
-                // would be one that always fails.
-                const future = d > today;
-                return (
-                  <button key={d} type="button" disabled={future} onClick={() => onToggle(a.uid, d)}
-                    aria-pressed={on} title={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : future ? " (framundan)" : ""} — ${future ? "ekki komið" : on ? "búið" : "ekki búið"}`}
-                    aria-label={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : ""}: ${future ? "ekki komið" : on ? "búið" : "ekki búið"}`}
-                    className={`flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-bold transition ${future ? "cursor-default bg-slate-50 text-slate-300" : `active:scale-90 ${on ? "text-white" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`} ${d === today ? "ring-2 ring-slate-800 ring-offset-1" : ""}`}
-                    style={on && !future ? { background: meta.color } : undefined}>
-                    {WEEKDAY_SHORT[wd]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          
+          {/* Nothing else on the row.
+              It carried the frequency, the weekly target, a "Úr skýrslunni"
+              badge, a Breyta button and a seven-day strip of tappable days
+              — six things per row, times a dozen rows, on the page whose
+              job is to let somebody tick something off. All of it is in the
+              sleeve behind the row now, which is where you go when you want
+              to know about one of them rather than get through all of
+              them. */}
         </div>
       </div>
       </div>
