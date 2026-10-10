@@ -10,11 +10,27 @@
 // tapping never flickers.
 
 import * as cache from "@/lib/hc/client-cache";
-import PillarIcon from "./PillarIcon";
 import ActionSheet from "./ActionSheet";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, RotateCcw, Sliders } from "lucide-react";
-import { PILLARS, PILLAR_META, type ActionPlan, type Pillar, type PlanItem } from "@/lib/hc/types";
+import { PILLAR_META, type ActionPlan, type Pillar, type PlanItem, type WhenOfDay } from "@/lib/hc/types";
+import { Sun, Sunrise, Moon, Clock } from "lucide-react";
+
+/**
+ * The parts of the day, in the order they happen.
+ *
+ * Colour is deliberately dawn → noon → dusk rather than the pillar palette:
+ * the pillars still own the rows, and a second use of their colours on the
+ * headings would make two different things look like one.
+ */
+const WHEN_ORDER: WhenOfDay[] = ["morning", "midday", "evening", "anytime"];
+const WHEN_META: Record<WhenOfDay, { label: string; ink: string; soft: string; Icon: typeof Sun }> = {
+  morning: { label: "Morgunn", ink: "#B45309", soft: "#FEF3C7", Icon: Sunrise },
+  midday: { label: "Dagurinn", ink: "#0369A1", soft: "#E0F2FE", Icon: Sun },
+  evening: { label: "Kvöld", ink: "#5B21B6", soft: "#EDE9FE", Icon: Moon },
+  anytime: { label: "Allan daginn", ink: "#334155", soft: "#F1F5F9", Icon: Clock },
+};
+
 import { isoDay, lastDays, weekDays, weeklyTarget, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { type PersonalExercise, type PSession } from "@/lib/hc/personalise";
 import { trainingOn } from "@/lib/hc/todays-training";
@@ -152,7 +168,31 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const supersededByProgramme = (a: PlanItem) =>
     programmeOwnsTraining && a.pillar === "exercise" && (a.frequency ?? "").toLowerCase() !== "daglega";
 
-  const byPillar = (p: Pillar) => live.filter((a) => a.pillar === p && !supersededByProgramme(a));
+  /**
+   * The day in parts, instead of the plan in pillars.
+   *
+   * Svefn / Hreyfing / Næring / Andleg líðan is how a nurse thinks about a
+   * plan and not how anybody lives a day — nobody wakes up and does
+   * "næring". Morning, midday and evening answer the question people open
+   * this page with, which is what now.
+   *
+   * "Allan daginn" is a real category and not a leftover bin: protein at
+   * every meal and water through the day have no hour, and putting them in
+   * one would make the morning list wrong. It comes last because it is the
+   * part that never becomes urgent.
+   *
+   * The pillar survives on every row as its icon and colour, so the four
+   * are still legible without being the structure.
+   */
+  const inWhen = (w: WhenOfDay) => live.filter((a) =>
+    !supersededByProgramme(a) && (a.when ?? "anytime") === w);
+
+  /** Today's training sits where its hour says, or with the all-day work. */
+  const sessionWhen = (x: (typeof todaysSessions)[number]): WhenOfDay => {
+    const h = x.at ? Number(x.at.slice(0, 2)) : NaN;
+    if (Number.isNaN(h)) return "anytime";
+    return h < 11 ? "morning" : h < 17 ? "midday" : "evening";
+  };
 
   return (
     <section className="space-y-4">
@@ -188,13 +228,15 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
           read as what they are, and a sentence above them is read once and
           then skipped forever. */}
 
-      {PILLARS.filter((p) => byPillar(p).length || (p === "exercise" && programmeOwnsTraining)).map((p) => {
-        const meta = PILLAR_META[p];
-        const items = byPillar(p);
+      {WHEN_ORDER.map((p) => {
+        const meta = WHEN_META[p];
+        const items = inWhen(p);
+        const mySessions = todaysSessions.filter((x) => sessionWhen(x) === p);
+        if (!items.length && !mySessions.length) return null;
         const uids = new Set(items.map((a) => a.uid));
         const dayDone = items.filter((a) => doneOn(a.uid, today)).length
-          + (p === "exercise" ? todaysSessions.filter((x) => doneToday?.has(x.id)).length : 0);
-        const dayOf = items.length + (p === "exercise" ? todaysSessions.length : 0);
+          + mySessions.filter((x) => doneToday?.has(x.id)).length;
+        const dayOf = items.length + mySessions.length;
         /**
          * Days with at least one tick in this pillar, over a week and over
          * four weeks. Days rather than ticks, so the two numbers mean the
@@ -217,7 +259,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               onClick={() => setShut((xs) => { const n = new Set(xs); if (n.has(p)) n.delete(p); else n.add(p); return n; })}
               className="w-full px-4 py-2.5 text-left" style={{ background: meta.soft }}>
               <span className="flex items-center gap-2">
-                <PillarIcon pillar={p} size="sm" />
+                <meta.Icon className="h-5 w-5 shrink-0" style={{ color: meta.ink }} aria-hidden />
                 <span className="font-bold" style={{ color: meta.ink }}>{meta.label}</span>
                 <span className="ml-auto text-xs font-semibold tabular-nums" style={{ color: meta.ink }}>
                   {dayDone}/{dayOf} í dag
@@ -240,7 +282,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
             </button>
             <ul className={`divide-y divide-slate-100 ${open ? "" : "hidden"}`}>
               {/* The programme's own sessions for today, first. */}
-              {p === "exercise" && todaysSessions.map((s) => {
+              {mySessions.map((s) => {
                 const done = Boolean(doneToday?.has(s.id) || doneToday?.has(s.title));
                 return (
                   /* Set out exactly like ActionRow below it: same 40px
@@ -254,7 +296,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                       disabled={done}
                       aria-pressed={done} aria-label={`Merkja ${s.title} sem lokið`}
                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 transition active:scale-90 disabled:opacity-100"
-                      style={{ borderColor: done ? meta.ink : "#e2e8f0", background: done ? meta.ink : "transparent" }}>
+                      style={{ borderColor: done ? PILLAR_META.exercise.ink : "#e2e8f0", background: done ? PILLAR_META.exercise.ink : "transparent" }}>
                       <Check className={`h-5 w-5 ${done ? "text-white" : "text-transparent"}`} strokeWidth={3} aria-hidden />
                     </button>
                     <span className="min-w-0 flex-1">
@@ -271,7 +313,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                         open; their own commitment is a thing they go and do. */}
                     {links?.exercise && s.session && (
                       <button type="button" onClick={links.exercise}
-                        className="shrink-0 self-center text-sm font-semibold" style={{ color: meta.ink }}>
+                        className="shrink-0 self-center text-sm font-semibold" style={{ color: PILLAR_META.exercise.ink }}>
                         Opna
                       </button>
                     )}
@@ -279,12 +321,14 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 );
               })}
               {/* A rest day says so, instead of showing a habit that is not on. */}
-              {p === "exercise" && programmeOwnsTraining && todaysSessions.length === 0 && (
+              {p === "anytime" && programmeOwnsTraining && todaysSessions.length === 0 && (
                 <li className="px-4 py-3 text-sm text-slate-500">Engin æfing á dagskrá í dag — hvíldardagur.</li>
               )}
-              {byPillar(p).map((a) => (
-                <ActionRow key={a.uid} a={a} meta={meta} today={today} week={week} doneOn={doneOn} onToggle={toggle}
-                  onOpen={() => setSheet(a)} onEdit={onEditPillar ? () => onEditPillar(p) : undefined} />
+              {/* Each row wears its own pillar, which is how Svefn and
+                  Næring stay legible once the headings are hours. */}
+              {items.map((a) => (
+                <ActionRow key={a.uid} a={a} meta={PILLAR_META[a.pillar]} today={today} week={week} doneOn={doneOn} onToggle={toggle}
+                  onOpen={() => setSheet(a)} onEdit={onEditPillar ? () => onEditPillar(a.pillar) : undefined} />
               ))}
             </ul>
           </div>

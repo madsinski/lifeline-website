@@ -349,8 +349,19 @@ export interface PlanTemplate {
 }
 
 /** A module instance inside a client's plan: copied from the library, then editable. */
+/** Which part of the day a habit belongs to. */
+export type WhenOfDay = "morning" | "midday" | "evening" | "anytime";
+
 export interface PlanItem {
   uid: string;
+  /**
+   * Stamped onto the plan when it is served, from hc_plan_modules.
+   *
+   * Not stored in the payload: a published plan is a snapshot, and older
+   * ones predate the column. Joining at read time means retagging a module
+   * reaches every plan that uses it.
+   */
+  when?: WhenOfDay;
   key: string | null;
   pillar: Pillar;
   title: string;
