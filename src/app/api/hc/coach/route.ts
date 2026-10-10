@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
   if (!journey) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const { from, to } = monthBounds();
-  const [me, others, thread, booked, used] = await Promise.all([
+  const [me, others, thread, booked, used, where] = await Promise.all([
     journey.coach_id
       ? supabaseAdmin.from("hc_workers").select(WORKER_COLS).eq("id", journey.coach_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -64,6 +64,16 @@ export async function GET(req: NextRequest) {
     supabaseAdmin.from("hc_bookings").select("id", { count: "exact", head: true })
       .eq("client_id", user.id).eq("kind", "video").neq("status", "cancelled")
       .gte("starts_at", from).lt("starts_at", to),
+    /*
+     * Where a measurement happens, and what the site says about coming to
+     * it. Booked into the diary with no address is a booking you have to
+     * ask somebody about.
+     */
+    journey.location_id
+      ? supabaseAdmin.from("hc_locations")
+          .select("name, measurement_site, measurement_address, measurement_info")
+          .eq("id", journey.location_id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const allowance = journey.video_consults_per_month ?? 2;
@@ -71,6 +81,13 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     journeyId: journey.id,
+    place: where.data
+      ? {
+          site: (where.data as Record<string, string | null>).measurement_site ?? null,
+          address: (where.data as Record<string, string | null>).measurement_address ?? null,
+          info: (where.data as Record<string, string | null>).measurement_info ?? null,
+        }
+      : null,
     coach: me.data ?? null,
     coaches: (others.data ?? []).filter((w) => w.id !== journey.coach_id),
     thread: thread.data ?? [],
@@ -176,6 +193,35 @@ export async function POST(req: NextRequest) {
       if (journey.coach_id) await syncOwner("worker", journey.coach_id).catch(() => {});
     });
     return NextResponse.json({ ok: true, id: data?.id });
+  }
+
+  /* ── Move one ───────────────────────────────────────────────────────────
+   *
+   * Cancel-and-rebook was the only way to change a time, which loses the
+   * booking's identity: a video call would be counted against the monthly
+   * allowance twice, and the pair of calendar events would churn. Moving
+   * keeps the row and sends the new time to both calendars.
+   *
+   * No allowance check, deliberately — the consult was already spent, and
+   * moving it must not be refused by the rule that granted it.
+   */
+  if (typeof body.move === "string" && typeof body.starts_at === "string") {
+    const when = new Date(body.starts_at);
+    if (Number.isNaN(when.getTime()) || when.getTime() < Date.now()) {
+      return NextResponse.json({ error: "bad_time" }, { status: 400 });
+    }
+    const { data: moved, error } = await supabaseAdmin.from("hc_bookings")
+      .update({ starts_at: when.toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", body.move).eq("client_id", user.id).neq("status", "cancelled")
+      .select("id, kind").maybeSingle();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!moved) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    await hcAudit("client", "booking_moved", journey.id, { id: body.move, starts_at: when.toISOString() });
+    after(async () => {
+      await syncOwner("client", user.id).catch(() => {});
+      if (journey.coach_id) await syncOwner("worker", journey.coach_id).catch(() => {});
+    });
+    return NextResponse.json({ ok: true });
   }
 
   // ── Cancel one ────────────────────────────────────────────────────────

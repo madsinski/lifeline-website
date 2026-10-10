@@ -16,8 +16,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Activity, CalendarPlus, Check, ChevronDown, Dumbbell, Gauge, HeartPulse,
-  MessageCircle, MessageSquarePlus, Send, Sparkles, UserRound, Video, X,
+  Activity, CalendarClock, CalendarPlus, Check, ChevronDown, ChevronRight,
+  Dumbbell, Gauge, HeartPulse, MapPin, MessageCircle, MessageSquarePlus,
+  Send, Sparkles, UserRound, Video, X,
 } from "lucide-react";
 import { hcBtn, hcCard } from "./ui";
 import Sheet from "./Sheet";
@@ -47,7 +48,39 @@ interface Booking {
 interface CoachData {
   coach: Worker | null; coaches: Worker[]; thread: ChatMessage[]; unread: number;
   bookings: Booking[]; consults: { allowance: number; spent: number; left: number };
+  /** Where measurements happen, from the journey's location. */
+  place?: { site: string | null; address: string | null; info: string | null } | null;
 }
+
+/**
+ * What to know before a measurement, per measurement.
+ *
+ * Every one of these is about the number coming out right rather than about
+ * health: a body-composition reading moves with a big meal, blood pressure
+ * with the coffee on the way over. Saying so beforehand is the difference
+ * between a measurement and a measurement you have to repeat.
+ */
+const PREP: Record<string, string[]> = {
+  bodycomp: [
+    "Komdu í léttum fötum — skórnir og sokkarnir fara af.",
+    "Sleppa stórri máltíð og harðri æfingu síðustu tvo tímana.",
+    "Drekktu vatn eins og venjulega; þurrkur breytir tölunni.",
+  ],
+  bloodpressure: [
+    "Ekkert kaffi eða nikótín síðustu hálftímann.",
+    "Við sitjum í fimm mínútur áður en mælt er.",
+    "Laus ermi eða stutterma — það þarf að komast að upphandleggnum.",
+  ],
+  strength: [
+    "Föt sem þú getur hreyft þig í og skór með gripi.",
+    "Ekki taka þunga æfingu sama daginn.",
+  ],
+  vo2max: [
+    "Æfingaföt, skór og handklæði.",
+    "Léttur matur svona tveimur tímum áður — ekki fastandi.",
+    "Taktu með vatnsbrúsa.",
+  ],
+};
 
 const ROLE_IS: Record<string, string> = {
   nurse: "Hjúkrunarfræðingur", doctor: "Læknir", coach: "Þjálfari",
@@ -404,6 +437,7 @@ function Book({ data, busy, onPost }: {
 }) {
   const [choice, setChoice] = useState<"video" | "measurement" | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
+  const [openBooking, setOpenBooking] = useState<Booking | null>(null);
   const { allowance, left } = data.consults;
 
   const minutes = choice === "video" ? 30
@@ -437,8 +471,14 @@ function Book({ data, busy, onPost }: {
   {data.bookings.length > 0 && (
           <section className={`${hcCard.base} divide-y divide-slate-100`}>
             <p className="px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Bókað</p>
+            {/* The whole row opens. Cancel used to be the only thing you
+                could do to a booking, and it sat on the row as a small x —
+                the one irreversible action, one mis-tap away, with no way
+                to reach the useful things. Those live in the sheet now and
+                cancelling is behind a confirmation. */}
             {data.bookings.map((b) => (
-              <div key={b.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-4">
+              <button key={b.id} type="button" onClick={() => setOpenBooking(b)}
+                className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 p-4 text-left transition hover:bg-slate-50">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark">
                   {b.kind === "video" ? <Video className="h-5 w-5" aria-hidden /> : <Activity className="h-5 w-5" aria-hidden />}
                 </span>
@@ -449,17 +489,16 @@ function Book({ data, busy, onPost }: {
                   </p>
                   <p className="text-sm text-slate-600">{longWhen(b.starts_at)} · {b.minutes} mín.</p>
                 </div>
-                {b.meeting_url && (
-                  <a href={b.meeting_url} target="_blank" rel="noopener noreferrer" className={hcBtn.secondary}>Fara á fundinn</a>
-                )}
-                <button type="button" onClick={() => void onPost({ cancel: b.id })} disabled={busy}
-                  aria-label="Afbóka" className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40">
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
-              </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
+              </button>
             ))}
           </section>
         )}
+
+      {openBooking && (
+        <BookingSheet booking={openBooking} place={data.place ?? null} busy={busy}
+          onClose={() => setOpenBooking(null)} onPost={onPost} />
+      )}
 
       {/* The menu. Two things to book, as cards you pick rather than two
           forms both open at once. */}
@@ -624,5 +663,145 @@ function Slots({ minutes, busy, onBook }: {
         </div>
       )}
     </div>
+  );
+}
+
+/* ── One booking, and everything you can do to it ───────────────────────── */
+
+/**
+ * The sheet behind a booked row.
+ *
+ * Four things, in the order they are wanted: join the call (the only one
+ * that is time-critical), where to go and what to know (wanted the day
+ * before), move it, cancel it. Cancelling is last and asks, because it is
+ * the only one of the four that cannot be undone — the old row put it
+ * first, as a small x, and offered none of the rest.
+ */
+function BookingSheet({ booking, place, busy, onClose, onPost }: {
+  booking: Booking;
+  place: { site: string | null; address: string | null; info: string | null } | null;
+  busy: boolean;
+  onClose: () => void;
+  onPost: (p: Record<string, unknown>) => Promise<boolean>;
+}) {
+  const [moving, setMoving] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const isVideo = booking.kind === "video";
+  const items = booking.items ?? [];
+  const title = isVideo
+    ? "Myndsímtal"
+    : items.map((k) => MEASURE_LABEL.get(k) ?? k).join(" + ") || "Mælingar";
+
+  /** Prep lines for everything being measured, without repeats. */
+  const prep = Array.from(new Set(items.flatMap((k) => PREP[k] ?? [])));
+
+  const move = async (iso: string) => {
+    const ok = await onPost({ move: booking.id, starts_at: iso });
+    if (ok) onClose();
+    return ok;
+  };
+
+  return (
+    <Sheet title={title} onClose={onClose} max="max-w-md">
+      <div className="space-y-4 p-4">
+        <div>
+          <p className="text-lg font-bold text-hc-ink">{title}</p>
+          <p className="mt-0.5 text-sm text-slate-600">{longWhen(booking.starts_at)} · {booking.minutes} mín.</p>
+        </div>
+
+        {/* First, because when it matters it matters more than anything
+            else on this sheet. */}
+        {isVideo && booking.meeting_url && (
+          <a href={booking.meeting_url} target="_blank" rel="noopener noreferrer"
+            className={`${hcBtn.primary} flex w-full items-center justify-center gap-2`}>
+            <Video className="h-4 w-4" aria-hidden /> Fara á fundinn
+          </a>
+        )}
+        {isVideo && !booking.meeting_url && (
+          <p className="rounded-hc-element bg-slate-50 px-3 py-2.5 text-xs text-slate-600 ring-1 ring-slate-200">
+            Hlekkurinn á fundinn birtist hér þegar þjálfarinn hefur staðfest tímann.
+          </p>
+        )}
+
+        {/* Where, and what to know. Only for a measurement — a video call
+            happens wherever you are. */}
+        {!isVideo && (place?.site || place?.address || place?.info || prep.length > 0) && (
+          <section className="rounded-hc-card bg-slate-50 p-3.5 ring-1 ring-slate-200">
+            {(place?.site || place?.address) && (
+              <>
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <MapPin className="h-3.5 w-3.5" aria-hidden /> Hvar
+                </p>
+                {place?.site && <p className="mt-1 text-sm font-semibold text-hc-ink">{place.site}</p>}
+                {place?.address && <p className="text-sm text-slate-600">{place.address}</p>}
+              </>
+            )}
+            {place?.info && <p className="mt-2 text-sm text-slate-600">{place.info}</p>}
+            {prep.length > 0 && (
+              <>
+                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">Gott að vita</p>
+                <ul className="mt-1 space-y-1">
+                  {prep.map((line) => (
+                    <li key={line} className="flex gap-1.5 text-sm text-slate-600">
+                      <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-400" />
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+        )}
+
+        {/* Move it. The same picker the booking was made with, so the slots
+            and the rules are the ones that applied the first time. */}
+        {moving ? (
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Nýr tími</p>
+            <Slots minutes={booking.minutes} busy={busy} onBook={move} />
+            <button type="button" onClick={() => setMoving(false)}
+              className="mt-2 w-full text-center text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline">
+              Hætta við að færa
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setMoving(true)} disabled={busy}
+            className={`${hcBtn.secondary} flex w-full items-center justify-center gap-2 disabled:opacity-40`}>
+            <CalendarClock className="h-4 w-4" aria-hidden /> Færa tímann
+          </button>
+        )}
+
+        {/* Last, and it asks. */}
+        {confirming ? (
+          <div className="rounded-hc-element bg-rose-50 p-3 ring-1 ring-rose-200">
+            <p className="text-sm font-semibold text-rose-900">Afbóka þennan tíma?</p>
+            <p className="mt-0.5 text-xs text-rose-800">
+              {isVideo
+                /* Accurate, which the first draft was not: the allowance
+                   query excludes cancelled rows, so cancelling hands the
+                   consult back rather than spending it. */
+                ? "Símtalið fer þá aftur inn í kvótann þennan mánuð og þú getur bókað nýjan tíma."
+                : "Þú getur bókað nýjan tíma hvenær sem er."}
+            </p>
+            <div className="mt-2.5 flex gap-2">
+              <button type="button" disabled={busy}
+                onClick={() => void onPost({ cancel: booking.id }).then((ok) => { if (ok) onClose(); })}
+                className="flex-1 rounded-hc-element bg-rose-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-rose-700 disabled:opacity-40">
+                Afbóka
+              </button>
+              <button type="button" onClick={() => setConfirming(false)}
+                className="flex-1 rounded-hc-element bg-white px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-300 transition hover:bg-slate-50">
+                Nei
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setConfirming(true)}
+            className="w-full text-center text-xs font-semibold text-slate-500 underline-offset-2 hover:text-rose-700 hover:underline">
+            Afbóka tímann
+          </button>
+        )}
+      </div>
+    </Sheet>
   );
 }
