@@ -46,7 +46,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
       }>
 
 
-        <div className="space-y-4 overflow-y-auto overscroll-contain p-4">
+        <div className="space-y-4 p-4">
           {a.summary && <p className="text-sm text-slate-700">{a.summary}</p>}
           {a.details && <p className="whitespace-pre-line text-sm text-slate-600">{a.details}</p>}
           {a.note && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm italic text-emerald-900">{a.note}</p>}

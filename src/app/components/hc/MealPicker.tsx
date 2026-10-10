@@ -71,7 +71,7 @@ export default function MealPicker({ api, category, onPick, onClose }: {
         </div>
       }>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 sm:p-5">
+        <div className="flex-1 bg-slate-50 p-4 sm:p-5">
           {rows === null && <p className="text-sm text-slate-500">Hleð…</p>}
           {rows?.length === 0 && <p className="text-sm text-slate-500">Ekkert fannst.</p>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

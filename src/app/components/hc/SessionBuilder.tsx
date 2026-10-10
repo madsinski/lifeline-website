@@ -73,7 +73,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
       }>
 
 
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex-1">
           {/* What is missing, when something is. Advisory, and it names the
               gap rather than just flagging one. */}
           {advice && (

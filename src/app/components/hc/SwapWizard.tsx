@@ -150,7 +150,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
 
         {/* 1 ─ why */}
         {!why && (
-          <div className="space-y-2 overflow-y-auto overscroll-contain p-4">
+          <div className="space-y-2 p-4">
             <p className="font-semibold text-slate-900">Af hverju viltu skipta?</p>
             {known && (
               <p className="rounded-xl bg-sky-50 p-3 text-xs text-sky-900 ring-1 ring-sky-200">
@@ -170,7 +170,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
 
         {/* 2 ─ which limitation */}
         {why === "limitation" && !region && (
-          <div className="space-y-2 overflow-y-auto overscroll-contain p-4">
+          <div className="space-y-2 p-4">
             <button type="button" onClick={() => setWhy(null)} className={`${hcBtn.ghost} mb-1`}>
               <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
             </button>
@@ -211,7 +211,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
                 </label>
               )}
             </div>
-            <ul className="divide-y divide-slate-100 overflow-y-auto overscroll-contain">
+            <ul className="divide-y divide-slate-100">
               {all === null && <li className="p-4 text-sm text-slate-500">Hleð æfingum…</li>}
               {all !== null && suggestions.length === 0 && <li className="p-4 text-sm text-slate-500">Engin æfing fannst.</li>}
               {suggestions.map((e) => (

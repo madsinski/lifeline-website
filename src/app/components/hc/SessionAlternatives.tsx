@@ -86,7 +86,7 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
       }>
 
 
-        <div className="space-y-4 overflow-y-auto overscroll-contain p-4">
+        <div className="space-y-4 p-4">
           {set.options.length > 0 && (
             <>
               <p className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">

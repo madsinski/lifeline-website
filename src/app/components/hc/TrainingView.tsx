@@ -256,23 +256,30 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-orange-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Æfingaáætlunin mín</p>
-              <h2 className="mt-1 text-2xl font-bold text-slate-900">{exercise.name}</h2>
+          {/* The name and the pill are one line.
+              They were two columns of a space-between row, so the pill sat
+              against the far edge and aligned with the kicker above the
+              name rather than with the name itself — two things at opposite
+              ends of a line read as two things. Sitting next to the name,
+              on its baseline, it reads as what it is: the way into this
+              programme. */}
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Æfingaáætlunin mín</p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+              <h2 className="min-w-0 text-2xl font-bold text-slate-900">{exercise.name}</h2>
+              {/* One pill, one sleeve.
+                  There were three ways in — "Breytingar", a stage link and
+                  "Skipta um æfingaáætlun" — for three views of one subject:
+                  the programme. Everything about it is behind this, in the
+                  order you would ask: where am I, how is the week, what do
+                  I change. */}
+              {training && onSaveTraining && (
+                <button type="button" onClick={() => setDetail(true)}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-900 ring-1 ring-orange-200 transition hover:bg-orange-200">
+                  <Sliders className="h-3.5 w-3.5" aria-hidden /> Prógrammið
+                </button>
+              )}
             </div>
-            {/* One pill, one sleeve.
-                There were three ways in — "Breytingar", a stage link and
-                "Skipta um æfingaáætlun" — for three views of one subject:
-                the programme. Everything about it is behind this, in the
-                order you would ask: where am I, how is the week, what do I
-                change. */}
-            {training && onSaveTraining && (
-              <button type="button" onClick={() => setDetail(true)}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-orange-100 px-3.5 py-1.5 text-sm font-semibold text-orange-900 ring-1 ring-orange-200 transition hover:bg-orange-200">
-                <Sliders className="h-3.5 w-3.5" aria-hidden /> Prógrammið
-              </button>
-            )}
           </div>
 
           {/* The hero carried an "Í dag" block — the day's title, its focus,

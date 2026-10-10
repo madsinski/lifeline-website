@@ -70,7 +70,11 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
     <>
 
 
-        <div className="overflow-y-auto overscroll-contain">
+        {/* No scroller of its own. Whether this is its own Sheet or sits
+            inside the Prógrammið one, the Sheet is already the thing that
+            scrolls — a second scroll area nested in it caught the drag and
+            went nowhere, which is the sleeve "getting stuck". */}
+        <div>
           {SECTIONS.map(({ key, label, blurb, Icon }) => {
             const isOpen = open === key;
             return (

@@ -49,7 +49,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
 
 
         {lift ? (
-          <div className="space-y-4 overflow-y-auto overscroll-contain p-4">
+          <div className="space-y-4 p-4">
             <div>
               <p className="font-bold text-hc-ink">{lift.name}</p>
               <p className="text-xs text-slate-500">Hvað ætlarðu að taka?</p>
@@ -105,7 +105,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
             </div>
           </div>
         ) : (
-        <div className="space-y-3 overflow-y-auto overscroll-contain p-4">
+        <div className="space-y-3 p-4">
           <label className="flex w-fit items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
             <Clock className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
             <input type="time" value={at} onChange={(e) => setAt(e.target.value)} aria-label="Klukkan (valfrjálst)"
