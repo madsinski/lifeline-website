@@ -288,7 +288,12 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
       </section>
 
       <section className={`${hcCard.base} flex flex-col overflow-hidden`}>
-        <div className="max-h-[48vh] min-h-28 flex-1 space-y-2 overflow-y-auto overscroll-contain bg-slate-50/60 p-4">
+        {/* No overscroll-contain here. It belongs inside a sheet, where
+            scrolling past the end should not drift the page behind it. On a
+            page this list is 48vh of the screen, so containing the
+            scroll stranded the page: a thumb over the conversation could not
+            move it at all. Reaching the end now hands the scroll onward. */}
+        <div className="max-h-[48vh] min-h-28 flex-1 space-y-2 overflow-y-auto bg-slate-50/60 p-4">
           {data.thread.length === 0 && (
             <p className="py-6 text-center text-sm text-slate-500">
               Skrifaðu {first} hvað sem er. Svarið kemur hingað.
@@ -386,7 +391,19 @@ function Book({ data, busy, onPost }: {
     const ok = await onPost(choice === "video"
       ? { kind: "video", starts_at: iso }
       : { kind: "measurement", starts_at: iso, items: picked });
-    if (ok) { setChoice(null); setPicked([]); }
+    if (ok) {
+      setChoice(null);
+      setPicked([]);
+      /*
+       * Back to the top.
+       *
+       * The booking form is the length of a day of half-hour slots, so
+       * confirming one left the page at the bottom, looking at the empty
+       * space where the form had been — with the new booking off-screen
+       * above. The thing you just did should be the thing you see.
+       */
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
     return ok;
   };
 

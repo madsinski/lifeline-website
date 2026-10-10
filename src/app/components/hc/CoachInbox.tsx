@@ -164,7 +164,12 @@ export default function CoachInbox({ api, onRead }: {
           <p className="min-w-0 flex-1 truncate font-bold text-hc-ink">{open.name}</p>
         </div>
 
-        <div className="max-h-[52vh] min-h-32 flex-1 space-y-2 overflow-y-auto overscroll-contain bg-slate-50/60 p-4">
+        {/* No overscroll-contain here. It belongs inside a sheet, where
+            scrolling past the end should not drift the page behind it. On a
+            page this list is 52vh of the screen, so containing the
+            scroll stranded the page: a thumb over the conversation could not
+            move it at all. Reaching the end now hands the scroll onward. */}
+        <div className="max-h-[52vh] min-h-32 flex-1 space-y-2 overflow-y-auto bg-slate-50/60 p-4">
           {msgs.map((m) => (
             <div key={m.id} className={`flex ${m.author_kind === "coach" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${m.pending ? "opacity-60" : ""} ${

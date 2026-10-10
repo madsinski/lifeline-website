@@ -473,7 +473,7 @@ function PlanPageInner() {
           upcoming={<UpcomingList items={upcoming} />} />
       )}
       {people && (
-        <PeopleSheet api={api} mine={today?.stats ?? null} partner={today?.partner ?? null}
+        <PeopleSheet api={api} mine={today?.stats ?? null} myAvatar={today?.avatar ?? null} partner={today?.partner ?? null}
           done={doneCount} of={ofCount}
           onClose={() => setPeople(false)} onNudged={() => void reloadToday()} />
       )}

@@ -127,11 +127,23 @@ export async function GET(req: NextRequest) {
     if (pj?.[0]) theirs = await stats(pj[0].id as string);
   }
 
+  /*
+   * Faces. Two names and two bars is a report; a face is a person, and the
+   * whole point of an accountability partner is that it is somebody.
+   * Nullable everywhere — most members have no avatar yet, so the sheet
+   * falls back to initials rather than a broken image.
+   */
+  const faces = await supabaseAdmin
+    .from("clients").select("id, avatar_url")
+    .in("id", [user.id, ...(partnerId ? [partnerId] : [])]);
+  const face = new Map((faces.data ?? []).map((f) => [f.id as string, (f.avatar_url as string) ?? null]));
+
   return NextResponse.json({
     // The share of the last 28 days with something done. A percentage of
     // days is honest in a way "% of actions" is not: it does not punish a
     // person for having a long plan.
     stats: mine ? { ...mine, percent28: Math.round((mine.days28 / 28) * 100) } : null,
+    avatar: face.get(user.id) ?? null,
     urgent: [
       ...upcoming.slice(0, 2).map((u) => ({
         kind: "appointment" as const,
@@ -153,6 +165,7 @@ export async function GET(req: NextRequest) {
     partner: partnerName
       ? {
           id: partnerId ?? null, name: partnerName, canNudge: Boolean(partnerId),
+          avatar: partnerId ? face.get(partnerId) ?? null : null,
           // Same shape as `stats`, so the two rows are the same measures.
           stats: theirs ? { ...theirs, percent28: Math.round((theirs.days28 / 28) * 100) } : null,
           training: partnerId ? await trainingOf(partnerId) : null,
@@ -167,6 +180,12 @@ export async function GET(req: NextRequest) {
  * other.
  */
 export const NUDGES: Record<string, string> = {
+  /*
+   * The plain one. Picking between four kindnesses is a decision, and
+   * sometimes the whole message is "I saw you today" — so this is the
+   * one-tap version with nothing to choose.
+   */
+  poke: "ýtti við þér",
   cheer: "sendir þér hvatningu",
   proud: "er stoltur af þér",
   missing: "saknar þín í vikunni",

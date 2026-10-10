@@ -26,6 +26,7 @@ export interface Partner {
   id: string | null;
   name: string;
   canNudge: boolean;
+  avatar?: string | null;
   stats: Stats | null;
   training?: { today: string[]; tomorrow: string[] } | null;
 }
@@ -66,9 +67,11 @@ export function PeopleButton({ onClick, done, of }: { onClick: () => void; done:
   );
 }
 
-export default function PeopleSheet({ api, mine, partner, done, of, onClose, onNudged }: {
+export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, onClose, onNudged }: {
   api: Api;
   mine: Stats | null;
+  /** Your own face, so the comparison is two people and not one. */
+  myAvatar?: string | null;
   partner: Partner | null;
   done: number;
   of: number;
@@ -91,9 +94,9 @@ export default function PeopleSheet({ api, mine, partner, done, of, onClose, onN
   return (
     <Sheet title="Staðan" onClose={onClose} canvas>
       <div className="space-y-3 p-3 sm:p-4">
-          <PersonCard name="Þú" stats={mine} today={done} of={of} highlight />
+          <PersonCard name="Þú" avatar={myAvatar ?? null} stats={mine} today={done} of={of} highlight />
           {partner
-            ? <PersonCard name={partner.name} stats={partner.stats}
+            ? <PersonCard name={partner.name} avatar={partner.avatar ?? null} stats={partner.stats}
                 training={partner.training ?? null} />
             : (
               <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200">
@@ -110,7 +113,17 @@ export default function PeopleSheet({ api, mine, partner, done, of, onClose, onN
                 <p className="mt-2 text-sm font-semibold text-hc-brand-dark">Sent. Þau fá þetta í símann.</p>
               ) : (
                 <>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+                  {/* The whole thing in one tap. Choosing between four
+                      kindnesses is a decision, and often the entire message
+                      is "I saw you today" — so this is first and the words
+                      are underneath for when there is something to say. */}
+                  <button type="button" disabled={sending} onClick={() => void nudge("poke")}
+                    className={`${hcBtn.primary} mt-2.5 flex w-full items-center justify-center gap-2 disabled:opacity-40`}>
+                    <Hand className="h-4 w-4" aria-hidden />
+                    Ýta við {partner.name.split(" ")[0]}
+                  </button>
+                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Eða með orðum</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {NUDGE_KINDS.map((k) => (
                       <button key={k.key} type="button" disabled={sending} onClick={() => void nudge(k.key)}
                         className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-hc-brand/10 hover:text-hc-brand-dark disabled:opacity-40">
@@ -137,8 +150,10 @@ export default function PeopleSheet({ api, mine, partner, done, of, onClose, onN
 }
 
 /** One person, big enough to read at a glance. */
-function PersonCard({ name, stats, today, of, training, highlight = false }: {
+function PersonCard({ name, avatar, stats, today, of, training, highlight = false }: {
   name: string;
+  /** Null for most people; initials stand in rather than a broken image. */
+  avatar?: string | null;
   stats: Stats | null;
   today?: number;
   of?: number;
@@ -147,8 +162,11 @@ function PersonCard({ name, stats, today, of, training, highlight = false }: {
 }) {
   return (
     <section className={`rounded-hc-card bg-white p-4 ring-1 sm:p-5 ${highlight ? "ring-hc-brand/40" : "ring-slate-200"}`}>
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="min-w-0 truncate text-lg font-bold text-hc-ink">{name}</p>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Face name={name} src={avatar ?? null} />
+          <p className="min-w-0 truncate text-lg font-bold text-hc-ink">{name}</p>
+        </div>
         {today !== undefined && of !== undefined && (
           <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-500">{today}/{of} í dag</p>
         )}
@@ -202,5 +220,31 @@ function PersonCard({ name, stats, today, of, training, highlight = false }: {
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * A face, or the next best thing.
+ *
+ * Most members have no avatar, and an empty circle says less than two
+ * letters do. Initials come from the name we already show, so the fallback
+ * is never a stranger — and "Þú" becomes "Þ", which is correct.
+ */
+function Face({ name, src }: { name: string; src: string | null }) {
+  const initials = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0] ?? "").join("").toUpperCase();
+  if (src) {
+    // Avatars come from arbitrary storage URLs, which next/image would need
+    // configured per host; a 40px circle is not worth that.
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={src} alt="" width={40} height={40}
+        className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-slate-200" />
+    );
+  }
+  return (
+    <span aria-hidden
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-sm font-bold text-hc-brand-dark ring-1 ring-hc-brand/20">
+      {initials || "?"}
+    </span>
   );
 }

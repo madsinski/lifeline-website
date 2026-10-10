@@ -17,8 +17,10 @@ export interface Stats { days7: number; days14: number; days28: number; streak: 
 
 interface Data {
   stats: Stats | null;
+  /** Your own avatar, for the Staðan sleeve. Null for most people. */
+  avatar?: string | null;
   urgent: { kind: "appointment" | "nudge"; at: string; title: string; detail: string | null; href: string | null }[];
-  partner: { id: string | null; name: string; canNudge: boolean; stats: Stats | null } | null;
+  partner: { id: string | null; name: string; canNudge: boolean; avatar?: string | null; stats: Stats | null } | null;
 }
 
 const MO = ["jan", "feb", "mar", "apr", "maí", "jún", "júl", "ágú", "sep", "okt", "nóv", "des"];
