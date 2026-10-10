@@ -222,6 +222,29 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
   const [about, setAbout] = useState(false);
   /** The whole history, when asked for. Default is the recent end of it. */
   const [showAll, setShowAll] = useState(false);
+  /*
+   * Messenger's layout: the person at the top, the composer at the bottom,
+   * and only the page scrolling between them.
+   *
+   * The coach card is tall — photo, name, role, Um/Skipta — and once you
+   * have scrolled past it there is no longer anything on screen saying who
+   * you are writing to. So a one-line version pins itself to the top when
+   * the full card leaves the viewport. An observer on a sentinel at the
+   * card's bottom edge decides, rather than a scroll listener, because the
+   * question is literally "is this element still visible".
+   */
+  const [pinned, setPinned] = useState(false);
+  const cardEnd = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = cardEnd.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([e]) => setPinned(!e.isIntersecting && e.boundingClientRect.top < 0),
+      { threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const c = data.coach;
   const first = c?.name?.split(" ")[0] ?? "þjálfarann þinn";
 
@@ -234,6 +257,25 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
 
   return (
     <>
+      {/* The pinned one-liner. Always in the tree so it can animate, and
+          lifted out of flow while hidden so it does not take a row of space
+          at the top of the page for nothing. */}
+      <div className={`sticky top-0 z-20 -mb-px transition-all duration-200 ${
+        pinned ? "max-h-16 opacity-100" : "pointer-events-none max-h-0 opacity-0"}`}>
+        <div className="flex items-center gap-3 rounded-b-2xl bg-gradient-to-br from-hc-hero-from to-hc-hero-to px-4 py-2.5 text-white shadow-md">
+          {c?.photo_url
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={c.photo_url} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/40" />
+            : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/30"><UserRound className="h-5 w-5" aria-hidden /></span>}
+          <p className="min-w-0 flex-1 truncate font-bold">{c?.name ?? "Þjálfarinn þinn"}</p>
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            aria-label="Upp á toppinn"
+            className="shrink-0 rounded-full p-1 text-white/80 transition hover:bg-white/15 hover:text-white">
+            <ChevronDown className="h-5 w-5 rotate-180" aria-hidden />
+          </button>
+        </div>
+      </div>
+
       {/* Who you are talking to, above the thread rather than behind a tab.
           A gradient header so the person reads as the subject of the page,
           and the rest of the card stays white. */}
@@ -302,6 +344,10 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
         )}
       </section>
 
+      {/* The line the observer watches: when this passes above the top of
+          the viewport, the full card is gone and the pinned one takes over. */}
+      <div ref={cardEnd} aria-hidden className="h-px" />
+
       <section className={`${hcCard.base} flex flex-col overflow-hidden`}>
         {/* One scroll, not two.
             This was a 48vh box with its own scrollbar sitting inside the
@@ -362,7 +408,15 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
             a label you then send unread. The sheet shows each one in full,
             so you choose the message rather than its title — and it stays
             out of the way until asked for, which a permanent row did not. */}
-        <div className="flex items-end gap-2 p-3">
+        {/* Docked, like Messenger's.
+            It used to sit at the end of the thread, so writing a reply to
+            an old message meant scrolling to the bottom to find the box.
+            Sticky rather than fixed: it stays in the card's column and
+            inherits its width, and the page is still the only scroller.
+            The offset clears the bottom navbar through the shared token —
+            above sm that token is 0 because the navbar is hidden there. */}
+        <div className="sticky z-10 flex items-end gap-2 border-t border-slate-100 bg-white/95 p-3 backdrop-blur"
+          style={{ bottom: "var(--hc-dock-offset)" }}>
           <button type="button" onClick={() => setPrompts(true)}
             aria-label="Tilbúin skilaboð"
             className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-hc-brand-dark">

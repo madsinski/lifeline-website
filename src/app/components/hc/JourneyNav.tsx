@@ -184,7 +184,9 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
          */
         const bar = (
           <nav aria-label="Heilsuferðin" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden print:hidden"
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            /* Height from the shared token, so a sticky dock can offset
+               itself by exactly this and stay correct if it changes. */
+            style={{ height: "var(--hc-nav-h)", paddingBottom: "env(safe-area-inset-bottom)", boxSizing: "content-box" }}>
             {slots.map((i) => item(i, true))}
             {spill.length > 0 && (
               <div className="relative flex flex-1">

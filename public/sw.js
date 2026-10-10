@@ -52,7 +52,16 @@ self.addEventListener("push", (event) => {
     await self.registration.showNotification(title, {
       body: data.body || "",
       icon: "/heilsuferd-icon-192.png",
-      badge: "/heilsuferd-icon-192.png",
+      /*
+       * The status-bar icon is a different job from the one in the tray.
+       *
+       * Android masks the small icon by its alpha and paints the result
+       * white, so a full-colour square with an opaque background comes out
+       * as exactly that: a white square. It needs the logo's silhouette on
+       * transparency, which heilsuferd-badge-96.png is — derived from the
+       * app icon itself, using how white each pixel is as the mask.
+       */
+      badge: "/heilsuferd-badge-96.png",
       tag: data.tag || "lifeline-nudge",
       lang: "is",
       data: { url: data.url || "/account/heilsuferd/aaetlun?tab=today" },

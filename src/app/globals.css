@@ -30,6 +30,21 @@ body.hc-scroll-lock {
 }
 
 :root {
+  /*
+   * The participant bottom navbar's height, and how far a sticky dock has
+   * to sit above it.
+   *
+   * Measured at 60px. It lives here rather than as a number in two files
+   * because the navbar sets its height from it and the message composer
+   * offsets itself by it — two things that must agree, and would not stay
+   * agreeing if each carried its own copy.
+   *
+   * Above sm the navbar is hidden (sm:hidden), so the dock sits on the
+   * floor instead.
+   */
+  --hc-nav-h: 60px;
+  --hc-dock-offset: calc(var(--hc-nav-h) + env(safe-area-inset-bottom, 0px));
+
   --background: #ecf0f3;
   --foreground: #1F2937;
   --primary: #10B981;
@@ -413,3 +428,7 @@ main.readonly-locked a {
 .animate-hc-ping  { animation: hc-ping 1.5s cubic-bezier(0, 0, 0.2, 1) 6; }
 .animate-hc-swing { animation: hc-swing 1.5s ease-in-out 6; transform-origin: top center; }
 .animate-hc-pulse { animation: hc-pulse 1.5s ease-in-out 6; }
+
+@media (min-width: 640px) {
+  :root { --hc-dock-offset: 0px; }
+}
