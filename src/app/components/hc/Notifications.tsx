@@ -19,6 +19,8 @@ type Api = (url: string, init?: RequestInit) => Promise<Response>;
 export interface Note {
   id: string; kind: "coach" | "partner" | "appointment" | "report" | "retention";
   title: string; body: string | null; at: string; unread: boolean; href: string | null;
+  /** Several messages behind one row. */
+  count?: number;
 }
 
 const ICON = { coach: MessageCircle, partner: Hand, appointment: CalendarClock, report: FileCheck2, retention: FileCheck2 };
@@ -211,7 +213,12 @@ export function NotificationList({ items }: { items: Note[] }) {
                 {n.unread && <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" aria-label="nýtt" />}
               </span>
               {n.body && <span className="mt-0.5 block text-xs leading-snug text-hc-ink-2">{n.body}</span>}
-              <span className="mt-0.5 block text-[11px] text-slate-400">{whenIs(n.at)}</span>
+              <span className="mt-0.5 block text-[11px] text-slate-400">
+                {whenIs(n.at)}
+                {/* Say how many are behind the row, so the newest message
+                    showing alone does not look like the only one. */}
+                {n.count && n.count > 1 ? ` · ${n.count} skilaboð` : ""}
+              </span>
             </span>
           </>
         );

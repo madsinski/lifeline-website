@@ -27,6 +27,8 @@ export interface Note {
   /** Counts toward the dot. */
   unread: boolean;
   href: string | null;
+  /** How many messages this row stands for, when it stands for several. */
+  count?: number;
 }
 
 export async function GET(req: NextRequest) {
@@ -84,22 +86,50 @@ export async function GET(req: NextRequest) {
 
   const items: Note[] = [];
 
+  /*
+   * One row per coach, not one per message.
+   *
+   * Three replies in a row produced three identical-looking entries, which
+   * pushed everything else off the list and read as three events when it
+   * was one conversation. The row carries the newest message, the count,
+   * and goes unread if any of them is — because the thing you do about it
+   * is the same either way: open the conversation.
+   *
+   * Both sources collapse together. The coach is one person whether they
+   * wrote from the older app conversation or from the workstation, and the
+   * distinction is ours, not theirs.
+   */
+  const fromCoach: { who: string; body: string | null; at: string; unread: boolean; id: string }[] = [];
   for (const m of coachMsgs ?? []) {
-    items.push({
-      id: `coach:${m.id}`, kind: "coach",
-      title: `Skilaboð frá ${(m.sender_name as string) ?? "þjálfara"}`,
-      body: (m.content as string) ?? null,
-      at: m.created_at as string, unread: !m.read,
-      href: "/account/heilsuferd/aaetlun?tab=coach",
+    fromCoach.push({
+      who: (m.sender_name as string) ?? "þjálfara", body: (m.content as string) ?? null,
+      at: m.created_at as string, unread: !m.read, id: `coach:${m.id}`,
+    });
+  }
+  for (const m of (chat ?? []) as Record<string, string | null>[]) {
+    fromCoach.push({
+      who: m.author_name ?? "þjálfara", body: m.body ?? null,
+      at: m.created_at as string, unread: !m.read_by_client_at, id: `chat:${m.id}`,
     });
   }
 
-  for (const m of (chat ?? []) as Record<string, string | null>[]) {
+  const byCoach = new Map<string, typeof fromCoach>();
+  for (const m of fromCoach) {
+    const g = byCoach.get(m.who);
+    if (g) g.push(m); else byCoach.set(m.who, [m]);
+  }
+  for (const [who, group] of byCoach) {
+    group.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+    const newest = group[0];
     items.push({
-      id: `chat:${m.id}`, kind: "coach",
-      title: `Skilaboð frá ${m.author_name ?? "þjálfara"}`,
-      body: m.body ?? null,
-      at: m.created_at as string, unread: !m.read_by_client_at,
+      // The newest message's id, so the row changes identity when a new one
+      // lands and anything keyed on it re-renders.
+      id: newest.id, kind: "coach",
+      title: `Skilaboð frá ${who}`,
+      body: newest.body,
+      at: newest.at,
+      unread: group.some((m) => m.unread),
+      count: group.length,
       href: "/account/heilsuferd/aaetlun?tab=coach",
     });
   }
