@@ -117,7 +117,9 @@ function useCoachUnread(api: (u: string, i?: RequestInit) => Promise<Response>) 
     if (!r?.ok) return;
     const j = await r.json().catch(() => null);
     const n = Number(j?.unread ?? 0);
-    setUnread(n);
+    // Deferred: this runs on a path an effect calls, and the compiler
+    // objects to setting state synchronously there.
+    setTimeout(() => setUnread(n), 0);
     // Chime on a rise only, so a page that already had three waiting does
     // not announce them again every fifteen seconds.
     if (n > rung.current) chime();

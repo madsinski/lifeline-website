@@ -24,6 +24,8 @@ interface Thread {
 interface Msg {
   id: string; author_kind: "client" | "coach"; author_name: string | null;
   kind: "message" | "nudge"; body: string | null; created_at: string;
+  /** Shown dimmed: typed, sent, not yet acknowledged by the server. */
+  pending?: boolean;
 }
 
 const MO = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
@@ -54,15 +56,38 @@ export default function CoachInbox({ api, onRead }: {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  /** The list never arrived. Distinct from "no threads", which is fine. */
+  const [failed, setFailed] = useState(false);
   const end = useRef<HTMLDivElement>(null);
+  /** Ids for optimistic bubbles. A counter, not a clock: Date.now() counts
+   *  as impure and the compiler is right that it does not belong here. */
+  const seq = useRef(0);
 
   const loadList = useCallback(async () => {
     const r = await api("/api/vinnustod/chat").catch(() => null);
-    if (!r?.ok) return;
+    // Say so rather than pulsing a grey box for ever. An inbox that cannot
+    // load looks exactly like an inbox that is loading, and the coach has
+    // no way to tell which they are waiting for.
+    if (!r?.ok) { setTimeout(() => setFailed(true), 0); return; }
     const j = await r.json();
-    setTimeout(() => setThreads(j.threads ?? []), 0);
+    // Deferred, like the rest of this file: setting state on the path an
+    // effect calls synchronously is what the compiler objects to.
+    setTimeout(() => { setFailed(false); setThreads(j.threads ?? []); }, 0);
   }, [api]);
-  useEffect(() => { void loadList(); }, [loadList]);
+
+  /*
+   * Keep the inbox live while it is on screen. The page badge polls for the
+   * count; this is the list and the open conversation, so a coach watching
+   * a thread sees the next message land instead of refreshing to find it.
+   */
+  useEffect(() => {
+    void loadList();
+    const tick = () => { if (document.visibilityState === "visible") void loadList(); };
+    const id = window.setInterval(tick, 15_000);
+    window.addEventListener("focus", tick);
+    return () => { window.clearInterval(id); window.removeEventListener("focus", tick); };
+  }, [loadList]);
 
   const loadThread = useCallback(async (t: Thread) => {
     const r = await api(`/api/vinnustod/chat?journey=${encodeURIComponent(t.journeyId)}`).catch(() => null);
@@ -79,17 +104,53 @@ export default function CoachInbox({ api, onRead }: {
   useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [msgs.length]);
 
   const send = async (text: string, nudge = false) => {
-    if (!open || !text.trim()) return;
+    const body = text.trim();
+    if (!open || !body) return;
+    setErr("");
     setBusy(true);
-    const r = await api("/api/vinnustod/chat", { method: "POST",
-      body: JSON.stringify({ journey: open.journeyId, send: text.trim(), nudge }) }).catch(() => null);
-    setBusy(false);
-    if (!r?.ok) return;
+
+    /*
+     * Show it immediately, dimmed, then reconcile.
+     *
+     * The same defect the participant side had, and the same complaint:
+     * press send, nothing visibly happens, so you cannot tell whether it
+     * went. The round trip is a write plus a reload of two lists.
+     */
+    const temp: Msg = {
+      id: `pending-${(seq.current += 1)}`, author_kind: "coach", author_name: null,
+      kind: nudge ? "nudge" : "message", body, created_at: new Date().toISOString(),
+      pending: true,
+    };
+    setMsgs((m) => [...m, temp]);
+    const had = draft;
     setDraft("");
+
+    const r = await api("/api/vinnustod/chat", { method: "POST",
+      body: JSON.stringify({ journey: open.journeyId, send: body, nudge }) }).catch(() => null);
+    setBusy(false);
+
+    if (!r?.ok) {
+      // Take the bubble back and hand the words back to the composer, so a
+      // failed send does not quietly eat what was typed.
+      setMsgs((m) => m.filter((x) => x.id !== temp.id));
+      if (!nudge) setDraft(had || body);
+      const j = r ? await r.json().catch(() => ({})) : {};
+      setErr((j as { error?: string }).error || "Skilaboðin fóru ekki. Prófaðu aftur.");
+      return;
+    }
     await loadThread(open);
   };
 
-  if (threads === null) return <div className="h-40 animate-pulse rounded-hc-card bg-white" aria-hidden />;
+  if (threads === null) {
+    return failed ? (
+      <div className={`${hcCard.base} px-4 py-8 text-center`}>
+        <p className="text-sm font-semibold text-hc-ink">Náði ekki í skilaboðin.</p>
+        <p className="mt-1 text-xs text-slate-500">Athugaðu netsambandið.</p>
+        <button type="button" onClick={() => { setFailed(false); void loadList(); }}
+          className={`${hcBtn.secondary} mt-3`}>Reyna aftur</button>
+      </div>
+    ) : <div className="h-40 animate-pulse rounded-hc-card bg-white" aria-hidden />;
+  }
 
   // ── One conversation ──────────────────────────────────────────────────
   if (open) {
@@ -106,7 +167,7 @@ export default function CoachInbox({ api, onRead }: {
         <div className="max-h-[52vh] min-h-32 flex-1 space-y-2 overflow-y-auto overscroll-contain bg-slate-50/60 p-4">
           {msgs.map((m) => (
             <div key={m.id} className={`flex ${m.author_kind === "coach" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${
+              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${m.pending ? "opacity-60" : ""} ${
                 m.author_kind === "coach"
                   ? m.kind === "nudge" ? "bg-amber-100 text-amber-950" : "bg-hc-brand text-white"
                   : "bg-white text-slate-900 ring-1 ring-slate-200"}`}>
@@ -117,7 +178,7 @@ export default function CoachInbox({ api, onRead }: {
                 )}
                 <p className="whitespace-pre-wrap leading-snug">{m.body}</p>
                 <p className={`mt-1 text-[10px] ${m.author_kind === "coach" && m.kind !== "nudge" ? "text-white/70" : "text-slate-400"}`}>
-                  {ago(m.created_at)}
+                  {m.pending ? "Sendi…" : ago(m.created_at)}
                 </p>
               </div>
             </div>
@@ -137,6 +198,11 @@ export default function CoachInbox({ api, onRead }: {
               </button>
             ))}
           </div>
+        )}
+        {err && (
+          <p role="status" className="mx-3 mt-2 rounded-hc-element bg-red-50 px-3 py-2 text-xs font-semibold text-red-800 ring-1 ring-red-200">
+            {err}
+          </p>
         )}
         <div className="flex items-end gap-2 p-3">
           <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
