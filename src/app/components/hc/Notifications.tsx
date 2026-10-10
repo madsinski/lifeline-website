@@ -45,13 +45,38 @@ export function whenIs(iso: string): string {
  */
 const POLL_MS = 15_000;
 
+/**
+ * Keep the launcher icon's dot honest.
+ *
+ * The service worker sets a plain dot when a push arrives, because it has
+ * no idea how many things are waiting. The page does know, so it writes the
+ * real number — and clears it when there is nothing, which is the half that
+ * matters: a badge that will not go away is the same complaint as a dot
+ * that cannot be cleared.
+ *
+ * Only an installed app has a launcher icon, so on everything else both
+ * calls are no-ops that throw and are ignored.
+ */
+function syncBadge(n: number) {
+  try {
+    const nav = navigator as Navigator & {
+      setAppBadge?: (n?: number) => Promise<void>;
+      clearAppBadge?: () => Promise<void>;
+    };
+    if (n > 0) void nav.setAppBadge?.(n)?.catch(() => {});
+    else void nav.clearAppBadge?.()?.catch(() => {});
+  } catch { /* not supported */ }
+}
+
 export function useNotifications(api: Api) {
   const [items, setItems] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
   const load = useCallback(async () => {
     const r = await api("/api/hc/notifications");
     const j = r.ok ? await r.json().catch(() => null) : null;
-    setTimeout(() => { setItems(j?.items ?? []); setUnread(j?.unread ?? 0); }, 0);
+    const n = Number(j?.unread ?? 0);
+    setTimeout(() => { setItems(j?.items ?? []); setUnread(n); }, 0);
+    if (r.ok) syncBadge(n);
   }, [api]);
   /*
    * Keep it current without the person reloading.
