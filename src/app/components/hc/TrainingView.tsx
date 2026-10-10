@@ -8,7 +8,7 @@
 // Saved to hc_training_settings through onSave (src/lib/hc/personalise.ts).
 
 import React, { useMemo, useState } from "react";
-import { ArrowLeftRight, Check, ChevronDown, ListChecks, Plus, Sliders, X, Dumbbell, Play, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, Plus, Sliders, X, Dumbbell, Play, RotateCcw, Sparkles } from "lucide-react";
 import { needsRunner } from "@/lib/hc/workout";
 import { hiitOnAt, itemsForFocus, LOAD_IS, trainingScore } from "@/lib/hc/adaptive-program";
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
@@ -696,13 +696,13 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
             {onInstead && !done && (
               <button type="button" onClick={onInstead}
                 className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
-                Ég geri eitthvað annað í dag
+                Gera annað
               </button>
             )}
             {onRemove && (
               <button type="button" onClick={onRemove}
                 className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-red-700 hover:underline">
-                Taka þennan dag af
+                Taka daginn af
               </button>
             )}
           </div>
@@ -903,24 +903,47 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                   </p>
                 ) : (
                   <span className="flex w-full flex-col gap-2">
-                    {onBuild && a.focus && (
-                      <button type="button" onClick={() => onBuild(a)}
-                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-50">
-                        <ListChecks className="h-4 w-4" aria-hidden /> Sjá æfingar
-                      </button>
-                    )}
-                    {onRun && a.focus && (
+                    {/* One primary, solid in the day's own colour when it
+                        is today and outlined when it is not — the same rule
+                        the prescribed card follows. */}
+                    {onRun && a.focus ? (
                       <button type="button" onClick={() => onRun(a)}
-                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 px-4 py-3 font-bold text-white transition hover:bg-orange-700">
+                        className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition ${today ? "py-3" : "py-2.5"} ${TONE[am === "other" ? "other" : am].go}`}>
                         <Play className="h-4 w-4" aria-hidden /> Byrja æfinguna
                       </button>
-                    )}
-                    {onComplete && (
+                    ) : onComplete ? (
                       <button type="button" onClick={() => onComplete(a)}
-                        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 transition hover:bg-slate-50">
+                        className={today
+                          ? `flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold text-white transition ${TONE[am === "other" ? "other" : am].go}`
+                          : `flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 font-semibold transition ${TONE[am === "other" ? "other" : am].quiet}`}>
                         <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
                       </button>
-                    )}
+                    ) : null}
+
+                    {/* Everything else as quiet links on one line, the way
+                        the prescribed card already does it. Three stacked
+                        blocks of equal weight made every card a menu with
+                        no answer to "what do I press". */}
+                    <span className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-0.5">
+                      {onBuild && a.focus && (
+                        <button type="button" onClick={() => onBuild(a)}
+                          className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
+                          Sjá æfingar
+                        </button>
+                      )}
+                      {onRun && a.focus && onComplete && (
+                        <button type="button" onClick={() => onComplete(a)}
+                          className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
+                          Ég gerði þetta
+                        </button>
+                      )}
+                      {onRemove && (
+                        <button type="button" onClick={() => onRemove(a.id)}
+                          className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-red-700 hover:underline">
+                          Taka af
+                        </button>
+                      )}
+                    </span>
                   </span>
                 )}
                 {/* Álag on the session itself. The programme has a global
@@ -944,12 +967,6 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                         className="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 disabled:opacity-30">+</button>
                     </span>
                   </div>
-                )}
-                {onRemove && (
-                  <button type="button" onClick={() => onRemove(a.id)}
-                    className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-red-700 hover:underline">
-                    Taka þetta af
-                  </button>
                 )}
               </div>
             )} />
