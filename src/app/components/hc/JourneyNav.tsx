@@ -48,7 +48,7 @@ const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun;
   { primary: true, key: "report", label: "Skýrslan", href: "/account/heilsuferd/aaetlun?tab=report", Icon: FileHeart },
   { key: "journey", label: "Ferðin", href: "/account/heilsuferd?ferd=1", Icon: Compass },
   { key: "notifications", label: "Tilkynningar", href: "/account/heilsuferd/tilkynningar", Icon: Zap },
-  { key: "account", label: "Aðgangur", href: "/account/heilsuferd/adgangur", Icon: Settings },
+  { key: "account", label: "Stillingar", href: "/account/heilsuferd/adgangur", Icon: Settings },
 ];
 
 /*

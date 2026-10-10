@@ -69,7 +69,7 @@ function Adgangur() {
         </div>
         {hasPlan && <JourneyNav active="account" />}
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="flex-1 text-2xl font-bold text-slate-900 sm:text-3xl">Aðgangurinn minn</h1>
+          <h1 className="flex-1 text-2xl font-bold text-slate-900 sm:text-3xl">Stillingar</h1>
           {userId && <SignOutButton />}
         </div>
 

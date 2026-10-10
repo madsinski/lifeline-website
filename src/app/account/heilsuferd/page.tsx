@@ -350,7 +350,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-5xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
         <div className="mb-3 print:hidden">
-          <BackLink href="/account/heilsuferd/adgangur" label="Aðgangurinn minn" />
+          <BackLink href="/account/heilsuferd/adgangur" label="Stillingar" />
         </div>
         {children}
       </div>
@@ -373,7 +373,7 @@ function StartJourney() {
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link href="/account/heilsuferd?start=1" className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Hefja heilsuferð →</Link>
-          <Link href="/account/heilsuferd/adgangur" className="inline-flex min-h-11 items-center rounded-hc-element bg-white/15 px-4 font-semibold text-white ring-1 ring-white/30 hover:bg-white/25">Aðgangurinn minn</Link>
+          <Link href="/account/heilsuferd/adgangur" className="inline-flex min-h-11 items-center rounded-hc-element bg-white/15 px-4 font-semibold text-white ring-1 ring-white/30 hover:bg-white/25">Stillingar</Link>
         </div>
       </section>
     </Shell>

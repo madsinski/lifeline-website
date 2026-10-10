@@ -43,7 +43,6 @@ import RetentionReview from "@/app/components/hc/RetentionReview";
 import { peek } from "@/lib/hc/client-cache";
 import { Info, Pencil } from "lucide-react";
 import TrainingView from "@/app/components/hc/TrainingView";
-import CalendarCard from "@/app/components/hc/CalendarCard";
 import TrainingWizard from "@/app/components/hc/TrainingWizard";
 import NutritionView from "@/app/components/hc/NutritionView";
 import NutritionWizard from "@/app/components/hc/NutritionWizard";
@@ -644,13 +643,6 @@ function PlanPageInner() {
                       })}
                       />
                   )}
-                  {/* Last on the tab: the week belongs in the calendar they
-                      already live in, but it is a once-only errand and does
-                      not deserve a place above the training itself.
-                      mt-6 because TrainingView's own space-y-6 governs its
-                      children, not its siblings — so this sat flush against
-                      the card above it. */}
-                  <div className="mt-6"><CalendarCard api={api} /></div>
                 </div>
               )}
               {tab === "nutrition" && plan?.nutrition && (
