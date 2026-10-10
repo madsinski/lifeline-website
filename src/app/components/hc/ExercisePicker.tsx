@@ -6,6 +6,7 @@
 // one pick in "replace" mode.
 
 import { useEffect, useState } from "react";
+import Sheet from "./Sheet";
 import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import type { LibraryExercise } from "@/lib/hc/types";
 import { CATEGORY_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
@@ -58,8 +59,9 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-slate-900/40 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Æfingasafn" onClick={onClose}>
-      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+    <>
+      <Sheet title={mode === "replace" ? "Skipta um æfingu" : "Æfingasafn"} onClose={onClose} max="max-w-5xl"
+        header={
         <div className="border-b border-slate-100 p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
@@ -90,6 +92,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
             ))}
           </div>
         </div>
+        }>
 
         <div className="flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 sm:p-5">
           {rows === null && <p className="text-sm text-slate-500">Hleð…</p>}
@@ -126,8 +129,12 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
             })}
           </div>
         </div>
-      </div>
+      </Sheet>
 
+      {/* The exercise detail. A sibling of the sheet rather than a
+          child: it is its own fixed overlay at a higher layer, and
+          nesting it inside would put it under the sheet it opened
+          from. */}
       {open && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" onClick={(e) => { e.stopPropagation(); setOpen(null); }}>
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -151,6 +158,6 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

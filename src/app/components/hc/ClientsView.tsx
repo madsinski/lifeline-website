@@ -12,7 +12,7 @@
 // nurse should not be setting prices.
 
 import { useCallback, useEffect, useState } from "react";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import Sheet from "./Sheet";
 import { Building2, ChevronDown, Loader2, Plus, Search, Users } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -172,8 +172,6 @@ export default function ClientsView({ api, onOpenClient }: {
 }
 
 function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; onSaved: () => void }) {
-  // Only mounted while the sheet is open, so the lock is unconditional.
-  useScrollLock();
   const [f, setF] = useState({ name: "", contact_name: "", contact_email: "", contact_phone: "", address: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -196,8 +194,8 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-4 sm:items-center" onClick={onClose} role="presentation">
-      <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Nýr hópur">
+    <Sheet title="Nýr hópur" onClose={onClose} max="max-w-md">
+      <div className="p-4 pt-0">
         <p className="font-bold text-slate-900">Nýr hópur</p>
         <p className="mt-0.5 text-sm text-slate-500">
           Vinnustaður eða félag. Samningar og verð eru fyllt út í /admin/business á eftir.
@@ -220,6 +218,6 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
           <button type="button" onClick={onClose} className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Hætta við</button>
         </div>
       </div>
-    </div>
+    </Sheet>
   );
 }

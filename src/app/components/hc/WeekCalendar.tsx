@@ -12,6 +12,7 @@
 // clinic, so a stand-in can work someone else's week.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Sheet from "./Sheet";
 import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { CalendarPlus, ChevronLeft, ChevronRight, Link2, Loader2, Search, Video } from "lucide-react";
 import { APPT_EVENT, APPT_IS, APPT_KINDS, APPT_MINUTES, type ApptKind } from "@/lib/hc/appointment-kinds";
@@ -255,10 +256,14 @@ function BookDialog({ api, at, onClose, onBooked }: {
   const when = `${WEEKDAYS_IS[new Date(at).getDay()]} ${new Date(at).getDate()}. ${MONTHS_IS[new Date(at).getMonth()]} kl. ${hhmm(at)}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-slate-900/40 p-4 sm:items-center" onClick={onClose} role="presentation">
-      <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Bóka tíma">
-        <p className="font-bold text-slate-900">Bóka tíma</p>
-        <p className="mt-0.5 text-sm text-slate-500">{when}</p>
+    <Sheet title="Bóka tíma" onClose={onClose} max="max-w-md"
+      header={
+        <div className="px-4 pb-1">
+          <p className="font-bold text-slate-900">Bóka tíma</p>
+          <p className="mt-0.5 text-sm text-slate-500">{when}</p>
+        </div>
+      }>
+      <div className="p-4 pt-2">
 
         <div className="mt-3 flex gap-1">
           {APPT_KINDS.map((k) => (
@@ -306,6 +311,6 @@ function BookDialog({ api, at, onClose, onBooked }: {
         {msg && <p className="mt-2 text-sm text-red-700">{msg}</p>}
         <button type="button" onClick={onClose} className="mt-3 w-full rounded-xl border border-slate-300 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Loka</button>
       </div>
-    </div>
+    </Sheet>
   );
 }

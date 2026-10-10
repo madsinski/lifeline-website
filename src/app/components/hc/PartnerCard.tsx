@@ -12,8 +12,8 @@
 // someone see their progress should not have to guess what "progress" means.
 
 import { useCallback, useEffect, useState } from "react";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
-import { Handshake, X } from "lucide-react";
+import Sheet from "./Sheet";
+import { Handshake } from "lucide-react";
 import { hcBtn, hcCard, hcKicker } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -42,8 +42,6 @@ function Fortnight({ days, of, tone }: { days: number; of: number; tone: "me" | 
 export default function PartnerCard({ api }: { api: Api }) {
   const [d, setD] = useState<Data | null>(null);
   const [picking, setPicking] = useState(false);
-  // Inline rather than its own component, so the lock is conditional.
-  useScrollLock(picking);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -131,17 +129,9 @@ export default function PartnerCard({ api }: { api: Api }) {
       </div>
 
       {picking && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
-          role="dialog" aria-modal="true" aria-label="Velja ábyrgðarfélaga"
-          onClick={() => !busy && setPicking(false)}>
-          <div className={`${hcCard.base} w-full max-w-sm p-5`} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-3">
-              <p className="font-semibold text-hc-ink">Velja ábyrgðarfélaga</p>
-              <button type="button" onClick={() => setPicking(false)} aria-label="Loka">
-                <X className="h-4 w-4 text-slate-400" aria-hidden />
-              </button>
-            </div>
-            <p className="mt-1 text-sm text-hc-ink-2">
+        <Sheet title="Velja ábyrgðarfélaga" onClose={() => !busy && setPicking(false)} max="max-w-sm">
+          <div className="p-4 pt-0">
+            <p className="text-sm text-hc-ink-2">
               Félaginn sér hvaða daga þú gerðir eitthvað. Þú getur skipt eða fjarlægt hvenær sem er.
             </p>
             <div className="mt-3 space-y-1.5">
@@ -154,7 +144,7 @@ export default function PartnerCard({ api }: { api: Api }) {
               ))}
             </div>
           </div>
-        </div>
+        </Sheet>
       )}
     </section>
   );

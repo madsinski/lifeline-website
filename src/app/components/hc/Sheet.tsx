@@ -23,7 +23,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 
-export default function Sheet({ title, onClose, children, max = "max-w-lg", canvas = false, header }: {
+export default function Sheet({ title, onClose, children, max = "max-w-lg", canvas = false, header, draggable = true }: {
   /** The dialog's accessible name. */
   title: string;
   onClose: () => void;
@@ -41,6 +41,15 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
    * Omit it and a plain title bar is drawn instead.
    */
   header?: React.ReactNode;
+  /**
+   * Whether a drag can dismiss it.
+   *
+   * False for the workout runner: you are mid-set with a phone propped
+   * somewhere, and losing the session to a downward swipe is a worse
+   * outcome than having to reach for the close button. It still animates
+   * and still locks the page.
+   */
+  draggable?: boolean;
 }) {
   useScrollLock();
   const [dy, setDy] = useState(0);
@@ -66,6 +75,7 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
   }, [close]);
 
   const onDown = (e: React.PointerEvent, fromHandle: boolean) => {
+    if (!draggable) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     // From the handle always; from the body only when there is nothing to
     // scroll up into, or a downward flick inside a list would dismiss.
@@ -103,11 +113,18 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
         className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl ${max} ${
           canvas ? "bg-slate-50" : "bg-white"}`}>
 
-        {/* The grab bar. A visible affordance, and the one place a drag
-            always starts regardless of what the body is doing. */}
-        <div onPointerDown={(e) => onDown(e, true)} className="shrink-0 cursor-grab touch-none pt-2 active:cursor-grabbing">
-          <span className="mx-auto block h-1.5 w-10 rounded-full bg-slate-300" aria-hidden />
-        </div>
+        {/* The grab area, not the grab bar.
+            The visible pill is 6px tall, and a 6px target is one you hunt
+            for. The area that listens is the full width and roughly a
+            centimetre deep — the pill just shows where it is. Pulling the
+            header in too would be better still, but the header holds the
+            close button and buttons inside a drag surface fight each other. */}
+        {draggable && (
+          <div onPointerDown={(e) => onDown(e, true)}
+            className="flex h-10 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing">
+            <span className="block h-1.5 w-10 rounded-full bg-slate-300" aria-hidden />
+          </div>
+        )}
 
         {header ?? (
           <div className="flex shrink-0 items-center gap-3 bg-inherit px-4 py-3">

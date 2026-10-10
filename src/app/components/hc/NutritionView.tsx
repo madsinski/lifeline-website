@@ -6,8 +6,8 @@
 // Picks are saved to hc_training_settings.meal_picks through onPick.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
-import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Salad, Sliders, X } from "lucide-react";
+import Sheet from "./Sheet";
+import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Salad, Sliders } from "lucide-react";
 import { dayFor, mealName, mealsFor, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { WEEKDAYS, WEEKDAYS_SHORT, weekdayOf } from "@/lib/hc/personalise";
 import * as cache from "@/lib/hc/client-cache";
@@ -270,26 +270,16 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   );
 }
 
-function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  // Only mounted while the sheet is open, so the lock is unconditional.
-  useScrollLock();
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
-      <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-          <p className="min-w-0 flex-1 font-semibold text-slate-900">{title}</p>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
-        </div>
-        <div className="overflow-y-auto">{children}</div>
-      </div>
-    </div>
-  );
-}
+/* The local Sheet that stood here had the same contract as the shared one
+   — title, onClose, children — and none of its behaviour: no animation, no
+   drag, and a scroll lock added only last week. Deleted in favour of
+   ./Sheet, which the two call sites below use unchanged apart from asking
+   for the wider panel this one had. */
 
 function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
   const t = mealText(m);
   return (
-    <Sheet title={mealName(m)} onClose={onClose}>
+    <Sheet title={mealName(m)} onClose={onClose} max="max-w-3xl">
       {m.illustration_url && (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -22,7 +22,7 @@ import {
 } from "@/lib/hc/workout";
 import type { PSession } from "@/lib/hc/personalise";
 import Wheel from "./Wheel";
-import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import Sheet from "./Sheet";
 
 const MO_SHORT = ["jan", "feb", "mar", "apr", "maí", "jún", "júl", "ágú", "sep", "okt", "nóv", "des"];
 /**
@@ -143,27 +143,12 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
   );
 }
 
+/* The runner's own Shell stood here with its own backdrop, Escape handler
+   and scroll lock. It is the shared sheet now, minus the drag: you are
+   mid-set with the phone propped somewhere, and losing the session to a
+   downward swipe is worse than reaching for the close button. */
 function Shell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", esc);
-    return () => window.removeEventListener("keydown", esc);
-  }, [onClose]);
-
-  // Stops the page behind drifting while you are mid-set.
-  useScrollLock();
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/60 sm:items-center sm:p-4">
-      <div role="dialog" aria-modal="true" aria-label={title}
-        className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden overscroll-contain rounded-t-3xl bg-white sm:rounded-3xl">
-        <div className="flex items-center gap-3 p-4">
-          <p className="min-w-0 flex-1 truncate text-lg font-bold text-slate-900">{title}</p>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
+  return <Sheet title={title} onClose={onClose} draggable={false}>{children}</Sheet>;
 }
 
 /** One exercise: what to do, and the set tracker when there is load to record. */
