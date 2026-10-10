@@ -74,6 +74,24 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
     return () => window.removeEventListener("keydown", esc);
   }, [close]);
 
+  /*
+   * Never leave it half-dragged. Pointer capture should make this
+   * unnecessary, but a pointer can still be taken away — a context menu, a
+   * tab switch mid-drag — and the failure mode is a sheet parked off its
+   * own edge, which looks broken rather than merely unfinished.
+   */
+  useEffect(() => {
+    const settle = () => { if (!drag.current) setDy(0); };
+    window.addEventListener("pointerup", settle);
+    window.addEventListener("pointercancel", settle);
+    window.addEventListener("blur", settle);
+    return () => {
+      window.removeEventListener("pointerup", settle);
+      window.removeEventListener("pointercancel", settle);
+      window.removeEventListener("blur", settle);
+    };
+  }, []);
+
   const onDown = (e: React.PointerEvent, fromHandle: boolean) => {
     if (!draggable) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -81,6 +99,17 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
     // scroll up into, or a downward flick inside a list would dismiss.
     const atTop = (scroller.current?.scrollTop ?? 0) <= 0;
     drag.current = { y: e.clientY, t: Date.now(), armed: fromHandle || atTop };
+    /*
+     * Capture, or the release is lost.
+     *
+     * A downward drag ends with the finger below the sheet, and pointerup
+     * was only bound to the panel — so for exactly the gesture this
+     * handles, onUp never ran: dy kept its last value and the sheet stayed
+     * translated down by that much, showing a strip of the page underneath
+     * it. Capturing routes move and up back here wherever the pointer
+     * goes.
+     */
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* not captureable */ }
   };
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current;
