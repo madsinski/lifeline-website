@@ -201,15 +201,26 @@ export default function ReportView({ report, signals, reference, sex, audience =
               The upload shares this line as an icon: it is an errand, not a
               finding, and a full-width button made it look like the page's
               main action. */}
+          {/* A pill in its own verdict's colour, not a big number.
+              48px of dark text was the loudest thing on a page whose whole
+              job is the traffic lights below it — size was doing the work
+              that colour does better and more precisely. The pill wears the
+              same three tints every row and every section score uses, so
+              7,9 does not just read as large, it reads as green. */}
           {overall && (
-            <span className="flex shrink-0 items-baseline gap-1.5">
-              <span className="text-5xl font-bold leading-none tabular-nums text-hc-ink sm:text-6xl">{fmt(overall.value)}</span>
-              <span className="text-sm font-semibold text-slate-500">af 10</span>
+            <span className={`flex shrink-0 items-baseline gap-1.5 rounded-full px-4 py-1.5 ring-1 ${
+              CHIP[signals[overall.key] ?? "green"]}`}>
+              <span className="text-3xl font-bold leading-none tabular-nums">{fmt(overall.value)}</span>
+              <span className="text-xs font-semibold opacity-70">af 10</span>
             </span>
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-stretch gap-2">
+        {/* Full width, three across. They were content-width boxes huddled
+            at one end of the row with the hero's own padding beside them;
+            spanning the card gives each count the same room and lines their
+            edges up with everything else on the page. */}
+        <div className="mt-4 grid grid-cols-3 items-stretch gap-2">
             {/* Each box filters the page to its own colour. A count you
                 cannot act on is trivia; "4 ábótavant" is only useful if the
                 next thing you can do is see which four. Pressing it again
@@ -219,7 +230,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
                 onClick={() => setOnly(only === sig ? null : sig)}
                 disabled={!counts[sig]}
                 aria-label={`Sýna aðeins: ${SIGNAL_LABEL[sig]}`}
-                className={`min-w-[4.5rem] rounded-2xl px-3 py-2 text-center ring-1 transition disabled:opacity-40 ${CHIP[sig]} ${
+                className={`rounded-2xl px-3 py-2.5 text-center ring-1 transition disabled:opacity-40 ${CHIP[sig]} ${
                   only === sig ? "ring-2 ring-offset-1" : "hover:brightness-95"}`}>
                 <p className="text-xl font-bold tabular-nums">{counts[sig]}</p>
                 <p className="text-[11px] font-semibold leading-tight">{SIGNAL_LABEL[sig]}</p>
