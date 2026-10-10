@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Zap, CalendarClock, FileCheck2, Hand, MessageCircle } from "lucide-react";
 import { hcCard } from "./ui";
+import Sheet from "./Sheet";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -99,7 +100,19 @@ const SEEN_KEY = "hc-notif-seen-count";
  * means the alert behaves as if everything were new. Motion is dropped for
  * anyone who asked for less of it; the red stays.
  */
-export function NotificationBell({ unread }: { unread: number }) {
+export function NotificationBell({ unread, onOpen }: {
+  unread: number;
+  /**
+   * Open it here instead of navigating.
+   *
+   * A notification is a glance — you look, you see there is nothing, you
+   * carry on. Leaving the page to find that out and then pressing back is
+   * three navigations for no information. Given this, the bolt opens a
+   * sheet; without it, it still links to the page, which is what every
+   * other surface wants.
+   */
+  onOpen?: () => void;
+}) {
   const [fresh, setFresh] = useState(false);
   const rung = useRef(false);
 
@@ -125,12 +138,14 @@ export function NotificationBell({ unread }: { unread: number }) {
     return () => clearTimeout(t);
   }, [unread]);
 
-  return (
-    <Link href="/account/heilsuferd/tilkynningar"
-      onClick={() => setFresh(false)}
-      className={`relative grid h-10 w-10 shrink-0 place-items-center rounded-full transition ${
-        unread > 0 ? "text-red-600 hover:bg-red-50" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`}
-      aria-label={unread ? `Tilkynningar, ${unread} ný` : "Tilkynningar"}>
+  const cls = `relative grid h-10 w-10 shrink-0 place-items-center rounded-full transition ${
+    unread > 0 ? "text-red-600 hover:bg-red-50" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`;
+  const label = unread ? `Tilkynningar, ${unread} ný` : "Tilkynningar";
+  /* Defined here rather than as a wrapper component: a component created
+     during render is a new type every render, so React unmounts and
+     remounts its subtree — which would restart the pulse on every tick. */
+  const inner = (
+    <>
       {/* The pulse sits behind the bell and does not move it, so the
           greeting line stays put while it rings. */}
       {fresh && (
@@ -143,7 +158,35 @@ export function NotificationBell({ unread }: { unread: number }) {
           {unread > 9 ? "9+" : unread}
         </span>
       )}
-    </Link>
+    </>
+  );
+
+  return onOpen
+    ? <button type="button" onClick={() => { setFresh(false); onOpen(); }} className={cls} aria-label={label}>{inner}</button>
+    : <Link href="/account/heilsuferd/tilkynningar" onClick={() => setFresh(false)} className={cls} aria-label={label}>{inner}</Link>;
+}
+
+/** The whole Tilkynningar page, as a sheet. */
+export function NotificationSheet({ items, upcoming, onClose }: {
+  items: Note[];
+  upcoming?: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <Sheet title="Á döfinni og tilkynningar" onClose={onClose}>
+      <div className="space-y-5 p-4">
+        {upcoming && (
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Á döfinni</p>
+            {upcoming}
+          </div>
+        )}
+        <div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Tilkynningar</p>
+          <NotificationList items={items} />
+        </div>
+      </div>
+    </Sheet>
   );
 }
 

@@ -14,7 +14,7 @@
 // on the web therefore shows up in the app's history and its PRs.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Plus, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, Play, Plus, Volume2, VolumeX, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
   isBodyweight, isLoggable, isTimed, localDate, nextSetIndex, parseHoldSeconds,
@@ -217,6 +217,15 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   const [today, setToday] = useState<LoggedSet[]>([]);
   const [busy, setBusy] = useState(false);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  /**
+   * The set itself, for an exercise measured in seconds.
+   *
+   * A plank had a rest timer and nothing for the plank — the one part that
+   * actually needs a clock. Same shape as the rest countdown: the deadline
+   * is the state and the remaining time is read off the clock, so a
+   * throttled background tab cannot make it wrong.
+   */
+  const [workEndsAt, setWorkEndsAt] = useState<number | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
 
   /**
@@ -343,6 +352,30 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   }, [restEndsAt]);
   const restLeft = restEndsAt === null ? null : Math.max(0, Math.ceil((restEndsAt - now) / 1000));
 
+  // The set's own countdown, with the voice on the same marks as the rest:
+  // ten seconds out, and again when it is over.
+  useEffect(() => {
+    if (workEndsAt === null) return;
+    let said = -1;
+    const tick = () => {
+      const t = Date.now();
+      setNow(t);
+      const left = Math.max(0, Math.ceil((workEndsAt - t) / 1000));
+      if (left !== said) {
+        said = left;
+        if (left === 10) speakCue("ten");
+        else if (left === 0) speakCue("done");
+      }
+      if (t >= workEndsAt) setWorkEndsAt(null);
+    };
+    const id = window.setInterval(tick, 250);
+    tick();
+    const vis = () => tick();
+    document.addEventListener("visibilitychange", vis);
+    return () => { window.clearInterval(id); document.removeEventListener("visibilitychange", vis); };
+  }, [workEndsAt]);
+  const workLeft = workEndsAt === null ? null : Math.max(0, Math.ceil((workEndsAt - now) / 1000));
+
   const logSet = async () => {
     if (!it.exercise_id || busy) return;
     setBusy(true);
@@ -416,9 +449,29 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
         {!timed && !bodyweight && (
           <Wheel compact label="Þyngd" unit="kg" value={weight} onChange={setWeight} step={2.5} min={0} max={300} />
         )}
+        {/* Seconds come in fives and start at five: a plank is never 1
+            second, and spinning past 1–4 to reach a real number is four
+            rows of nothing at the top of the wheel. */}
         <Wheel compact label={timed ? "Sekúndur" : "Endurtekningar"} value={reps} onChange={setReps}
-          step={timed ? 5 : 1} min={1} max={timed ? 600 : 50} />
+          step={timed ? 5 : 1} min={timed ? 5 : 1} max={timed ? 600 : 50} />
       </div>
+
+      {/* For a timed exercise, the set gets its own clock before the rest
+          does. Nothing to log until it has run. */}
+      {timed && restLeft === null && (
+        workLeft !== null ? (
+          <button type="button" onClick={() => setWorkEndsAt(null)}
+            className="w-full rounded-xl bg-hc-brand px-4 py-4 text-center font-bold text-white">
+            <span className="block text-3xl tabular-nums leading-none">{workLeft}</span>
+            <span className="mt-1 block text-xs font-semibold text-white/80">sekúndur eftir · ýttu til að stoppa</span>
+          </button>
+        ) : (
+          <button type="button" onClick={() => { warmVoices(); setNow(Date.now()); setWorkEndsAt(Date.now() + reps * 1000); }}
+            className={`${hcBtn.primary} w-full`}>
+            <Play className="h-4 w-4" aria-hidden /> Byrja — {reps} sek.
+          </button>
+        )
+      )}
 
       {restLeft !== null ? (
         <div className="flex items-stretch gap-2">

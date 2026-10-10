@@ -105,6 +105,8 @@ export default function CoachView({ api }: { api: Api }) {
   const [data, setData] = useState<CoachData | null>(null);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  /** Sent, not yet acknowledged. */
+  const [pending, setPending] = useState<string[]>([]);
   const [err, setErr] = useState("");
   const seen = useRef(false);
   const end = useRef<HTMLDivElement>(null);
@@ -123,7 +125,7 @@ export default function CoachView({ api }: { api: Api }) {
     seen.current = true;
     void api("/api/hc/coach", { method: "POST", body: JSON.stringify({ seen: true }) }).then(() => load()).catch(() => {});
   }, [tab, data?.unread, api, load]);
-  useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [data?.thread.length]);
+  useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [data?.thread.length, pending.length]);
 
   const post = async (payload: Record<string, unknown>) => {
     setBusy(true); setErr("");
@@ -141,10 +143,23 @@ export default function CoachView({ api }: { api: Api }) {
     return true;
   };
 
+  /**
+   * Send, and show it immediately.
+   *
+   * It used to await the round trip before anything changed on screen, so
+   * for a second or two after pressing send nothing at all happened — which
+   * is indistinguishable from broken, and was reported as broken. The
+   * message appears at once, greyed until the server has it, and goes back
+   * into the box if the send fails.
+   */
   const send = async () => {
     const text = draft.trim();
     if (!text) return;
-    if (await post({ send: text })) setDraft("");
+    setDraft("");
+    setPending((p) => [...p, text]);
+    const ok = await post({ send: text });
+    setPending((p) => p.filter((x) => x !== text));
+    if (!ok) setDraft((d) => d || text);
   };
 
   if (!data) return <div className="h-40 animate-pulse rounded-hc-card bg-white/70" aria-hidden />;
@@ -174,7 +189,7 @@ export default function CoachView({ api }: { api: Api }) {
 
       {err && <p className="rounded-hc-element bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-900 ring-1 ring-rose-200">{err}</p>}
 
-      {tab === "talk" && <Talk data={data} draft={draft} setDraft={setDraft} busy={busy}
+      {tab === "talk" && <Talk data={data} draft={draft} setDraft={setDraft} busy={busy} pending={pending}
         box={box} end={end} onSend={send} onPost={post} />}
       {tab === "book" && <Book data={data} busy={busy} onPost={post} />}
     </div>
@@ -183,8 +198,8 @@ export default function CoachView({ api }: { api: Api }) {
 
 /* ── Skilaboð: the coach, then the thread ──────────────────────────────── */
 
-function Talk({ data, draft, setDraft, busy, box, end, onSend, onPost }: {
-  data: CoachData; draft: string; setDraft: (s: string) => void; busy: boolean;
+function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }: {
+  data: CoachData; draft: string; setDraft: (s: string) => void; busy: boolean; pending: string[];
   box: React.RefObject<HTMLTextAreaElement | null>; end: React.RefObject<HTMLDivElement | null>;
   onSend: () => Promise<void>; onPost: (p: Record<string, unknown>) => Promise<boolean>;
 }) {
@@ -296,6 +311,15 @@ function Talk({ data, draft, setDraft, busy, box, end, onSend, onPost }: {
               </div>
             </div>
           ))}
+          {/* In flight: there, but visibly not landed yet. */}
+          {pending.map((t, i) => (
+            <div key={`p${i}`} className="flex justify-end">
+              <div className="max-w-[85%] rounded-2xl bg-hc-brand/60 px-3.5 py-2.5 text-sm text-white shadow-sm">
+                <p className="whitespace-pre-wrap leading-snug">{t}</p>
+                <p className="mt-1 text-[10px] text-white/70">Sendi…</p>
+              </div>
+            </div>
+          ))}
           <div ref={end} />
         </div>
 
@@ -383,8 +407,9 @@ function Book({ data, busy, onPost }: {
           forms both open at once. */}
       {!choice && (
         <div className="grid gap-3 sm:grid-cols-2">
+          {/* The menu: the brand tint, because these are the choices. */}
           <button type="button" onClick={() => setChoice("video")} disabled={left <= 0}
-            className={`${hcCard.base} flex flex-col items-start gap-1 p-5 text-left transition hover:shadow-hc-raised disabled:opacity-50 disabled:hover:shadow-hc-card`}>
+            className="flex flex-col items-start gap-1 rounded-hc-card bg-hc-brand/5 p-5 text-left shadow-hc-card ring-1 ring-hc-brand/25 transition hover:bg-hc-brand/10 hover:shadow-hc-raised disabled:opacity-50 disabled:hover:bg-hc-brand/5 disabled:hover:shadow-hc-card">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark"><Video className="h-5 w-5" aria-hidden /></span>
             <span className="mt-1 font-bold text-hc-ink">Myndsímtal</span>
             <span className="text-sm text-slate-600">30 mínútur með þjálfaranum.</span>
@@ -399,7 +424,7 @@ function Book({ data, busy, onPost }: {
           </button>
 
           <button type="button" onClick={() => setChoice("measurement")}
-            className={`${hcCard.base} flex flex-col items-start gap-1 p-5 text-left transition hover:shadow-hc-raised`}>
+            className="flex flex-col items-start gap-1 rounded-hc-card bg-hc-brand/5 p-5 text-left shadow-hc-card ring-1 ring-hc-brand/25 transition hover:bg-hc-brand/10 hover:shadow-hc-raised">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark"><Activity className="h-5 w-5" aria-hidden /></span>
             <span className="mt-1 font-bold text-hc-ink">Mælingar</span>
             <span className="text-sm text-slate-600">Veldu eina eða fleiri — tíminn leggst saman.</span>

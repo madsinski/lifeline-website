@@ -34,8 +34,8 @@ import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import { useToday } from "@/app/components/hc/TodayCards";
-import { NotificationBell, useNotifications } from "@/app/components/hc/Notifications";
-import { UpcomingSoon, useUpcoming } from "@/app/components/hc/Upcoming";
+import { NotificationBell, NotificationSheet, useNotifications } from "@/app/components/hc/Notifications";
+import { UpcomingList, UpcomingSoon, useUpcoming } from "@/app/components/hc/Upcoming";
 import PeopleSheet, { PeopleButton } from "@/app/components/hc/PeopleSheet";
 import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
@@ -168,7 +168,8 @@ function PlanPageInner() {
   }, []);
   // Stats, urgent items and the partner for Í dag — one request for three cards.
   const { today, reloadToday } = useToday(api);
-  const { unread } = useNotifications(api);
+  const { items: notes, unread, markSeen } = useNotifications(api);
+  const [notesOpen, setNotesOpen] = useState(false);
   const { items: upcoming } = useUpcoming(api);
   const [people, setPeople] = useState(false);
   /**
@@ -454,7 +455,11 @@ function PlanPageInner() {
             is visible wherever you are. */}
         {/* The "Aðgangurinn minn" link is gone — the navbar already has it.
             A back link out of an editor is a different thing and stays. */}
-        {people && (
+        {notesOpen && (
+        <NotificationSheet items={notes} onClose={() => setNotesOpen(false)}
+          upcoming={<UpcomingList items={upcoming} />} />
+      )}
+      {people && (
         <PeopleSheet api={api} mine={today?.stats ?? null} partner={today?.partner ?? null}
           done={doneCount} of={ofCount}
           onClose={() => setPeople(false)} onNudged={() => void reloadToday()} />
@@ -505,7 +510,7 @@ function PlanPageInner() {
             <div className="mt-4">
               {tab === "today" && plan && (
                 <div className="space-y-4 print:hidden">
-                  <TodayHeader name={name} right={<NotificationBell unread={unread} />} />
+                  <TodayHeader name={name} right={<NotificationBell unread={unread} onOpen={() => { setNotesOpen(true); void markSeen(); }} />} />
                   {/* The urgent card carries the next appointment now, so
                       AppointmentCard no longer repeats it here. */}
                   <TodayOverview plan={plan} exercise={exercise} training={training}

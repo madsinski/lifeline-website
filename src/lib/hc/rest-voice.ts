@@ -14,8 +14,8 @@
 // in others, and getVoices() is empty until the voiceschanged event fires.
 
 // "Tilbúin/tilbúinn" would have to pick a gender, so the cue counts instead.
-const IS_CUES = { ten: "Tíu sekúndur eftir", ready: "Þrjár sekúndur", go: "Af stað" };
-const EN_CUES = { ten: "10 seconds left", ready: "Get ready", go: "Go" };
+const IS_CUES = { ten: "Tíu sekúndur eftir", ready: "Þrjár sekúndur", go: "Af stað", done: "Búið" };
+const EN_CUES = { ten: "10 seconds left", ready: "Get ready", go: "Go", done: "Done" };
 export type Cue = keyof typeof EN_CUES;
 
 const KEY = "hc_rest_voice_v1";

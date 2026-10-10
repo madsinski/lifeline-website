@@ -17,7 +17,7 @@
 // genuinely want that, and a rule that argues with them would be wrong.
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Check, Plus, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Dumbbell, Plus, RotateCcw, Sparkles, X } from "lucide-react";
 import {
   GROUP_IS, slotAdvice, slotKeysFor, STRENGTH_SLOTS, STRENGTH_FOCUS_IS,
   type StrengthFocus, type TrainingSettings,
@@ -105,6 +105,17 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                       <ArrowDown className="h-4 w-4" aria-hidden />
                     </button>
                   </span>
+                  {/* One still, not a video. The list is for recognising
+                      the movement and deciding whether it belongs in the
+                      session; a video is for learning it, and that lives in
+                      the runner where you are about to do it. */}
+                  {it?.image
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={it.image} alt="" loading="lazy"
+                        className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-slate-200" />
+                    : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-300">
+                        <Dumbbell className="h-6 w-6" aria-hidden />
+                      </span>}
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-slate-900">{it?.name ?? slot.label}</span>
                     <span className="block text-sm text-slate-500">
