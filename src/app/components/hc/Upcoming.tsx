@@ -129,7 +129,7 @@ export function UpcomingSoon({ items, onDismiss }: {
 }
 
 /** The whole lot, for the Tilkynningar page. */
-export function UpcomingList({ items }: { items: Upcoming[] }) {
+export function UpcomingList({ items, onNavigate }: { items: Upcoming[]; onNavigate?: (href: string) => boolean }) {
   if (!items.length) {
     return (
       <p className="rounded-hc-card bg-hc-surface px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200">
@@ -139,7 +139,7 @@ export function UpcomingList({ items }: { items: Upcoming[] }) {
   }
   return (
     <ul className={`${hcCard.base} divide-y divide-slate-100 overflow-hidden`}>
-      {items.map((x) => <Row key={x.id} x={x} />)}
+      {items.map((x) => <Row key={x.id} x={x} onNavigate={onNavigate} />)}
     </ul>
   );
 }
@@ -154,7 +154,11 @@ export function UpcomingList({ items }: { items: Upcoming[] }) {
  */
 const ROW_HREF = "/account/heilsuferd/aaetlun?tab=coach";
 
-function Row({ x, urgent = false }: { x: Upcoming; urgent?: boolean }) {
+function Row({ x, urgent = false, onNavigate }: {
+  x: Upcoming; urgent?: boolean;
+  /** Same reason as the notification list: the plan page's tab is state. */
+  onNavigate?: (href: string) => boolean;
+}) {
   const video = !!x.meetingUrl;
   return (
     <li className="relative flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 transition hover:bg-slate-50 sm:px-5">
@@ -162,7 +166,8 @@ function Row({ x, urgent = false }: { x: Upcoming; urgent?: boolean }) {
           fundinn" button stays a separate target instead of being a link
           inside a link — which is invalid and behaves differently across
           browsers. */}
-      <Link href={ROW_HREF} className="absolute inset-0 z-0" aria-label={`${x.title} — sjá bókunina`} />
+      <Link href={ROW_HREF} className="absolute inset-0 z-0" aria-label={`${x.title} — sjá bókunina`}
+        onClick={(e) => { if (onNavigate?.(ROW_HREF)) e.preventDefault(); }} />
       <span className={`pointer-events-none relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgent ? "bg-amber-200 text-amber-900" : "bg-hc-brand/10 text-hc-brand-dark"}`}>
         {video ? <Video className="h-4 w-4" aria-hidden /> : <CalendarClock className="h-4 w-4" aria-hidden />}
       </span>

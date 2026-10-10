@@ -166,8 +166,21 @@ export function NotificationBell({ unread, onOpen }: {
     return () => clearTimeout(t);
   }, [unread]);
 
-  const cls = `relative grid h-10 w-10 shrink-0 place-items-center rounded-full transition ${
-    unread > 0 ? "text-red-600 hover:bg-red-50" : "text-slate-400 hover:bg-slate-100 hover:text-slate-600"}`;
+  /*
+   * A control, not a hint.
+   *
+   * It was a bare glyph — red when there was something, grey when there was
+   * not — which at rest read as decoration on a page full of real buttons,
+   * so nobody pressed it. It is a filled circle now: white on the hero's
+   * own ground, with a ring, so it looks like the thing it is at 44px. The
+   * red state keeps the pulse and goes solid red, so "something is waiting"
+   * is a colour change on a shape you already recognise rather than the
+   * only time the shape is visible at all.
+   */
+  const cls = `relative grid h-11 w-11 shrink-0 place-items-center rounded-full ring-1 shadow-sm transition active:scale-95 ${
+    unread > 0
+      ? "bg-red-600 text-white ring-red-700/40 hover:bg-red-700"
+      : "bg-white text-hc-brand-dark ring-hc-brand/25 hover:bg-hc-brand-surface"}`;
   const label = unread ? `Tilkynningar, ${unread} ný` : "Tilkynningar";
   /* Defined here rather than as a wrapper component: a component created
      during render is a new type every render, so React unmounts and
@@ -195,10 +208,13 @@ export function NotificationBell({ unread, onOpen }: {
 }
 
 /** The whole Tilkynningar page, as a sheet. */
-export function NotificationSheet({ items, upcoming, onClose }: {
+export function NotificationSheet({ items, upcoming, onClose, onNavigate }: {
   items: Note[];
   upcoming?: React.ReactNode;
   onClose: () => void;
+  /** Passed to the list, so a same-page link switches tabs instead of
+   *  changing the address and doing nothing. */
+  onNavigate?: (href: string) => boolean;
 }) {
   return (
     <Sheet title="Á döfinni og tilkynningar" onClose={onClose}>
@@ -211,7 +227,7 @@ export function NotificationSheet({ items, upcoming, onClose }: {
         )}
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Tilkynningar</p>
-          <NotificationList items={items} />
+          <NotificationList items={items} onNavigate={onNavigate} />
         </div>
       </div>
     </Sheet>
@@ -219,7 +235,18 @@ export function NotificationSheet({ items, upcoming, onClose }: {
 }
 
 /** The full list. */
-export function NotificationList({ items }: { items: Note[] }) {
+export function NotificationList({ items, onNavigate }: {
+  items: Note[];
+  /**
+   * Handle the link in place, if the page can.
+   *
+   * The plan page keeps its active tab in React state, set once from the
+   * URL on load — so a Link to "?tab=coach" changed the address and nothing
+   * else, which is why tapping a message notification appeared to do
+   * nothing at all. Returning true means the page took it.
+   */
+  onNavigate?: (href: string) => boolean;
+}) {
   if (items.length === 0) {
     return <p className={`${hcCard.base} p-6 text-center text-sm text-slate-500`}>Ekkert nýtt í bili.</p>;
   }
@@ -248,7 +275,9 @@ export function NotificationList({ items }: { items: Note[] }) {
           </>
         );
         return n.href
-          ? <Link key={n.id} href={n.href} className={`${hcCard.base} flex items-start gap-3 p-4 transition hover:ring-slate-300`}>{inner}</Link>
+          ? <Link key={n.id} href={n.href}
+              onClick={(e) => { if (n.href && onNavigate?.(n.href)) e.preventDefault(); }}
+              className={`${hcCard.base} flex items-start gap-3 p-4 transition hover:ring-slate-300`}>{inner}</Link>
           : <div key={n.id} className={`${hcCard.base} flex items-start gap-3 p-4`}>{inner}</div>;
       })}
     </div>

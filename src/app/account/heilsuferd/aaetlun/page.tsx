@@ -256,6 +256,27 @@ function PlanPageInner() {
   }, [journey, router, api, reloadKey]);
 
   const plan = data?.plan ?? null;
+  /*
+   * Take a link that points at this page and do it in place.
+   *
+   * The tab is React state, read from the URL once on load, so a Link to
+   * "?tab=coach" from the notification sleeve changed the address and left
+   * the view exactly where it was — which read as the notification being
+   * dead. Handling it here switches the tab, closes the sleeve, and the
+   * thread's own effect scrolls to the newest message as it mounts.
+   */
+  const goInPage = (href: string): boolean => {
+    if (!href.startsWith("/account/heilsuferd/aaetlun")) return false;
+    const want = new URL(href, "https://x").searchParams.get("tab");
+    const ok: Tab[] = ["today", "exercise", "nutrition", "coach", "report", "results"];
+    if (!want || !ok.includes(want as Tab)) return false;
+    setPeople(false);
+    setNotesOpen(false);
+    setTab(want as Tab);
+    window.scrollTo({ top: 0, behavior: "instant" });
+    return true;
+  };
+
   const setTab = (t: Tab, sessionId?: string) => {
     setTabState(t);
     const u = new URL(window.location.href);
@@ -485,8 +506,8 @@ function PlanPageInner() {
         </Sheet>
       )}
       {notesOpen && (
-        <NotificationSheet items={notes} onClose={() => setNotesOpen(false)}
-          upcoming={<UpcomingList items={upcoming} />} />
+        <NotificationSheet items={notes} onClose={() => setNotesOpen(false)} onNavigate={goInPage}
+          upcoming={<UpcomingList items={upcoming} onNavigate={goInPage} />} />
       )}
       {people && (
         <PeopleSheet api={api} mine={today?.stats ?? null} myAvatar={today?.avatar ?? null} partner={today?.partner ?? null}
