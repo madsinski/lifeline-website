@@ -40,7 +40,10 @@ function Adgangur() {
   const api = useCallback(async (url: string, init: RequestInit = {}) => {
     const { data } = await supabase.auth.getSession();
     const t = data.session?.access_token;
-    return fetch(url, { ...init, headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(init.body ? { "Content-Type": "application/json" } : {}) } });
+    return fetch(url, { ...init, headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(init.body && !(typeof FormData !== "undefined" && init.body instanceof FormData)
+    // A multipart boundary is part of the Content-Type; naming the type
+    // without one leaves the body unparseable on the server.
+    ? { "Content-Type": "application/json" } : {}) } });
   }, []);
 
   useEffect(() => {

@@ -12,7 +12,11 @@ import CalendarConnect, { CalendarStatus, type CalendarApi } from "./CalendarCon
 async function api(url: string, init: RequestInit = {}) {
   const { data } = await supabase.auth.getSession();
   const t = data.session?.access_token;
-  return fetch(url, { ...init, headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(init.body ? { "Content-Type": "application/json" } : {}), ...(init.headers as Record<string, string> | undefined) } });
+  return fetch(url, { ...init, headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), /* FormData must set its own Content-Type: the boundary is part of
+           it, and naming the type without one leaves the body
+           unparseable. Avatar upload failed silently on exactly this. */
+        ...(init.body && !(typeof FormData !== "undefined" && init.body instanceof FormData)
+          ? { "Content-Type": "application/json" } : {}), ...(init.headers as Record<string, string> | undefined) } });
 }
 
 // Customer calendar: Google push sync (instant) or .ics subscription.

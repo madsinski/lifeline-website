@@ -12,7 +12,10 @@ import { supabase } from "@/lib/supabase";
 async function api(url: string, init: RequestInit = {}) {
   const { data } = await supabase.auth.getSession();
   const t = data.session?.access_token;
-  return fetch(url, { ...init, headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(init.body ? { "Content-Type": "application/json" } : {}) } });
+  return fetch(url, { ...init, headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(init.body && !(typeof FormData !== "undefined" && init.body instanceof FormData)
+    // A multipart boundary is part of the Content-Type; naming the type
+    // without one leaves the body unparseable on the server.
+    ? { "Content-Type": "application/json" } : {}) } });
 }
 
 const card = "rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6";

@@ -46,7 +46,11 @@ async function authHeaders(): Promise<Record<string, string>> {
 }
 
 async function api(url: string, init: RequestInit = {}) {
-  const headers = { ...(await authHeaders()), ...(init.body ? { "Content-Type": "application/json" } : {}), ...(init.headers as Record<string, string> | undefined) };
+  const headers = { ...(await authHeaders()), /* FormData must set its own Content-Type: the boundary is part of
+           it, and naming the type without one leaves the body
+           unparseable. Avatar upload failed silently on exactly this. */
+        ...(init.body && !(typeof FormData !== "undefined" && init.body instanceof FormData)
+          ? { "Content-Type": "application/json" } : {}), ...(init.headers as Record<string, string> | undefined) };
   return fetch(url, { ...init, headers });
 }
 
