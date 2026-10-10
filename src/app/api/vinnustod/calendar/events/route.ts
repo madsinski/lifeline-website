@@ -16,7 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, actorWorkerId, getHcActor } from "@/lib/hc/ws-auth";
-import { APPT_MINUTES, type ApptKind } from "@/lib/hc/appointment-kinds";
+import { APPT_MINUTES, type ApptKind, type BookKind, measureLabel } from "@/lib/hc/appointment-kinds";
 
 export const runtime = "nodejs";
 
@@ -27,10 +27,19 @@ const FIELD: Record<ApptKind, { at: string; done: string }> = {
 };
 
 export interface CalEvent {
+  /*
+   * Which table it came from. A journey appointment can be dragged to a new
+   * time because there is a journey event that books it; a coach booking
+   * cannot, so the client needs to tell them apart rather than guess.
+   */
+  source: "journey" | "booking";
+  /** Empty for a booking, which hangs off the client rather than a journey. */
   journey_id: string;
   client_id: string;
   client: string | null;
-  kind: ApptKind;
+  kind: ApptKind | BookKind;
+  /** Set for bookings: what is actually being measured. */
+  title?: string | null;
   at: string;
   minutes: number;
   done: boolean;
@@ -80,6 +89,7 @@ export async function GET(req: NextRequest) {
       const mine = !!meId && r.interviewer_id === meId;
       if (mineOnly && meId && !mine) continue;
       events.push({
+        source: "journey",
         journey_id: r.id,
         client_id: r.client_id,
         client: name.get(r.client_id) ?? null,
@@ -94,6 +104,64 @@ export async function GET(req: NextRequest) {
       });
     }
   }
+  /*
+   * Coach bookings — Þjálfari → Bóka writes these to hc_bookings, which this
+   * endpoint never read, so a video call or a measurement the participant
+   * booked was invisible in the workstation diary even though it had been
+   * pushed to the coach's Google calendar. The two surfaces disagreed about
+   * the same day.
+   */
+  let bq = supabaseAdmin
+    .from("hc_bookings")
+    .select("id, client_id, coach_id, kind, items, starts_at, minutes, status, meeting_url")
+    .gte("starts_at", from)
+    .lte("starts_at", to)
+    .neq("status", "cancelled")
+    .limit(400);
+  if (mineOnly && meId) bq = bq.eq("coach_id", meId);
+  const { data: books } = await bq;
+  const bookRows = books ?? [];
+
+  /*
+   * A booking hangs off the client, but the workstation opens people by
+   * journey, so resolve one. Without this the event renders and does
+   * nothing when clicked, which is worse than not showing it.
+   */
+  const jid = new Map<string, string>();
+  for (const r of rows) jid.set(r.client_id, r.id);
+  const noJourney = Array.from(new Set(bookRows.map((b) => b.client_id))).filter((id) => !jid.has(id));
+  if (noJourney.length) {
+    const { data: js } = await supabaseAdmin
+      .from("hc_journeys").select("id, client_id").in("client_id", noJourney).is("cancelled_at", null);
+    for (const j of js ?? []) if (!jid.has(j.client_id)) jid.set(j.client_id, j.id);
+  }
+
+  // Names for anyone who was not already loaded from a journey above.
+  const missing = Array.from(new Set(bookRows.map((b) => b.client_id))).filter((id) => !name.has(id));
+  if (missing.length) {
+    const { data: more } = await supabaseAdmin.from("clients_decrypted").select("id, full_name").in("id", missing);
+    for (const c of more ?? []) name.set(c.id, c.full_name);
+  }
+
+  for (const b of bookRows) {
+    const kind = b.kind as BookKind;
+    events.push({
+      source: "booking",
+      journey_id: jid.get(b.client_id) ?? "",
+      client_id: b.client_id,
+      client: name.get(b.client_id) ?? null,
+      kind,
+      title: kind === "measurement" ? measureLabel(b.items as string[] | null) : null,
+      at: b.starts_at,
+      minutes: b.minutes ?? 30,
+      done: b.status === "done",
+      mine: !!meId && b.coach_id === meId,
+      mode: kind === "video" ? "video" : null,
+      meeting_url: b.meeting_url ?? null,
+      location: null,
+    });
+  }
+
   events.sort((a, b) => a.at.localeCompare(b.at));
   return NextResponse.json({ events, scope: mineOnly ? "mine" : "all" });
 }

@@ -22,3 +22,36 @@ export const APPT_EVENT: Record<ApptKind, string> = {
   interview: "interview_booked",
   followup: "followup_booked",
 };
+
+/*
+ * The two things a participant books with their coach from Þjálfari → Bóka.
+ *
+ * Separate from ApptKind on purpose. Those three live in columns on
+ * hc_journeys and are the nurse's own diary; these live in hc_bookings, are
+ * booked by the participant, and carry a list of what is being measured. The
+ * calendar shows both because the coach's day contains both, but a booking
+ * is not reschedulable through the journey-event endpoint, so the two must
+ * stay tellable apart.
+ */
+export const BOOK_KINDS = ["video", "measurement"] as const;
+export type BookKind = (typeof BOOK_KINDS)[number];
+
+export const BOOK_IS: Record<BookKind, { label: string; short: string; color: string; tint: string }> = {
+  video: { label: "Myndsímtal", short: "Mynd", color: "#0E7490", tint: "#ECFEFF" },
+  measurement: { label: "Mæling", short: "Mæling", color: "#7E22CE", tint: "#FAF5FF" },
+};
+
+/** What a measurement booking can contain, with the minutes each takes. */
+export const MEASURE_IS: Record<string, { label: string; minutes: number }> = {
+  bodycomp: { label: "Líkamssamsetning", minutes: 5 },
+  bloodpressure: { label: "Blóðþrýstingur", minutes: 10 },
+  strength: { label: "Styrktarmæling", minutes: 20 },
+  vo2max: { label: "Þrekpróf", minutes: 30 },
+};
+
+/** "Líkamssamsetning + blóðþrýstingur", for a calendar tooltip. */
+export function measureLabel(items: string[] | null | undefined): string {
+  const l = (items ?? []).map((k) => MEASURE_IS[k]?.label ?? k);
+  if (!l.length) return BOOK_IS.measurement.label;
+  return l[0] + l.slice(1).map((x) => ` + ${x.toLowerCase()}`).join("");
+}

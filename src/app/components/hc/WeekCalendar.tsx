@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Sheet from "./Sheet";
 import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 import { CalendarPlus, ChevronLeft, ChevronRight, Link2, Loader2, Search, Video } from "lucide-react";
-import { APPT_EVENT, APPT_IS, APPT_KINDS, APPT_MINUTES, type ApptKind } from "@/lib/hc/appointment-kinds";
+import { APPT_EVENT, APPT_IS, APPT_KINDS, APPT_MINUTES, type ApptKind, BOOK_IS, type BookKind } from "@/lib/hc/appointment-kinds";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -29,9 +29,19 @@ const SLOTS: string[] = [];
 for (let h = START_HOUR; h < END_HOUR; h++) for (const m of [0, 30]) SLOTS.push(`${String(h).padStart(2, "0")}:${m ? "30" : "00"}`);
 
 interface CalEvent {
+  /** "journey" = the nurse's own three; "booking" = booked by the participant. */
+  source: "journey" | "booking";
   journey_id: string; client_id: string; client: string | null;
-  kind: ApptKind; at: string; minutes: number; done: boolean; mine: boolean;
+  kind: ApptKind | BookKind; title?: string | null;
+  at: string; minutes: number; done: boolean; mine: boolean;
   mode: string | null; meeting_url: string | null; location: string | null;
+}
+
+/** Colour and label for either kind of event. */
+function look(ev: CalEvent) {
+  return ev.source === "booking"
+    ? BOOK_IS[ev.kind as BookKind] ?? BOOK_IS.measurement
+    : APPT_IS[ev.kind as ApptKind];
 }
 
 interface Candidate { journey_id: string; client_id: string; name: string | null; phone?: string | null }
@@ -84,15 +94,23 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
     return () => clearTimeout(t);
   }, [load]);
 
-  /** Move an appointment: same event that booked it, a new time. */
+  /*
+   * Move an appointment: same event that booked it, a new time.
+   *
+   * Journey appointments only. A participant's booking lives in hc_bookings
+   * and has no journey event to re-post, so the drop handler never offers
+   * one here — the guard is belt and braces for the type.
+   */
   const move = async (ev: CalEvent, at: string) => {
+    if (ev.source !== "journey") return;
+    const kind = ev.kind as ApptKind;
     setMsg("");
     const r = await api(`/api/vinnustod/journeys/${ev.journey_id}`, {
       method: "POST",
-      body: JSON.stringify({ event: APPT_EVENT[ev.kind], at, mode: ev.mode ?? undefined, meeting_url: ev.meeting_url ?? undefined }),
+      body: JSON.stringify({ event: APPT_EVENT[kind], at, mode: ev.mode ?? undefined, meeting_url: ev.meeting_url ?? undefined }),
     });
     if (!r.ok) { const j = await r.json().catch(() => ({})); setMsg(j.error || "Tókst ekki að færa tímann."); return; }
-    setMsg(`${APPT_IS[ev.kind].label} færður á ${hhmm(at)}.`);
+    setMsg(`${APPT_IS[kind].label} færður á ${hhmm(at)}.`);
     void load();
   };
 
@@ -185,20 +203,26 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
                         className="h-full min-h-8 w-full rounded text-slate-200 transition hover:bg-emerald-50 hover:text-emerald-600">
                         <CalendarPlus className="mx-auto h-3.5 w-3.5" />
                       </button>
-                    ) : here.map((ev) => (
-                      <div key={ev.kind + ev.journey_id}
-                        draggable
-                        onDragStart={(e) => e.dataTransfer.setData("text/plain", JSON.stringify({ t: "appt", journey_id: ev.journey_id, kind: ev.kind }))}
-                        onClick={() => onOpenClient(ev.journey_id)}
-                        title={`${APPT_IS[ev.kind].label} · ${ev.client ?? ""} · ${hhmm(ev.at)}`}
-                        className={`cursor-grab rounded px-1.5 py-1 text-left text-[11px] leading-tight ${ev.done ? "opacity-50" : ""}`}
-                        style={{ backgroundColor: APPT_IS[ev.kind].tint, borderLeft: `3px solid ${APPT_IS[ev.kind].color}` }}>
-                        <span className="block truncate font-bold" style={{ color: APPT_IS[ev.kind].color }}>
-                          {APPT_IS[ev.kind].short}{ev.mode === "video" && <Video className="ml-1 inline h-3 w-3" />}
-                        </span>
-                        <span className="block truncate text-slate-700">{ev.client ?? "—"}</span>
-                      </div>
-                    ))}
+                    ) : here.map((ev, i) => {
+                      const lk = look(ev);
+                      // Only a journey appointment can be dragged: moving one
+                      // posts a journey event, and a booking has none.
+                      const movable = ev.source === "journey";
+                      return (
+                        <div key={`${ev.source}-${ev.kind}-${ev.journey_id || ev.client_id}-${i}`}
+                          draggable={movable}
+                          onDragStart={movable ? (e) => e.dataTransfer.setData("text/plain", JSON.stringify({ t: "appt", journey_id: ev.journey_id, kind: ev.kind })) : undefined}
+                          onClick={() => ev.journey_id && onOpenClient(ev.journey_id)}
+                          title={`${ev.title || lk.label} · ${ev.client ?? ""} · ${hhmm(ev.at)}${movable ? "" : " · bókað af þátttakanda"}`}
+                          className={`rounded px-1.5 py-1 text-left text-[11px] leading-tight ${movable ? "cursor-grab" : "cursor-pointer"} ${ev.done ? "opacity-50" : ""}`}
+                          style={{ backgroundColor: lk.tint, borderLeft: `3px solid ${lk.color}` }}>
+                          <span className="block truncate font-bold" style={{ color: lk.color }}>
+                            {lk.short}{ev.mode === "video" && <Video className="ml-1 inline h-3 w-3" />}
+                          </span>
+                          <span className="block truncate text-slate-700">{ev.client ?? "—"}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
