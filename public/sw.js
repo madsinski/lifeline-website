@@ -20,8 +20,12 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
  */
 function badge() {
   try {
-    if (self.navigator && "setAppBadge" in self.navigator) return self.navigator.setAppBadge();
-  } catch { /* not supported, or not installed */ }
+    if (self.navigator && "setAppBadge" in self.navigator) {
+      // .catch, not try/catch: this returns a promise, and a try block
+      // catches a synchronous throw but never a rejection.
+      return Promise.resolve(self.navigator.setAppBadge()).catch(function () {});
+    }
+  } catch (e) { /* not supported, or not installed */ }
   return Promise.resolve();
 }
 
@@ -29,14 +33,32 @@ self.addEventListener("push", (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data ? event.data.text() : "" }; }
   const title = data.title || "Lifeline";
-  event.waitUntil(Promise.all([badge(), self.registration.showNotification(title, {
-    body: data.body || "",
-    icon: "/heilsuferd-icon-192.png",
-    badge: "/heilsuferd-icon-192.png",
-    tag: data.tag || "lifeline-nudge",
-    lang: "is",
-    data: { url: data.url || "/account/heilsuferd/aaetlun?tab=today" },
-  })]));
+  /*
+   * The notification first, and nothing is allowed to get in its way.
+   *
+   * This was Promise.all([badge(), showNotification(...)]) with badge()
+   * handing back an uncaught promise. Promise.all rejects on the first
+   * failure without waiting for the others, and a push whose waitUntil
+   * rejects has its notification suppressed — so when setAppBadge failed,
+   * which it does when the app is not in the foreground, the message
+   * silently did not arrive. With the app open it resolved and everything
+   * looked fine, which is exactly the shape of the bug Mads reported:
+   * pushed when the app was open, nothing when it was minimised.
+   *
+   * Showing it first and badging after means the dot can fail all it likes
+   * and the notification still appears.
+   */
+  event.waitUntil((async () => {
+    await self.registration.showNotification(title, {
+      body: data.body || "",
+      icon: "/heilsuferd-icon-192.png",
+      badge: "/heilsuferd-icon-192.png",
+      tag: data.tag || "lifeline-nudge",
+      lang: "is",
+      data: { url: data.url || "/account/heilsuferd/aaetlun?tab=today" },
+    });
+    await badge();
+  })());
 });
 
 self.addEventListener("notificationclick", (event) => {
