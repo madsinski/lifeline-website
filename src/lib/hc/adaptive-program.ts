@@ -326,6 +326,8 @@ export interface TrainingSettings {
    */
   places: Place[];
   cardio: CardioLimit;
+  /** Which way the week leans: more strength, balanced, or more endurance. */
+  emphasis?: Emphasis;
   /** Weekdays the participant can train, Monday-first 0–6. */
   days: number[];
   /** What they already do every week; the core fills in around it. */
@@ -337,7 +339,7 @@ export const DEFAULT_DAYS = [0, 2, 4];
 
 export const DEFAULT_TRAINING: TrainingSettings = {
   level: "beginner", load: 0, injuries: [], started_on: null,
-  places: ["gym"], cardio: "full", days: DEFAULT_DAYS, activities: [],
+  places: ["gym"], cardio: "full", emphasis: "balanced", days: DEFAULT_DAYS, activities: [],
 };
 
 /** The place whose equipment the prescription assumes. */
@@ -818,6 +820,7 @@ export interface WeekGaps {
  * plan should fill the hole, not repeat what is already there.
  */
 export function weekGaps(s: TrainingSettings, hiitOn: boolean): WeekGaps {
+  const want = targetsFor(s.emphasis);
   const acts = s.activities ?? [];
   // Full credit for what a session is, half for what it contributes to.
   const n = (c: Covers) =>
@@ -835,8 +838,8 @@ export function weekGaps(s: TrainingSettings, hiitOn: boolean): WeekGaps {
   if (cardio) covered.push(`${count(cardio, "róleg þolæfing", "rólegar þolæfingar")} í vikunni þinni`);
 
   return {
-    strengthNeed: clamp(Math.round(2 - strength), 0, 2),
-    zone2Need: clamp(Math.round(2 - cardio), 0, 2),
+    strengthNeed: clamp(Math.round(want.strength - strength), 0, 3),
+    zone2Need: clamp(Math.round(want.cardio - cardio), 0, 3),
     // No point adding intervals to a week that already has hard days in it.
     addHiit: hiitOn && hiitAct === 0 && hardAlready < 2,
     hardAlready,
@@ -845,7 +848,38 @@ export function weekGaps(s: TrainingSettings, hiitOn: boolean): WeekGaps {
 }
 
 /** What a good week holds, per quality. */
-export const WEEKLY_TARGET: Record<Covers, number> = { strength: 2, hiit: 1, cardio: 2 };
+/**
+ * What a good week holds — of each quality, for a chosen emphasis.
+ *
+ * This replaces picking a named programme. "Styrkur og þol" versus some
+ * other plan was a choice between two bundles whose difference nobody could
+ * see; what people actually mean when they want to change the plan is that
+ * they want more of one thing and less of another. So the choice is the
+ * balance itself, which is also the thing the week card already measures.
+ *
+ * Every emphasis keeps one HIIT session and at least one of everything
+ * else: an emphasis is a tilt, not a specialism, and a week with no
+ * strength in it is not a healthier week for somebody who likes running.
+ */
+export type Emphasis = "strength" | "balanced" | "endurance";
+
+export const EMPHASIS_IS: Record<Emphasis, { label: string; blurb: string }> = {
+  strength: { label: "Meiri styrkur", blurb: "Þrisvar í ræktina, þolið heldur sér við." },
+  balanced: { label: "Jafnvægi", blurb: "Tvisvar styrkur, tvisvar rólegt þol. Ráðlagt." },
+  endurance: { label: "Meira þol", blurb: "Þrisvar þol, styrkurinn heldur sér við." },
+};
+
+const TARGETS: Record<Emphasis, Record<Covers, number>> = {
+  strength: { strength: 3, hiit: 1, cardio: 1 },
+  balanced: { strength: 2, hiit: 1, cardio: 2 },
+  endurance: { strength: 1, hiit: 1, cardio: 3 },
+};
+
+export const targetsFor = (e: Emphasis | null | undefined): Record<Covers, number> =>
+  TARGETS[e ?? "balanced"] ?? TARGETS.balanced;
+
+/** @deprecated Read targetsFor(settings.emphasis) — kept for old call sites. */
+export const WEEKLY_TARGET: Record<Covers, number> = TARGETS.balanced;
 
 export interface ModalityScore {
   key: Covers;
@@ -903,7 +937,7 @@ export function trainingScore(
     // HIIT is not on the table during adaptation or while cardio is limited,
     // so it is not scored then — a zero there would be a mark against someone
     // for correctly not doing it yet.
-    const target = c === "hiit" && !hiitOn ? 0 : WEEKLY_TARGET[c];
+    const target = c === "hiit" && !hiitOn ? 0 : targetsFor(s.emphasis)[c];
     const score = target === 0 ? 10 : clamp(Math.round((have / target) * 100) / 10, 0, 10);
     const missing = Math.max(0, target - have);
     return {
@@ -1227,7 +1261,9 @@ export function sanitizeTraining(b: Record<string, unknown>): TrainingSettings {
   return {
     level, load, injuries: [...new Set(injuries)], started_on,
     places: places.length ? places : ["gym"],
-    cardio, days, activities: sanitizeActivities(b.activities),
+    cardio,
+    emphasis: b.emphasis === "strength" || b.emphasis === "endurance" ? b.emphasis : "balanced",
+    days, activities: sanitizeActivities(b.activities),
   };
 }
 

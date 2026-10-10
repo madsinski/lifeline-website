@@ -14,7 +14,15 @@
 // Change the words, bump the version. An old row keeps naming the wording
 // it was given, which is the whole point.
 
-export const SELF_CONSENT_VERSION = "self-report-v1";
+/*
+ * v2 corrects v1, which said Lifeline is not a healthcare provider. It is:
+ * Lifeline Health ehf. holds a rekstrarleyfi. What is true is narrower and
+ * more useful — the sjúkraskrá is Medalia, this surface is the coaching
+ * service, and what it holds is a reading of the report rather than the
+ * record itself. Any row consented under v1 keeps naming v1, which is why
+ * the version is stored.
+ */
+export const SELF_CONSENT_VERSION = "self-report-v2";
 
 /** The four things said before the tick, each one true of what we do. */
 export const SELF_CONSENT_POINTS = [
@@ -31,8 +39,12 @@ export const SELF_CONSENT_POINTS = [
     body: "Við spyrjum þig eftir ár hvort eigi að geyma þær áfram. Þú getur eytt þeim hvenær sem er í Aðgangi, og þá er samþykkið afturkallað um leið.",
   },
   {
-    title: "Þetta er ekki sjúkraskrá",
-    body: "Lifeline er ekki heilbrigðisstofnun og þetta kemur ekki í stað mats læknis. Skýrslan þín í sjúklingagáttinni er áfram frumritið.",
+    title: "Sjúkraskráin er áfram í Medalia",
+    body: "Lifeline Health ehf. er með rekstrarleyfi fyrir heilbrigðisþjónustu, en sjúkraskráin þín er geymd í Medalia og frumritið af skýrslunni er þar. Heilsuferðin er þjálfunarþjónusta.",
+  },
+  {
+    title: "Engu er breytt",
+    body: "Við lesum tölurnar og sýnum þær á læsilegri hátt — með viðmiðum og skýringum. Niðurstöðunum sjálfum er ekki breytt, ekkert er reiknað upp á nýtt og ekkert fer til baka í sjúkraskrána.",
   },
 ] as const;
 

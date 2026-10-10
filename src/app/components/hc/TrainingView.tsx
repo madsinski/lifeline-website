@@ -42,7 +42,7 @@ type Payload =
   | { kind: "exercise"; ex: LibEx };
 
 
-export default function TrainingView({ api, exercise, personal, onSave, controls, stages, onChangeProgram, training, planStart, onFinish, body, onInstead, onAddDay,
+export default function TrainingView({ api, exercise, personal, onSave, controls, stages, training, planStart, onFinish, body, onInstead, onAddDay,
   onCompleteActivity, onMoveActivity, onActivityLoad, onActivityTime, onSaveTraining, onRemoveActivity, onRemoveDay, doneToday }: {
   api: Api;
   /** The programme as written (adaptive ones already computed for the settings). */
@@ -53,8 +53,6 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   /** Level / load / injury controls for the adaptive programme. */
   controls?: React.ReactNode;
   stages?: React.ReactNode;
-  /** Opens the programme chooser. */
-  onChangeProgram?: () => void;
   /**
    * Opens the "Hvað viltu breyta?" sheet. When given, this page is for doing
    * the training: the dials, the drag-and-drop and the exercise swapping all
@@ -98,7 +96,6 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
     [exercise, personal, training]);
   const [todayIdx] = useState(() => weekdayOf(new Date()));
   // One sheet for every setting, instead of four scattered entry points.
-  const [changes, setChanges] = useState(false);
   /** The stage-and-balance sleeve. */
   const [detail, setDetail] = useState(false);
   /** The activity chip whose controls are open, if any. */
@@ -263,29 +260,17 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Æfingaáætlunin mín</p>
               <h2 className="mt-1 text-2xl font-bold text-slate-900">{exercise.name}</h2>
-              {/* The stage and the week's balance used to be a card of their
-                  own below the calendar. They answer "is this going
-                  anywhere", which is a question you ask occasionally and
-                  not while looking for today's session — so they are a
-                  sleeve now, opened from under the name they describe. */}
-              {balance && (
-                <button type="button" onClick={() => setDetail(true)}
-                  className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-orange-800 hover:underline">
-                  {stage ? stage.title : "Nánar"}
-                  <ChevronDown className="h-3.5 w-3.5 -rotate-90" aria-hidden />
-                </button>
-              )}
             </div>
-            {/* Breytingar sits beside the programme's name, because that is
-                the thing it changes. "Skipta um æfingaáætlun" used to be
-                here as a second button; it is one of the five sections
-                inside the sleeve already, so having it out here as well was
-                the same door twice — and the rarer of the two errands
-                taking the more prominent slot. */}
+            {/* One pill, one sleeve.
+                There were three ways in — "Breytingar", a stage link and
+                "Skipta um æfingaáætlun" — for three views of one subject:
+                the programme. Everything about it is behind this, in the
+                order you would ask: where am I, how is the week, what do I
+                change. */}
             {training && onSaveTraining && (
-              <button type="button" onClick={() => setChanges(true)}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-orange-200 px-3 py-1.5 text-sm font-semibold text-orange-800 transition hover:bg-orange-50">
-                <Sliders className="h-3.5 w-3.5" aria-hidden /> Breytingar
+              <button type="button" onClick={() => setDetail(true)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-orange-100 px-3.5 py-1.5 text-sm font-semibold text-orange-900 ring-1 ring-orange-200 transition hover:bg-orange-200">
+                <Sliders className="h-3.5 w-3.5" aria-hidden /> Prógrammið
               </button>
             )}
           </div>
@@ -518,20 +503,19 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           }} />
       )}
 
-      {detail && balance && (
-        <Sheet title="Áætlunin þín" onClose={() => setDetail(false)} canvas>
-          <div className="p-3 sm:p-4">
-            <WeekBalance score={balance} stage={stage}
-              description={exercise.description} principles={exercise.principles}
-              onFix={onSaveTraining ? () => { setDetail(false); setChanges(true); } : undefined} />
+      {/* Where you are, how the week looks, and what you can change —
+          in that order, in one sleeve. They were three places before, and
+          the order is the order somebody asks the questions in. */}
+      {detail && training && onSaveTraining && (
+        <Sheet title="Prógrammið" onClose={() => setDetail(false)} canvas>
+          <div className="space-y-3 p-3 sm:p-4">
+            {balance && (
+              <WeekBalance score={balance} stage={stage}
+                description={exercise.description} principles={exercise.principles} />
+            )}
+            <TrainingChanges settings={training} onChange={(next) => onSaveTraining(next)} inline />
           </div>
         </Sheet>
-      )}
-
-      {changes && training && onSaveTraining && (
-        <TrainingChanges settings={training} onChange={(next) => onSaveTraining(next)}
-          onOpenProgram={onChangeProgram}
-          onClose={() => setChanges(false)} />
       )}
 
       {swapSession && (

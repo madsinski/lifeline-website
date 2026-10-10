@@ -597,7 +597,11 @@ v1.18 (2026-10-10)
   var samþykktur (self_consent_version) — 7. gr. 1. mgr. krefst þess að
   hægt sé að sýna hverju var samþykkt, sem boolean gerir ekki. Textinn býr
   í src/lib/hc/consent.ts og fær nýtt útgáfunúmer þegar honum er breytt.
-  Afturköllun er óbreytt: að eyða skýrslunni eyðir gögnunum.
+  Afturköllun er óbreytt: að eyða skýrslunni eyðir gögnunum. (v2 af
+  textanum leiðréttir v1, sem sagði ranglega að Lifeline væri ekki
+  heilbrigðisþjónusta. Lifeline Health ehf. er með rekstrarleyfi;
+  sjúkraskráin er í Medalia og heilsuferðin er þjálfunarþjónusta sem sýnir
+  skýrsluna án þess að breyta henni.)
 
 v1.17 (2026-10-09)
   Calendar paths written down. Both existed in code and neither was in

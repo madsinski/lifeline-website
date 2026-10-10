@@ -588,7 +588,6 @@ function PlanPageInner() {
                   ) : (
                     <TrainingView api={api} exercise={baseExercise} personal={personal}
                       onSave={(p) => void savePersonal(p, PERSONAL_FIELDS)}
-                      onChangeProgram={() => setPicker("exercise")}
                       training={training} planStart={plan.start_date}
                       onFinish={(info) => void finishWorkout(info)} body={body}
                       onCompleteActivity={(a) => void finishWorkout({
