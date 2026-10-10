@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { BookOpen, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import JourneyNav from "@/app/components/hc/JourneyNav";
+import LectureLibrary, { LibraryButton } from "@/app/components/hc/LectureLibrary";
 import { hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
 import * as cache from "@/lib/hc/client-cache";
 import { PILLAR_META, type Pillar } from "@/lib/hc/types";
@@ -48,6 +49,8 @@ export default function FraedslaPage() {
 function Fraedsla() {
   const router = useRouter();
   const [lectures, setLectures] = useState<LectureRef[] | null>(null);
+  /** The whole catalogue, behind a button: a plan is a recommendation. */
+  const [library, setLibrary] = useState(false);
 
   const api = useCallback(async (url: string, init: RequestInit = {}) => {
     const { data } = await supabase.auth.getSession();
@@ -91,6 +94,13 @@ function Fraedsla() {
           </div>
           {!!lectures?.length && <Ring done={done} of={lectures.length} />}
         </div>
+
+        {/* Under the title, not in it: the plan is still the page, and this
+            is the way out of it for anyone who wants to read ahead or look
+            something up that nobody assigned them. */}
+        <div className="flex justify-end"><LibraryButton onClick={() => setLibrary(true)} /></div>
+
+        {library && <LectureLibrary api={api} onClose={() => setLibrary(false)} />}
 
         {lectures === null && (
           <div className="animate-pulse space-y-2" aria-busy="true" aria-label="Hleð fræðslu">
