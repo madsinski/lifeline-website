@@ -47,9 +47,9 @@ values (
   'vestmannaeyjar', 'Vestmannaeyjar', 'Suðurland',
   'Heilsugæslan í Vestmannaeyjum (HSU)', 'Sólhlíð 10, 900 Vestmannaeyjum',
   'Mættu fastandi frá miðnætti (vatn er í lagi). Bókaðu tíma í gegnum sjúklingagáttina eftir að þú virkjar heilsufarsskoðunina.',
-  'Vera lífsgæðasetur', '[heimilisfang Veru]',
+  'Vera lífsgæðasetur', 'Hilmisgata 13, 900 Vestmannaeyjar',
   'Blóðþrýstingur, líkamssamsetning og mælingar. Taktu um 20 mínútur frá.',
-  'Vera lífsgæðasetur', '[heimilisfang Veru]',
+  'Vera lífsgæðasetur', 'Hilmisgata 13, 900 Vestmannaeyjar',
   'https://app.medalia.is/7ca0ca21-8947-46cb-afbd-2e2d15efef6e'
 ) on conflict (slug) do nothing;
 
