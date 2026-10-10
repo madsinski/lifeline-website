@@ -24,10 +24,23 @@ import { useSwipe } from "@/lib/hc/use-swipe";
  * the pillars still own the rows, and a second use of their colours on the
  * headings would make two different things look like one.
  */
-const WHEN_ORDER: WhenOfDay[] = ["morning", "midday", "evening", "anytime"];
+/*
+ * Three sections, not four.
+ *
+ * "Allan daginn" was a fourth bucket for everything with no hour attached,
+ * and it collected the majority — eleven of Mads' nineteen items — so the
+ * page's biggest section was the one that said the least about when to do
+ * anything. Anything without an hour belongs to the day, which is what
+ * "Dagur" means, so it goes there and the fourth heading is gone.
+ *
+ * WhenOfDay still has "anytime" as a stored value: it is what the database
+ * holds for an untagged module, and retagging nineteen rows to say the same
+ * thing would be a migration to change a label.
+ */
+const WHEN_ORDER: WhenOfDay[] = ["morning", "midday", "evening"];
 const WHEN_META: Record<WhenOfDay, { label: string; ink: string; soft: string; Icon: typeof Sun }> = {
   morning: { label: "Morgunn", ink: "#B45309", soft: "#FEF3C7", Icon: Sunrise },
-  midday: { label: "Dagurinn", ink: "#0369A1", soft: "#E0F2FE", Icon: Sun },
+  midday: { label: "Dagur", ink: "#0369A1", soft: "#E0F2FE", Icon: Sun },
   evening: { label: "Kvöld", ink: "#5B21B6", soft: "#EDE9FE", Icon: Moon },
   anytime: { label: "Allan daginn", ink: "#334155", soft: "#F1F5F9", Icon: Clock },
 };
@@ -183,13 +196,17 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
    * The pillar survives on every row as its icon and colour, so the four
    * are still legible without being the structure.
    */
+  /** The day takes anything with no hour of its own. */
+  const bucket = (w: WhenOfDay | null | undefined): WhenOfDay =>
+    w === "morning" || w === "midday" || w === "evening" ? w : "midday";
+
   const inWhen = (w: WhenOfDay) => live.filter((a) =>
-    !supersededByProgramme(a) && (a.when ?? "anytime") === w);
+    !supersededByProgramme(a) && bucket(a.when) === w);
 
   /** Today's training sits where its hour says, or with the all-day work. */
   const sessionWhen = (x: (typeof todaysSessions)[number]): WhenOfDay => {
     const h = x.at ? Number(x.at.slice(0, 2)) : NaN;
-    if (Number.isNaN(h)) return "anytime";
+    if (Number.isNaN(h)) return "midday";
     return h < 11 ? "morning" : h < 17 ? "midday" : "evening";
   };
 
@@ -338,7 +355,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 );
               })}
               {/* A rest day says so, instead of showing a habit that is not on. */}
-              {p === "anytime" && programmeOwnsTraining && todaysSessions.length === 0 && (
+              {p === "midday" && programmeOwnsTraining && todaysSessions.length === 0 && (
                 <li className="px-4 py-3 text-sm text-slate-500">Engin æfing á dagskrá í dag — hvíldardagur.</li>
               )}
               {/* Each row wears its own pillar, which is how Svefn and
