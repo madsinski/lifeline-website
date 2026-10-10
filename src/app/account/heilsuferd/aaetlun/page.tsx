@@ -131,6 +131,8 @@ function PlanPageInner() {
    * on a page reload.
    */
   const [liveLogs, setLiveLogs] = useState<ActionLog[] | null>(null);
+  /** Today's totals as the checklist actually renders them. */
+  const [liveCounts, setLiveCounts] = useState<{ done: number; of: number } | null>(null);
   /** Every measured value on the journey, for "Mínar mælingar". */
   const [results, setResults] = useState<HcResult[] | null>(null);
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
@@ -444,10 +446,21 @@ function PlanPageInner() {
    */
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayDow = (new Date().getDay() + 6) % 7;
-  const doneCount = (plan?.modules ?? []).filter((m) => (liveLogs ?? data?.logs ?? []).some((l) => l.action_uid === m.uid && l.done_on === todayStr)).length
+  /*
+   * A first guess, until the checklist says.
+   *
+   * Counting plan.modules here knows nothing about the two filters the
+   * checklist applies — items set aside, and exercise habits the programme
+   * supersedes — so setting something aside left the Staðan ring counting
+   * it. MyActions reports its real totals through onCounts; this stands in
+   * only for the first render, before it has mounted.
+   */
+  const guessDone = (plan?.modules ?? []).filter((m) => (liveLogs ?? data?.logs ?? []).some((l) => l.action_uid === m.uid && l.done_on === todayStr)).length
     + (exercise?.sessions.filter((sx) => sx.weekday === todayDow && doneToday.has(sx.id)).length ?? 0);
-  const ofCount = (plan?.modules ?? []).filter((m) => (m.frequency ?? "").toLowerCase() === "daglega" || m.pillar !== "exercise").length
+  const guessOf = (plan?.modules ?? []).filter((m) => (m.frequency ?? "").toLowerCase() === "daglega" || m.pillar !== "exercise").length
     + (exercise?.sessions.filter((sx) => sx.weekday === todayDow).length ?? 0);
+  const doneCount = liveCounts?.done ?? guessDone;
+  const ofCount = liveCounts?.of ?? guessOf;
 
   const next = appointments[0] ?? null;
 
@@ -541,7 +554,7 @@ function PlanPageInner() {
                   <MyActions api={api} journeyId={data.journey_id} plan={plan}
                     onEditPillar={(pl) => { setEditPillar(pl); setEditing(true); }} logs={data.logs} prefs={data.prefs}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }}
-                    exercise={exercise} training={training} doneToday={doneToday} onLogs={setLiveLogs}
+                    exercise={exercise} training={training} doneToday={doneToday} onLogs={setLiveLogs} onCounts={setLiveCounts}
                     onCompleteActivity={(a) => void finishWorkout({
                       minutes: a.minutes ?? 60, rpe: a.intensity === "hard" ? 7 : a.intensity === "easy" ? 3 : 5,
                       session: { id: a.id, title: a.name, modality: activityModality(a), weekday: a.day },

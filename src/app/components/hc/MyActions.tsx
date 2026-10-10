@@ -65,7 +65,7 @@ export interface ActionLinks {
 }
 
 export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links, onEditPillar,
-  exercise, training, doneToday, onCompleteSession, onCompleteActivity, onLogs }: {
+  exercise, training, doneToday, onCompleteSession, onCompleteActivity, onLogs, onCounts }: {
   api: Api;
   journeyId: string;
   plan: ActionPlan;
@@ -96,6 +96,20 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
    * page's copy of the logs, which a tick never touches.
    */
   onLogs?: (logs: ActionLog[]) => void;
+  /**
+   * Today's totals, for the Staðan ring and sleeve.
+   *
+   * The page was counting plan.modules directly, which knows nothing about
+   * the two filters this component applies: items the person has set aside,
+   * and exercise habits the programme supersedes. So setting something
+   * aside left the ring still counting it — the list said five things and
+   * the ring said seven.
+   *
+   * Reported from here rather than reimplemented there, because the
+   * component that owns the list is the only thing that knows what is in
+   * it. Same reason onLogs exists.
+   */
+  onCounts?: (counts: { done: number; of: number }) => void;
 }) {
   const [logs, setLogs] = useState<ActionLog[]>(initialLogs);
   const [prefs, setPrefs] = useState<ActionPref[]>(initialPrefs);
@@ -209,6 +223,22 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
     if (Number.isNaN(h)) return "midday";
     return h < 11 ? "morning" : h < 17 ? "midday" : "evening";
   };
+
+  /*
+   * Today, counted exactly the way the sections below count it: the live
+   * list after both filters, plus today's training. Summing the same
+   * numbers the headings show is what keeps the ring and the list from
+   * disagreeing.
+   */
+  const shownOf = WHEN_ORDER.reduce((n, w) =>
+    n + inWhen(w).length + todaysSessions.filter((x) => sessionWhen(x) === w).length, 0);
+  const shownDone = WHEN_ORDER.reduce((n, w) =>
+    n + inWhen(w).filter((a) => doneOn(a.uid, today)).length
+      + todaysSessions.filter((x) => sessionWhen(x) === w && doneToday?.has(x.id)).length, 0);
+
+  useEffect(() => {
+    onCounts?.({ done: shownDone, of: shownOf });
+  }, [shownDone, shownOf, onCounts]);
 
   return (
     <section className="space-y-4">
