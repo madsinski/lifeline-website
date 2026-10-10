@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { hcTabs } from "./ui";
 import { useState } from "react";
-import { Bell, BookOpen, Compass, Dumbbell, FileHeart, MoreHorizontal, Settings, Sun, UserRound, Utensils } from "lucide-react";
+import { Zap, BookOpen, Compass, Dumbbell, FileHeart, MoreHorizontal, Settings, Sun, UserRound, Utensils } from "lucide-react";
 
 export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "coach" | "report" | "journey" | "notifications" | "account";
 
@@ -46,7 +46,7 @@ const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun;
   { primary: true, key: "coach", label: "Þjálfari", href: "/account/heilsuferd/aaetlun?tab=coach", Icon: UserRound },
   { primary: true, key: "report", label: "Skýrslan", href: "/account/heilsuferd/aaetlun?tab=report", Icon: FileHeart },
   { key: "journey", label: "Ferðin", href: "/account/heilsuferd?ferd=1", Icon: Compass },
-  { key: "notifications", label: "Tilkynningar", href: "/account/heilsuferd/tilkynningar", Icon: Bell },
+  { key: "notifications", label: "Tilkynningar", href: "/account/heilsuferd/tilkynningar", Icon: Zap },
   { key: "account", label: "Aðgangur", href: "/account/heilsuferd/adgangur", Icon: Settings },
 ];
 

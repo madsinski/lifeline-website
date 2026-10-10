@@ -24,8 +24,8 @@
 // six lines is a second page.
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { CalendarClock, MapPin, Video } from "lucide-react";
+import { useSwipe } from "@/lib/hc/use-swipe";
 import { hcCard } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -73,26 +73,56 @@ export function useUpcoming(api: Api) {
   return { items, reloadUpcoming: load };
 }
 
-/** The glanceable one, for Í dag. */
-export function UpcomingCard({ items, max = 2, href = "/account/heilsuferd/tilkynningar" }: {
-  items: Upcoming[]; max?: number; href?: string;
+/** Midnight on the day a date falls, for comparing calendar days. */
+const midnight = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+
+/**
+ * The one on Í dag: today and tomorrow only, and swipe it away.
+ *
+ * It used to list the next two whatever they were, which meant the same two
+ * lines for weeks — and a card that is identical twenty-eight days out of
+ * thirty is one the eye learns to skip. Habituation follows the rate of
+ * change, not the position on the page. Rare is what makes it readable.
+ *
+ * Amber rather than the usual white, because the whole point of it
+ * appearing is that something is close. The full list lives behind the
+ * lightning bolt, where nothing is urgent and everything is there.
+ */
+export function UpcomingSoon({ items, onDismiss }: {
+  items: Upcoming[];
+  /** Swiped away for today. */
+  onDismiss?: () => void;
 }) {
-  if (!items.length) return null;
-  const shown = items.slice(0, max);
+  const swipe = useSwipe({ width: 96 });
+  const soon = items.filter((x) => {
+    const days = Math.round((midnight(new Date(x.start)) - midnight(new Date())) / 864e5);
+    return days <= 1 && days >= 0;
+  });
+  if (!soon.length) return null;
+
   return (
-    <section className={`${hcCard.base} overflow-hidden`}>
-      <div className="flex items-center gap-2 px-4 pt-3.5 sm:px-5">
-        <CalendarClock className="h-4 w-4 shrink-0 text-hc-brand-dark" aria-hidden />
-        <p className="min-w-0 flex-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Á döfinni</p>
-        {items.length > max && (
-          <Link href={href} className="text-sm font-semibold text-hc-brand-dark hover:underline">
-            Allt ({items.length})
-          </Link>
-        )}
+    <section className="relative overflow-hidden rounded-hc-card">
+      {onDismiss && (
+        <button type="button" onClick={() => { swipe.close(); onDismiss(); }}
+          aria-label="Fela þar til á morgun"
+          className="absolute inset-y-0 right-0 flex items-center justify-center bg-slate-400 px-4 text-sm font-bold text-white"
+          style={{ width: 96 }}>
+          Fela
+        </button>
+      )}
+      <div className="relative rounded-hc-card bg-amber-50 ring-1 ring-amber-300 transition-transform"
+        style={{ transform: `translateX(${swipe.dx}px)`, transitionDuration: swipe.dx === 0 || swipe.open ? "160ms" : "0ms", touchAction: "pan-y" }}
+        {...(onDismiss ? swipe.handlers : {})}>
+        <div className="flex items-center gap-2 px-4 pt-3 sm:px-5">
+          <CalendarClock className="h-4 w-4 shrink-0 text-amber-700" aria-hidden />
+          <p className="min-w-0 flex-1 text-xs font-bold uppercase tracking-[0.14em] text-amber-800">
+            {soon.length === 1 ? "Á næstunni" : "Á næstunni"}
+          </p>
+        </div>
+        <ul className="divide-y divide-amber-200/60">
+          {soon.map((x) => <Row key={x.id} x={x} urgent />)}
+        </ul>
       </div>
-      <ul className="divide-y divide-slate-100">
-        {shown.map((x) => <Row key={x.id} x={x} />)}
-      </ul>
     </section>
   );
 }
@@ -113,11 +143,11 @@ export function UpcomingList({ items }: { items: Upcoming[] }) {
   );
 }
 
-function Row({ x }: { x: Upcoming }) {
+function Row({ x, urgent = false }: { x: Upcoming; urgent?: boolean }) {
   const video = !!x.meetingUrl;
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:px-5">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark">
+      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgent ? "bg-amber-200 text-amber-900" : "bg-hc-brand/10 text-hc-brand-dark"}`}>
         {video ? <Video className="h-4 w-4" aria-hidden /> : <CalendarClock className="h-4 w-4" aria-hidden />}
       </span>
       <span className="min-w-0 flex-1">

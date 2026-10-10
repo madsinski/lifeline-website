@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, RotateCcw, Sliders } from "lucide-react";
 import { PILLAR_META, type ActionPlan, type Pillar, type PlanItem, type WhenOfDay } from "@/lib/hc/types";
 import { Sun, Sunrise, Moon, Clock } from "lucide-react";
+import { useSwipe } from "@/lib/hc/use-swipe";
 
 /**
  * The parts of the day, in the order they happen.
@@ -328,7 +329,8 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                   Næring stay legible once the headings are hours. */}
               {items.map((a) => (
                 <ActionRow key={a.uid} a={a} meta={PILLAR_META[a.pillar]} today={today} week={week} doneOn={doneOn} onToggle={toggle}
-                  onOpen={() => setSheet(a)} onEdit={onEditPillar ? () => onEditPillar(a.pillar) : undefined} />
+                  onOpen={() => setSheet(a)} onEdit={onEditPillar ? () => onEditPillar(a.pillar) : undefined}
+                  onHide={() => setPref(a.uid, { hidden: true })} />
               ))}
             </ul>
           </div>
@@ -370,13 +372,15 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   );
 }
 
-function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit }: {
+function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit, onHide }: {
   a: PlanItem;
   meta: { color: string; soft: string; label: string; ink: string };
   today: string;
   week: string[];
   doneOn: (uid: string, day: string) => boolean;
   onToggle: (uid: string, day?: string) => void;
+  /** Swiped away — the same "set aside" the sheet offers, not a deletion. */
+  onHide?: () => void;
   /** Opens the change sheet for this action. */
   onOpen: () => void;
   /**
@@ -387,12 +391,28 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit }: {
   onEdit?: () => void;
   links?: ActionLinks;
 }) {
+  const swipe = useSwipe();
   const done = doneOn(a.uid, today);
   const target = weeklyTarget(a.frequency);
   const thisWeek = week.filter((d) => doneOn(a.uid, d)).length;
 
   return (
-    <li className="px-3 py-3 sm:px-4">
+    /* The iOS list gesture: drag left, a red action appears behind the row.
+       It sets the habit aside rather than deleting it — the plan is the
+       nurse's, and a swipe should not be able to destroy part of it. Same
+       action the sheet offers under "Leggja þessa til hliðar í bili". */
+    <li className="relative overflow-hidden">
+      {onHide && (
+        <button type="button" onClick={() => { onHide(); swipe.close(); }}
+          aria-label={`Leggja ${a.title} til hliðar`}
+          className="absolute inset-y-0 right-0 flex w-22 items-center justify-center bg-rose-600 px-4 text-sm font-bold text-white"
+          style={{ width: 88 }}>
+          Leggja til hliðar
+        </button>
+      )}
+      <div className="relative bg-white px-3 py-3 transition-transform sm:px-4"
+        style={{ transform: `translateX(${swipe.dx}px)`, transitionDuration: swipe.dx === 0 || swipe.open ? "160ms" : "0ms", touchAction: "pan-y" }}
+        {...(onHide ? swipe.handlers : {})}>
       <div className="flex items-start gap-3">
         <button type="button" onClick={() => onToggle(a.uid)}
           aria-pressed={done} aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${a.title}`}
@@ -459,6 +479,7 @@ function ActionRow({ a, meta, today, week, doneOn, onToggle, onOpen, onEdit }: {
 
           
         </div>
+      </div>
       </div>
     </li>
   );

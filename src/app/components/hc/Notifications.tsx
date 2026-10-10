@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, CalendarClock, FileCheck2, Hand, MessageCircle } from "lucide-react";
+import { Zap, CalendarClock, FileCheck2, Hand, MessageCircle } from "lucide-react";
 import { hcCard } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -136,7 +136,7 @@ export function NotificationBell({ unread }: { unread: number }) {
       {fresh && (
         <span className="absolute inset-0 animate-hc-ping rounded-full bg-red-500/30 motion-reduce:hidden" aria-hidden />
       )}
-      <Bell className={`relative h-5 w-5 ${fresh ? "animate-hc-swing motion-reduce:animate-none" : ""}`} aria-hidden />
+      <Zap className={`relative h-5 w-5 ${fresh ? "animate-hc-swing motion-reduce:animate-none" : ""}`} aria-hidden />
       {unread > 0 && (
         <span className={`absolute right-0.5 top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white ring-2 ring-white ${
           fresh ? "animate-hc-pulse motion-reduce:animate-none" : ""}`}>
@@ -155,7 +155,7 @@ export function NotificationList({ items }: { items: Note[] }) {
   return (
     <div className="space-y-2">
       {items.map((n) => {
-        const Icon = ICON[n.kind] ?? Bell;
+        const Icon = ICON[n.kind] ?? Zap;
         const inner = (
           <>
             <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full ${n.unread ? "bg-emerald-50" : "bg-slate-100"}`}>

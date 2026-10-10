@@ -14,7 +14,7 @@ import JourneyNav from "@/app/components/hc/JourneyNav";
 import { NotificationList, useNotifications } from "@/app/components/hc/Notifications";
 import { UpcomingList, useUpcoming } from "@/app/components/hc/Upcoming";
 import { hcPage } from "@/app/components/hc/ui";
-import { Bell, CalendarClock } from "lucide-react";
+import { Zap, CalendarClock } from "lucide-react";
 
 export default function Page() {
   return <Suspense><Tilkynningar /></Suspense>;
@@ -75,7 +75,7 @@ function Tilkynningar() {
           : <div className="h-28 animate-pulse rounded-hc-card bg-white" aria-hidden />}
 
         <h2 className="mb-4 mt-8 flex items-center gap-2 text-2xl font-bold text-hc-ink sm:text-3xl">
-          <Bell className="h-6 w-6 shrink-0 text-slate-400" aria-hidden />Tilkynningar
+          <Zap className="h-6 w-6 shrink-0 text-slate-400" aria-hidden />Tilkynningar
         </h2>
         {ready
           ? <NotificationList items={items} />

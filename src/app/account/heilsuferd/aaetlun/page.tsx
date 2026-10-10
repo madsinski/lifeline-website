@@ -35,7 +35,7 @@ import PlanEditor from "@/app/components/hc/PlanEditor";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import { TodayCard, useToday } from "@/app/components/hc/TodayCards";
 import { NotificationBell, useNotifications } from "@/app/components/hc/Notifications";
-import { UpcomingCard, useUpcoming } from "@/app/components/hc/Upcoming";
+import { UpcomingSoon, useUpcoming } from "@/app/components/hc/Upcoming";
 import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
 import { peek } from "@/lib/hc/client-cache";
@@ -169,6 +169,26 @@ function PlanPageInner() {
   const { today, reloadToday } = useToday(api);
   const { unread } = useNotifications(api);
   const { items: upcoming } = useUpcoming(api);
+  /**
+   * Swiped away for today only.
+   *
+   * Per-browser and per-day: the date is the value, so tomorrow's card is
+   * not suppressed by a swipe from yesterday, and a failure to read it just
+   * means the card shows — which is the safe way round for a blood test.
+   */
+  const SOON_KEY = "hc-soon-hidden";
+  const [soonHidden, setSoonHidden] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try { setSoonHidden(window.localStorage.getItem(SOON_KEY) === new Date().toISOString().slice(0, 10)); }
+      catch { /* private mode */ }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+  const hideSoon = () => {
+    setSoonHidden(true);
+    try { window.localStorage.setItem(SOON_KEY, new Date().toISOString().slice(0, 10)); } catch { /* private mode */ }
+  };
 
   useEffect(() => {
     let first = true;
@@ -476,11 +496,12 @@ function PlanPageInner() {
                         ofToday={(plan.modules ?? []).filter((m) => (m.frequency ?? "").toLowerCase() === "daglega" || m.pillar !== "exercise").length
                           + (exercise?.sessions.filter((sx) => sx.weekday === ((new Date().getDay() + 6) % 7)).length ?? 0)} />
                     )} />
-                  {/* Between the hero and the checklist: context before
-                      chores. Two items at most — Í dag is a checklist, and
-                      one line about Tuesday is context where six is a
-                      second page. The rest is one tap away. */}
-                  <UpcomingCard items={upcoming} />
+                  {/* Only when something is today or tomorrow, and amber
+                      because that is the whole reason it appeared. The full
+                      list lives behind the lightning bolt, where nothing is
+                      urgent and everything is there. Swipe it away and it
+                      stays away until tomorrow. */}
+                  {!soonHidden && <UpcomingSoon items={upcoming} onDismiss={hideSoon} />}
                   <MyActions api={api} journeyId={data.journey_id} plan={plan}
                     onEditPillar={(pl) => { setEditPillar(pl); setEditing(true); }} logs={data.logs} prefs={data.prefs}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }}
