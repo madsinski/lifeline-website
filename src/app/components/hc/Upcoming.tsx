@@ -24,6 +24,7 @@
 // six lines is a second page.
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { CalendarClock, MapPin, Video } from "lucide-react";
 import { useSwipe } from "@/lib/hc/use-swipe";
 import { hcCard } from "./ui";
@@ -143,14 +144,29 @@ export function UpcomingList({ items }: { items: Upcoming[] }) {
   );
 }
 
+/*
+ * Where a row goes when you tap it.
+ *
+ * Bókað on Þjálfari is where a booking can be moved, cancelled, or read for
+ * its address and what to bring — so that is where an upcoming item leads.
+ * The rows were inert: everything else in this list and in Tilkynningar
+ * opens something, and these looked identical to those and did nothing.
+ */
+const ROW_HREF = "/account/heilsuferd/aaetlun?tab=coach";
+
 function Row({ x, urgent = false }: { x: Upcoming; urgent?: boolean }) {
   const video = !!x.meetingUrl;
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:px-5">
-      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgent ? "bg-amber-200 text-amber-900" : "bg-hc-brand/10 text-hc-brand-dark"}`}>
+    <li className="relative flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 transition hover:bg-slate-50 sm:px-5">
+      {/* Stretched over the row rather than wrapping it, so the "Fara á
+          fundinn" button stays a separate target instead of being a link
+          inside a link — which is invalid and behaves differently across
+          browsers. */}
+      <Link href={ROW_HREF} className="absolute inset-0 z-0" aria-label={`${x.title} — sjá bókunina`} />
+      <span className={`pointer-events-none relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgent ? "bg-amber-200 text-amber-900" : "bg-hc-brand/10 text-hc-brand-dark"}`}>
         {video ? <Video className="h-4 w-4" aria-hidden /> : <CalendarClock className="h-4 w-4" aria-hidden />}
       </span>
-      <span className="min-w-0 flex-1">
+      <span className="pointer-events-none relative z-10 min-w-0 flex-1">
         <span className="block font-semibold text-hc-ink">{x.title}</span>
         <span className="block text-sm text-slate-600">
           {whenIs(x.start)}
@@ -165,7 +181,7 @@ function Row({ x, urgent = false }: { x: Upcoming; urgent?: boolean }) {
       </span>
       {video && (
         <a href={x.meetingUrl!} target="_blank" rel="noopener noreferrer"
-          className="shrink-0 rounded-hc-element bg-hc-brand px-3 py-1.5 text-sm font-bold text-white transition hover:bg-hc-brand-dark">
+          className="relative z-10 shrink-0 rounded-hc-element bg-hc-brand px-3 py-1.5 text-sm font-bold text-white transition hover:bg-hc-brand-dark">
           Fara á fundinn
         </a>
       )}

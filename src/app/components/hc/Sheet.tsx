@@ -57,7 +57,6 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
   const [shown, setShown] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ y: number; t: number; armed: boolean } | null>(null);
 
   // One frame late, so the browser has a "from" state to animate out of.
   useEffect(() => { const r = requestAnimationFrame(() => setShown(true)); return () => cancelAnimationFrame(r); }, []);
@@ -74,23 +73,27 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
     return () => window.removeEventListener("keydown", esc);
   }, [close]);
 
+
   /*
-   * Never leave it half-dragged. Pointer capture should make this
-   * unnecessary, but a pointer can still be taken away — a context menu, a
-   * tab switch mid-drag — and the failure mode is a sheet parked off its
-   * own edge, which looks broken rather than merely unfinished.
+   * Drag from the sheet, release anywhere, and a tap is still a tap.
+   *
+   * Two earlier attempts each broke the other half of this:
+   *
+   *   pointerup on the panel only — a downward drag ends with the finger
+   *   below the panel, so the release was lost and the sheet stayed parked
+   *   off its own edge.
+   *
+   *   setPointerCapture on pointerdown — fixed that, and retargeted the
+   *   click: a tap on a link inside the sheet produced no navigation at
+   *   all, because the synthesised click went to the capturing element
+   *   instead of the link.
+   *
+   * Window listeners do both. They hear the release wherever it happens and
+   * they do not touch event targeting. The 6px threshold is the rest of it:
+   * until the finger has actually moved, this is a tap and the sheet does
+   * not respond at all.
    */
-  useEffect(() => {
-    const settle = () => { if (!drag.current) setDy(0); };
-    window.addEventListener("pointerup", settle);
-    window.addEventListener("pointercancel", settle);
-    window.addEventListener("blur", settle);
-    return () => {
-      window.removeEventListener("pointerup", settle);
-      window.removeEventListener("pointercancel", settle);
-      window.removeEventListener("blur", settle);
-    };
-  }, []);
+  const THRESHOLD = 6;
 
   const onDown = (e: React.PointerEvent, fromHandle: boolean) => {
     if (!draggable) return;
@@ -98,33 +101,29 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
     // From the handle always; from the body only when there is nothing to
     // scroll up into, or a downward flick inside a list would dismiss.
     const atTop = (scroller.current?.scrollTop ?? 0) <= 0;
-    drag.current = { y: e.clientY, t: Date.now(), armed: fromHandle || atTop };
-    /*
-     * Capture, or the release is lost.
-     *
-     * A downward drag ends with the finger below the sheet, and pointerup
-     * was only bound to the panel — so for exactly the gesture this
-     * handles, onUp never ran: dy kept its last value and the sheet stayed
-     * translated down by that much, showing a strip of the page underneath
-     * it. Capturing routes move and up back here wherever the pointer
-     * goes.
-     */
-    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* not captureable */ }
-  };
-  const onMove = (e: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d?.armed) return;
-    const delta = e.clientY - d.y;
-    if (delta > 0) setDy(delta);
-  };
-  const onUp = () => {
-    const d = drag.current;
-    drag.current = null;
-    if (!d?.armed) return;
-    const h = panel.current?.getBoundingClientRect().height ?? 400;
-    const speed = dy / Math.max(1, Date.now() - d.t);   // px per ms
-    if (dy > h / 3 || speed > 0.6) close();
-    else setDy(0);
+    if (!(fromHandle || atTop)) return;
+
+    const start = { y: e.clientY, t: Date.now() };
+    let moved = 0;
+
+    const move = (ev: PointerEvent) => {
+      const delta = ev.clientY - start.y;
+      if (delta > THRESHOLD) { moved = delta; setDy(delta - THRESHOLD); }
+      else if (moved) { moved = 0; setDy(0); }
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      if (!moved) { setDy(0); return; }            // a tap: leave it alone
+      const h = panel.current?.getBoundingClientRect().height ?? 400;
+      const speed = moved / Math.max(1, Date.now() - start.t);   // px per ms
+      if (moved > h / 3 || speed > 0.6) close();
+      else setDy(0);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
   return (
@@ -134,7 +133,6 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
       onClick={close}>
       <div ref={panel} role="dialog" aria-modal="true" aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
         style={{
           transform: `translateY(${closing ? 100 : shown ? dy : 100}${closing || !shown ? "%" : "px"})`,
           transition: dy > 0 && !closing ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
