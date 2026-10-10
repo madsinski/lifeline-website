@@ -14,6 +14,7 @@
 // Own cookie auth (src/lib/hc/ws-auth.ts); nurses never need /admin.
 
 import EmptyState from "@/app/components/hc/EmptyState";
+import { chime } from "@/lib/hc/chime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Bell, CalendarClock, Check, ChevronRight, ClipboardList, CreditCard, Droplet, ExternalLink, Video,
@@ -99,6 +100,43 @@ interface Detail {
 /** The workstation is either on the home screen or on one client. */
 /** The three places on the home side, plus a client's workspace. */
 type HomeTab = "today" | "messages" | "calendar" | "clients" | "teaching";
+
+/**
+ * How many participants are waiting on a reply, kept current.
+ *
+ * The inbox already counted this and drew its own dots, but only once you
+ * were looking at it — a coach on Í dag had no way to learn a message had
+ * arrived. Same two triggers as the participant's bell: a poll while the
+ * tab is visible, and an immediate read when it comes back.
+ */
+function useCoachUnread(api: (u: string, i?: RequestInit) => Promise<Response>) {
+  const [unread, setUnread] = useState(0);
+  const rung = useRef(0);
+  const load = useCallback(async () => {
+    const r = await api("/api/vinnustod/chat").catch(() => null);
+    if (!r?.ok) return;
+    const j = await r.json().catch(() => null);
+    const n = Number(j?.unread ?? 0);
+    setUnread(n);
+    // Chime on a rise only, so a page that already had three waiting does
+    // not announce them again every fifteen seconds.
+    if (n > rung.current) chime();
+    rung.current = n;
+  }, [api]);
+  useEffect(() => {
+    void load();
+    const tick = () => { if (document.visibilityState === "visible") void load(); };
+    const id = window.setInterval(tick, 15_000);
+    document.addEventListener("visibilitychange", tick);
+    window.addEventListener("focus", tick);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+      window.removeEventListener("focus", tick);
+    };
+  }, [load]);
+  return { unread, reloadUnread: load };
+}
 type View = { home: HomeTab } | { patient: string; compose?: boolean; step?: string };
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -319,6 +357,8 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
   useKnowledgeHotkey(() => setShowBook(true));
   const open = (id: string, compose = false, step?: string) => setView({ patient: id, compose, step });
 
+  const { unread: coachUnread, reloadUnread } = useCoachUnread(api);
+
   const menu: WsMenuItem[] = [
     { label: "Fletta upp", icon: "book", hint: "⌘K", onClick: () => setShowBook(true) },
     { label: "Tengja dagatal", icon: "calendar" as const, onClick: () => setShowCal(true) },
@@ -347,8 +387,20 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                   {([["today", "Í dag"], ["messages", "Skilaboð"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"], ["teaching", "Fræðsla og þjálfun"]] as const).map(([k, label]) => (
                     <button key={k} type="button" onClick={() => setView({ home: k })}
                       aria-current={view.home === k ? "page" : undefined}
-                      className={hcTabs.tab(view.home === k)}>
+                      className={`relative ${hcTabs.tab(view.home === k)}`}>
                       {label}
+                      {/* Someone is waiting on a reply. Pulses so it is
+                          noticed from across a room, and carries the count
+                          because "three people waiting" is a different
+                          morning from "one". */}
+                      {k === "messages" && coachUnread > 0 && (
+                        <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center">
+                          <span className="absolute inset-0 animate-hc-ping rounded-full bg-red-500/40 motion-reduce:hidden" aria-hidden />
+                          <span className="relative grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                            {coachUnread > 9 ? "9+" : coachUnread}
+                          </span>
+                        </span>
+                      )}
                     </button>
                   ))}
                 </nav>
@@ -356,7 +408,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                 {view.home === "calendar" && (
                   <WeekCalendar api={api} onOpenClient={(id) => open(id)} onConnect={() => setShowCal(true)} />
                 )}
-                {view.home === "messages" && <CoachInbox api={api} />}
+                {view.home === "messages" && <CoachInbox api={api} onRead={reloadUnread} />}
                 {view.home === "clients" && <ClientsView api={api} onOpenClient={(id) => open(id)} />}
                 {view.home === "teaching" && <TeachingLibrary api={api} />}
               </div>

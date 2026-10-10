@@ -44,7 +44,11 @@ const NUDGES = [
   "Þú hefur ekki merkt við í nokkra daga. Viltu að við léttum áætlunina aðeins?",
 ];
 
-export default function CoachInbox({ api }: { api: Api }) {
+export default function CoachInbox({ api, onRead }: {
+  api: Api;
+  /** Tell the page the badge is stale, so it clears without a poll wait. */
+  onRead?: () => void;
+}) {
   const [threads, setThreads] = useState<Thread[] | null>(null);
   const [open, setOpen] = useState<Thread | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -68,8 +72,9 @@ export default function CoachInbox({ api }: { api: Api }) {
     // Opening it is reading it, so the count stops arguing with a nurse who
     // has read the question and is thinking about the answer.
     await api("/api/vinnustod/chat", { method: "POST", body: JSON.stringify({ journey: t.journeyId, seen: true }) }).catch(() => {});
+    onRead?.();
     void loadList();
-  }, [api, loadList]);
+  }, [api, loadList, onRead]);
 
   useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [msgs.length]);
 

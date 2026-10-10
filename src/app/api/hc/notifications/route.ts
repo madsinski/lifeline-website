@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   if (user instanceof NextResponse) return user;
   const journey = await currentJourney(user.id);
 
-  const [{ data: convo }, { data: peer }, { data: appts }, { data: reports }] = await Promise.all([
+  const [{ data: convo }, { data: peer }, { data: appts }, { data: reports }, { data: chat }] = await Promise.all([
     supabaseAdmin.from("conversations").select("id, coach_name")
       .eq("client_id", user.id).eq("archived", false)
       .order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -48,6 +48,21 @@ export async function GET(req: NextRequest) {
       ? supabaseAdmin.from("hc_reports")
           .select("id, report_date, approval_requested_at, approval_requested_by, client_approved_at, retention_asked_at")
           .eq("journey_id", journey.id).order("created_at", { ascending: false }).limit(3)
+      : Promise.resolve({ data: [] }),
+    /*
+     * hc_chat — the coach conversation on Þjálfari.
+     *
+     * This list read `messages_decrypted` only, which is the older app
+     * conversation. A coach writing from the workstation writes to hc_chat,
+     * so the message arrived, sat unread, and lit nothing: no dot in the
+     * navbar, nothing on the lightning bolt. The bell had the animation and
+     * the chime all along and was never given a number above zero.
+     */
+    journey
+      ? supabaseAdmin.from("hc_chat_decrypted")
+          .select("id, author_kind, author_name, body, created_at, read_by_client_at")
+          .eq("journey_id", journey.id).eq("author_kind", "coach")
+          .order("created_at", { ascending: false }).limit(20)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -75,6 +90,16 @@ export async function GET(req: NextRequest) {
       title: `Skilaboð frá ${(m.sender_name as string) ?? "þjálfara"}`,
       body: (m.content as string) ?? null,
       at: m.created_at as string, unread: !m.read,
+      href: "/account/heilsuferd/aaetlun?tab=coach",
+    });
+  }
+
+  for (const m of (chat ?? []) as Record<string, string | null>[]) {
+    items.push({
+      id: `chat:${m.id}`, kind: "coach",
+      title: `Skilaboð frá ${m.author_name ?? "þjálfara"}`,
+      body: m.body ?? null,
+      at: m.created_at as string, unread: !m.read_by_client_at,
       href: "/account/heilsuferd/aaetlun?tab=coach",
     });
   }
@@ -139,9 +164,17 @@ export async function POST(req: NextRequest) {
     .select("id").eq("client_id", user.id).eq("archived", false)
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
+  const journey = await currentJourney(user.id);
+
   await Promise.all([
     supabaseAdmin.from("peer_messages").update({ read: true })
       .eq("receiver_id", user.id).eq("read", false),
+    // The coach conversation. Without this the dot would light and never
+    // clear, which is worse than not lighting at all.
+    journey
+      ? supabaseAdmin.from("hc_chat").update({ read_by_client_at: new Date().toISOString() })
+          .eq("journey_id", journey.id).eq("author_kind", "coach").is("read_by_client_at", null)
+      : Promise.resolve(null),
     convo
       ? supabaseAdmin.from("messages_decrypted").update({ read: true })
           .eq("conversation_id", convo.id).neq("sender_id", user.id).eq("read", false)

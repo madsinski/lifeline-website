@@ -7,6 +7,7 @@
 // A booked appointment shows in the list but never lights it: a dot you
 // cannot clear is a dot people stop seeing.
 
+import { chime } from "@/lib/hc/chime";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Zap, CalendarClock, FileCheck2, Hand, MessageCircle } from "lucide-react";
@@ -35,6 +36,13 @@ export function whenIs(iso: string): string {
   return `${d.getDate()}. ${MO[d.getMonth()]} kl. ${hh}`;
 }
 
+/**
+ * How often to look while the tab is open. Fifteen seconds is short enough
+ * that a reply during a conversation feels immediate and long enough that
+ * it costs nothing noticeable.
+ */
+const POLL_MS = 15_000;
+
 export function useNotifications(api: Api) {
   const [items, setItems] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
@@ -43,45 +51,38 @@ export function useNotifications(api: Api) {
     const j = r.ok ? await r.json().catch(() => null) : null;
     setTimeout(() => { setItems(j?.items ?? []); setUnread(j?.unread ?? 0); }, 0);
   }, [api]);
-  useEffect(() => { void load(); }, [load]);
+  /*
+   * Keep it current without the person reloading.
+   *
+   * Polling rather than a realtime subscription: hc_chat is API-mediated
+   * with RLS blocking direct reads, and it is not in the realtime
+   * publication, so a browser subscription would receive nothing. Opening
+   * the table to the anon client to get a push would trade a real boundary
+   * for a few seconds of latency.
+   *
+   * Two triggers. Every POLL_MS while the tab is actually visible — hidden
+   * tabs are skipped so a phone in a pocket is not polling all afternoon —
+   * and immediately when the tab comes back, which is what makes it feel
+   * instant: you return to the app and the dot is already there.
+   */
+  useEffect(() => {
+    void load();
+    const tick = () => { if (document.visibilityState === "visible") void load(); };
+    const id = window.setInterval(tick, POLL_MS);
+    const onBack = () => { if (document.visibilityState === "visible") void load(); };
+    document.addEventListener("visibilitychange", onBack);
+    window.addEventListener("focus", onBack);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onBack);
+      window.removeEventListener("focus", onBack);
+    };
+  }, [load]);
   const markSeen = useCallback(async () => {
     await api("/api/hc/notifications", { method: "POST", body: JSON.stringify({ seen: true }) });
     await load();
   }, [api, load]);
   return { items, unread, reloadNotifications: load, markSeen };
-}
-
-/**
- * A short two-note chime, synthesised rather than fetched.
- *
- * No asset, no request, a few lines: a notification sound is two sine tones
- * with a fast decay, and shipping an mp3 for that would be a download on a
- * page nobody opened to hear it.
- *
- * It can simply not play, and that is fine. Browsers refuse audio until the
- * person has interacted with the page, so a chime on first load is blocked
- * by design — hence the red pulse, which is the part that always works.
- */
-function chime() {
-  try {
-    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    // suspended means no gesture has happened yet and the browser will not
-    // let this through. Give up quietly rather than leaving a context open.
-    if (ctx.state === "suspended") { void ctx.close(); return; }
-    [880, 1174.7].forEach((hz, n) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = "sine"; o.frequency.value = hz;
-      const t = ctx.currentTime + n * 0.14;
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.12, t + 0.015);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
-      o.connect(g); g.connect(ctx.destination);
-      o.start(t); o.stop(t + 0.32);
-    });
-    setTimeout(() => void ctx.close().catch(() => {}), 1200);
-  } catch { /* no audio on this device, or blocked. The pulse carries it. */ }
 }
 
 const SEEN_KEY = "hc-notif-seen-count";
