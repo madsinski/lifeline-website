@@ -13,6 +13,8 @@ export interface ActionPref {
   /** The participant's own position in their time-of-day section, or null
    *  to keep the order the plan was composed in. */
   sort_index?: number | null;
+  /** An optional HH:MM they chose for it. Null = no particular time. */
+  at_time?: string | null;
 }
 
 /** ISO date (yyyy-mm-dd) in the viewer's own timezone, not UTC. */

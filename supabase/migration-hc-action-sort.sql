@@ -11,3 +11,14 @@ alter table hc_action_prefs add column if not exists sort_index integer;
 
 comment on column hc_action_prefs.sort_index is
   'Participant-chosen position within its time-of-day section. Null = keep the plan order.';
+
+-- An optional time of day for a habit.
+--
+-- The plan says "daglega" and the section says "Morgunn", which is as
+-- precise as a nurse should be. A participant who takes something at 07:30
+-- can say so; null means they have not, and the row simply shows no time.
+
+alter table hc_action_prefs add column if not exists at_time text;
+
+comment on column hc_action_prefs.at_time is
+  'Optional HH:MM the participant chose for this habit. Null = no set time.';

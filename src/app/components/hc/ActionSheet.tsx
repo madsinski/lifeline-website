@@ -13,7 +13,7 @@
 
 import { useState } from "react";
 import Sheet from "./Sheet";
-import { BookOpen, EyeOff, Pencil, X } from "lucide-react";
+import { BookOpen, Clock, EyeOff, Pencil, X } from "lucide-react";
 import { PILLAR_META, type Pillar, type PlanItem } from "@/lib/hc/types";
 import PillarIcon from "./PillarIcon";
 import { hcBtn } from "./ui";
@@ -22,7 +22,7 @@ import { weeklyTarget } from "@/lib/hc/adherence";
 const WEEKDAY_SHORT = ["S", "M", "Þ", "M", "F", "F", "L"];
 const WEEKDAY_LONG = ["sunnudagur", "mánudagur", "þriðjudagur", "miðvikudagur", "fimmtudagur", "föstudagur", "laugardagur"];
 
-export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onClose, links, week, today, doneOn, onToggle }: {
+export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onClose, links, week, today, doneOn, onToggle, atTime, onTime }: {
   a: PlanItem;
   note: string;
   onNote: (note: string) => void;
@@ -36,6 +36,9 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
   today?: string;
   doneOn?: (uid: string, day: string) => boolean;
   onToggle?: (uid: string, day?: string) => void;
+  /** The time they have chosen for this one, and how to change it. */
+  atTime?: string | null;
+  onTime?: (t: string | null) => void;
 }) {
   const [v, setV] = useState(note);
   const meta = PILLAR_META[a.pillar];
@@ -61,6 +64,32 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
           {a.summary && <p className="text-sm text-slate-700">{a.summary}</p>}
           {a.details && <p className="whitespace-pre-line text-sm text-slate-600">{a.details}</p>}
           {a.note && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm italic text-emerald-900">{a.note}</p>}
+
+          {/* An exact time, if they want one.
+              The plan says "daglega" and the section says "Morgunn", which
+              is as precise as a nurse should be about somebody else's
+              morning. This is the participant being more precise than that
+              if it helps them — optional, and clearable, because a habit
+              with a time you keep missing is worse than one without. */}
+          {onTime && (
+            <div className="flex flex-wrap items-center gap-2 rounded-hc-element bg-slate-50 p-3 ring-1 ring-slate-200">
+              <label className="flex items-center gap-2 text-sm font-semibold text-hc-ink">
+                <Clock className="h-4 w-4 text-slate-500" aria-hidden />
+                Tími
+                <input type="time" value={atTime ?? ""} onChange={(e) => onTime(e.target.value || null)}
+                  aria-label={`Tími fyrir ${a.title}`}
+                  className="rounded-hc-element border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-hc-ink outline-none focus:border-hc-brand" />
+              </label>
+              {atTime
+                ? (
+                  <button type="button" onClick={() => onTime(null)}
+                    className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
+                    Hreinsa
+                  </button>
+                )
+                : <span className="text-xs text-slate-500">Valfrjálst</span>}
+            </div>
+          )}
 
           {/* The week, and where it came from.
               Both used to sit on the row in Í dag, which made every row six

@@ -216,6 +216,28 @@ export function NotificationSheet({ items, upcoming, onClose, onNavigate }: {
    *  changing the address and doing nothing. */
   onNavigate?: (href: string) => boolean;
 }) {
+  /*
+   * The list as it was when the sleeve opened.
+   *
+   * Opening it marks everything seen, so the next poll came back with
+   * nothing unread and the red dots vanished while Mads was still looking
+   * at them — the dot disappeared a second after he opened the sleeve,
+   * before he had read anything. Marking seen is right: he has seen that
+   * there is something. But the per-item dot means "you have not opened
+   * this one", so it holds the opening snapshot and a row clears only when
+   * it is actually tapped.
+   */
+  const [shown, setShown] = useState(items);
+  const seeded = useRef(items.length > 0);
+  useEffect(() => {
+    if (seeded.current || !items.length) return;
+    seeded.current = true;
+    // Deferred, like the rest of this file: setting state on a path an
+    // effect calls synchronously is what the compiler objects to.
+    const t = setTimeout(() => setShown(items), 0);
+    return () => clearTimeout(t);
+  }, [items]);
+
   return (
     <Sheet title="Á döfinni og tilkynningar" onClose={onClose}>
       <div className="space-y-5 p-4">
@@ -227,7 +249,8 @@ export function NotificationSheet({ items, upcoming, onClose, onNavigate }: {
         )}
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Tilkynningar</p>
-          <NotificationList items={items} onNavigate={onNavigate} />
+          <NotificationList items={shown} onNavigate={onNavigate}
+            onOpened={(id) => setShown((xs) => xs.map((x) => (x.id === id ? { ...x, unread: false } : x)))} />
         </div>
       </div>
     </Sheet>
@@ -235,8 +258,10 @@ export function NotificationSheet({ items, upcoming, onClose, onNavigate }: {
 }
 
 /** The full list. */
-export function NotificationList({ items, onNavigate }: {
+export function NotificationList({ items, onNavigate, onOpened }: {
   items: Note[];
+  /** Tapped: clear this row's dot, whatever the server says next. */
+  onOpened?: (id: string) => void;
   /**
    * Handle the link in place, if the page can.
    *
@@ -262,7 +287,14 @@ export function NotificationList({ items, onNavigate }: {
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-2">
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-hc-ink">{n.title}</span>
-                {n.unread && <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" aria-label="nýtt" />}
+                {/* Was a 8px dot against a white card, which is not much
+                    for the one thing on the row that is urgent. */}
+                {n.unread && (
+                  <span className="relative grid h-5 shrink-0 place-items-center" aria-label="nýtt">
+                    <span className="absolute inset-0 animate-hc-ping rounded-full bg-red-500/40 motion-reduce:hidden" aria-hidden />
+                    <span className="relative rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Nýtt</span>
+                  </span>
+                )}
               </span>
               {n.body && <span className="mt-0.5 block text-xs leading-snug text-hc-ink-2">{n.body}</span>}
               <span className="mt-0.5 block text-[11px] text-slate-400">
@@ -276,7 +308,7 @@ export function NotificationList({ items, onNavigate }: {
         );
         return n.href
           ? <Link key={n.id} href={n.href}
-              onClick={(e) => { if (n.href && onNavigate?.(n.href)) e.preventDefault(); }}
+              onClick={(e) => { onOpened?.(n.id); if (n.href && onNavigate?.(n.href)) e.preventDefault(); }}
               className={`${hcCard.base} flex items-start gap-3 p-4 transition hover:ring-slate-300`}>{inner}</Link>
           : <div key={n.id} className={`${hcCard.base} flex items-start gap-3 p-4`}>{inner}</div>;
       })}

@@ -29,6 +29,8 @@ const SLOP = 10;
 export interface Reorder {
   /** The row being carried, or null. */
   dragging: string | null;
+  /** How far the carried row has moved from where it started, in px. */
+  offset: number;
   /** Where it would land: the order as it stands mid-drag. */
   order: string[] | null;
   /**
@@ -50,6 +52,17 @@ export interface Reorder {
 export function useReorder(onCommit: (order: string[]) => void): Reorder {
   const [dragging, setDragging] = useState<string | null>(null);
   const [order, setOrder] = useState<string[] | null>(null);
+  /*
+   * The carried row follows the finger.
+   *
+   * Without this the row only jumped when it passed a neighbour, which
+   * reads as laggy — the list was animating and the thing under your thumb
+   * was not. Tracking the delta and translating by it is what makes the
+   * gesture feel attached to the finger, which is the whole difference
+   * between this and a pair of arrows.
+   */
+  const [offset, setOffset] = useState(0);
+  const base = useRef(0);
   const rows = useRef(new Map<string, HTMLElement>());
   const live = useRef<string[]>([]);
   const timer = useRef<number | null>(null);
@@ -67,6 +80,7 @@ export function useReorder(onCommit: (order: string[]) => void): Reorder {
       if (e.pointerType === "mouse" && e.button !== 0) return;
       const from = { x: e.clientX, y: e.clientY };
       let lifted = false;
+      base.current = e.clientY;
 
       const move = (ev: PointerEvent) => {
         if (!lifted) {
@@ -84,6 +98,7 @@ export function useReorder(onCommit: (order: string[]) => void): Reorder {
          * rows of different heights behave correctly and nothing depends on
          * a magic number.
          */
+        setOffset(ev.clientY - base.current);
         const cur = live.current;
         const held = cur.indexOf(uid);
         if (held < 0) return;
@@ -99,6 +114,14 @@ export function useReorder(onCommit: (order: string[]) => void): Reorder {
             next.splice(i, 0, next.splice(held, 1)[0]);
             live.current = next;
             setOrder(next);
+            /*
+             * The row swapped places, so the finger is now that much
+             * further from where the row sits. Rebasing by the height it
+             * travelled keeps it under the finger instead of leaping by a
+             * row each time two of them trade places.
+             */
+            base.current += (held < i ? 1 : -1) * r.height;
+            setOffset(ev.clientY - base.current);
             break;
           }
         }
@@ -113,6 +136,7 @@ export function useReorder(onCommit: (order: string[]) => void): Reorder {
           const final = live.current.slice();
           setDragging(null);
           setOrder(null);
+          setOffset(0);
           // Only when it actually moved.
           if (final.join("|") !== siblings.join("|")) onCommit(final);
         }
@@ -135,5 +159,5 @@ export function useReorder(onCommit: (order: string[]) => void): Reorder {
 
   useEffect(() => stop, [stop]);
 
-  return { dragging, order, handlers };
+  return { dragging, order, offset, handlers };
 }

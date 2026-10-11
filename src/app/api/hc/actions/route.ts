@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const [{ data: plan }, { data: logs }, { data: prefs }, { data: results }, { data: entries }, { data: profile }] = await Promise.all([
     supabaseAdmin.from("hc_action_plans_decrypted").select("id, modules, headline, published_at, review_date").eq("journey_id", journey.id).eq("status", "published").maybeSingle(),
     supabaseAdmin.from("hc_action_logs").select("action_uid, done_on").eq("journey_id", journey.id).gte("done_on", since),
-    supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note, sort_index").eq("journey_id", journey.id),
+    supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note, sort_index, at_time").eq("journey_id", journey.id),
     supabaseAdmin.from("hc_results_decrypted").select("marker, value, unit, measured_at, note").eq("journey_id", journey.id),
     supabaseAdmin.from("hc_knowledge").select("slug, category, title, aliases, unit, summary, body_md, bands, higher_better, sources, tags, sort").eq("active", true),
     supabaseAdmin.from("clients_decrypted").select("sex").eq("id", user.id).maybeSingle(),
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
 async function currentState(journeyId: string) {
   const [{ data: logs }, { data: prefs }] = await Promise.all([
     supabaseAdmin.from("hc_action_logs").select("action_uid, done_on").eq("journey_id", journeyId).gte("done_on", lastDays(28)[0]),
-    supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note, sort_index").eq("journey_id", journeyId),
+    supabaseAdmin.from("hc_action_prefs").select("action_uid, hidden, note, sort_index, at_time").eq("journey_id", journeyId),
   ]);
   return { logs: logs || [], prefs: prefs || [] };
 }
@@ -120,10 +120,21 @@ export async function POST(req: NextRequest) {
   }
 
   // The client's own adjustment to the plan.
-  if (typeof body.hidden === "boolean" || typeof body.note === "string") {
+  if (typeof body.hidden === "boolean" || typeof body.note === "string" || "at_time" in body) {
     const patch: Record<string, unknown> = { journey_id: journey.id, client_id: user.id, action_uid: actionUid, updated_at: new Date().toISOString() };
     if (typeof body.hidden === "boolean") patch.hidden = body.hidden;
     if (typeof body.note === "string") patch.note = body.note.trim().slice(0, 300) || null;
+    /*
+     * An optional time, or no time at all.
+     *
+     * Validated to HH:MM here rather than trusted: it is rendered straight
+     * back onto the row and sorted on, and "whatever the client sent" is
+     * not a time of day.
+     */
+    if ("at_time" in body) {
+      const t = typeof body.at_time === "string" ? body.at_time.trim() : "";
+      patch.at_time = /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : null;
+    }
     await supabaseAdmin.from("hc_action_prefs").upsert(patch, { onConflict: "journey_id,action_uid" });
   }
 

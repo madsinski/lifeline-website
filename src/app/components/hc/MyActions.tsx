@@ -162,7 +162,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
     const remove = () => setLogs((ls) => ls.filter((l) => !(l.action_uid === uid && l.done_on === day)));
     send({ action_uid: uid, done_on: day, done: !was }, was ? remove : add, was ? add : remove);
   };
-  const setPref = (uid: string, patch: { hidden?: boolean; note?: string }) => {
+  const setPref = (uid: string, patch: { hidden?: boolean; note?: string; at_time?: string | null }) => {
     const before = prefs;
     send({ action_uid: uid, ...patch }, () => setPrefs((ps) => {
       const cur = ps.find((p) => p.action_uid === uid) ?? { action_uid: uid, hidden: false, note: null };
@@ -293,6 +293,8 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       {sheet && (
         <ActionSheet a={sheet}
           week={week} today={today} doneOn={doneOn} onToggle={toggle}
+          atTime={prefs.find((x) => x.action_uid === sheet.uid)?.at_time ?? null}
+          onTime={(t) => setPref(sheet.uid, { at_time: t })}
           note={prefs.find((x) => x.action_uid === sheet.uid)?.note ?? ""}
           onNote={(note) => setPref(sheet.uid, { note })}
           onHide={() => setPref(sheet.uid, { hidden: true })}
@@ -438,6 +440,9 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 return shown.map((a) => (
                 <ActionRow key={a.uid} a={a} meta={PILLAR_META[a.pillar]} today={today} doneOn={doneOn} onToggle={toggle}
                   drag={reorder.handlers(a.uid, ids)} lifted={reorder.dragging === a.uid}
+                  atTime={prefs.find((x) => x.action_uid === a.uid)?.at_time ?? null}
+                  carryY={reorder.dragging === a.uid ? reorder.offset : 0}
+                  settling={!!reorder.dragging && reorder.dragging !== a.uid}
                   onOpen={() => setSheet(a)}
                   onHide={() => setPref(a.uid, { hidden: true })} />
                 ));
@@ -482,7 +487,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   );
 }
 
-function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lifted = false }: {
+function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lifted = false, carryY = 0, settling = false, atTime }: {
   a: PlanItem;
   meta: { color: string; soft: string; ring: string; label: string; ink: string };
   today: string;
@@ -496,6 +501,12 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lif
   drag?: { onPointerDown: (e: React.PointerEvent) => void; ref: (el: HTMLElement | null) => void };
   /** Being carried right now — raised, and its swipe suspended. */
   lifted?: boolean;
+  /** How far to follow the finger, while carried. */
+  carryY?: number;
+  /** Another row is being carried: glide, do not snap. */
+  settling?: boolean;
+  /** The time they chose for this one, if any. */
+  atTime?: string | null;
   links?: ActionLinks;
 }) {
   const swipe = useSwipe();
@@ -506,8 +517,19 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lif
        It sets the habit aside rather than deleting it — the plan is the
        nurse's, and a swipe should not be able to destroy part of it. Same
        action the sheet offers under "Leggja þessa til hliðar í bili". */
+    /* The carried row follows the finger and the others glide out of its
+       way. The spring-ish curve and the 220ms are what every phone list
+       uses for this; anything faster reads as a jump and anything slower
+       feels like drag. The carried row itself gets no transition — it is
+       tracking a finger, and easing that would only add lag. */
     <li ref={drag?.ref} onPointerDown={drag?.onPointerDown}
-      className={`relative transition-shadow ${lifted ? "z-10 overflow-visible shadow-lg" : "overflow-hidden"}`}>
+      style={{
+        transform: lifted ? `translateY(${carryY}px) scale(1.03)` : undefined,
+        transition: lifted ? "none" : settling ? "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)" : undefined,
+        zIndex: lifted ? 20 : undefined,
+      }}
+      className={`relative transition-shadow ${lifted ? "overflow-visible shadow-xl" : "overflow-hidden"} ${
+        settling ? "duration-200" : ""}`}>
       {onHide && (
         <button type="button" onClick={() => { onHide(); swipe.close(); }}
           aria-label={`Leggja ${a.title} til hliðar`}
@@ -533,7 +555,7 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lif
           background: done ? "#FFFFFF" : meta.soft,
           // Lifted: scaled a touch and opaque, so it reads as being held
           // above the list rather than part of it.
-          ...(lifted ? { transform: "scale(1.02)", background: "#FFFFFF" } : null),
+          ...(lifted ? { background: "#FFFFFF" } : null),
           borderLeft: `3px solid ${done ? "transparent" : meta.color}`,
         }}
         {...(onHide && !lifted ? swipe.handlers : {})}>
@@ -547,6 +569,13 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lif
         <div className="min-w-0 flex-1">
           <button type="button" onClick={onOpen} className="flex w-full items-start gap-2 text-left">
             <span className={`min-w-0 flex-1 font-semibold ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>{a.title}</span>
+            {/* The one thing besides the title that earns a place on the
+                row: a time is what you check the row against. */}
+            {atTime && (
+              <span className={`shrink-0 text-sm font-semibold tabular-nums ${done ? "text-slate-300" : "text-slate-500"}`}>
+                {atTime}
+              </span>
+            )}
             <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
           </button>
 
