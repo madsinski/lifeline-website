@@ -17,7 +17,7 @@ import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
 import { activityFocus, activityModality, activitySecondary, hardDays, stageAt, type Activity, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
-import SessionGuide from "./SessionGuide";
+import SessionGuide, { guideSummary } from "./SessionGuide";
 import SessionBuilder from "./SessionBuilder";
 import TrainingChanges from "./TrainingChanges";
 import WeekBalance from "./WeekBalance";
@@ -616,7 +616,7 @@ const TONE: Record<Modality, { band: string; ring: string; today: string; tile: 
 };
 
 /** The shell and header both cards share. */
-function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id, open, onToggle, actions, guide, children }: {
+function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id, open, onToggle, actions, guideFor: guideOf, children }: {
   modality: Modality;
   tile: React.ReactNode;
   eyebrow: string;
@@ -629,11 +629,23 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
   open?: boolean;
   onToggle?: () => void;
   actions?: React.ReactNode;
-  /** The collapsed "what this loads / warm-up / cool-down" block. */
-  guide?: React.ReactNode;
+  /**
+   * The activity whose guide the header opens.
+   *
+   * Given instead of a rendered guide node, so the card can put the
+   * summary on its own header line and drive the disclosure from the
+   * chevron that is already there.
+   */
+  guideFor?: { name: string; modality?: string | null };
   children?: React.ReactNode;
 }) {
   const t = TONE[modality];
+  /* The header's own disclosure, when there is a guide and no other use
+     for the chevron. */
+  const [guideOpen, setGuideOpen] = useState(false);
+  const summary = guideOf ? guideSummary(guideOf.name, guideOf.modality) : null;
+  const headerToggles = onToggle ?? (summary ? () => setGuideOpen((v) => !v) : undefined);
+  const headerOpen = onToggle ? open : guideOpen;
   /*
    * The title gets the width.
    *
@@ -652,17 +664,23 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
         <span className="block font-semibold leading-snug text-[#0F172A]">{title}</span>
         {meta && <span className="mt-0.5 block text-xs text-slate-500">{meta}</span>}
       </span>
-      {onToggle && <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />}
+      {headerToggles && <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${headerOpen ? "rotate-180" : ""}`} aria-hidden />}
     </>
   );
   return (
     <div id={id} className={`scroll-mt-24 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ${today ? `ring-2 ${t.today}` : t.ring}`}>
-      {onToggle
-        ? <button type="button" onClick={onToggle} aria-expanded={open}
+      {headerToggles
+        ? <button type="button" onClick={headerToggles} aria-expanded={headerOpen}
             className={`flex w-full items-center gap-3 border-b border-slate-100 px-4 py-3 text-left ${t.band}`}>{head}</button>
-        : <div className={`flex w-full items-center gap-3 px-4 py-3 ${t.band} ${actions || guide || children ? "border-b border-slate-100" : ""}`}>{head}</div>}
+        : <div className={`flex w-full items-center gap-3 px-4 py-3 ${t.band} ${actions || children ? "border-b border-slate-100" : ""}`}>{head}</div>}
+      {/* Straight under the header that opened it, above the buttons — the
+          card reads what this is, then what to do about it. */}
+      {guideOf && guideOpen && (
+        <div className="border-b border-slate-100">
+          <SessionGuide name={guideOf.name} modality={guideOf.modality} headless open />
+        </div>
+      )}
       {actions}
-      {guide}
       {children}
     </div>
   );
@@ -946,7 +964,7 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                had this since it was written; the person's own football and
                CrossFit are the sessions most likely to hurt them and had
                nothing. Same component, same collapsed-by-default. */
-            guide={<SessionGuide name={a.name} modality={am} />}
+            guideFor={{ name: a.name, modality: am }}
             actions={(onComplete || onRemove) && (
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-3">
                 {done?.has(a.id) ? (

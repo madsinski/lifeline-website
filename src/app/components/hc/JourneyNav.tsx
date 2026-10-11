@@ -106,7 +106,11 @@ function useNavUnread(enabled: boolean) {
  */
 export function JourneyHeader() {
   return (
-    <div className="mb-3 flex items-center justify-between sm:mb-4">
+    /* Room around it. Pinned to the very top of the viewport with 12px
+       under it, the mark read as something that had slipped rather than a
+       header — the site header it replaced had the whole chrome bar's
+       breathing space. */
+    <div className="flex items-center justify-between pb-5 pt-2 sm:pb-6 sm:pt-3">
       <Link href="/account/heilsuferd" aria-label="Heilsuferðin">
         <LifelineLogo size="sm" />
       </Link>

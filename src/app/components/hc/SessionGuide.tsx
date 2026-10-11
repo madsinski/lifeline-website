@@ -16,14 +16,35 @@ import { useState } from "react";
 import { AlertTriangle, ChevronDown, Dumbbell, Snowflake, Sparkles } from "lucide-react";
 import { guideFor } from "@/lib/hc/modality-guide";
 
-export default function SessionGuide({ name, modality }: { name: string; modality?: string | null }) {
+/** The one-line summary, so a card header can show it and offer to open. */
+export function guideSummary(name: string, modality?: string | null): string | null {
   const g = guideFor(name, modality);
-  const [open, setOpen] = useState(false);
+  return g ? `${g.tag} · ${g.trains}` : null;
+}
+
+export default function SessionGuide({ name, modality, open: openProp, headless = false }: {
+  name: string;
+  modality?: string | null;
+  /**
+   * Driven from outside, when a card header owns the disclosure.
+   *
+   * The day card used to carry this as a second chevron at its foot, so it
+   * read: what this is, the buttons, then what this is again. The header
+   * already has a chevron; given these two props it is the one that opens
+   * the guide, and the summary row below disappears.
+   */
+  open?: boolean;
+  headless?: boolean;
+}) {
+  const g = guideFor(name, modality);
+  const [openLocal, setOpenLocal] = useState(false);
+  const open = openProp ?? openLocal;
+  const setOpen = setOpenLocal;
   if (!g) return null;
 
   return (
-    <div className="border-t border-slate-100">
-      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
+    <div className={headless ? "" : "border-t border-slate-100"}>
+      {!headless && <button type="button" onClick={() => setOpen(!openLocal)} aria-expanded={open}
         className="flex w-full items-center gap-2 px-4 py-2.5 text-left">
         <Sparkles className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
         <span className="min-w-0 flex-1">
@@ -35,7 +56,7 @@ export default function SessionGuide({ name, modality }: { name: string; modalit
           </span>
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
-      </button>
+      </button>}
 
       {open && (
         <div className="space-y-3 px-4 pb-4">
