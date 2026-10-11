@@ -176,10 +176,10 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
 
             /* Flush: the row Í dag's checklist uses for everything else. */
             if (flush) {
+              /* Padding on the <li>, as ActionRow has it, so the two rows
+                 are the same shape rather than two shapes that happen to
+                 measure the same. */
               return (
-                {/* Padding on the <li>, as ActionRow has it, so the two
-                    rows are the same shape rather than two shapes that
-                    happen to measure the same. */}
                 <li key={slot} className="border-t border-slate-100 px-3 py-3 first:border-t-0 sm:px-4">
                   <div className="flex items-start gap-3">
                     <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
