@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Sheet from "./Sheet";
-import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Plus, Salad, Sliders, Utensils } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Plus, Sliders, Utensils } from "lucide-react";
 import { OPTIONAL_SLOTS, alternativesFor, dayFor, mealName, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { WEEKDAYS, WEEKDAYS_SHORT, weekdayOf } from "@/lib/hc/personalise";
 import * as cache from "@/lib/hc/client-cache";
@@ -382,83 +382,11 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
       {today && <MealLogger day={today} weightKg={weightKg ?? null} part="list" />}
 
-      {/* The rest of the day.
-          These were three cards each with a 16:9 picture — about 600px of
-          the 2600 the page ran to, for meals that are mostly not the next
-          thing anyone is going to eat. A row with a thumbnail says the same
-          (which meal, how much protein, how long) and the next meal still
-          gets its picture up in the hero. Every action survives: the
-          recipe, the swap, and putting the plan's own suggestion back.
-
-          The one being eaten next is marked rather than repeated, so the
-          day still reads as a whole. */}
-      <section>
-        <div className="flex items-baseline justify-between">
-          {/* Not "Dagurinn": the logger directly above this already says
-              "Dagurinn þinn", and two headings of the same name in a row
-              read as a mistake. This one lists the meals; that one counts
-              what has been eaten. */}
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-            {shownDay === todayIdx ? "Máltíðir dagsins" : `Máltíðir · ${WEEKDAYS[shownDay].toLowerCase()}`}
-          </h3>
-          <p className="text-xs text-slate-500">Úr uppskriftasafninu</p>
-        </div>
-        {!day && <p className="mt-3 text-sm text-slate-500">Hleð máltíðum…</p>}
-        {day && (
-          <ul className="mt-2 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
-            {SLOTS.map((slot) => {
-              const m = day[slot];
-              const isNext = slot === nextSlot && shownDay === todayIdx;
-              return (
-                <li key={slot} className="border-b border-slate-100 last:border-b-0">
-                  <div className={`flex items-center gap-3 p-2.5 ${isNext ? "bg-lime-50/70" : ""}`}>
-                    {m?.illustration_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={m.illustration_url} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
-                    ) : (
-                      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-lime-50" aria-hidden>
-                        <Salad className="h-5 w-5 text-lime-300" />
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                        {SLOT_IS[slot]}
-                        {isNext && <span className="rounded-full bg-lime-600 px-1.5 py-0.5 text-[10px] text-white">næst</span>}
-                      </p>
-                      {m ? (
-                        <>
-                          <button type="button" onClick={() => setRecipe(m)}
-                            className="block max-w-full truncate text-left font-semibold leading-tight text-slate-900 hover:underline">
-                            {mealName(m)}
-                          </button>
-                          <p className="truncate text-xs text-slate-500">
-                            {[m.protein != null ? `${m.protein} g prótein` : null,
-                              m.calories != null ? `${m.calories} kkal` : null,
-                              m.prep_time_min ? `${m.prep_time_min + (m.cook_time_min ?? 0)} mín.` : null]
-                              .filter(Boolean).join(" · ")}
-                          </p>
-                        </>
-                      ) : <p className="text-sm text-slate-500">engin máltíð fannst</p>}
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1 text-xs font-semibold">
-                      <button type="button" onClick={() => setSlotOpen(slot)}
-                        className="inline-flex items-center gap-1 rounded-full border border-lime-200 px-2.5 py-1 text-lime-800 transition hover:bg-lime-50">
-                        <ArrowLeftRight className="h-3 w-3" aria-hidden /> Skipta
-                      </button>
-                      {(picks[pickKey(shownDay, slot)] ?? picks[slot]) && (
-                        <button type="button" onClick={() => onPick(pickKey(shownDay, slot) as MealSlot, null)}
-                          className="text-[11px] font-normal text-slate-500 hover:text-slate-800">
-                          Tillaga áætlunarinnar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      {/* The compact day list used to sit here, and the planner above now
+          is that list — same meals, same slots, same swap, in the card that
+          owns the day. Two of them was how this page got to three screens
+          the first time. The logger directly above keeps the ticks, which
+          is a different job: what was eaten, not what is planned. */}
 
       {/* ── Prógrammið ──────────────────────────────────────────────
           What the plan is, and the question the page cannot answer on its
