@@ -615,8 +615,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
  * where it came from — the same modality colours the week grid above uses, so
  * an orange chip in the week opens an orange card below it.
  */
-const TONE: Record<Modality, { band: string; ring: string; today: string; tile: string; ink: string; pill: string; go: string; quiet: string }> = {
-  strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-600 hover:bg-orange-700", quiet: "border-orange-200 text-orange-800 hover:bg-orange-50" },
+const TONE: Record<Modality, { band: string; ring: string; today: string; tile: string; ink: string; pill: string; go: string }> = {
+  strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-600 hover:bg-orange-700" },
   hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200",     go: "bg-rose-600 hover:bg-rose-700",     quiet: "border-rose-200 text-rose-800 hover:bg-rose-50" },
   cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200",       go: "bg-sky-600 hover:bg-sky-700",       quiet: "border-sky-200 text-sky-800 hover:bg-sky-50" },
   other:    { band: "bg-slate-50",     ring: "ring-slate-200",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-slate-200",   go: "bg-slate-700 hover:bg-slate-800",   quiet: "border-slate-300 text-slate-800 hover:bg-slate-50" },
@@ -754,18 +754,24 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
               <Check className="h-4 w-4" aria-hidden /> Búið í dag
             </p>
           ) : onStart ? (
+            /* Solid on every day, not only today.
+               Today's card was the only one whose action was filled; the
+               rest got an outlined version, so the same button looked like
+               two different weights of thing depending on which day you
+               were reading. Today is already marked — the ring around the
+               card and the "Í DAG" on its eyebrow — and it does not need
+               the button to say it a third time. Today keeps the taller
+               py-3, which is enough. */
             <button type="button" onClick={onStart}
-              className={today
-                ? `flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold text-white transition ${TONE[s.modality].go}`
-                : `flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 font-semibold transition ${TONE[s.modality].quiet}`}>
+              className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition ${
+                today ? "py-3" : "py-2.5"} ${TONE[s.modality].go}`}>
               <Play className="h-4 w-4" aria-hidden /> Byrja æfinguna
             </button>
           ) : (
             /* Nothing to count, so nothing to run — you did it or you did not. */
             <button type="button" onClick={onDid}
-              className={today
-                ? `flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold text-white transition ${TONE[s.modality].go}`
-                : `flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 font-semibold transition ${TONE[s.modality].quiet}`}>
+              className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition ${
+                today ? "py-3" : "py-2.5"} ${TONE[s.modality].go}`}>
               <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
             </button>
           )}
@@ -990,9 +996,8 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                       </button>
                     ) : onComplete ? (
                       <button type="button" onClick={() => onComplete(a)}
-                        className={today
-                          ? `flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold text-white transition ${TONE[am === "other" ? "other" : am].go}`
-                          : `flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 font-semibold transition ${TONE[am === "other" ? "other" : am].quiet}`}>
+                        className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition ${
+                          today ? "py-3" : "py-2.5"} ${TONE[am === "other" ? "other" : am].go}`}>
                         <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
                       </button>
                     ) : null}
