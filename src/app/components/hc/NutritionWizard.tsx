@@ -14,7 +14,8 @@
 import { useState } from "react";
 import { AlertTriangle, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import {
-  ALLERGEN_OPTIONS, COOKING_IS, DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type Allergen,
+  ALLERGEN_OPTIONS, COOKING_IS, DIET_OPTIONS, EMPHASIS_IS, emphasisFor, FOCUS_IS, focusTension,
+  type Allergen, type NutritionFocus,
   type NutritionPrefs,
 } from "@/lib/hc/nutrition";
 import { libraryDepth, SLOT_IS, type Meal } from "@/lib/hc/meals";
@@ -147,7 +148,40 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
         <div className="space-y-4">
           <div>
             <h3 className="text-lg font-bold text-hc-ink">Áherslan þín</h3>
-            <p className="mt-1 text-sm text-hc-ink-2">Þetta kemur úr skýrslunni þinni — þú þarft ekki að velja það.</p>
+            <p className="mt-1 text-sm text-hc-ink-2">Hverju á áætlunin að halla að? Þú getur breytt þessu hvenær sem er.</p>
+          </div>
+
+          {/* The chooser.
+              Æfingar has had one since the programme was written — more
+              strength, balance, more endurance — and Næring had none: this
+              step said "þú þarft ekki að velja það" and listed what the
+              blood results implied, with no way to act on any of it. The
+              derived signals are still below, as a recommendation. */}
+          <div className="grid gap-2">
+            {(Object.keys(FOCUS_IS) as NutritionFocus[]).map((f) => {
+              const on = (p.focus ?? "balanced") === f;
+              return (
+                <button key={f} type="button" onClick={() => set({ focus: f })} aria-pressed={on} className={card(on)}>
+                  <span className="block font-semibold text-hc-ink">{FOCUS_IS[f].label}</span>
+                  <span className="block text-xs text-hc-ink-2">{FOCUS_IS[f].blurb}</span>
+                  <span className="mt-1 inline-block rounded-full bg-lime-50 px-2 py-0.5 text-[11px] font-semibold text-lime-900 ring-1 ring-lime-200">
+                    {FOCUS_IS[f].shape}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* When the measurement disagrees with the choice, say so once and
+              leave the choice alone. */}
+          {focusTension(p.focus, emphasis) && (
+            <p className="rounded-hc-element bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
+              {focusTension(p.focus, emphasis)}
+            </p>
+          )}
+
+          <div className="border-t border-slate-100 pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Úr skýrslunni þinni</p>
           </div>
           {emphasis.length === 0 ? (
             <p className={`${hcCard.base} p-4 text-sm text-slate-600`}>Skýrslan kallar ekki á sérstaka áherslu. Grunnurinn stendur: alvöru matur, prótein og trefjar.</p>

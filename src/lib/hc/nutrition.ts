@@ -120,7 +120,19 @@ export const DIET_OPTIONS: DietOption[] = [
  */
 export type Allergen =
   | "milk" | "lactose" | "gluten" | "egg" | "fish" | "shellfish" | "mollusc"
-  | "treenut" | "peanut" | "soy" | "sesame" | "mustard" | "celery" | "sulphite" | "lupin";
+  | "treenut" | "peanut" | "soy" | "sesame" | "mustard" | "celery" | "sulphite" | "lupin"
+  /*
+   * Not an allergen — a preference, on the same machinery.
+   *
+   * It is a denylist read off the ingredients, which is exactly what this
+   * needs, so it rides along rather than growing a second mechanism. It is
+   * labelled as what it is and nothing more: "Án fræolía". Lifeline holds a
+   * healthcare licence and its copy may measure and track but never claim
+   * that something causes or prevents disease, and whether seed oils are
+   * inflammatory is a contested question rather than a settled one. So the
+   * filter is offered and the claim is not made.
+   */
+  | "seedoil";
 
 export interface AllergenOption {
   key: Allergen;
@@ -138,6 +150,7 @@ export interface AllergenOption {
  * separate from a milk allergy.
  */
 export const ALLERGEN_OPTIONS: AllergenOption[] = [
+  { key: "seedoil", label: "Án fræolía", words: ["sólblómaolía", "sólblómaolíu", "rapsolía", "rapsolíu", "maísolía", "maísolíu", "sojaolía", "sojaolíu", "vínberjaolía", "vínberjaolíu", "jurtaolía", "jurtaolíu", "matarolía", "matarolíu", "smjörlíki", "sunflower oil", "rapeseed oil", "canola", "corn oil", "soybean oil", "grapeseed", "vegetable oil", "margarine"], note: "Við sleppum réttum sem telja upp fræolíur. Ólífuolía, smjör og kókosolía eru áfram með." },
   { key: "lactose", label: "Laktósaóþol", words: ["mjólk", "rjómi", "rjóma", "ís ", "mysa", "milk", "cream", "whey"], note: "Laktósafríar útgáfur af skyri og mjólk eru í lagi — við sleppum þó öllu sem inniheldur mjólkursykur." },
   { key: "milk", label: "Mjólkurprótein (ofnæmi)", words: ["mjólk", "rjómi", "rjóma", "smjör", "ostur", "ost", "skyr", "jógúrt", "kotasæla", "mysa", "milk", "cream", "butter", "cheese", "yogurt", "yoghurt", "cottage", "whey", "ghee"] },
   { key: "gluten", label: "Glúten (sjúkdómur eða óþol)", words: ["hveiti", "brauð", "pasta", "núðlur", "kúskús", "bygg", "rúgur", "rúgbrauð", "hafrar", "haframjöl", "hrökkbrauð", "tortilla", "vefja", "semolina", "bulgur", "wheat", "bread", "noodle", "couscous", "barley", "rye", "oat", "cracker", "flour", "panko", "soy sauce", "sojasósa"], note: "Hafrar eru glútenlausir í sjálfu sér en nær alltaf mengaðir hér — við sleppum þeim nema merktir glútenlausir." },
@@ -173,6 +186,56 @@ export function mealContains(
   return opt.words.some((w) => hay.includes(w.toLowerCase()));
 }
 
+/**
+ * What the plan leans towards, chosen rather than derived.
+ *
+ * Æfingar has had this since the programme was written: you pick more
+ * strength, balance, or more endurance, and the generator follows. Næring
+ * had no equivalent — its only "emphasis" is emphasisFor(), which reads
+ * your blood results and cannot be set by anybody, so the page could tell
+ * you that your fibre was low and offer no way to act on it.
+ *
+ * This is the other half. The derived signals stay exactly as they are and
+ * are shown beside the chooser as a recommendation: they come from actual
+ * measurements and must not be overwritten by a preference. When the two
+ * disagree the page says so and the person still chooses.
+ */
+export type NutritionFocus = "protein" | "balanced" | "lowcarb" | "fibre";
+
+export const FOCUS_IS: Record<NutritionFocus, {
+  label: string;
+  blurb: string;
+  /** Meal tags this focus prefers, in the order they are preferred. */
+  tags: string[];
+  /** Roughly what a day looks like, for the chooser. */
+  shape: string;
+}> = {
+  protein: {
+    label: "Meira prótein",
+    blurb: "Þegar markmiðið er vöðvar, mettun eða að halda í vöðva í þyngdartapi.",
+    tags: ["high-protein"],
+    shape: "Prótein í hverri máltíð",
+  },
+  balanced: {
+    label: "Jafnvægi",
+    blurb: "Heilt fæði, nóg prótein og nógar trefjar — án þess að telja neitt.",
+    tags: ["high-protein", "vegetarian"],
+    shape: "Allt með, ekkert í öfgum",
+  },
+  lowcarb: {
+    label: "Minna af kolvetnum",
+    blurb: "Þegar blóðsykur sveiflast eða kvöldið fer í sykur.",
+    tags: ["low-carb", "high-protein"],
+    shape: "Minna brauð og hrísgrjón, meira grænmeti",
+  },
+  fibre: {
+    label: "Meiri trefjar",
+    blurb: "Baunir, grænmeti og heilkorn í flestar máltíðir.",
+    tags: ["vegetarian", "vegan"],
+    shape: "Baunir eða grænmeti í hverri máltíð",
+  },
+};
+
 export interface NutritionPrefs {
   /** DIET_OPTIONS keys. */
   diet: string[];
@@ -182,9 +245,29 @@ export interface NutritionPrefs {
   snack: boolean;
   /** How much cooking is realistic. */
   cooking: "quick" | "normal" | "prep";
+  /** What the plan leans towards. Unset means balanced. */
+  focus?: NutritionFocus;
 }
 
-export const DEFAULT_NUTRITION: NutritionPrefs = { diet: [], avoid: [], snack: true, cooking: "normal" };
+export const DEFAULT_NUTRITION: NutritionPrefs = { diet: [], avoid: [], snack: true, cooking: "normal", focus: "balanced" };
+
+/**
+ * The derived signal that argues against the chosen focus, if any.
+ *
+ * Shown as a sentence next to the chooser, never as an override: the
+ * signal is a measurement and the focus is a decision, and the person
+ * making the decision is allowed to have read the measurement.
+ */
+export function focusTension(
+  focus: NutritionFocus | undefined,
+  derived: { emphasis: Emphasis }[],
+): string | null {
+  const has = (e: Emphasis) => derived.some((d) => d.emphasis === e);
+  if (focus === "lowcarb" && has("fibre")) return "Skýrslan bendir á meiri trefjar — veldu frekar trefjar ef þú ert í vafa.";
+  if (focus === "fibre" && has("protein")) return "Skýrslan bendir á meira prótein — trefjaáherslan heldur því lægra.";
+  if (focus === "protein" && has("fibre")) return "Skýrslan bendir líka á meiri trefjar — baunir og grænmeti telja í báðum.";
+  return null;
+}
 
 export const COOKING_IS: Record<NutritionPrefs["cooking"], { label: string; hint: string; tags: string[] }> = {
   quick: { label: "Sem minnst eldamennska", hint: "Helst ekkert eldað — samsett úr því sem er til.", tags: ["no-cook"] },

@@ -6,7 +6,7 @@
 // in the history their coach reads.
 //
 // The targets are not invented here. They are the ones already in
-// hc_knowledge and shown on the report: protein 1,2–1,6 g per kg of body
+// hc_knowledge and shown on the report: protein 1,6–2,0 g per kg of body
 // weight a day for someone training strength, fibre 25–35 g. Protein is the
 // one that can be totalled from the meal library, because meals carry
 // protein and not fibre.
@@ -47,15 +47,24 @@ export function totalsOf(rows: { kcal?: number | null; protein?: number | null; 
 /**
  * The day's protein target, in grams.
  *
- * 1,2–1,6 g/kg is the band hc_knowledge carries for anyone training strength,
- * which the core programme means everyone. Without a weight on file there is
- * no honest target, so it returns null rather than a guess — a progress bar
- * against a made-up number is worse than no bar.
+ * 1,6–2,0 g per kilo of body weight, which is the band for someone training
+ * to build or hold muscle rather than the general-population floor. The
+ * weight comes from the body-composition measurement, so the number is the
+ * person's own and not a guess.
+ *
+ * It was 1,2–1,6 here and in hc_knowledge. Both moved together, on purpose:
+ * the report and the plan are two views of one recommendation and a
+ * participant who reads 1,2–1,6 on one screen and is given 1,6–2,0 on the
+ * next has been told two different things by the same service.
+ *
+ * Without a weight on file there is no honest target, so it returns null
+ * rather than a guess — a progress bar against a made-up number is worse
+ * than no bar.
  */
 export function proteinTarget(weightKg: number | null | undefined): { min: number; max: number } | null {
   const w = Number(weightKg);
   if (!Number.isFinite(w) || w <= 0) return null;
-  return { min: Math.round(w * 1.2), max: Math.round(w * 1.6) };
+  return { min: Math.round(w * 1.6), max: Math.round(w * 2.0) };
 }
 
 export const FIBRE_TARGET = { min: 25, max: 35 };
