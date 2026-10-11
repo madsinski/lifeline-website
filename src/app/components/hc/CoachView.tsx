@@ -30,13 +30,16 @@ type Api = (url: string, init?: RequestInit) => Promise<Response>;
 /**
  * How many messages the conversation shows before "Sjá eldri skilaboð".
  *
- * Four: the end of the exchange, short enough that the thread never needs
- * a scrollbar of its own and the page opens on the coach rather than
- * halfway down a chat. The whole history is one button away, and that view
- * does get its own scroller — it is a transcript then, and a transcript
- * should not make the page a mile long.
+ * Three, chosen by measuring: at four the page was 934px against an 844px
+ * screen, so entering Þjálfari started with a scroll. Three is the end of
+ * the exchange and fits.
+ *
+ * It fits for messages of ordinary length. Three long ones will still push
+ * past the fold — a fixed count cannot promise otherwise, and capping the
+ * thread's height instead would put back the inner scrollbar this is here
+ * to avoid.
  */
-const TAIL = 4;
+const TAIL = 3;
 
 /** How many more each press of "Sjá eldri skilaboð" uncovers. */
 const STEP = 10;
