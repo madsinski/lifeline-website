@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Zap, CalendarClock, FileCheck2, Hand, MessageCircle } from "lucide-react";
 import { hcCard } from "./ui";
+import { useSwipe } from "@/lib/hc/use-swipe";
 import Sheet from "./Sheet";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -250,7 +251,8 @@ export function NotificationSheet({ items, upcoming, onClose, onNavigate }: {
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Tilkynningar</p>
           <NotificationList items={shown} onNavigate={onNavigate}
-            onOpened={(id) => setShown((xs) => xs.map((x) => (x.id === id ? { ...x, unread: false } : x)))} />
+            onOpened={(id) => setShown((xs) => xs.map((x) => (x.id === id ? { ...x, unread: false } : x)))}
+            onDismiss={(id) => setShown((xs) => xs.filter((x) => x.id !== id))} />
         </div>
       </div>
     </Sheet>
@@ -258,10 +260,12 @@ export function NotificationSheet({ items, upcoming, onClose, onNavigate }: {
 }
 
 /** The full list. */
-export function NotificationList({ items, onNavigate, onOpened }: {
+export function NotificationList({ items, onNavigate, onOpened, onDismiss }: {
   items: Note[];
   /** Tapped: clear this row's dot, whatever the server says next. */
   onOpened?: (id: string) => void;
+  /** Swiped away: drop it from the list. */
+  onDismiss?: (id: string) => void;
   /**
    * Handle the link in place, if the page can.
    *
@@ -306,12 +310,40 @@ export function NotificationList({ items, onNavigate, onOpened }: {
             </span>
           </>
         );
-        return n.href
-          ? <Link key={n.id} href={n.href}
+        const card = n.href
+          ? <Link href={n.href}
               onClick={(e) => { onOpened?.(n.id); if (n.href && onNavigate?.(n.href)) e.preventDefault(); }}
               className={`${hcCard.base} flex items-start gap-3 p-4 transition hover:ring-slate-300`}>{inner}</Link>
-          : <div key={n.id} className={`${hcCard.base} flex items-start gap-3 p-4`}>{inner}</div>;
+          : <div className={`${hcCard.base} flex items-start gap-3 p-4`}>{inner}</div>;
+
+        /* Swipe it away, the same gesture as the Í dag checklist.
+           A notification you have taken in but are not going to act on
+           right now still sat there — and "I have read this" is not the
+           same as "open it", which is the only thing that cleared it. */
+        return onDismiss
+          ? <Row key={n.id} onDismiss={() => onDismiss(n.id)}>{card}</Row>
+          : <div key={n.id}>{card}</div>;
       })}
+    </div>
+  );
+}
+
+/** One dismissible card: drag left, a red action appears behind it. */
+function Row({ children, onDismiss }: { children: React.ReactNode; onDismiss: () => void }) {
+  const swipe = useSwipe();
+  return (
+    <div className="relative overflow-hidden rounded-hc-card">
+      <button type="button" onClick={() => { onDismiss(); swipe.close(); }}
+        aria-label="Fjarlægja"
+        className="absolute inset-y-0 right-0 flex items-center justify-center bg-rose-600 px-4 text-sm font-bold text-white"
+        style={{ width: 88 }}>
+        Fjarlægja
+      </button>
+      <div className="relative transition-transform"
+        style={{ transform: `translateX(${swipe.dx}px)`, transitionDuration: swipe.dx === 0 || swipe.open ? "160ms" : "0ms", touchAction: "pan-y" }}
+        {...swipe.handlers}>
+        {children}
+      </div>
     </div>
   );
 }

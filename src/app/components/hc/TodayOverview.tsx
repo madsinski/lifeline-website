@@ -5,7 +5,7 @@
 // plan's own controls (edit, print) where they are easy to find.
 
 import { useState } from "react";
-import { Dumbbell, Target } from "lucide-react";
+import { ChevronRight, Dumbbell, Target } from "lucide-react";
 import PillarIcon from "./PillarIcon";
 import type { TrainingSettings } from "@/lib/hc/adaptive-program";
 import ActivityIcon from "./ActivityIcon";
@@ -106,11 +106,24 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
                 ))}
               </span>
             )}
+            {/* Today's session is the thing you press.
+                It was a heading with a separate "Opna æfinguna →" link
+                underneath, which is two elements for one action and left
+                today looking no louder than tomorrow. As a solid white
+                pill it is the only opaque thing on the card, and the link
+                is gone because the pill is the link. */}
             {todays.length ? todays.map((s) => (
-              <span key={s.id} className="mt-1 block">
-                <span className="block text-lg font-bold leading-tight">{s.title}{s.minutes ? ` · um ${s.minutes} mín.` : ""}</span>
-                <span className="block truncate text-sm text-white/90">{s.items.filter((i) => (i.block ?? "main") === "main").map((i) => i.name).slice(0, 3).join(" · ")}</span>
-              </span>
+              <button key={s.id} type="button" onClick={() => onOpenExercise(s.id)}
+                className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-white px-3.5 py-3 text-left text-orange-950 shadow-md transition active:scale-[0.99]">
+                <ActivityIcon name={s.title} className="h-5 w-5 shrink-0 text-orange-700" />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold leading-tight">{s.title}{s.minutes ? ` · um ${s.minutes} mín.` : ""}</span>
+                  <span className="block truncate text-sm text-orange-900/70">
+                    {s.items.filter((i) => (i.block ?? "main") === "main").map((i) => i.name).slice(0, 3).join(" · ")}
+                  </span>
+                </span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-orange-700" aria-hidden />
+              </button>
             )) : (
               <span className="mt-1 block text-sm text-white/95">
                 {myToday.length ? null : "Rösk ganga eða útivera telur samt."}
@@ -118,8 +131,10 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
             )}
             {/* Tomorrow as a chip — the same treatment as the Æfingar hero,
                 so the two pages read alike. */}
-            <span className="mt-2 inline-flex w-fit max-w-full items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
-              <span className="opacity-80">Á morgun</span>
+            {/* Tomorrow is context, not an instruction: no ring, no
+                background, just a quiet line under today's. */}
+            <span className="mt-2 flex items-center gap-1.5 text-xs font-medium text-white/70">
+              <span className="uppercase tracking-wide">Á morgun</span>
               <span className="truncate">{tomorrow.length ? tomorrow.join(" + ") : "hvíld"}</span>
             </span>
             {todays[0]?.items.some((i) => i.image) && (
@@ -131,11 +146,16 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
               </span>
             )}
             <span className="mt-auto flex items-center gap-3 pt-3">
-              <button type="button" onClick={() => onOpenExercise(todays[0]?.id)}
-                className="min-w-0 flex-1 text-left text-sm font-semibold underline-offset-4 hover:underline">
-                Opna æfinguna →
-              </button>
-              {people}
+              {/* No "Opna æfinguna" any more — today's pill above is that
+                  button. On a rest day there is nothing to open, so the
+                  row is just the ring. */}
+              {!todays.length && (
+                <button type="button" onClick={() => onOpenExercise(undefined)}
+                  className="min-w-0 flex-1 text-left text-sm font-semibold underline-offset-4 hover:underline">
+                  Opna æfingaáætlunina →
+                </button>
+              )}
+              <span className="ml-auto">{people}</span>
             </span>
           </div>
         )}

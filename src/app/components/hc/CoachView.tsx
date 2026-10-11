@@ -152,7 +152,19 @@ export default function CoachView({ api, startOn }: {
     seen.current = true;
     void api("/api/hc/coach", { method: "POST", body: JSON.stringify({ seen: true }) }).then(() => load()).catch(() => {});
   }, [tab, data?.unread, api, load]);
-  useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [data?.thread.length, pending.length]);
+  /*
+   * Land on the newest message.
+   *
+   * "nearest" does as little as it can get away with — the thread no
+   * longer has its own scroller, so the page is what moves, and nearest
+   * decided it was near enough and left the last message under the docked
+   * composer. "end" puts it above the dock, which is where you came to
+   * look.
+   */
+  useEffect(() => {
+    const t = setTimeout(() => end.current?.scrollIntoView({ block: "end", behavior: "smooth" }), 60);
+    return () => clearTimeout(t);
+  }, [data?.thread.length, pending.length, tab]);
 
   const post = async (payload: Record<string, unknown>) => {
     setBusy(true); setErr("");

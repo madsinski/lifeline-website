@@ -390,7 +390,6 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                   <li key={s.id} className="flex items-start gap-3 px-3 py-3 sm:px-4"
                     style={{
                       background: done ? "#FFFFFF" : PILLAR_META.exercise.soft,
-                      borderLeft: `3px solid ${done ? "transparent" : PILLAR_META.exercise.color}`,
                     }}>
                     <button type="button"
                       onClick={() => { if (done) return; if (s.session) onCompleteSession?.(s.session); else if (s.activity) onCompleteActivity?.(s.activity); }}

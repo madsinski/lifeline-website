@@ -278,7 +278,15 @@ function PlanPageInner() {
     setPeople(false);
     setNotesOpen(false);
     setTab(want as Tab);
-    window.scrollTo({ top: 0, behavior: "instant" });
+    /*
+     * The thread puts itself where it needs to be.
+     *
+     * Scrolling to the top here fought it: arriving from a message
+     * notification, the page jumped to the top of the coach card and the
+     * message you came to read was somewhere below. Every other tab does
+     * want the top.
+     */
+    if (want !== "coach") window.scrollTo({ top: 0, behavior: "instant" });
     return true;
   };
 
