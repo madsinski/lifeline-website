@@ -72,12 +72,15 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           The gradient panel it replaced carried the programme name, some
           chips and little else. */}
       <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-lime-700">Næringaráætlunin mín</p>
-            <h2 className="mt-1 text-2xl font-bold text-slate-900">{nutrition.name}</h2>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
+        {/* The name and the way in on one line, as on Æfingar.
+            The kicker was "N Æ R I N G A R Á Æ T L U N I N   M Í N" at
+            0.18em — twenty letters of Icelandic compound pulled apart —
+            above a heading that already says which plan this is, with the
+            Breyta button orphaned on a line of its own below. */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-lime-700">Áætlunin mín</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            <h2 className="min-w-0 text-2xl font-bold text-slate-900">{nutrition.name}</h2>
             {onChangeProgram && !onCustomise && (
               <button type="button" onClick={onChangeProgram} className="rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
             )}
@@ -125,22 +128,31 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Vikan</p>
               <p className="text-[11px] text-slate-400">Kvöldmatur og prótein · ýttu á dag</p>
             </div>
-            <div className="grid grid-cols-7 gap-1.5">
+            {/* Rows on a phone, the week as a grid from sm up.
+                Seven columns inside 360px gives each day about 44px, and a
+                meal called "Rauðar linsur í dal með hrísgrjónum" became
+                "Rauð linsul í dal með hrísgr" stacked four lines deep —
+                unreadable, and the same squeeze that made Æfingar print
+                "Styrk". A full-width row has space for the real name.
+                Same treatment as the training week, so the two pages read
+                alike. */}
+            <div className="flex flex-col sm:grid sm:grid-cols-7 sm:gap-1.5">
               {week.map((d, i) => {
                 const on = i === shownDay;
+                const protein = SLOTS.reduce((t, sl) => t + (d[sl]?.protein ?? 0), 0);
                 return (
                   <button key={i} type="button" onClick={() => setPickedDay(i)} aria-pressed={on}
                     aria-label={`${WEEKDAYS[i]}${i === todayIdx ? " (í dag)" : ""}`}
-                    className={`flex min-h-[84px] flex-col gap-1 rounded-xl border p-1.5 text-left transition ${
-                      on ? "border-lime-500 bg-lime-50" : i === todayIdx ? "border-lime-300 bg-lime-50/60" : "border-slate-200 bg-white hover:border-slate-300"}`}>
-                    <span className={`text-center text-[11px] font-bold uppercase ${i === todayIdx ? "text-lime-800" : "text-slate-400"}`}>
+                    className={`flex items-center gap-2 border-b border-slate-100 px-1 py-2 text-left transition last:border-b-0 sm:min-h-[84px] sm:flex-col sm:items-stretch sm:gap-1 sm:rounded-xl sm:border sm:p-1.5 ${
+                      on ? "bg-lime-50 sm:border-lime-500" : i === todayIdx ? "bg-lime-50/60 sm:border-lime-300" : "sm:border-slate-200 sm:bg-white sm:hover:border-slate-300"}`}>
+                    <span className={`w-9 shrink-0 text-[11px] font-bold uppercase sm:w-auto sm:text-center ${i === todayIdx ? "text-lime-800" : "text-slate-400"}`}>
                       {WEEKDAYS_SHORT[i]}
                     </span>
-                    <span className="block flex-1 overflow-hidden text-[10px] leading-tight text-slate-700">
+                    <span className="min-w-0 flex-1 truncate text-sm leading-tight text-slate-700 sm:flex-initial sm:overflow-hidden sm:text-[10px] sm:whitespace-normal">
                       {d.dinner ? mealName(d.dinner) : "—"}
                     </span>
-                    <span className="block text-[10px] font-semibold text-slate-500">
-                      {SLOTS.reduce((t, sl) => t + (d[sl]?.protein ?? 0), 0)} g
+                    <span className="shrink-0 text-xs font-semibold tabular-nums text-slate-500 sm:text-[10px]">
+                      {protein} g
                     </span>
                   </button>
                 );
