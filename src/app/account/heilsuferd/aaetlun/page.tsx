@@ -133,6 +133,8 @@ function PlanPageInner() {
   const [liveLogs, setLiveLogs] = useState<ActionLog[] | null>(null);
   /** Today's totals as the checklist actually renders them. */
   const [liveCounts, setLiveCounts] = useState<{ done: number; of: number } | null>(null);
+  /** Which Þjálfari subpage to open on, when something linked into it. */
+  const [coachSub, setCoachSub] = useState<"talk" | "book">("talk");
   /** Every measured value on the journey, for "Mínar mælingar". */
   const [results, setResults] = useState<HcResult[] | null>(null);
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
@@ -267,7 +269,10 @@ function PlanPageInner() {
    */
   const goInPage = (href: string): boolean => {
     if (!href.startsWith("/account/heilsuferd/aaetlun")) return false;
-    const want = new URL(href, "https://x").searchParams.get("tab");
+    const u = new URL(href, "https://x");
+    const want = u.searchParams.get("tab");
+    // "sub" says which subpage of Þjálfari: an appointment belongs on Bóka.
+    setCoachSub(u.searchParams.get("sub") === "book" ? "book" : "talk");
     const ok: Tab[] = ["today", "exercise", "nutrition", "coach", "report", "results"];
     if (!want || !ok.includes(want as Tab)) return false;
     setPeople(false);
@@ -605,7 +610,7 @@ function PlanPageInner() {
                   {/* Was HelpCard alone — one form behind one button. The
                       page is now the conversation, the coach and the diary,
                       with the request form kept inside the first of them. */}
-                  <CoachView api={api} />
+                  <CoachView api={api} startOn={coachSub} />
                 </div>
               )}
               {tab === "exercise" && plan && baseExercise && (

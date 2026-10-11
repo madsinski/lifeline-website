@@ -15,6 +15,7 @@
 // prompt, not a second place to write.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Activity, CalendarClock, CalendarPlus, Check, ChevronDown, ChevronRight,
   Dumbbell, Gauge, HeartPulse, MapPin, MessageCircle, MessageSquarePlus,
@@ -114,8 +115,20 @@ const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.g
 const when = (iso: string) => { const d = new Date(iso); return `${d.getDate()}. ${MO[d.getMonth()]} kl. ${hhmm(d)}`; };
 const longWhen = (iso: string) => { const d = new Date(iso); return `${DAYS_LONG[d.getDay()]} ${d.getDate()}. ${MO[d.getMonth()]}, kl. ${hhmm(d)}`; };
 
-export default function CoachView({ api }: { api: Api }) {
-  const [tab, setTab] = useState<"talk" | "book">("talk");
+export default function CoachView({ api, startOn }: {
+  api: Api;
+  /** "book" to open on Bóka, where an upcoming appointment lives. */
+  startOn?: "talk" | "book";
+}) {
+  /*
+   * Which subpage, with the caller able to say.
+   *
+   * An upcoming appointment leads here, and it belongs on Bóka where
+   * Bókað is — not in the thread. The prop is read once as the initial
+   * value rather than held in sync, so pressing Skilaboð afterwards still
+   * works.
+   */
+  const [tab, setTab] = useState<"talk" | "book">(startOn === "book" ? "book" : "talk");
   const [data, setData] = useState<CoachData | null>(null);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -234,6 +247,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
    * question is literally "is this element still visible".
    */
   const [pinned, setPinned] = useState(false);
+  const host = typeof document === "undefined" ? null : document.body;
   const cardEnd = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = cardEnd.current;
@@ -260,21 +274,34 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
       {/* The pinned one-liner. Always in the tree so it can animate, and
           lifted out of flow while hidden so it does not take a row of space
           at the top of the page for nothing. */}
-      <div className={`sticky top-0 z-20 -mb-px transition-all duration-200 ${
-        pinned ? "max-h-16 opacity-100" : "pointer-events-none max-h-0 opacity-0"}`}>
-        <div className="flex items-center gap-3 rounded-b-2xl bg-gradient-to-br from-hc-hero-from to-hc-hero-to px-4 py-2.5 text-white shadow-md">
+      {/* Fixed and portalled, not sticky.
+          position:sticky does not work anywhere on this site: globals.css
+          keeps `html, body { overflow: auto !important }` as a guard against
+          third-party SDKs locking the page, which makes body a scroll
+          container that never scrolls — so every sticky descendant is
+          confined to a box that does not move. Proved it with a bare
+          sticky probe: bottom 1012 against an 844 viewport.
+          Fixed has no such problem, and the portal keeps it clear of
+          whatever the tab's markup does to its children. The inner wrapper
+          repeats the page's own column so it lines up with the content. */}
+      {host && createPortal(
+        <div className={`pointer-events-none fixed inset-x-0 top-0 z-40 transition-all duration-200 ${
+          pinned ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}>
+          <div className="pointer-events-auto mx-auto flex max-w-4xl items-center gap-3 bg-gradient-to-br from-hc-hero-from to-hc-hero-to px-4 py-2.5 text-white shadow-md sm:rounded-b-2xl">
           {c?.photo_url
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={c.photo_url} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/40" />
             : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/30"><UserRound className="h-5 w-5" aria-hidden /></span>}
           <p className="min-w-0 flex-1 truncate font-bold">{c?.name ?? "Þjálfarinn þinn"}</p>
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            aria-label="Upp á toppinn"
-            className="shrink-0 rounded-full p-1 text-white/80 transition hover:bg-white/15 hover:text-white">
-            <ChevronDown className="h-5 w-5 rotate-180" aria-hidden />
-          </button>
-        </div>
-      </div>
+            <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              aria-label="Upp á toppinn"
+              className="shrink-0 rounded-full p-1 text-white/80 transition hover:bg-white/15 hover:text-white">
+              <ChevronDown className="h-5 w-5 rotate-180" aria-hidden />
+            </button>
+          </div>
+        </div>,
+        host,
+      )}
 
       {/* Who you are talking to, above the thread rather than behind a tab.
           A gradient header so the person reads as the subject of the page,
@@ -410,34 +437,44 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
             out of the way until asked for, which a permanent row did not. */}
       </section>
 
-      {/* Docked, like Messenger's — and outside the card on purpose.
-          It used to sit at the end of the thread, so writing a reply to an
-          old message meant scrolling to the bottom to find the box. The
-          first attempt put it inside the thread card, which looked right
-          and did not stick: the card carries overflow-hidden for its
-          rounded corners, and an overflow ancestor becomes the box a
-          sticky element is confined to — measured at 235px above the
-          viewport floor and never reaching it.
-          As a sibling its containing block is the page, which is the thing
-          that scrolls. The offset clears the bottom navbar through the
-          shared --hc-dock-offset token; above sm that is 0, because the
-          navbar is hidden there. */}
-<div className="sticky z-10 flex items-end gap-2 rounded-hc-card border border-slate-200 bg-white/95 p-3 shadow-hc-card backdrop-blur"
-        style={{ bottom: "var(--hc-dock-offset)" }}>
-        <button type="button" onClick={() => setPrompts(true)}
-          aria-label="Tilbúin skilaboð"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-hc-brand-dark">
-          <MessageSquarePlus className="h-5 w-5" aria-hidden />
-        </button>
-        <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void onSend(); } }}
-          placeholder="Skrifaðu skilaboð…" aria-label="Skilaboð til þjálfarans"
-          className="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-hc-element border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-hc-brand focus:ring-2 focus:ring-hc-brand/20" />
-        <button type="button" onClick={() => void onSend()} disabled={busy || !draft.trim()}
-          aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
-          <Send className="h-4 w-4" aria-hidden />
-        </button>
-      </div>
+      {/* Docked, like Messenger's.
+          Two attempts at sticky failed for two different reasons. Inside
+          the thread card, its overflow-hidden became the box the sticky
+          element was confined to. Outside it, sticky still did nothing —
+          because globals.css keeps `html, body { overflow: auto
+          !important }` to stop third-party SDKs locking the page, which
+          makes body a scroll container that never scrolls, so sticky has
+          no moving scrollport anywhere on this site. Proved with a bare
+          probe: a plain sticky bottom-0 bar sat at 1012 in an 844 viewport.
+          So: fixed, portalled to body so nothing above it in the tree can
+          reposition or clip it, with an inner wrapper repeating the page's
+          own column so it lines up with the content. The offset clears the
+          bottom navbar through --hc-dock-offset, which is 0 above sm where
+          the navbar is hidden. */}
+{host && createPortal(
+        <div className="fixed inset-x-0 z-30" style={{ bottom: "var(--hc-dock-offset)" }}>
+          <div className="mx-auto flex max-w-4xl items-end gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
+            <button type="button" onClick={() => setPrompts(true)}
+              aria-label="Tilbúin skilaboð"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-hc-brand-dark">
+              <MessageSquarePlus className="h-5 w-5" aria-hidden />
+            </button>
+            <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void onSend(); } }}
+              placeholder="Skrifaðu skilaboð…" aria-label="Skilaboð til þjálfarans"
+              className="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-hc-element border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-hc-brand focus:ring-2 focus:ring-hc-brand/20" />
+            <button type="button" onClick={() => void onSend()} disabled={busy || !draft.trim()}
+              aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
+              <Send className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
+        </div>,
+        host,
+      )}
+
+      {/* The dock's own height, kept clear so the last message is not
+          hidden underneath it. */}
+      <div aria-hidden className="h-24" />
       {prompts && (
         <Sheet title="Tilbúin skilaboð" onClose={() => setPrompts(false)}>
           <ul className="divide-y divide-slate-100">

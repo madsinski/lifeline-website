@@ -118,7 +118,11 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
     const on = i.key === active;
     return (
       <Link key={i.key} href={i.href} aria-current={on ? "page" : undefined}
-        onClick={(e) => { if (onSelect?.(i.key)) e.preventDefault(); }}
+        /* Close the overflow menu too. Tapping Í dag while Meira was open
+           switched the tab and left the menu hanging over it until Meira
+           was pressed again — the menu is a thing you opened to choose
+           from, and choosing anything at all is done with it. */
+        onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
         className={mobile
           ? `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${on ? "text-hc-brand-dark" : "text-slate-500"}`
           : `${hcTabs.tab(on)} flex items-center justify-center gap-2`}>

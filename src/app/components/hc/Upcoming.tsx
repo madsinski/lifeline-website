@@ -152,7 +152,16 @@ export function UpcomingList({ items, onNavigate }: { items: Upcoming[]; onNavig
  * The rows were inert: everything else in this list and in Tilkynningar
  * opens something, and these looked identical to those and did nothing.
  */
-const ROW_HREF = "/account/heilsuferd/aaetlun?tab=coach";
+/*
+ * Bóka, not the messages.
+ *
+ * Every row pointed at ?tab=coach, which lands on Skilaboð — so tapping an
+ * appointment opened a chat. Bókað is on the Bóka subpage, which is where
+ * the thing you tapped actually is, along with moving it and cancelling it.
+ * Only a coach message belongs in the thread, and those are notifications
+ * rather than upcoming items, so they carry their own href.
+ */
+const ROW_HREF = "/account/heilsuferd/aaetlun?tab=coach&sub=book";
 
 function Row({ x, urgent = false, onNavigate }: {
   x: Upcoming; urgent?: boolean;
