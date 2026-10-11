@@ -341,8 +341,12 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
           day still reads as a whole. */}
       <section>
         <div className="flex items-baseline justify-between">
+          {/* Not "Dagurinn": the logger directly above this already says
+              "Dagurinn þinn", and two headings of the same name in a row
+              read as a mistake. This one lists the meals; that one counts
+              what has been eaten. */}
           <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-            {shownDay === todayIdx ? "Dagurinn" : WEEKDAYS[shownDay]}
+            {shownDay === todayIdx ? "Máltíðir dagsins" : `Máltíðir · ${WEEKDAYS[shownDay].toLowerCase()}`}
           </h3>
           <p className="text-xs text-slate-500">Úr uppskriftasafninu</p>
         </div>
