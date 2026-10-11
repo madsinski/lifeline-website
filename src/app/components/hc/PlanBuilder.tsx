@@ -17,6 +17,7 @@ import TrainingControls from "./TrainingControls";
 import { DEFAULT_TRAINING, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import DayExampleEditor from "./DayExampleEditor";
+import CoachMealWeek from "./CoachMealWeek";
 import AiProposalPanel, { type ProposedAction } from "./AiProposalPanel";
 import { bangScore, byScore, scoreBand, timeCost, GRADE_IS, type Rated } from "@/lib/hc/rating";
 import { byFit, fitOf } from "@/lib/hc/fit";
@@ -154,6 +155,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   // This client's traffic lights by hc_knowledge slug, so the library can be
   // ranked by what they actually need — the same score they see themselves.
   const [signals, setSignals] = useState<Record<string, Signal | null>>({});
+  /** Measured kilos from the report, for the 1,6–2,0 g/kg protein band. */
+  const [weightKg, setWeightKg] = useState<number | null>(null);
   const [markerTitles, setMarkerTitles] = useState<Record<string, string>>({});
   const hasSignals = Object.keys(signals).length > 0;
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -190,6 +193,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       setLib(library);
       setClientName(pj.client?.full_name ?? null);
       setSignals(pj.signals ?? {});
+      setWeightKg(typeof pj.weight_kg === "number" ? pj.weight_kg : null);
       setMarkerTitles(pj.marker_titles ?? {});
       setAuthor(pj.plan?.created_by ?? pj.actor ?? null);
       const plan = pj.plan as ActionPlan | null;
@@ -578,6 +582,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           onChange={(nutrition) => update({ nutrition })}
           api={api}
           journeyId={journeyId}
+          weightKg={weightKg}
         />
       </div>
 
@@ -782,12 +787,14 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
   );
 }
 
-function NutritionEditor({ value, templates, onChange, api, journeyId }: {
+function NutritionEditor({ value, templates, onChange, api, journeyId, weightKg }: {
   value: ActionPlan["nutrition"];
   templates: NutritionTemplate[];
   onChange: (v: ActionPlan["nutrition"]) => void;
   api: Api;
   journeyId: string;
+  /** From the report's þyngd row, for the 1,6–2,0 g/kg protein band. */
+  weightKg?: number | null;
 }) {
   const pick = (key: string) => {
     if (!key) { onChange(null); return; }
@@ -822,6 +829,14 @@ function NutritionEditor({ value, templates, onChange, api, journeyId }: {
             <ComposeButton api={api} journeyId={journeyId} kind="nutrition" templateKey={value.key ?? null}
               onDone={(r) => r.day_example && onChange({ ...value, day_example: r.day_example })} />
             <DayExampleEditor api={api} value={value.day_example ?? []} onChange={(day_example) => onChange({ ...value, day_example })} />
+          </div>
+          {/* And what actually comes out of it.
+              The template above says "high protein, three meals"; this says
+              "Thursday is skyr again". Only the first was answerable from
+              this screen, although meal_picks has been arriving with the
+              training settings all along. */}
+          <div className="mt-3 rounded-xl border border-slate-100 p-3">
+            <CoachMealWeek api={api} journeyId={journeyId} programKey={value.key ?? null} weightKg={weightKg} />
           </div>
         </div>
       )}

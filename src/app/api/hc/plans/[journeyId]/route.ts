@@ -52,8 +52,24 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ journeyId: 
     markerTitles[item.slug] = item.title;
   }
 
+  /*
+   * The measured weight, for the protein band.
+   *
+   * The report is already loaded here; only the traffic lights were being
+   * passed on. The coach's nutrition step needs the kilos to say what
+   * 1,6–2,0 g/kg comes to, and deriving a protein target from a different
+   * number than the participant's own page uses would put the two screens
+   * quietly out of step.
+   */
+  const weightKg = (() => {
+    const row = (stored?.report.items ?? []).find((i) => i.slug === "thyngd");
+    const v = Number(row?.value);
+    return Number.isFinite(v) && v > 0 ? v : null;
+  })();
+
   return NextResponse.json({
     plan,
+    weight_kg: weightKg,
     client: { full_name: profile?.full_name ?? null, date_of_birth: profile?.date_of_birth ?? null },
     journey: { id: g.journey.id, stage: g.journey.stage, interview_done_at: g.journey.interview_done_at, plan_published_at: g.journey.plan_published_at },
     signals,
