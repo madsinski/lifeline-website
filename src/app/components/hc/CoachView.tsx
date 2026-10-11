@@ -38,6 +38,9 @@ type Api = (url: string, init?: RequestInit) => Promise<Response>;
  */
 const TAIL = 4;
 
+/** How many more each press of "Sjá eldri skilaboð" uncovers. */
+const STEP = 10;
+
 interface Worker {
   id: string; name: string | null; role: string | null; organization: string | null;
   credentials: string | null; bio: string | null; photo_url: string | null; specialties: string[] | null;
@@ -270,7 +273,16 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
   const [prompts, setPrompts] = useState(false);
   const [about, setAbout] = useState(false);
   /** The whole history, when asked for. Default is the recent end of it. */
-  const [showAll, setShowAll] = useState(false);
+  /*
+   * How much of the thread is on screen.
+   *
+   * Was a boolean: four messages, or the entire history in a box with its
+   * own scrollbar. Both ends were wrong — the collapsed view could not be
+   * extended a little, and the expanded one put a second scroller inside a
+   * page that already scrolls. It is a count now: four to begin with, ten
+   * more per press, and the page grows to fit them.
+   */
+  const [shownCount, setShownCount] = useState(TAIL);
   /*
    * Messenger's layout: the person at the top, the composer at the bottom,
    * and only the page scrolling between them.
@@ -423,12 +435,11 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
             the last few messages render; the rest are one tap away, which
             is also the right default for reading a conversation you already
             know the beginning of. */}
-        <div className={`space-y-2 bg-slate-50/60 p-4 ${
-          showAll ? "max-h-[55vh] overflow-y-auto overscroll-contain" : ""}`}>
-          {data.thread.length > TAIL && !showAll && (
-            <button type="button" onClick={() => setShowAll(true)}
+        <div className="space-y-2 bg-slate-50/60 p-4">
+          {data.thread.length > shownCount && (
+            <button type="button" onClick={() => setShownCount((n) => n + STEP)}
               className="mx-auto block rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50">
-              Sjá eldri skilaboð ({data.thread.length - TAIL})
+              Sjá eldri skilaboð ({Math.min(STEP, data.thread.length - shownCount)})
             </button>
           )}
           {data.thread.length === 0 && (
@@ -436,7 +447,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
               Skrifaðu {first} hvað sem er. Svarið kemur hingað.
             </p>
           )}
-          {(showAll ? data.thread : data.thread.slice(-TAIL)).map((m) => (
+          {data.thread.slice(-shownCount).map((m) => (
             <div key={m.id} className={`flex ${m.author_kind === "client" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${
                 m.author_kind === "client"
