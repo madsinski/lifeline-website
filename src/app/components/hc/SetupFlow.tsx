@@ -56,8 +56,12 @@ const ROLE_IS: Record<string, string> = {
 /** The four things, and why each one is worth a minute now. */
 export const SETUP_ROWS: { key: Key; title: string; why: string; icon: typeof Bell }[] = [
   { key: "coach", title: "Þjálfarinn þinn", why: "Sá sem fer yfir áætlunina með þér og svarar skilaboðum.", icon: UserRound },
-  { key: "calendar", title: "Dagatalið", why: "Tímar og myndsímtöl birtast sjálfkrafa í dagatalinu þínu, með hlekk á fundinn.", icon: CalendarDays },
-  { key: "partner", title: "Ábyrgðarfélagi", why: "Einn sem þú velur sér hvað þú ert búinn að gera — ekkert annað.", icon: Users },
+  { key: "calendar", title: "Tengdu dagatalið þitt", why: "Tímar og myndsímtöl birtast sjálfkrafa í dagatalinu þínu, með hlekk á fundinn.", icon: CalendarDays },
+  /* "Ábyrgðarfélagi" is a mouthful that reads like paperwork. "Félagi" is
+     the plain word, and the step says what the person actually does. Not
+     "samherji", which fits the meaning but is the name of one of Iceland's
+     best-known companies, scandal attached. */
+  { key: "partner", title: "Veldu félaga", why: "Einn sem sér hvaða daga þú gerðir eitthvað. Ekkert annað.", icon: Users },
   { key: "nudge", title: "Áminning og appið", why: "Lítil ýting á þeim tíma sem þú velur — og Lifeline á heimaskjáinn, sem þarf til að tilkynningar berist í iPhone.", icon: Bell },
 ];
 
