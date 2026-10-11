@@ -185,24 +185,24 @@ export interface ActivityPreset {
 export const ACTIVITY_PRESETS: ActivityPreset[] = [
   // ── Styrkur ───────────────────────────────────────────────────────────
   { group: "Styrkur", name: "Lyftingar", covers: ["strength"], intensity: "hard", minutes: 60, icon: "Dumbbell" },
-  { group: "Styrkur", name: "CrossFit", covers: ["strength", "hiit"], intensity: "hard", minutes: 60, icon: "Flame", why: "Lyftingar og HIIT í sama tíma — telst sem hvoru tveggja." },
+  { group: "Styrkur", name: "CrossFit", covers: ["strength", "hiit"], intensity: "hard", minutes: 60, icon: "HandFist", why: "Lyftingar og HIIT í sama tíma — telst sem hvoru tveggja." },
   { group: "Styrkur", name: "Hóptími með lóðum", covers: ["strength"], intensity: "moderate", minutes: 55, icon: "Users" },
-  { group: "Styrkur", name: "Áhaldaleikfimi", covers: ["strength"], intensity: "moderate", minutes: 55, icon: "PersonStanding" },
+  { group: "Styrkur", name: "Áhaldaleikfimi", covers: ["strength"], intensity: "moderate", minutes: 55, icon: "Grip" },
   { group: "Styrkur", name: "Kettlebell-tími", covers: ["strength", "hiit"], intensity: "hard", minutes: 45, icon: "Weight", why: "Lyft og púl í senn." },
-  { group: "Styrkur", name: "Klifur", covers: ["strength"], intensity: "hard", minutes: 90, icon: "Mountain", why: "Gríðarlegur gripstyrkur og efri líkami." },
-  { group: "Styrkur", name: "Ólympískar lyftingar", covers: ["strength"], intensity: "hard", minutes: 75, icon: "Medal" },
+  { group: "Styrkur", name: "Klifur", covers: ["strength"], intensity: "hard", minutes: 90, icon: "HandGrab", why: "Gríðarlegur gripstyrkur og efri líkami." },
+  { group: "Styrkur", name: "Ólympískar lyftingar", covers: ["strength"], intensity: "hard", minutes: 75, icon: "Weight" },
   { group: "Styrkur", name: "TRX eða hringir", covers: ["strength"], intensity: "moderate", minutes: 45, icon: "Cable" },
 
   // ── Íþróttir: spretta-og-stopp ────────────────────────────────────────
   { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Goal", why: "Spretta-og-stopp — telst sem HIIT, ekki sem rólegt þol." },
   { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 90, icon: "Goal", why: "Spretta-og-stopp — telst sem HIIT." },
-  { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Target", why: "Spretta-og-stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Goal", why: "Spretta-og-stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Körfubolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "CircleDot", why: "Spretta-og-stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Blak", covers: ["hiit"], partial: ["cardio"], intensity: "moderate", minutes: 60, icon: "Volleyball" },
   { group: "Íþróttir", name: "Badminton", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Spretta-og-stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Tennis eða padel", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Spretta-og-stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Skvass", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Volleyball" },
-  { group: "Íþróttir", name: "Íshokkí", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Snowflake" },
+  { group: "Íþróttir", name: "Íshokkí", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Disc" },
   { group: "Íþróttir", name: "Bardagaíþróttir", covers: ["hiit", "strength"], partial: ["cardio"], intensity: "hard", minutes: 75, icon: "Swords", why: "Lotur á fullu og mikil líkamleg vinna." },
   { group: "Íþróttir", name: "Dans", covers: ["cardio"], intensity: "moderate", minutes: 60, icon: "Music" },
 
@@ -228,16 +228,16 @@ export const ACTIVITY_PRESETS: ActivityPreset[] = [
   { group: "Rólegt þol", name: "Gönguskíði", covers: ["cardio"], intensity: "moderate", minutes: 60, icon: "MountainSnow" },
   { group: "Rólegt þol", name: "Svigskíði eða bretti", covers: ["cardio"], intensity: "moderate", minutes: 120, icon: "MountainSnow" },
   { group: "Rólegt þol", name: "Golf (gangandi)", covers: ["cardio"], intensity: "easy", minutes: 180, icon: "Flag", why: "Löng, róleg ganga." },
-  { group: "Rólegt þol", name: "Kajak eða róður úti", covers: ["cardio"], intensity: "moderate", minutes: 60, icon: "Sailboat" },
-  { group: "Rólegt þol", name: "Hestamennska", covers: ["cardio"], intensity: "easy", minutes: 60, icon: "TreePine" },
+  { group: "Rólegt þol", name: "Kajak eða róður úti", covers: ["cardio"], intensity: "moderate", minutes: 60, icon: "Kayak" },
+  { group: "Rólegt þol", name: "Hestamennska", covers: ["cardio"], intensity: "easy", minutes: 60, icon: "Activity" },
   { group: "Rólegt þol", name: "Garðvinna eða snjómokstur", covers: ["cardio"], intensity: "moderate", minutes: 45, icon: "Shovel", why: "Telst með — þetta er alvöru vinna." },
 
   // ── Gott fyrir þig, en kemur ekki í stað neins ────────────────────────
   { group: "Annað", name: "Jóga", covers: [], benefits: ["mobility", "mental"], intensity: "easy", minutes: 60, icon: "StretchHorizontal", why: "Frábært fyrir liðleika og streitu, kemur ekki í stað styrks eða þols." },
   { group: "Annað", name: "Pilates", covers: [], benefits: ["mobility"], intensity: "easy", minutes: 55, icon: "PersonStanding" },
   { group: "Annað", name: "Teygjur eða liðleiki", covers: [], benefits: ["mobility"], intensity: "easy", minutes: 30, icon: "StretchHorizontal" },
-  { group: "Annað", name: "Fríköfun", covers: [], benefits: ["breath", "mental"], intensity: "easy", minutes: 60, icon: "Fish", why: "Köfunarviðbragðið hægir á hjartanu í stað þess að auka álagið, og rannsóknir sýna að öndunarstopp eykur ekki þolið. Það kemur því hvorki í stað rólegs þols né HIIT — en kafarar mælast marktækt lægri í streitu og kvíða, og öndunin sjálf er þjálfun í slökun." },
-  { group: "Annað", name: "Sjósund eða kuldaböð", covers: [], benefits: ["mental"], intensity: "easy", minutes: 20, icon: "WavesLadder" },
+  { group: "Annað", name: "Fríköfun", covers: [], benefits: ["breath", "mental"], intensity: "easy", minutes: 60, icon: "WavesArrowDown", why: "Köfunarviðbragðið hægir á hjartanu í stað þess að auka álagið, og rannsóknir sýna að öndunarstopp eykur ekki þolið. Það kemur því hvorki í stað rólegs þols né HIIT — en kafarar mælast marktækt lægri í streitu og kvíða, og öndunin sjálf er þjálfun í slökun." },
+  { group: "Annað", name: "Sjósund eða kuldaböð", covers: [], benefits: ["mental"], intensity: "easy", minutes: 20, icon: "Waves" },
   { group: "Annað", name: "Öndunaræfingar", covers: [], benefits: ["breath", "mental"], intensity: "easy", minutes: 15, icon: "Wind" },
   { group: "Annað", name: "Sjúkraþjálfun", covers: [], benefits: ["mobility"], intensity: "easy", minutes: 45, icon: "HeartPulse" },
 ];
@@ -260,11 +260,30 @@ export function hardDays(s: Pick<TrainingSettings, "activities">): number[] {
     .map((a) => a.day))];
 }
 
+/**
+ * What a sport mainly is — the first thing it covers.
+ *
+ * This used to test hiit before strength, so CrossFit came out as HIIT
+ * even though its covers are ["strength", "hiit"]: strength first, because
+ * that is what it mainly is. The order in the catalogue already says which
+ * attribute is primary, and reading it in a fixed precedence threw that
+ * away — CrossFit and a HIIT class were the same colour on the calendar
+ * while being different kinds of training.
+ *
+ * Bardagaíþróttir and Þrektími are ["hiit", "strength"], and they come out
+ * as HIIT, which is equally what their order says.
+ */
 export function activityModality(a: { covers: Covers[] }): "strength" | "hiit" | "cardio" | "other" {
-  if (a.covers.includes("hiit")) return "hiit";
-  if (a.covers.includes("strength")) return "strength";
-  if (a.covers.includes("cardio")) return "cardio";
-  return "other";
+  return a.covers[0] ?? "other";
+}
+
+/**
+ * The second thing it trains, if any — shown as a small accent beside the
+ * primary colour rather than replacing it, so "mostly strength, also HIIT"
+ * reads as one sport and not as two.
+ */
+export function activitySecondary(a: { covers: Covers[]; partial?: Covers[] }): Covers | null {
+  return a.covers[1] ?? (a.partial ?? []).find((c) => c !== a.covers[0]) ?? null;
 }
 
 /** "Styrkur og HIIT" — everything it trains, for the session's subtitle. */

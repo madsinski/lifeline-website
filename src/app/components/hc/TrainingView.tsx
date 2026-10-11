@@ -14,7 +14,7 @@ import { hiitOnAt, itemsForFocus, LOAD_IS, trainingScore } from "@/lib/hc/adapti
 import { canSplitHiit, MODALITY_IS, personalise, weekdayOf, WEEKDAYS, WEEKDAYS_SHORT, type Modality, type Personal, type PSession, type SwapSnapshot } from "@/lib/hc/personalise";
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import type { ActionPlan, ExerciseBlock, ExerciseItem } from "@/lib/hc/types";
-import { activityFocus, activityModality, hardDays, stageAt, type Activity, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { activityFocus, activityModality, activitySecondary, hardDays, stageAt, type Activity, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DragGhost, useDrag } from "./useDrag";
 import SwapWizard from "./SwapWizard";
 import SessionGuide from "./SessionGuide";
@@ -372,6 +372,17 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                         <span className="flex items-center gap-1">
                           <ActivityIcon name={a.name} className="h-3 w-3 shrink-0" />
                           <span className="truncate">{a.name}</span>
+                          {/* The second attribute as a dot in its own
+                              colour. The chip is the primary one — CrossFit
+                              is orange because it is mainly strength — and
+                              this says "and also HIIT" without making it a
+                              second kind of session. */}
+                          {activitySecondary(a) && (
+                            <span aria-hidden
+                              className={`ml-auto h-2 w-2 shrink-0 rounded-full ring-1 ring-white/70 ${
+                                MODALITY_IS[activitySecondary(a)!]?.dot ?? ""}`}
+                              title={`Einnig ${MODALITY_IS[activitySecondary(a)!]?.label ?? ""}`} />
+                          )}
                         </span>
                         {/* Everything it covers, not just the headline one:
                             CrossFit is strength AND hiit, and a week that

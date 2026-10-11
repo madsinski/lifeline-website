@@ -7,18 +7,27 @@
 // and the "I did something else" sheet all draw from here.
 
 import {
-  Anchor, Bike, Cable, CircleDot, Dumbbell, Fish, Flag, Flame, Footprints, Goal, HeartPulse,
-  Medal, Mountain, MountainSnow, Music, PersonStanding, Rabbit, Sailboat, Shovel, Snowflake,
-  SportShoe, StretchHorizontal, Swords, Target, Timer, TreePine, Users, Volleyball, Waves,
-  WavesLadder, Weight, Wind, Zap,
+  Activity, Anchor, Bike, Cable, CircleDot, Disc, Dumbbell, Fish, Flag, Flame, Footprints, Goal,
+  Grip, HandFist, HandGrab, HeartPulse, Kayak, Medal, Mountain, MountainSnow, Music,
+  PersonStanding, Rabbit, Sailboat, Shovel, Snowflake, SportShoe, StretchHorizontal, Swords,
+  Target, Timer, TreePine, Users, Volleyball, Waves, WavesArrowDown, WavesLadder, Weight, Wind,
+  Zap,
 } from "lucide-react";
 import { ACTIVITY_PRESETS, BENEFIT_IS, COVERS_IS, type Benefit, type Covers } from "@/lib/hc/adaptive-program";
 
+/*
+ * The names the catalogue may ask for.
+ *
+ * Kept wider than what is currently used: Fish, Medal, Snowflake, TreePine,
+ * Sailboat and the rest stay importable so an older stored activity that
+ * still names one renders something rather than falling back to a dumbbell.
+ */
 const ICONS: Record<string, typeof Dumbbell> = {
-  Anchor, Bike, Cable, CircleDot, Dumbbell, Fish, Flag, Flame, Footprints, Goal, HeartPulse,
-  Medal, Mountain, MountainSnow, Music, PersonStanding, Rabbit, Sailboat, Shovel, Snowflake,
-  SportShoe, StretchHorizontal, Swords, Target, Timer, TreePine, Users, Volleyball, Waves,
-  WavesLadder, Weight, Wind, Zap,
+  Activity, Anchor, Bike, Cable, CircleDot, Disc, Dumbbell, Fish, Flag, Flame, Footprints, Goal,
+  Grip, HandFist, HandGrab, HeartPulse, Kayak, Medal, Mountain, MountainSnow, Music,
+  PersonStanding, Rabbit, Sailboat, Shovel, Snowflake, SportShoe, StretchHorizontal, Swords,
+  Target, Timer, TreePine, Users, Volleyball, Waves, WavesArrowDown, WavesLadder, Weight, Wind,
+  Zap,
 };
 
 const BY_NAME = new Map(ACTIVITY_PRESETS.map((p) => [p.name.toLowerCase(), p]));
