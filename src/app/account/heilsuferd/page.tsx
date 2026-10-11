@@ -7,7 +7,6 @@
 
 import * as cache from "@/lib/hc/client-cache";
 import { hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
-import BackLink from "@/app/components/hc/BackLink";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -220,8 +219,10 @@ function Heilsuferd() {
         <div className="mt-5 flex flex-wrap items-center gap-2">
           {data.plan ? (
             <>
-              <Link href="/account/heilsuferd/aaetlun?tab=today" className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Opna daginn í dag →</Link>
-              <Link href="/account/heilsuferd/aaetlun?breyta=1" className="inline-flex min-h-11 items-center rounded-hc-element bg-white/15 px-4 font-semibold text-white ring-1 ring-white/30 hover:bg-white/25">Breyta áætluninni</Link>
+              {/* No buttons in the hero. Both of these went to the daily
+                  app — which is what the navbar is for, on every screen —
+                  and they competed with the one thing this page is about:
+                  where the health check has got to. */}
             </>
           ) : current && !ours ? (
             <button type="button" onClick={() => { setOpen(current.key); setTimeout(() => document.getElementById(`step-${current.key}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
@@ -313,12 +314,20 @@ function Heilsuferd() {
               <p className="mt-2 text-xs text-slate-500">{healthOrder.activation_redeemed_at ? "Virkjaður í sjúklingagátt." : "Sláðu kóðann inn í sjúklingagáttina."}</p>
             </div>
           )}
-          <LecturesCard lectures={data.lectures} />
+          {/* Fræðsla had its own card here. It has its own page in the
+              navbar, and this page is for keeping track of the health
+              check — which lectures are not a step of. */}
           <HistoryCard history={data.history ?? []} />
           <Link href="/account/heilsuferd/adgangur" className="block rounded-2xl border border-slate-100 bg-white p-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Aðgangur og greiðslur →</Link>
           <ClaimsCard claims={data.claims} reload={async () => { await load(true); }} />
           <SettingsCard />
-          <p className="px-1 text-xs text-slate-400">
+          {/* break-words, because this is where the side scroll came from.
+              "contact@lifelinehealth.is" has no break opportunity, so the
+              paragraph measured 402px inside a 358px column and body's
+              overflow-x:auto turned that into a scrollable page. Measured at
+              every width from 320 to 430; the document reported no overflow
+              because body absorbed it, which is why it took a hunt. */}
+          <p className="px-1 text-xs break-words text-slate-500">
             Spurningar? Skrifaðu á <a className="underline" href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.
           </p>
         </aside>
@@ -330,7 +339,7 @@ function Heilsuferd() {
 /** The journey's phases: the steps grouped the way people think about them. */
 const PHASES: { title: string; keys: StepKey[] }[] = [
   { title: "Undirbúningur", keys: ["account", "profile", "welcome", "package"] },
-  { title: "Heilsufarsskoðun", keys: ["tests", "report"] },
+  { title: "Heilsufarsskoðun", keys: ["tests", "upload", "report"] },
   { title: "Viðtal og áætlun", keys: ["interview", "plan"] },
   { title: "Eftirfylgd", keys: ["followup", "reevaluation"] },
 ];
@@ -373,7 +382,9 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-5xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
         <div className="mb-3 print:hidden">
-          <BackLink href="/account/heilsuferd/adgangur" label="Stillingar" />
+          {/* Stillingar is in the navbar. A second way in at the top of
+              this page read like a back button to somewhere you had not
+              been. */}
         </div>
         {children}
       </div>
@@ -515,9 +526,32 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
     case "welcome":
       return <WelcomeStep data={data} />;
     case "package":
-      return j.paid_at
-        ? <PaidSummary order={healthOrder} />
-        : <Checkout packages={data.packages.filter((p) => p.kind === "health_check")} profileComplete={data.profile.complete} reload={reload} />;
+      /*
+       * One payment, not the only payment.
+       *
+       * Two things are sold here and they are charged differently: the
+       * health check is a single fee (hc_packages kind 'health_check' →
+       * hc_orders), and the app is a subscription (the `subscriptions`
+       * table, tiers free-trial / premium / self-maintained). Only the
+       * first appears on this page, and nothing said the second existed —
+       * so this step read as "pay Lifeline", which is half the story and
+       * the half that makes the other half a surprise later.
+       *
+       * The step still sells the check, because that is what this journey
+       * is. It now says plainly that the app is separate and recurring.
+       */
+      return (
+        <div className="space-y-3">
+          {j.paid_at
+            ? <PaidSummary order={healthOrder} />
+            : <Checkout packages={data.packages.filter((p) => p.kind === "health_check")} profileComplete={data.profile.complete} reload={reload} />}
+          <p className="rounded-hc-element bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+            Heilsufarsskoðunin er staðgreidd, eitt gjald. Appið — æfingar, næring og dagleg
+            eftirfylgd — er sjálfstæð mánaðarleg áskrift og er ekki innifalin í þessu verði.{" "}
+            <Link href="/account/heilsuferd/adgangur" className="font-semibold underline">Sjá áskriftina</Link>.
+          </p>
+        </div>
+      );
     case "tests":
       return (
         <div className="space-y-4 text-sm text-slate-700">
@@ -565,6 +599,43 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
               </p>
             </>
           )}
+        </div>
+      );
+    case "upload":
+      /*
+       * The participant's own errand: fetch the PDF from the
+       * sjúklingagátt and put it here. Said in that order, with the portal
+       * link first, because the file has to exist before it can be
+       * uploaded.
+       *
+       * Somebody whose report is already on file — a nurse imported it, or
+       * it was generated here — is told so and asked for nothing.
+       */
+      return (
+        <div className="space-y-3 text-sm text-slate-600">
+          {j.own_report_at || j.report_imported_at || j.report_generated_at ? (
+            <p>
+              {j.own_report_at
+                ? "Skýrslan er komin inn. Þú getur sett nýrri skýrslu inn hvenær sem er."
+                : "Skýrslan þín er þegar komin til okkar — þú þarft ekki að gera neitt hér."}
+            </p>
+          ) : (
+            <>
+              <p>
+                Heilsufarsskoðunin sjálf fer fram í sjúklingagáttinni. Þegar niðurstöðurnar eru
+                komnar sækir þú Grunnheilsa-skýrsluna þangað og setur PDF-skjalið hér inn.
+              </p>
+              {/* The location's own portal where it has one, which is what
+                  the rest of this page already uses. */}
+              <a href={portal} target="_blank" rel="noopener noreferrer"
+                className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-white px-4 font-semibold text-slate-800 hover:bg-slate-50">
+                Opna sjúklingagátt
+              </a>
+            </>
+          )}
+          <ReportUpload api={api} onDone={() => void reload()}
+            heading="Hlaða upp skýrslu"
+            blurb="PDF úr sjúklingagáttinni. Við lesum hana á okkar vél og geymum ekki skjalið sjálft." />
         </div>
       );
     case "report":
@@ -1031,35 +1102,6 @@ function HistoryCard({ history }: { history: NonNullable<JourneyData["history"]>
   );
 }
 
-const PILLAR_LABEL: Record<string, string> = { sleep: "Svefn", exercise: "Hreyfing", nutrition: "Næring", mental: "Andleg líðan", general: "Almennt" };
-
-function LecturesCard({ lectures }: { lectures: JourneyData["lectures"] }) {
-  if (!lectures.length) return null;
-  const done = lectures.filter((l) => l.completed_at).length;
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-      <div className="flex items-baseline justify-between">
-        <p className="font-semibold text-[#0F172A]">Fræðsla</p>
-        <span className="text-xs text-slate-400">{done}/{lectures.length}</span>
-      </div>
-      <ul className="mt-3 space-y-1">
-        {lectures.map((l) => (
-          <li key={l.id}>
-            <Link href={`/account/heilsuferd/fraedsla/${l.slug}`} className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50">
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs ${l.completed_at ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                {l.completed_at ? "✓" : l.kind === "video" ? "▶" : l.kind === "slides" ? "▤" : "¶"}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-slate-800">{l.title}</span>
-                <span className="block text-xs text-slate-400">{l.pillar ? PILLAR_LABEL[l.pillar] : ""}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}</span>
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload: () => Promise<void> }) {
   const [busy, setBusy] = useState<string | null>(null);

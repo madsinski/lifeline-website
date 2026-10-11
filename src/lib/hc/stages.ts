@@ -16,6 +16,10 @@ export type StepKey =
   // done off the back of the same code, in the same week, and splitting them
   // into three made a customer think they were three separate errands.
   | "tests"
+  // Fetching the PDF out of the sjúklingagátt and putting it in here is the
+  // participant's own errand, on another website, with a file. It was hidden
+  // inside "report", which is about the doctor confirming the numbers.
+  | "upload"
   | "report" | "interview" | "plan"
   | "followup" | "reevaluation";
 
@@ -36,6 +40,21 @@ const DEFS: { key: StepKey; title: string; blurb: string; optional?: boolean }[]
   { key: "welcome", title: "Móttökufyrirlestur", blurb: "Stutt kynning á ferlinu og fjórum stoðum heilsu." },
   { key: "package", title: "Pakki og greiðsla", blurb: "Veldu pakka. Stéttarfélag eða vinnuveitandi getur tekið þátt í kostnaði." },
   { key: "tests", title: "Heilsufarsskoðunin", blurb: "Virkjaðu í sjúklingagáttinni, bókaðu mælingar og farðu fastandi í blóðprufu." },
+  /*
+   * The upload is its own step because it is its own piece of work.
+   *
+   * The health check happens in the sjúklingagátt (Medalia). The report
+   * comes out there, and it only reaches this app because somebody fetches
+   * the PDF and puts it in — which is a thing the participant does, with a
+   * file, on a different website, and it was buried inside the step about
+   * the doctor confirming the numbers. Two different people's work under
+   * one heading, so neither was clear.
+   *
+   * Satisfied by any route to a report on file: the participant's own
+   * upload (own_report_at), a nurse importing it, or one generated here.
+   * Somebody whose nurse already has it is not asked to fetch a PDF.
+   */
+  { key: "upload", title: "Settu skýrsluna inn", blurb: "Sóttu Grunnheilsa-skýrsluna í sjúklingagáttina og settu PDF-skjalið hér inn." },
   { key: "report", title: "Skýrslan þín", blurb: "Læknir Lifeline staðfestir skýrsluna þegar niðurstöður liggja fyrir." },
   { key: "interview", title: "Viðtal", blurb: "Þú og hjúkrunarfræðingur farið yfir niðurstöðurnar og gerið áætlun." },
   { key: "plan", title: "Aðgerðaáætlun", blurb: "Áætlunin þín til næstu þriggja mánaða." },
@@ -60,6 +79,9 @@ function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean): string
     }
     // For the journey, the report is there once it is in; the doctor's
     // confirmation is tracked on its own (report_generated_at).
+    // Any route to a report on file counts: their own upload, a nurse's
+    // import, or one generated here.
+    case "upload": return j.own_report_at ?? j.report_imported_at ?? j.report_generated_at ?? null;
     case "report": return j.report_generated_at ?? j.report_imported_at ?? j.own_report_at ?? null;
     case "interview": return j.interview_done_at;
     case "plan": return j.plan_published_at;
@@ -152,6 +174,7 @@ export const STEP_SHORT: Record<StepKey, string> = {
   welcome: "Fyrirlestur",
   package: "Greiðsla",
   tests: "Heilsufarsskoðun",
+  upload: "Skýrslan inn",
   report: "Skýrsla",
   interview: "Viðtal",
   plan: "Áætlun",
