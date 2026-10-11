@@ -19,7 +19,7 @@ import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
-import JourneyNav from "@/app/components/hc/JourneyNav";
+import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";

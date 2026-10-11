@@ -194,8 +194,8 @@ export const ACTIVITY_PRESETS: ActivityPreset[] = [
   { group: "Styrkur", name: "TRX eða hringir", covers: ["strength"], intensity: "moderate", minutes: 45, icon: "Cable" },
 
   // ── Íþróttir: spretta-og-stopp ────────────────────────────────────────
-  { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Goal", why: "Spretta-og-stopp — telst sem HIIT, ekki sem rólegt þol." },
-  { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 90, icon: "Goal", why: "Spretta-og-stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "SoccerBall", why: "Spretta-og-stopp — telst sem HIIT, ekki sem rólegt þol." },
+  { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 90, icon: "SoccerBall", why: "Spretta-og-stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Goal", why: "Spretta-og-stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Körfubolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "CircleDot", why: "Spretta-og-stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Blak", covers: ["hiit"], partial: ["cardio"], intensity: "moderate", minutes: 60, icon: "Volleyball" },

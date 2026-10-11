@@ -10,7 +10,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import JourneyNav from "@/app/components/hc/JourneyNav";
+import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import { NotificationList, useNotifications } from "@/app/components/hc/Notifications";
 import { UpcomingList, useUpcoming } from "@/app/components/hc/Upcoming";
 import { hcPage } from "@/app/components/hc/ui";
@@ -61,6 +61,7 @@ function Tilkynningar() {
   return (
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
+        <JourneyHeader />
         <div className="sm:mb-4"><JourneyNav active="notifications" /></div>
         {/* Two sections, two icons, and the upcoming one first.
             Appointments are not notifications — there is nothing to clear

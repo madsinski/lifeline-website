@@ -301,15 +301,28 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               print them. Full-width rows have room for the real title.
               Drag and drop is unaffected: it rides on data-drop and the
               chips' own handles, not on the layout. */}
-          <div className="mt-5 flex flex-col gap-1.5 sm:grid sm:grid-cols-7">
+          <div className="mt-4 flex flex-col sm:mt-5 sm:grid sm:grid-cols-7 sm:gap-1.5">
             {WEEKDAYS_SHORT.map((d, i) => {
               const here = view.sessions.filter((s) => s.weekday === i);
               const mine = (training?.activities ?? []).filter((a) => a.day === i);
               const over = drag?.over === `day:${i}`;
               return (
+                /*
+                 * A row, not a card.
+                 *
+                 * On a phone each day was a bordered white box holding a
+                 * chip — a card inside a card inside the page, three
+                 * nested containers for one line of information, and the
+                 * seven of them were most of the page's height. The box is
+                 * a divider now and only today keeps a tint, which is the
+                 * one row worth finding at a glance.
+                 *
+                 * From sm up it stays a bordered cell: the week there is a
+                 * seven-column grid and the cells need their own edges.
+                 */
                 <div key={d} data-drop={`day:${i}`}
-                  className={`relative flex items-center gap-1.5 rounded-xl border p-1.5 transition sm:min-h-[92px] sm:flex-col sm:items-stretch sm:gap-1 sm:p-1 ${
-                    over ? "border-orange-400 bg-orange-50" : i === todayIdx ? "border-orange-300 bg-orange-50/60" : "border-slate-200 bg-white"}`}>
+                  className={`relative flex items-center gap-2 border-b border-slate-100 px-1 py-1.5 transition last:border-b-0 sm:min-h-[92px] sm:flex-col sm:items-stretch sm:gap-1 sm:rounded-xl sm:border sm:p-1 ${
+                    over ? "bg-orange-50 sm:border-orange-400" : i === todayIdx ? "bg-orange-50/60 sm:border-orange-300" : "sm:border-slate-200 sm:bg-white"}`}>
                   <p className={`w-9 shrink-0 text-[11px] font-bold uppercase sm:w-auto sm:text-center ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>
                     {d}
                   </p>
@@ -621,17 +634,24 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
   children?: React.ReactNode;
 }) {
   const t = TONE[modality];
-  const m = MODALITY_IS[modality];
+  /*
+   * The title gets the width.
+   *
+   * The minutes pill sat on the title's line and took about 90px of it, so
+   * "Gönguferð eða fjallganga" wrapped to two lines next to a mostly empty
+   * right-hand side. Minutes are a detail about the session, not a second
+   * subject: they belong on the small line with what it trains. The
+   * modality pill said the same word as that line and is gone with it.
+   */
+  const meta = [subtitle, minutes ? `${minutes} mín.` : null].filter(Boolean).join(" · ");
   const head = (
     <>
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white ${t.tile}`}>{tile}</span>
       <span className="min-w-0 flex-1">
         <span className={`block text-xs font-bold uppercase tracking-wide ${t.ink}`}>{eyebrow}</span>
-        <span className="block font-semibold text-[#0F172A]">{title}</span>
-        {subtitle && <span className="block text-xs text-slate-500">{subtitle}</span>}
+        <span className="block font-semibold leading-snug text-[#0F172A]">{title}</span>
+        {meta && <span className="mt-0.5 block text-xs text-slate-500">{meta}</span>}
       </span>
-      <span className={`hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 sm:inline ${m.cls}`}>{m.label}</span>
-      {minutes ? <span className={`rounded-full bg-white px-3 py-1 text-xs font-semibold ring-1 ${t.pill}`}>{minutes} mín.</span> : null}
       {onToggle && <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />}
     </>
   );

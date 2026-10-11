@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { hcTabs } from "./ui";
+import LifelineLogo from "@/app/components/LifelineLogo";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
@@ -90,6 +91,27 @@ function useNavUnread(enabled: boolean) {
     };
   }, [enabled]);
   return n;
+}
+
+/**
+ * The mark, at the top of the journey.
+ *
+ * Suppressing the marketing header took 1300px of sitemap off these pages
+ * and the logo with it, which left the app looking like it belonged to
+ * nobody. This is the brand and nothing else: no menu, no links out — the
+ * bottom bar is the navigation here.
+ *
+ * It is part of JourneyNav so that every page which has the nav gets the
+ * header too, rather than six pages each remembering to add one.
+ */
+export function JourneyHeader() {
+  return (
+    <div className="mb-3 flex items-center justify-between sm:mb-4">
+      <Link href="/account/heilsuferd" aria-label="Heilsuferðin">
+        <LifelineLogo size="sm" />
+      </Link>
+    </div>
+  );
 }
 
 export default function JourneyNav({ active, hasReport = true, hasExercise = true, hasNutrition = true, hasPlan = true, unread, onSelect }: {

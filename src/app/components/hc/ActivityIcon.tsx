@@ -13,6 +13,7 @@ import {
   Target, Timer, TreePine, Users, Volleyball, Waves, WavesArrowDown, WavesLadder, Weight, Wind,
   Zap,
 } from "lucide-react";
+import SoccerBall from "./icons/SoccerBall";
 import { ACTIVITY_PRESETS, BENEFIT_IS, COVERS_IS, type Benefit, type Covers } from "@/lib/hc/adaptive-program";
 
 /*
@@ -23,6 +24,8 @@ import { ACTIVITY_PRESETS, BENEFIT_IS, COVERS_IS, type Benefit, type Covers } fr
  * still names one renders something rather than falling back to a dumbbell.
  */
 const ICONS: Record<string, typeof Dumbbell> = {
+  // Ours, not lucide's — see icons/SoccerBall.tsx.
+  SoccerBall: SoccerBall as unknown as typeof Dumbbell,
   Activity, Anchor, Bike, Cable, CircleDot, Disc, Dumbbell, Fish, Flag, Flame, Footprints, Goal,
   Grip, HandFist, HandGrab, HeartPulse, Kayak, Medal, Mountain, MountainSnow, Music,
   PersonStanding, Rabbit, Sailboat, Shovel, Snowflake, SportShoe, StretchHorizontal, Swords,

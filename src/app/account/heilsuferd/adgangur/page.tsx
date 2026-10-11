@@ -9,7 +9,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import JourneyNav from "@/app/components/hc/JourneyNav";
+import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import SettingsCard from "@/app/components/hc/SettingsCard";
 import NudgeSettings from "@/app/components/hc/NudgeSettings";
 import InstallGuide from "@/app/components/hc/InstallGuide";
@@ -61,6 +61,7 @@ function Adgangur() {
   return (
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-4xl space-y-4 px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
+        <JourneyHeader />
         {hasPlan && <JourneyNav active="account" />}
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="flex-1 text-2xl font-bold text-slate-900 sm:text-3xl">Stillingar</h1>

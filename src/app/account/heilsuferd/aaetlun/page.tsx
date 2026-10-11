@@ -28,7 +28,7 @@ import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import CoachView from "@/app/components/hc/CoachView";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
-import JourneyNav, { type JourneyPlace } from "@/app/components/hc/JourneyNav";
+import JourneyNav, { type JourneyPlace, JourneyHeader } from "@/app/components/hc/JourneyNav";
 import type { Upcoming } from "@/lib/hc/upcoming";
 import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
@@ -560,6 +560,7 @@ function PlanPageInner() {
                 visit, so the spacing lives inside the cards instead. */}
             <ReportApproval api={api} onDone={() => setReloadKey((k) => k + 1)} />
             <RetentionReview api={api} onDone={() => setReloadKey((k) => k + 1)} />
+            <JourneyHeader />
             <JourneyNav active={place} unread={unread} hasReport={!!data.report || !!data.flagged.length}
               hasExercise={!!plan?.exercise} hasNutrition={!!plan?.nutrition} hasPlan={!!plan}
               onSelect={(k) => {

@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BookOpen, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import JourneyNav from "@/app/components/hc/JourneyNav";
+import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import LectureLibrary, { LibraryButton } from "@/app/components/hc/LectureLibrary";
 import { hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
 import * as cache from "@/lib/hc/client-cache";
@@ -80,6 +80,7 @@ function Fraedsla() {
         {/* Nav first and no back link, like every other page in the journey:
             the navbar carries "Aðgangurinn minn", and a back link from
             Fræðsla to the account was a route nobody asked for. */}
+        <JourneyHeader />
         <div className="sm:mb-4"><JourneyNav active="fraedsla" /></div>
 
         {/* A line, not a hero.
