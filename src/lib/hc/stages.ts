@@ -89,9 +89,25 @@ function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean): string
  */
 const COACH_TRACK: StepKey[] = ["account", "profile", "welcome", "plan"];
 
+/**
+ * The app on your own.
+ *
+ * The same four steps minus the person. Somebody who chose to set their own
+ * programme up has no coach to be introduced to, and a step promising one
+ * would be a step that never completes.
+ */
+const APP_TRACK: StepKey[] = ["account", "profile", "welcome", "plan"];
+
 /** Which steps this journey actually has. */
 export function trackSteps(entry: HcJourney["entry"]): StepKey[] | null {
-  return entry === "coach" ? COACH_TRACK : null;
+  if (entry === "coach") return COACH_TRACK;
+  if (entry === "app") return APP_TRACK;
+  return null;
+}
+
+/** Whether a coach is part of what this journey is. */
+export function hasCoach(entry: HcJourney["entry"]): boolean {
+  return entry !== "app";
 }
 
 export function journeySteps(j: HcJourney, profileComplete: boolean): JourneyStep[] {

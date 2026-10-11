@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
      * somebody on. If they later add the health check, entry flips back to
      * b2c/b2b and they appear here as they should.
      */
-    .neq("entry", "coach")
+    .not("entry", "in", "(coach,app)")
     // Anyone mid-journey, plus anyone whose report is already in hand: a
     // client the nurse created from a report has not done the customer-facing
     // steps (profile, payment), so their stage still reads "profile" — they

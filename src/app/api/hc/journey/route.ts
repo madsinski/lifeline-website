@@ -119,11 +119,11 @@ export async function POST(req: NextRequest) {
    * stage machinery and the money disagree about what this journey is.
    */
   if (body.action === "choose_track") {
-    const track = body.track === "coach" ? "coach" : "check";
+    const track = body.track === "coach" ? "coach" : body.track === "app" ? "app" : "check";
     const profile = await getClientProfile(user.id);
-    if (track === "coach") {
+    if (track === "coach" || track === "app") {
       if (journey.paid_at) return NextResponse.json({ error: "already_paid" }, { status: 409 });
-      await patchJourney(journey.id, { entry: "coach" }, `client:${user.id}`, "journey_track_coach");
+      await patchJourney(journey.id, { entry: track }, `client:${user.id}`, `journey_track_${track}`);
     } else {
       // Back to whatever this person would have been without the choice.
       await patchJourney(journey.id, { entry: profile?.company_id ? "b2b" : "b2c" }, `client:${user.id}`, "journey_track_check");

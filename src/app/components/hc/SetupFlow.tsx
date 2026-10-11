@@ -90,6 +90,8 @@ export default function SetupFlow({ api, place = "onboarding" }: {
    * consent flag, which that endpoint keeps separately.
    */
   const [profile, setProfile] = useState<ProfileFormData | null>(null);
+  /** Which product this journey is, so the rows can drop what does not apply. */
+  const [entry, setEntry] = useState<string | null>(null);
 
   const calendarApi: CalendarApi = {
     call: api,
@@ -129,6 +131,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
     setTimeout(() => {
       setMyCoach(coach?.coach ?? null);
       setCoaches(coach?.coaches ?? []);
+      setEntry(typeof prof?.entry === "string" ? prof.entry : null);
       setProfile(prof?.profile
         ? { profile: { ...prof.profile, health_consent: !!prof.health_consent } }
         : null);
@@ -150,8 +153,16 @@ export default function SetupFlow({ api, place = "onboarding" }: {
     await load();
   };
 
-  const count = SETUP_ROWS.filter((r) => done[r.key]).length;
-  const all = count === SETUP_ROWS.length;
+  /*
+   * No coach row for somebody using the app on their own.
+   *
+   * "Þjálfarinn þinn" on the app-alone track is a step that can never
+   * complete, about a person who is not part of what they chose. Where the
+   * track is unknown the row stays, which is the old behaviour.
+   */
+  const rows = entry === "app" ? SETUP_ROWS.filter((r) => r.key !== "coach") : SETUP_ROWS;
+  const count = rows.filter((r) => done[r.key]).length;
+  const all = count === rows.length;
   const settings = place === "settings";
 
   return (
@@ -167,7 +178,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
               : "Fjögur atriði, ein mínúta hvert"}
           </h3>
         </div>
-        <p className="text-sm font-semibold tabular-nums text-slate-500">{count}/{SETUP_ROWS.length}</p>
+        <p className="text-sm font-semibold tabular-nums text-slate-500">{count}/{rows.length}</p>
       </div>
       <p className="mt-1.5 text-sm text-slate-600">
         {settings
@@ -188,7 +199,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
       </button>
 
       <ul className="mt-4 overflow-hidden rounded-2xl ring-1 ring-slate-200">
-        {SETUP_ROWS.map((row) => {
+        {rows.map((row) => {
           const Icon = row.icon;
           const on = open === row.key;
           const ok = done[row.key];
@@ -246,7 +257,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
 
       {walk && (
         <SetupWalkthrough api={api} onClose={() => { setWalk(false); void load(); }}
-          data={profile ?? undefined} reload={load} />
+          data={profile ?? undefined} reload={load} entry={entry} />
       )}
 
       <CalendarConnect api={calendarApi} open={calOpen}
@@ -266,57 +277,38 @@ export default function SetupFlow({ api, place = "onboarding" }: {
  * what currently distinguishes the entries, both of which are the same
  * person wearing two hats.
  */
+/**
+ * Choosing a coach.
+ *
+ * This used to introduce whoever had been assigned and hide the others
+ * behind a "velja annan" disclosure, on the reasoning that one option is not
+ * a choice. Mads wants the list, which is the right call for onboarding: the
+ * step asks you to pick, so it should show what there is to pick from, and
+ * an assignment made before you were asked is not a decision you took.
+ *
+ * The current one is marked rather than hidden, so changing your mind is the
+ * same gesture as choosing in the first place.
+ */
 export function CoachStep({ myCoach, coaches, busy, onPick }: {
   myCoach: Worker | null;
   coaches: Worker[] | null;
   busy: boolean;
   onPick: (id: string) => void;
 }) {
-  if (coaches === null) return <p className="text-sm text-slate-500">Hleð…</p>;
-
-  const others = coaches.filter((c) => c.id !== myCoach?.id);
-
-  if (myCoach) {
+  if (coaches === null) {
     return (
-      <div>
-        <div className="flex items-center gap-3">
-          {myCoach.photo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={myCoach.photo_url} alt="" className="h-12 w-12 rounded-full object-cover" />
-          ) : (
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-hc-brand/10 text-hc-brand" aria-hidden>
-              <UserRound className="h-5 w-5" />
-            </span>
-          )}
-          <div className="min-w-0">
-            <p className="font-semibold leading-tight text-slate-900">{myCoach.name ?? "Þjálfari"}</p>
-            <p className="text-xs text-slate-500">
-              {myCoach.role ? (ROLE_IS[myCoach.role] ?? myCoach.role) : "Þjálfari þinn"}
-            </p>
-          </div>
-        </div>
-        {myCoach.bio && <p className="mt-2 text-sm text-slate-600">{myCoach.bio}</p>}
-        {others.length > 0 && (
-          <details className="mt-3">
-            <summary className="cursor-pointer text-xs font-semibold text-slate-500">Velja annan</summary>
-            <ul className="mt-2 space-y-1.5">
-              {others.map((c) => (
-                <li key={c.id}>
-                  <button type="button" disabled={busy} onClick={() => onPick(c.id)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-800 transition hover:border-hc-brand disabled:opacity-50">
-                    {c.name ?? "Þjálfari"}
-                    {c.role && <span className="font-normal text-slate-500"> · {ROLE_IS[c.role] ?? c.role}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+      <div className="space-y-2" aria-busy="true">
+        <div className="h-16 rounded-xl hc-shimmer" />
+        <div className="h-16 rounded-xl hc-shimmer" />
       </div>
     );
   }
 
-  if (others.length === 0) {
+  /* Whoever is assigned belongs in the list, at the top. The API returns
+     them separately from the others. */
+  const all = [...(myCoach ? [myCoach] : []), ...coaches.filter((c) => c.id !== myCoach?.id)];
+
+  if (all.length === 0) {
     return (
       <p className="text-sm text-slate-600">
         Þjálfari er úthlutaður þegar áætlunin þín er gerð. Þú þarft ekki að gera neitt hér.
@@ -326,27 +318,40 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
 
   return (
     <div>
-      <p className="mb-2 text-sm text-slate-600">Veldu þann sem þú vilt fylgja þér.</p>
+      <p className="mb-2 text-sm text-slate-600">
+        {all.length === 1
+          ? "Þessi fer yfir áætlunina með þér."
+          : "Veldu þann sem þú vilt að fylgi þér."}
+      </p>
       <ul className="space-y-1.5">
-        {others.map((c) => (
-          <li key={c.id}>
-            <button type="button" disabled={busy} onClick={() => onPick(c.id)}
-              className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-2.5 text-left transition hover:border-hc-brand disabled:opacity-50">
-              {c.photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={c.photo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
-              ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-hc-brand/10 text-hc-brand" aria-hidden>
-                  <UserRound className="h-4 w-4" />
+        {all.map((c) => {
+          const on = c.id === myCoach?.id;
+          return (
+            <li key={c.id}>
+              <button type="button" disabled={busy} onClick={() => onPick(c.id)}
+                aria-pressed={on}
+                className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition disabled:opacity-50 ${
+                  on ? "border-hc-brand bg-hc-brand/5" : "border-slate-200 bg-white hover:border-hc-brand"}`}>
+                {c.photo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={c.photo_url} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+                ) : (
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand" aria-hidden>
+                    <UserRound className="h-5 w-5" />
+                  </span>
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold leading-tight text-slate-900">{c.name ?? "Þjálfari"}</span>
+                  {c.role && <span className="block text-xs text-slate-500">{ROLE_IS[c.role] ?? c.role}</span>}
+                  {c.bio && <span className="mt-0.5 block text-xs leading-snug text-slate-500">{c.bio}</span>}
                 </span>
-              )}
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-tight text-slate-900">{c.name ?? "Þjálfari"}</span>
-                {c.role && <span className="block text-xs text-slate-500">{ROLE_IS[c.role] ?? c.role}</span>}
-              </span>
-            </button>
-          </li>
-        ))}
+                {on && (
+                  <span className="shrink-0 rounded-full bg-hc-brand px-2 py-0.5 text-[10px] font-bold text-white">valinn</span>
+                )}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

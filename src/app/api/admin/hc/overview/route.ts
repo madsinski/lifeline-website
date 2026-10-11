@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const funnel: Record<string, number> = {};
   let coachTrack = 0;
   for (const j of journeys || []) {
-    if (j.entry === "coach") { coachTrack++; continue; }
+    if (j.entry === "coach" || j.entry === "app") { coachTrack++; continue; }
     funnel[j.stage] = (funnel[j.stage] || 0) + 1;
   }
   const revenue = { self: 0, union: 0, company: 0, count: 0 };

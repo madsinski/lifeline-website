@@ -148,7 +148,23 @@ export default function NudgeSettings({ api }: { api: Api }) {
     if (await save({ ...prefs, channels })) setMsg(on ? "Slökkt." : c === "push" ? "Tilkynningar virka á þessu tæki." : "Kveikt.");
   };
 
-  if (!prefs) return null;
+  /*
+   * Shape while the fetch lands, rather than nothing.
+   *
+   * This returned null until /api/hc/nudges answered, so the step that
+   * contains it opened empty and then jumped — which is the lag Mads saw on
+   * step 6. A skeleton the size of the real thing means the step has its
+   * layout from the first frame and the content fills in rather than
+   * arriving.
+   */
+  if (!prefs) {
+    return (
+      <div className="space-y-2" aria-busy="true" aria-label="Hleð áminningum">
+        <div className="h-14 rounded-2xl hc-shimmer" />
+        <div className="h-10 w-2/3 rounded-xl hc-shimmer" />
+      </div>
+    );
+  }
   const active = prefs.channels.length > 0;
   const paused = !!prefs.paused_until && prefs.paused_until >= dates.today;
   const inWeek = dates.inWeek;

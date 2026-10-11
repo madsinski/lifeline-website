@@ -63,8 +63,14 @@ export interface HcJourney {
   video_consults_per_month?: number | null;
   location_id: string | null;
   stage: string;
-  /** 'coach' is the coaching-only track: no package, tests, report or interview. */
-  entry: "b2c" | "b2b" | "heilsugaesla" | "coach";
+  /**
+   * Which product this journey is.
+   *
+   * 'app' is the app on their own; 'coach' is the app with a health coach.
+   * Neither has a package, tests, report or interview — the difference
+   * between them is whether another person is involved.
+   */
+  entry: "b2c" | "b2b" | "heilsugaesla" | "coach" | "app";
   company_id: string | null;
   profile_completed_at: string | null;
   welcome_seen_at: string | null;

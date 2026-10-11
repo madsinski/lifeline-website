@@ -39,7 +39,7 @@ function Fortnight({ days, of, tone }: { days: number; of: number; tone: "me" | 
   );
 }
 
-export default function PartnerCard({ api, bare = false }: {
+export default function PartnerCard({ api, bare = false, pick = false }: {
   api: Api;
   /*
    * Drop the card's own shell.
@@ -50,6 +50,16 @@ export default function PartnerCard({ api, bare = false }: {
    * the content and lets the surrounding surface own the frame.
    */
   bare?: boolean;
+  /*
+   * Onboarding wants the choosing, not the scoreboard.
+   *
+   * The card's job on the settings page is to show how the two of you are
+   * doing — your streak, theirs, who else is watching. During setup none of
+   * that exists yet and showing it means a step full of zeroes about a
+   * relationship that has not started. `pick` keeps the part that is a
+   * decision: choose somebody, or invite them.
+   */
+  pick?: boolean;
 }) {
   const [d, setD] = useState<Data | null>(null);
   const [picking, setPicking] = useState(false);
@@ -118,7 +128,7 @@ export default function PartnerCard({ api, bare = false }: {
           {d.partner ? (
             <>
               <p className="text-lg font-semibold text-hc-ink">{d.partner.name}</p>
-              {d.partner.days !== null && (
+              {!pick && d.partner.days !== null && (
                 <div className="mt-1 flex items-center gap-2">
                   <Fortnight days={d.partner.days} of={d.partner.of} tone="them" />
                   <span className="text-sm text-hc-ink-2">
@@ -135,14 +145,18 @@ export default function PartnerCard({ api, bare = false }: {
             </p>
           )}
 
-          {/* Your own fortnight, so the card is a mirror and not only a window. */}
-          <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
-            <span className="text-xs font-semibold text-slate-500">Þú</span>
-            <Fortnight days={d.me.days} of={d.me.of} tone="me" />
-            <span className="text-sm text-hc-ink-2">{d.me.days} af {d.me.of} dögum</span>
-          </div>
+          {/* Your own fortnight, so the card is a mirror and not only a
+              window — but not while choosing, when it is fourteen zeroes
+              about a relationship that has not started. */}
+          {!pick && (
+            <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
+              <span className="text-xs font-semibold text-slate-500">Þú</span>
+              <Fortnight days={d.me.days} of={d.me.of} tone="me" />
+              <span className="text-sm text-hc-ink-2">{d.me.days} af {d.me.of} dögum</span>
+            </div>
+          )}
 
-          {d.watchedBy.length > 0 && (
+          {!pick && d.watchedBy.length > 0 && (
             <p className="mt-2 text-xs text-slate-500">
               {d.watchedBy.join(", ")} {d.watchedBy.length === 1 ? "fylgist" : "fylgjast"} með þér.
             </p>

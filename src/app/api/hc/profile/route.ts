@@ -28,6 +28,9 @@ export async function GET(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
   const p = await getClientProfile(user.id);
+  // Read once: both the completeness rule and the caller's own step list
+  // depend on which product this journey is.
+  const journeyForProfile = await currentJourney(user.id);
   const { data: last4 } = p?.kennitala_encrypted ? await supabaseAdmin.rpc("kennitala_last4", { p_enc: p.kennitala_encrypted }) : { data: null };
   return NextResponse.json({
     profile: {
@@ -36,10 +39,12 @@ export async function GET(req: NextRequest) {
       // name, the health check needs the kennitala the patient portal and the
       // union application are for.
       kennitala_last4: (last4 as string | null) ?? null,
-      complete: isProfileComplete(p, profileTrackOf((await currentJourney(user.id))?.entry)),
+      complete: isProfileComplete(p, profileTrackOf(journeyForProfile?.entry)),
     },
     health_consent: await hasHealthConsent(user.id),
-    has_journey: !!(await currentJourney(user.id)),
+    has_journey: !!journeyForProfile,
+    /** Which product this is, so a surface can leave out what does not apply. */
+    entry: journeyForProfile?.entry ?? null,
   });
 }
 

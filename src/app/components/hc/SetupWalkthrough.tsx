@@ -50,12 +50,14 @@ const INTRO = [
   { key: "profile", title: "Upplýsingar um þig", why: "Nafn, kennitala, sími og heimilisfang — og samþykki fyrir heilsufarsupplýsingum." },
 ] as const;
 
-export default function SetupWalkthrough({ api, onClose, data, reload }: {
+export default function SetupWalkthrough({ api, onClose, data, reload, entry }: {
   api: Api;
   onClose: () => void;
   /** For the profile step; omitted where the caller has no journey loaded. */
   data?: ProfileFormData;
   reload?: () => Promise<void>;
+  /** Which product this is, so the coach step can be left out where there is none. */
+  entry?: string | null;
 }) {
   const [i, setI] = useState(0);
   const [calOpen, setCalOpen] = useState(false);
@@ -78,6 +80,22 @@ export default function SetupWalkthrough({ api, onClose, data, reload }: {
 
   useEffect(() => { void load(); }, [load]);
 
+  /*
+   * Warm what the last step needs while you are still on the first.
+   *
+   * Step 6 asks /api/hc/nudges for itself, five taps after this component
+   * mounts — plenty of time to have fetched it already. Fired on an idle
+   * callback so it never competes with the step somebody is actually
+   * looking at, and the result is thrown away: the point is that the
+   * browser has it by the time the step mounts.
+   */
+  useEffect(() => {
+    const warm = () => { void api("/api/hc/nudges").catch(() => {}); };
+    const w = window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+    if (w.requestIdleCallback) w.requestIdleCallback(warm, { timeout: 2500 });
+    else setTimeout(warm, 1200);
+  }, [api]);
+
   const calendarApi: CalendarApi = {
     call: api,
     googleStatusUrl: "/api/hc/google",
@@ -99,7 +117,8 @@ export default function SetupWalkthrough({ api, onClose, data, reload }: {
 
   /* Intro steps only where the caller can supply what they need. */
   const intro = data && reload ? INTRO : INTRO.filter((x) => x.key === "track");
-  const steps: { key: string; title: string; why: string }[] = [...intro, ...SETUP_ROWS];
+  const four = entry === "app" ? SETUP_ROWS.filter((r) => r.key !== "coach") : SETUP_ROWS;
+  const steps: { key: string; title: string; why: string }[] = [...intro, ...four];
   const last = i === steps.length;
   const row = steps[i];
 
@@ -125,10 +144,20 @@ export default function SetupWalkthrough({ api, onClose, data, reload }: {
             <p className="mx-auto mt-1 max-w-xs text-sm text-slate-600">
               Þetta er það sem nýr þátttakandi fer í gegnum. Þú getur alltaf breytt hverju sem er í stillingum.
             </p>
-            <button type="button" onClick={onClose}
-              className="mt-5 rounded-full bg-hc-ink px-5 py-2.5 text-sm font-semibold text-white">
-              Loka
-            </button>
+            {/* A way back from the end.
+                The last screen offered only "Loka", so anybody who wanted
+                one more look at a step had to shut the whole thing and
+                start again from step one. */}
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <button type="button" onClick={onClose}
+                className="rounded-full bg-hc-ink px-5 py-2.5 text-sm font-semibold text-white">
+                Loka
+              </button>
+              <button type="button" onClick={() => setI(steps.length - 1)}
+                className="inline-flex items-center gap-1 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-800">
+                <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -161,7 +190,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload }: {
                   </button>
                 </div>
               )}
-              {row.key === "partner" && <PartnerCard api={api} bare />}
+              {row.key === "partner" && <PartnerCard api={api} bare pick />}
               {row.key === "nudge" && (
                 <div className="space-y-3">
                   <NudgeSettings api={api} />

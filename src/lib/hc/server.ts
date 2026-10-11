@@ -76,7 +76,7 @@ export function isProfileComplete(
 
 /** The requirement set a journey falls under. */
 export function profileTrackOf(entry: string | null | undefined): "care" | "app" {
-  return entry === "coach" ? "app" : "care";
+  return entry === "coach" || entry === "app" ? "app" : "care";
 }
 
 /** Decrypt a kennitala blob. Logs the access (lög nr. 90/2018 audit trail). */

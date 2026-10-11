@@ -24,7 +24,7 @@
 // survive it, and the card says so.
 
 import { useState } from "react";
-import { ClipboardCheck, FileHeart, Sparkles } from "lucide-react";
+import { ClipboardCheck, FileHeart, Sparkles, UserRound } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -55,7 +55,7 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
 }) {
   const [busy, setBusy] = useState<string | null>(null);
 
-  const choose = async (track: "coach" | "check") => {
+  const choose = async (track: "coach" | "app" | "check") => {
     if (preview) return;
     setBusy(track);
     await api("/api/hc/journey", {
@@ -100,27 +100,34 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
             foot: "Mælingar og blóðprufa eru þá þegar frágengnar.",
           },
           {
-            key: "coach" as const,
+            key: "app" as const,
             icon: Sparkles,
-            title: "Ég er ekki með skýrslu og vil setja upp mitt eigið prógramm",
-            body: "Æfingar, næring, svefn og daglegar venjur — ég stilli þetta sjálf(ur).",
-            foot: "Engar mælingar, engin blóðprufa og engin kennitala.",
+            title: "Ég vil nota appið sjálf(ur)",
+            body: "Æfingar, næring, svefn og daglegar venjur — ég set prógrammið upp og stilli það sjálf(ur).",
+            foot: "Engin kennitala, engar mælingar og enginn þjálfari.",
+          },
+          {
+            key: "coach" as const,
+            icon: UserRound,
+            title: "Ég vil heilsuþjálfun",
+            body: "Sama app, og heilsuþjálfari sem fer yfir áætlunina með mér og svarar skilaboðum.",
+            foot: "Engar mælingar og engin blóðprufa — þjálfun, ekki skoðun.",
           },
           {
             key: "check" as const,
             icon: ClipboardCheck,
-            title: "Ég vil heilsuþjálfun með Lifeline",
-            body: "Mælingar, blóðprufa og skýrsla, svo viðtal og áætlun með þjálfara.",
-            foot: "Þetta er heilsufarsskoðunin og eftirfylgdin.",
+            title: "Ég vil heilsufarsskoðun",
+            body: "Mælingar, blóðprufa og skýrsla, svo viðtal við hjúkrunarfræðing og áætlun byggð á niðurstöðunum.",
+            foot: "Skoðunin sjálf fer fram í sjúklingagáttinni (Medalia).",
           },
         ]).map((o) => {
           const Icon = o.icon;
           const act = o.key === "report"
             ? onUpload
-            : () => void choose(o.key === "coach" ? "coach" : "check");
+            : () => void choose(o.key);
           /* Hidden only where it could not work. In preview every option
-             shows, because the point of a review screen is to see all
-             three — and nothing there does anything anyway. */
+             shows, because the point of a review screen is to see all of
+             them — and nothing there does anything anyway. */
           if (o.key === "report" && !onUpload && !preview) return null;
           return (
             <button key={o.key} type="button" disabled={!!busy || preview} onClick={act}
@@ -132,10 +139,9 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
                 <span className="block font-semibold leading-snug text-slate-900">{o.title}</span>
                 <span className="mt-0.5 block text-sm leading-snug text-slate-600">{o.body}</span>
                 {/* What it commits you to, in the smallest type on the card.
-                    The thing people most want to know before choosing is
-                    what they are signing up for, and on the middle option
-                    that is "no kennitala" — which is true, and is the
-                    difference the audit turned up. */}
+                    On the app option that is "no kennitala", which is true
+                    and is the difference the audit turned up; on the check it
+                    is where the thing actually happens. */}
                 <span className="mt-1 block text-xs text-slate-400">{o.foot}</span>
               </span>
             </button>
