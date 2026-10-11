@@ -47,8 +47,18 @@ interface Worker { id: string; name: string | null; role: string | null; photo_u
  */
 const INTRO = [
   { key: "track", title: "Hvar viltu byrja?", why: "Þrjár leiðir inn, eftir því hvað þú ert með í höndunum." },
-  { key: "profile", title: "Upplýsingar um þig", why: "Nafn, kennitala, sími og heimilisfang — og samþykki fyrir heilsufarsupplýsingum." },
+  // The "why" depends on the track: an app-only journey is never asked for a
+  // kennitala, so promising one in the step header would be a lie the form
+  // underneath immediately contradicts.
+  { key: "profile", title: "Upplýsingar um þig", why: "" },
 ] as const;
+
+/** What the details step actually asks for, which the track decides. */
+function profileWhy(entry?: string | null): string {
+  return entry === "app" || entry === "coach"
+    ? "Nafnið þitt, og samþykki fyrir því að við vinnum með heilsufarsupplýsingarnar þínar."
+    : "Nafn, kennitala, sími og heimilisfang — og samþykki fyrir heilsufarsupplýsingum.";
+}
 
 export default function SetupWalkthrough({ api, onClose, data, reload, entry }: {
   api: Api;
@@ -118,7 +128,10 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
   /* Intro steps only where the caller can supply what they need. */
   const intro = data && reload ? INTRO : INTRO.filter((x) => x.key === "track");
   const four = entry === "app" ? SETUP_ROWS.filter((r) => r.key !== "coach") : SETUP_ROWS;
-  const steps: { key: string; title: string; why: string }[] = [...intro, ...four];
+  const steps: { key: string; title: string; why: string }[] = [
+    ...intro.map((x) => (x.key === "profile" ? { ...x, why: profileWhy(entry) } : x)),
+    ...four,
+  ];
   const last = i === steps.length;
   const row = steps[i];
 
@@ -172,7 +185,8 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
                 <TrackChoice api={api} preview bare onDone={() => {}} />
               )}
               {row.key === "profile" && data && reload && (
-                <ProfileForm data={data} reload={reload} api={api} />
+                <ProfileForm data={data} reload={reload} api={api}
+                  track={entry === "app" || entry === "coach" ? "app" : "care"} />
               )}
               {row.key === "coach" && (
                 <CoachStep myCoach={myCoach} coaches={coaches} busy={busy} onPick={pickCoach} />
