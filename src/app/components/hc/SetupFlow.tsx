@@ -57,7 +57,20 @@ const ROWS: { key: Key; title: string; why: string; icon: typeof Bell }[] = [
   { key: "nudge", title: "Dagleg áminning", why: "Lítil ýting á þeim tíma sem þú velur. Það sem helst skilur á milli þeirra sem halda áfram.", icon: Bell },
 ];
 
-export default function SetupFlow({ api }: { api: Api }) {
+export default function SetupFlow({ api, place = "onboarding" }: {
+  api: Api;
+  /*
+   * Where it is standing, which changes only what it calls itself.
+   *
+   * In settings "Komdu þér af stað" is wrong for somebody who got started
+   * months ago, and "þú getur komið að því síðar í stillingum" is
+   * self-referential when you are already there. The rows are identical
+   * either way — this is the one place the four things can be reviewed
+   * after onboarding, and a second, different-looking version of them
+   * would be worse than one that renames its header.
+   */
+  place?: "onboarding" | "settings";
+}) {
   const [open, setOpen] = useState<Key | null>(null);
   const [calOpen, setCalOpen] = useState(false);
   const [done, setDone] = useState<Record<Key, boolean>>({ coach: false, calendar: false, partner: false, nudge: false });
@@ -121,18 +134,30 @@ export default function SetupFlow({ api }: { api: Api }) {
   };
 
   const count = ROWS.filter((r) => done[r.key]).length;
+  const all = count === ROWS.length;
+  const settings = place === "settings";
 
   return (
     <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">Komdu þér af stað</p>
-          <h3 className="mt-0.5 text-xl font-bold text-slate-900">Fjögur atriði, ein mínúta hvert</h3>
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">
+            {settings ? "Uppsetningin þín" : "Komdu þér af stað"}
+          </p>
+          <h3 className="mt-0.5 text-xl font-bold text-slate-900">
+            {settings
+              ? (all ? "Allt er uppsett" : "Fjögur atriði, ein mínúta hvert")
+              : "Fjögur atriði, ein mínúta hvert"}
+          </h3>
         </div>
         <p className="text-sm font-semibold tabular-nums text-slate-500">{count}/{ROWS.length}</p>
       </div>
       <p className="mt-1.5 text-sm text-slate-600">
-        Ekkert af þessu er skylda og þú getur komið að því síðar í stillingum. Það er einfaldlega best að gera það núna.
+        {settings
+          ? (all
+            ? "Þú getur breytt hverju sem er hér — þjálfara, dagatali, ábyrgðarfélaga og áminningum."
+            : "Opnaðu það sem þú vilt setja upp. Ekkert af þessu er skylda.")
+          : "Ekkert af þessu er skylda og þú getur komið að því síðar í stillingum. Það er einfaldlega best að gera það núna."}
       </p>
 
       <ul className="mt-4 overflow-hidden rounded-2xl ring-1 ring-slate-200">

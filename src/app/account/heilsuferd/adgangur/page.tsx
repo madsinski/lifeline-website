@@ -11,9 +11,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import SettingsCard from "@/app/components/hc/SettingsCard";
-import NudgeSettings from "@/app/components/hc/NudgeSettings";
+import SetupFlow from "@/app/components/hc/SetupFlow";
 import InstallGuide from "@/app/components/hc/InstallGuide";
-import PartnerCard from "@/app/components/hc/PartnerCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import BillingPanel from "@/app/components/BillingPanel";
 import ContextSwitcher from "@/app/components/ContextSwitcher";
@@ -88,9 +87,18 @@ function Adgangur() {
           </div>
         </section>
 
+        {/* The onboarding, reviewable.
+            It runs at the profile step and then was gone for good, which
+            left the four things it sets up — coach, dagatal, ábyrgðarfélagi,
+            áminning — with no single place to go and look at them again.
+            Two of them, NudgeSettings and PartnerCard, used to sit loose on
+            this page further down; they are inside this card now rather than
+            on it twice, which also takes three full-width cards off a page
+            that was the longest in the app. */}
+        <SetupFlow api={api} place="settings" />
+
         <SettingsCard />
         <InstallGuide />
-        <NudgeSettings api={api} />
         {/* A permanent home for this, independent of journey stage.
             Everywhere else it appears is conditional — the report tab needs
             a report, the first-run card disappears once there is one — so
@@ -98,8 +106,6 @@ function Adgangur() {
         <ReportUpload api={api} onDone={() => { /* nothing on this page reads it */ }}
           heading="Hlaða upp skýrslu"
           blurb="Sóttu Grunnheilsa-skýrsluna þína í sjúklingagáttina og settu hana hér inn. Þú getur gert þetta hvenær sem er, líka eftir endurmat." />
-        <PartnerCard api={api} />
-
         <section className={card} aria-labelledby="acc-pay">
           <h2 id="acc-pay" className="mb-3 text-lg font-bold text-slate-900">Greiðslur og kvittanir</h2>
           <BillingPanel ownerType="client" ownerId={userId} />
