@@ -196,13 +196,12 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 </div>
               )}
 
-              {/* The tick, which is MealLogger's write — not a second copy
-                  of it living in this card. */}
-              {today && isToday && day?.[nextSlot] && (
-                <div className="border-t border-slate-100 p-3">
-                  <MealLogger day={today} weightKg={weightKg ?? null} part="list" only={nextSlot} />
-                </div>
-              )}
+              {/* No tick in this card.
+                  The checklist at the foot of the page already carries every
+                  slot's tick, and one of them repeated up here meant the
+                  same meal could be ticked in two places — the card said
+                  "what now", then asked you to confirm it in the middle of
+                  saying it. */}
             </div>
           );
         })()}
@@ -258,11 +257,11 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
         </div>
         {week && (
           <div className="mt-4">
-            <div className="mb-2 flex items-baseline justify-between gap-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Vikan</p>
-              <p className="text-[11px] text-slate-400">Strjúktu til hliðar</p>
-            </div>
-
+            {/* No "Vikan" label and no "strjúktu til hliðar".
+                The plan's name sits directly above with its pill, the row of
+                weekdays under it is unmistakably a week, and a strip that
+                slides tells you so the moment you touch it. Three lines of
+                furniture for one card. */}
             {/* The days, as a row of taps that move the strip. */}
             <div className="mb-2 flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {WEEKDAYS_SHORT.map((lbl, i) => (
@@ -305,30 +304,46 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                       </p>
                     </div>
 
-                    <ul className="space-y-1">
+                    <ul className="space-y-2">
                       {SLOTS.filter((sl) => d[sl] || !OPTIONAL_SLOTS.includes(sl)).map((sl) => {
                         const m = d[sl];
                         return (
                           <li key={sl}>
-                            <div className="flex items-center gap-2 rounded-xl bg-white/80 px-2 py-1.5 ring-1 ring-slate-100">
-                              <span className="w-16 shrink-0 text-[10px] font-bold uppercase leading-tight text-slate-400">
-                                {SLOT_IS[sl]}
+                            {/* Shaped like the checklist at the foot of the
+                                page: same radius, ring and padding, the slot
+                                in small caps over the name, the numbers
+                                right-aligned. Those rows are the one place
+                                people already read a day of meals, so the
+                                planner reads the same way instead of
+                                inventing a second row style for the same
+                                four facts.
+
+                                The circle is a swap, not a tick. It sits
+                                where the checklist's tick sits because that
+                                is where the eye goes, and it is an outline
+                                rather than a filled check so it cannot be
+                                mistaken for "done" — ticking belongs to
+                                today, and this card is any day of the week. */}
+                            <button type="button"
+                              onClick={() => { setPickedDay(i); setSlotOpen(sl); }}
+                              aria-label={`${SLOT_IS[sl]}${m ? `: ${mealName(m)}` : ""} — skipta um máltíð ${WEEKDAYS[i].toLowerCase()}`}
+                              className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left ring-1 ring-slate-200 transition hover:ring-slate-300">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-slate-200 text-slate-400 transition">
+                                <ArrowLeftRight className="h-4 w-4" aria-hidden />
                               </span>
-                              {m ? (
-                                <button type="button" onClick={() => setRecipe(m)}
-                                  className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-800 hover:underline">
-                                  {mealName(m)}
-                                </button>
-                              ) : <span className="min-w-0 flex-1 text-xs text-slate-400">—</span>}
-                              <span className="shrink-0 text-[10px] tabular-nums text-slate-500">
-                                {m?.protein != null ? `${Math.round(Number(m.protein))}g` : ""}
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{SLOT_IS[sl]}</span>
+                                <span className={`block truncate font-semibold ${m ? "text-slate-900" : "text-slate-400"}`}>
+                                  {m ? mealName(m) : "Engin máltíð"}
+                                </span>
                               </span>
-                              <button type="button" onClick={() => { setPickedDay(i); setSlotOpen(sl); }}
-                                aria-label={`Skipta um ${SLOT_IS[sl].toLowerCase()} ${WEEKDAYS[i].toLowerCase()}`}
-                                className="shrink-0 rounded-full p-1 text-lime-700 transition hover:bg-lime-50">
-                                <ArrowLeftRight className="h-3 w-3" aria-hidden />
-                              </button>
-                            </div>
+                              {m && (
+                                <span className="shrink-0 text-right text-xs text-slate-500">
+                                  {m.protein != null && <span className="block font-semibold text-slate-700">{Math.round(Number(m.protein))} g</span>}
+                                  {m.calories != null && <span className="block">{Math.round(Number(m.calories))} kkal</span>}
+                                </span>
+                              )}
+                            </button>
                           </li>
                         );
                       })}
@@ -355,46 +370,6 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
             </div>
           </div>
         )}
-
-        {/* What this plan is holding to: the emphasis the report asked for
-            and anything ruled out. Smaller, and on one line that counts its
-            overflow instead of wrapping to three — it is standing
-            information, true all week, and it was taking the room of a
-            meal. Tapping any of it opens the same settings as Breyta. */}
-        {(() => {
-          const chips: { key: string; label: string; cls: string }[] = [
-            ...emphasis.slice(0, 2).map((e) => ({
-              key: `e:${e.emphasis}`, label: EMPHASIS_IS[e.emphasis].label,
-              cls: "bg-lime-50 text-lime-900 ring-lime-200",
-            })),
-            ...(prefs?.diet ?? []).map((k) => ({
-              key: `d:${k}`,
-              label: DIET_OPTIONS.find((d) => d.key === k)?.label.replace(/^Ég borða ekki /, "Ekkert ").replace(/^Ég borða /, "") ?? k,
-              cls: "text-slate-700 ring-slate-200",
-            })),
-            ...(prefs?.avoid ?? []).map((k) => ({
-              key: `a:${k}`,
-              label: `Ekkert ${(ALLERGEN_OPTIONS.find((a) => a.key === k)?.label ?? k).toLowerCase().replace(/ \(.*\)$/, "")}`,
-              cls: "bg-rose-50 text-rose-900 ring-rose-200",
-            })),
-          ];
-          if (chips.length === 0) return null;
-          const shown = chips.slice(0, 3);
-          const rest = chips.length - shown.length;
-          return (
-            <div className="mt-3 flex items-center gap-1.5 overflow-hidden text-xs">
-              {shown.map((c) => (
-                <span key={c.key} className={`shrink-0 truncate rounded-full px-2.5 py-0.5 font-semibold ring-1 ${c.cls}`}>{c.label}</span>
-              ))}
-              {rest > 0 && (
-                <button type="button" onClick={onCustomise ?? onChangeProgram}
-                  className="shrink-0 rounded-full px-2 py-0.5 font-semibold text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50">
-                  +{rest}
-                </button>
-              )}
-            </div>
-          );
-        })()}
 
       </section>
 
@@ -510,6 +485,40 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 );
               })()}
             </section>
+
+            {/* What the plan is holding to — the emphasis the report asked
+                for and anything ruled out. Standing information, true all
+                week, so it belongs with the programme rather than taking the
+                room of a meal on the page you read every day. */}
+            {(() => {
+              const chips: { key: string; label: string; cls: string }[] = [
+                ...emphasis.map((e) => ({
+                  key: `e:${e.emphasis}`, label: EMPHASIS_IS[e.emphasis].label,
+                  cls: "bg-lime-50 text-lime-900 ring-lime-200",
+                })),
+                ...(prefs?.diet ?? []).map((k) => ({
+                  key: `d:${k}`,
+                  label: DIET_OPTIONS.find((d) => d.key === k)?.label.replace(/^Ég borða ekki /, "Ekkert ").replace(/^Ég borða /, "") ?? k,
+                  cls: "text-slate-700 ring-slate-200",
+                })),
+                ...(prefs?.avoid ?? []).map((k) => ({
+                  key: `a:${k}`,
+                  label: `Ekkert ${(ALLERGEN_OPTIONS.find((a) => a.key === k)?.label ?? k).toLowerCase().replace(/ \(.*\)$/, "")}`,
+                  cls: "bg-rose-50 text-rose-900 ring-rose-200",
+                })),
+              ];
+              if (chips.length === 0) return null;
+              return (
+                <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Áherslur og það sem er sleppt</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                    {chips.map((c) => (
+                      <span key={c.key} className={`rounded-full px-2.5 py-1 font-semibold ring-1 ${c.cls}`}>{c.label}</span>
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
 
             {onCustomise && (
               <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
