@@ -253,8 +253,29 @@ function PlanPageInner() {
       // Days, swaps and meal picks apply to every programme, so always load them.
       const t = (pj.plan ?? aj.plan) ? await cache.load(api, U.t) : null;
       apply(a.status < 400, aj, pj, t && t.status < 400 ? (t.body as J) : null);
-      // Warm the journey page for the "Ferðin" tab.
-      cache.prefetch(api, ["/api/hc/journey", "/api/hc/journey/exists"]);
+      /*
+       * Warm everything the other tabs will ask for.
+       *
+       * Only the Ferðin tab was warmed, so every other move — to Þjálfari,
+       * to the meal library, to Fræðsla — waited on its own round trip and
+       * showed a skeleton first. They are small reads behind the same
+       * session, they are already paid for by the time anyone taps, and
+       * the cache dedupes if a tab asks again.
+       *
+       * After the first paint, on an idle callback: this is prefetching,
+       * and it must never be the reason the page people are looking at is
+       * slower.
+       */
+      const warm = () => cache.prefetch(api, [
+        "/api/hc/journey", "/api/hc/journey/exists",
+        "/api/hc/coach",            // Þjálfari: the thread and the bookings
+        "/api/hc/library?kind=meals", // Næring: the meal library
+        "/api/hc/lectures",         // Fræðsla: the catalogue
+        "/api/hc/notifications",    // the bell, on every page
+      ], 60_000);
+      const w = window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+      if (w.requestIdleCallback) w.requestIdleCallback(warm, { timeout: 3000 });
+      else setTimeout(warm, 1200);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the tab is only read on first load
   }, [journey, router, api, reloadKey]);

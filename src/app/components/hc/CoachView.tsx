@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useKeyboard } from "@/lib/hc/use-keyboard";
 import {
   Activity, CalendarClock, CalendarPlus, Check, ChevronDown, ChevronRight,
   Dumbbell, Gauge, HeartPulse, MapPin, MessageCircle, MessageSquarePlus,
@@ -299,6 +300,18 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
    */
   const [pinned, setPinned] = useState(false);
   const host = typeof document === "undefined" ? null : document.body;
+  /*
+   * The dock does the opposite of the navbar when the keyboard opens.
+   *
+   * The navbar hides, because nobody changes tab mid-sentence. This bar
+   * holds the thing being typed into, so it has to rise above the keyboard
+   * instead — on iOS a fixed bottom element stays behind it otherwise, and
+   * you type into a box you cannot see.
+   *
+   * While the keyboard is up the navbar is gone, so the dock sits on the
+   * keyboard itself rather than above both.
+   */
+  const keyboard = useKeyboard();
   const cardEnd = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = cardEnd.current;
@@ -510,7 +523,8 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
           bottom navbar through --hc-dock-offset, which is 0 above sm where
           the navbar is hidden. */}
 {host && createPortal(
-        <div className="fixed inset-x-0 z-30" style={{ bottom: "var(--hc-dock-offset)" }}>
+        <div className="fixed inset-x-0 z-30"
+          style={{ bottom: keyboard.open ? keyboard.inset : "var(--hc-dock-offset)" }}>
           <div className="mx-auto flex max-w-4xl items-end gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
             <button type="button" onClick={() => setPrompts(true)}
               aria-label="Tilbúin skilaboð"

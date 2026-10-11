@@ -11,6 +11,7 @@ import { hcTabs } from "./ui";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useKeyboard } from "@/lib/hc/use-keyboard";
 import { supabase } from "@/lib/supabase";
 import { Zap, BookOpen, Compass, Dumbbell, FileHeart, MoreHorizontal, Settings, Sun, UserRound, Utensils } from "lucide-react";
 
@@ -130,6 +131,20 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
   onSelect?: (k: JourneyPlace) => boolean;
 }) {
   const [more, setMore] = useState(false);
+  /*
+   * Out of the way while typing.
+   *
+   * iOS does not resize the viewport for the keyboard, so this bar — fixed
+   * to the bottom of the page — ends up sitting on top of whatever is
+   * being typed into. Victor could not fill in his kennitala on an iPhone
+   * for exactly this reason: the field was under the navbar with the
+   * keyboard up.
+   *
+   * Hiding it is right rather than merely expedient: nobody navigates
+   * between tabs mid-sentence, and it comes back the moment the field is
+   * dismissed.
+   */
+  const keyboard = useKeyboard();
   const own = useNavUnread(unread === undefined);
   const count = unread ?? own;
   const items = ITEMS.filter((i) =>
@@ -213,7 +228,8 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
          * is mounted on the viewport's own element instead.
          */
         const bar = (
-          <nav aria-label="Heilsuferðin" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden print:hidden"
+          <nav aria-label="Heilsuferðin" hidden={keyboard.open}
+            className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden print:hidden"
             /* Height from the shared token, so a sticky dock can offset
                itself by exactly this and stay correct if it changes. */
             style={{ height: "var(--hc-nav-h)", paddingBottom: "env(safe-area-inset-bottom)", boxSizing: "content-box" }}>
