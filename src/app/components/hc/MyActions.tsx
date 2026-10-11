@@ -568,7 +568,6 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lif
           // Lifted: scaled a touch and opaque, so it reads as being held
           // above the list rather than part of it.
           ...(lifted ? { background: "#FFFFFF" } : null),
-          borderLeft: `3px solid ${done ? "transparent" : meta.color}`,
         }}
         {...(onHide && !lifted ? swipe.handlers : {})}>
       <div className="flex items-start gap-3">

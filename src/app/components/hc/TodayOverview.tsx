@@ -66,6 +66,31 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
   // in the Æfingar week and counted when deciding what to prescribe — was
   // invisible on the surface people actually read.
   const myToday = (training?.activities ?? []).filter((a) => a.day === today);
+
+  /**
+   * Everything happening today, prescribed or their own.
+   *
+   * The hero had these as two different shapes — a heading for a session
+   * and a chip for an activity — which made the card's prominence depend
+   * on which kind of day it was. To the person doing it, it is one thing:
+   * what am I doing today.
+   */
+  const todayItems = [
+    ...todays.map((s) => ({
+      key: s.id,
+      sessionId: s.id as string | undefined,
+      title: `${s.title}${s.minutes ? ` · um ${s.minutes} mín.` : ""}`,
+      sub: s.items.filter((i) => (i.block ?? "main") === "main").map((i) => i.name).slice(0, 3).join(" · "),
+    })),
+    ...myToday.map((a) => ({
+      key: a.id,
+      // Their own activity has no prescribed session to open, so this
+      // opens the Æfingar week rather than a session that does not exist.
+      sessionId: undefined,
+      title: a.name,
+      sub: a.at ? `kl. ${a.at}` : "",
+    })),
+  ];
   /**
    * Tomorrow, specifically — not "the next session", which could be four
    * days away and reads as a promise about a day nobody is thinking about.
@@ -95,38 +120,34 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
       <div>
         {exercise && (
           <div className="flex flex-col rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 p-4 text-left text-white shadow-sm sm:p-5">
-            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-white/85"><Dumbbell className="h-4 w-4" aria-hidden />{todays.length || myToday.length ? "Æfing dagsins" : "Hvíldardagur"}</span>
-            {myToday.length > 0 && (
-              <span className="mt-1 flex flex-wrap gap-1.5">
-                {myToday.map((a) => (
-                  <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full bg-white/25 px-2.5 py-1 text-xs font-semibold">
-                    <ActivityIcon name={a.name} className="h-3.5 w-3.5" />
-                    {a.name}{a.at ? ` · ${a.at}` : ""}
-                  </span>
-                ))}
-              </span>
-            )}
+            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-white/85"><Dumbbell className="h-4 w-4" aria-hidden />{todayItems.length ? "Æfing dagsins" : "Hvíldardagur"}</span>
             {/* Today's session is the thing you press.
                 It was a heading with a separate "Opna æfinguna →" link
                 underneath, which is two elements for one action and left
                 today looking no louder than tomorrow. As a solid white
                 pill it is the only opaque thing on the card, and the link
                 is gone because the pill is the link. */}
-            {todays.length ? todays.map((s) => (
-              <button key={s.id} type="button" onClick={() => onOpenExercise(s.id)}
-                className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-white px-3.5 py-3 text-left text-orange-950 shadow-md transition active:scale-[0.99]">
-                <ActivityIcon name={s.title} className="h-5 w-5 shrink-0 text-orange-700" />
+            {/* Both kinds of "today", in one prominent list.
+                The first attempt only promoted prescribed sessions, so
+                somebody whose today is their own CrossFit still got a
+                small translucent chip — which is exactly the "not
+                clickable, not noticeable" that was reported. A session and
+                an activity someone put in themselves are the same thing to
+                the person doing them, so they look and behave the same:
+                white, opaque, pressable, opening Æfingar. */}
+            {todayItems.length ? todayItems.map((x) => (
+              <button key={x.key} type="button" onClick={() => onOpenExercise(x.sessionId)}
+                className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-white px-3.5 py-3 text-left text-orange-950 shadow-md transition active:scale-[0.99] hover:bg-orange-50">
+                <ActivityIcon name={x.title} className="h-5 w-5 shrink-0 text-orange-700" />
                 <span className="min-w-0 flex-1">
-                  <span className="block font-bold leading-tight">{s.title}{s.minutes ? ` · um ${s.minutes} mín.` : ""}</span>
-                  <span className="block truncate text-sm text-orange-900/70">
-                    {s.items.filter((i) => (i.block ?? "main") === "main").map((i) => i.name).slice(0, 3).join(" · ")}
-                  </span>
+                  <span className="block font-bold leading-tight">{x.title}</span>
+                  {x.sub && <span className="block truncate text-sm text-orange-900/70">{x.sub}</span>}
                 </span>
                 <ChevronRight className="h-5 w-5 shrink-0 text-orange-700" aria-hidden />
               </button>
             )) : (
               <span className="mt-1 block text-sm text-white/95">
-                {myToday.length ? null : "Rösk ganga eða útivera telur samt."}
+                Rösk ganga eða útivera telur samt.
               </span>
             )}
             {/* Tomorrow as a chip — the same treatment as the Æfingar hero,
@@ -149,7 +170,7 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
               {/* No "Opna æfinguna" any more — today's pill above is that
                   button. On a rest day there is nothing to open, so the
                   row is just the ring. */}
-              {!todays.length && (
+              {!todayItems.length && (
                 <button type="button" onClick={() => onOpenExercise(undefined)}
                   className="min-w-0 flex-1 text-left text-sm font-semibold underline-offset-4 hover:underline">
                   Opna æfingaáætlunina →

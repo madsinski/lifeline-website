@@ -162,8 +162,12 @@ export default function CoachView({ api, startOn }: {
    * look.
    */
   useEffect(() => {
-    const t = setTimeout(() => end.current?.scrollIntoView({ block: "end", behavior: "smooth" }), 60);
-    return () => clearTimeout(t);
+    if (tab !== "talk") return;
+    // Two passes: one as soon as the rows exist, one after the images and
+    // the pinned header have settled, because the first can land short.
+    const a = setTimeout(() => end.current?.scrollIntoView({ block: "end", behavior: "auto" }), 80);
+    const b2 = setTimeout(() => end.current?.scrollIntoView({ block: "end", behavior: "smooth" }), 420);
+    return () => { clearTimeout(a); clearTimeout(b2); };
   }, [data?.thread.length, pending.length, tab]);
 
   const post = async (payload: Record<string, unknown>) => {
@@ -439,7 +443,14 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
               </div>
             </div>
           ))}
-          <div ref={end} />
+          {/* The scroll target, held clear of the dock.
+              block:"end" aligns to the viewport floor, which is now behind
+              the fixed composer and the bottom navbar — so the newest
+              message was scrolled to and then covered by them.
+              scroll-margin-bottom is what scrollIntoView honours, so the
+              dock's height plus the navbar offset is reserved here rather
+              than corrected with a scrollBy afterwards. */}
+          <div ref={end} style={{ scrollMarginBottom: "calc(var(--hc-dock-offset) + 96px)" }} />
         </div>
 
         {/* A sheet, not a row of chips.
