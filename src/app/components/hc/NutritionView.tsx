@@ -102,8 +102,33 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
     // writes that race each other.
     if (a) onPick(pickKey(to, "dinner") as MealSlot, a.id);
   });
+  /*
+   * The meal you are about to eat, by the clock.
+   *
+   * The page used to open on all three of today's meals at once, named in
+   * the hero and then drawn again below as three big cards — the same three
+   * meals twice, which is most of why it ran to three screens. One meal is
+   * the honest answer to "what now": at half eight it is breakfast, and
+   * dinner is not a decision anyone needs in front of them yet.
+   *
+   * Read once on mount rather than live. It only decides which card opens
+   * first, and a card that reshuffles itself at 15:00 while somebody is
+   * reading it would be worse than one that is an hour stale.
+   */
+  const [nextSlot] = useState<MealSlot>(() => {
+    const h = new Date().getHours();
+    return h < 10 ? "breakfast" : h < 15 ? "lunch" : "dinner";
+  });
+  /*
+   * The week starts closed.
+   *
+   * Seven rows is about a screen on a phone, and it answers a question
+   * ("what is Thursday?") that nobody has while deciding what to eat now.
+   * Opening it is one tap, and the day you are looking at is named on the
+   * button, so nothing is hidden without saying so.
+   */
+  const [weekOpen, setWeekOpen] = useState(false);
   const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
-  const totals = day ? SLOTS.reduce((t, s) => ({ kcal: t.kcal + (day[s]?.calories ?? 0), protein: t.protein + (day[s]?.protein ?? 0) }), { kcal: 0, protein: 0 }) : null;
 
   return (
     <div className="space-y-6">
@@ -136,24 +161,62 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
           </div>
         </div>
 
-        {/* What the page is for: what is on the table today. */}
-        <div className="mt-4 rounded-2xl bg-lime-600 p-4 text-white">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-lime-100">
-            {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
-          </p>
-          <p className="mt-0.5 text-lg font-bold">{day?.dinner ? mealName(day.dinner) : "Engin máltíð valin"}</p>
-          <p className="text-sm text-lime-50">
-            {day
-              ? [day.breakfast ? mealName(day.breakfast) : null, day.lunch ? mealName(day.lunch) : null]
-                  .filter(Boolean).join(" · ")
-              : "Hleð máltíðum…"}
-          </p>
-          {totals && (
-            <p className="mt-2 text-sm font-semibold text-lime-50">
-              Á áætlun: {Math.round(totals.protein)} g prótein · {Math.round(totals.kcal)} kkal
-            </p>
-          )}
-        </div>
+        {/* One meal: the one you are about to eat.
+            This block named today's dinner and then listed breakfast and
+            lunch under it, and the three cards below drew all three again.
+            Now it carries the next meal whole — picture, protein, and the
+            recipe as the thing to tap — and the cards below are a compact
+            list of the rest of the day.
+
+            No calorie count here. The number that drives the plan is
+            protein, the band is right underneath, and the one consistent
+            warning in the research on these apps is that putting calories
+            in front of people pulls attention to them "at the expense of
+            nutrition". Energy stays on the recipe, where it informs rather
+            than scores. */}
+        {(() => {
+          const m = day?.[nextSlot] ?? null;
+          const label = shownDay === todayIdx ? SLOT_IS[nextSlot] : `${SLOT_IS[nextSlot]} · ${WEEKDAYS[shownDay].toLowerCase()}`;
+          return (
+            <div className="mt-4 overflow-hidden rounded-2xl bg-lime-600 text-white">
+              <div className="flex items-stretch gap-3">
+                {m?.illustration_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.illustration_url} alt="" loading="lazy" className="h-auto w-24 shrink-0 self-stretch object-cover sm:w-32" />
+                ) : (
+                  <span className="flex w-24 shrink-0 items-center justify-center bg-lime-700/40 sm:w-32" aria-hidden>
+                    <Salad className="h-8 w-8 text-lime-200" />
+                  </span>
+                )}
+                <div className="min-w-0 flex-1 py-3 pr-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-lime-100">{label}</p>
+                  <p className="mt-0.5 font-bold leading-tight">
+                    {m ? mealName(m) : day ? "Engin máltíð valin" : "Hleð máltíðum…"}
+                  </p>
+                  {m && (
+                    <p className="mt-1 text-sm text-lime-50">
+                      {[m.protein != null ? `${m.protein} g prótein` : null,
+                        m.prep_time_min ? `${m.prep_time_min + (m.cook_time_min ?? 0)} mín.` : null]
+                        .filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  {m && (
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
+                      <button type="button" onClick={() => setRecipe(m)}
+                        className="rounded-full bg-white px-3 py-1 text-lime-800 transition hover:bg-lime-50">
+                        Uppskrift
+                      </button>
+                      <button type="button" onClick={() => setSlotOpen(nextSlot)}
+                        className="inline-flex items-center gap-1 rounded-full bg-lime-700/60 px-3 py-1 text-white transition hover:bg-lime-700">
+                        <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* The bar, in the place the exercise hero keeps its stage. */}
         {today && (
@@ -162,13 +225,27 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
           </div>
         )}
 
-        {/* The week, inside the hero as the exercise one has it. */}
+        {/* The week, inside the hero as the exercise one has it — behind a
+            tap, because seven rows is about a phone screen and "what is
+            Thursday?" is not a question anyone has while deciding what to
+            eat now. The button names the day on screen, so nothing is
+            hidden without saying what. */}
         {week && (
-          <div className="mt-5">
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Vikan</p>
-              <p className="text-[11px] text-slate-400">Kvöldmatur · ýttu á dag, dragðu til að skipta</p>
-            </div>
+          <div className="mt-4">
+            <button type="button" onClick={() => setWeekOpen((v) => !v)} aria-expanded={weekOpen}
+              className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:bg-slate-50">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Vikan</span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate text-xs text-slate-500">
+                  {weekOpen ? "Kvöldmatur · dragðu til að skipta" : `Sýnir ${shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}`}
+                </span>
+                <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${weekOpen ? "rotate-180" : ""}`} aria-hidden />
+              </span>
+            </button>
+          </div>
+        )}
+        {week && weekOpen && (
+          <div className="mt-2">
             {/* Rows on a phone, the week as a grid from sm up.
                 Seven columns inside 360px gives each day about 44px, and a
                 meal called "Rauðar linsur í dal með hrísgrjónum" became
@@ -208,70 +285,121 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
           </div>
         )}
 
-        {(emphasis.length > 0 || !!prefs?.diet.length || !!prefs?.avoid?.length) && (
-          <div className="mt-4 flex flex-wrap gap-1.5 text-sm">
-            {emphasis.slice(0, 3).map((e) => (
-              <span key={e.emphasis} className="rounded-full bg-lime-50 px-3 py-1 font-semibold text-lime-900 ring-1 ring-lime-200">{EMPHASIS_IS[e.emphasis].label}</span>
-            ))}
-            {prefs?.diet.map((k) => (
-              <span key={k} className="rounded-full px-3 py-1 font-semibold text-slate-700 ring-1 ring-slate-200">
-                {DIET_OPTIONS.find((d) => d.key === k)?.label.replace(/^Ég borða ekki /, "Ekkert ").replace(/^Ég borða /, "") ?? k}
-              </span>
-            ))}
-            {prefs?.avoid?.map((k) => (
-              <span key={k} className="rounded-full bg-rose-50 px-3 py-1 font-semibold text-rose-900 ring-1 ring-rose-200">
-                Ekkert {(ALLERGEN_OPTIONS.find((a) => a.key === k)?.label ?? k).toLowerCase().replace(/ \(.*\)$/, "")}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* What this plan is holding to: the emphasis the report asked for
+            and anything ruled out. Smaller, and on one line that counts its
+            overflow instead of wrapping to three — it is standing
+            information, true all week, and it was taking the room of a
+            meal. Tapping any of it opens the same settings as Breyta. */}
+        {(() => {
+          const chips: { key: string; label: string; cls: string }[] = [
+            ...emphasis.slice(0, 2).map((e) => ({
+              key: `e:${e.emphasis}`, label: EMPHASIS_IS[e.emphasis].label,
+              cls: "bg-lime-50 text-lime-900 ring-lime-200",
+            })),
+            ...(prefs?.diet ?? []).map((k) => ({
+              key: `d:${k}`,
+              label: DIET_OPTIONS.find((d) => d.key === k)?.label.replace(/^Ég borða ekki /, "Ekkert ").replace(/^Ég borða /, "") ?? k,
+              cls: "text-slate-700 ring-slate-200",
+            })),
+            ...(prefs?.avoid ?? []).map((k) => ({
+              key: `a:${k}`,
+              label: `Ekkert ${(ALLERGEN_OPTIONS.find((a) => a.key === k)?.label ?? k).toLowerCase().replace(/ \(.*\)$/, "")}`,
+              cls: "bg-rose-50 text-rose-900 ring-rose-200",
+            })),
+          ];
+          if (chips.length === 0) return null;
+          const shown = chips.slice(0, 3);
+          const rest = chips.length - shown.length;
+          return (
+            <div className="mt-3 flex items-center gap-1.5 overflow-hidden text-xs">
+              {shown.map((c) => (
+                <span key={c.key} className={`shrink-0 truncate rounded-full px-2.5 py-0.5 font-semibold ring-1 ${c.cls}`}>{c.label}</span>
+              ))}
+              {rest > 0 && (
+                <button type="button" onClick={onCustomise ?? onChangeProgram}
+                  className="shrink-0 rounded-full px-2 py-0.5 font-semibold text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50">
+                  +{rest}
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
       </section>
 
       {today && <MealLogger day={today} weightKg={weightKg ?? null} part="list" />}
 
+      {/* The rest of the day.
+          These were three cards each with a 16:9 picture — about 600px of
+          the 2600 the page ran to, for meals that are mostly not the next
+          thing anyone is going to eat. A row with a thumbnail says the same
+          (which meal, how much protein, how long) and the next meal still
+          gets its picture up in the hero. Every action survives: the
+          recipe, the swap, and putting the plan's own suggestion back.
+
+          The one being eaten next is marked rather than repeated, so the
+          day still reads as a whole. */}
       <section>
         <div className="flex items-baseline justify-between">
           <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-            {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
+            {shownDay === todayIdx ? "Dagurinn" : WEEKDAYS[shownDay]}
           </h3>
-          <p className="text-xs text-slate-500">Máltíðir úr uppskriftasafninu sem passa við áætlunina</p>
+          <p className="text-xs text-slate-500">Úr uppskriftasafninu</p>
         </div>
         {!day && <p className="mt-3 text-sm text-slate-500">Hleð máltíðum…</p>}
         {day && (
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-2 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
             {SLOTS.map((slot) => {
               const m = day[slot];
+              const isNext = slot === nextSlot && shownDay === todayIdx;
               return (
-                <div key={slot} className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
-                  {m ? (
-                    <button type="button" onClick={() => setRecipe(m)} className="block w-full text-left">
-                      <span className="relative block aspect-[16/9] bg-lime-50">
-                        {m.illustration_url
-                          // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={m.illustration_url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                          : <Salad className="absolute inset-0 m-auto h-10 w-10 text-lime-300" aria-hidden />}
-                        <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-0.5 text-xs font-bold text-lime-800">{SLOT_IS[slot]}</span>
+                <li key={slot} className="border-b border-slate-100 last:border-b-0">
+                  <div className={`flex items-center gap-3 p-2.5 ${isNext ? "bg-lime-50/70" : ""}`}>
+                    {m?.illustration_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={m.illustration_url} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                    ) : (
+                      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-lime-50" aria-hidden>
+                        <Salad className="h-5 w-5 text-lime-300" />
                       </span>
-                      <span className="block p-3">
-                        <span className="block font-semibold leading-tight text-slate-900">{mealName(m)}</span>
-                        <span className="mt-0.5 block text-xs text-slate-500">
-                          {[m.protein != null ? `${m.protein} g prótein` : null, m.calories != null ? `${m.calories} kkal` : null, m.prep_time_min ? `${m.prep_time_min + (m.cook_time_min ?? 0)} mín.` : null].filter(Boolean).join(" · ")}
-                        </span>
-                      </span>
-                    </button>
-                  ) : <p className="p-4 text-sm text-slate-500">{SLOT_IS[slot]}: engin máltíð fannst</p>}
-                  <div className="flex items-center gap-3 border-t border-slate-100 px-3 py-2 text-xs font-semibold">
-                    <button type="button" onClick={() => setSlotOpen(slot)} className="inline-flex items-center gap-1 text-lime-800 hover:underline">
-                      <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta
-                    </button>
-                    {(picks[pickKey(shownDay, slot)] ?? picks[slot]) && <button type="button" onClick={() => onPick(pickKey(shownDay, slot) as MealSlot, null)} className="text-slate-500 hover:text-slate-800">Tillaga áætlunarinnar</button>}
-                    {m && <button type="button" onClick={() => setRecipe(m)} className="ml-auto text-slate-600 hover:text-slate-900">Uppskrift →</button>}
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                        {SLOT_IS[slot]}
+                        {isNext && <span className="rounded-full bg-lime-600 px-1.5 py-0.5 text-[10px] text-white">næst</span>}
+                      </p>
+                      {m ? (
+                        <>
+                          <button type="button" onClick={() => setRecipe(m)}
+                            className="block max-w-full truncate text-left font-semibold leading-tight text-slate-900 hover:underline">
+                            {mealName(m)}
+                          </button>
+                          <p className="truncate text-xs text-slate-500">
+                            {[m.protein != null ? `${m.protein} g prótein` : null,
+                              m.calories != null ? `${m.calories} kkal` : null,
+                              m.prep_time_min ? `${m.prep_time_min + (m.cook_time_min ?? 0)} mín.` : null]
+                              .filter(Boolean).join(" · ")}
+                          </p>
+                        </>
+                      ) : <p className="text-sm text-slate-500">engin máltíð fannst</p>}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1 text-xs font-semibold">
+                      <button type="button" onClick={() => setSlotOpen(slot)}
+                        className="inline-flex items-center gap-1 rounded-full border border-lime-200 px-2.5 py-1 text-lime-800 transition hover:bg-lime-50">
+                        <ArrowLeftRight className="h-3 w-3" aria-hidden /> Skipta
+                      </button>
+                      {(picks[pickKey(shownDay, slot)] ?? picks[slot]) && (
+                        <button type="button" onClick={() => onPick(pickKey(shownDay, slot) as MealSlot, null)}
+                          className="text-[11px] font-normal text-slate-500 hover:text-slate-800">
+                          Tillaga áætlunarinnar
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </section>
 
