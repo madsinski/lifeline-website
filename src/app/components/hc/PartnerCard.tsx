@@ -39,7 +39,18 @@ function Fortnight({ days, of, tone }: { days: number; of: number; tone: "me" | 
   );
 }
 
-export default function PartnerCard({ api }: { api: Api }) {
+export default function PartnerCard({ api, bare = false }: {
+  api: Api;
+  /*
+   * Drop the card's own shell.
+   *
+   * Inside the onboarding walkthrough this sat as a bordered, padded card
+   * within a bordered, padded step — a card in a card, with the icon and
+   * kicker repeating a heading the step had already given. Bare mode keeps
+   * the content and lets the surrounding surface own the frame.
+   */
+  bare?: boolean;
+}) {
   const [d, setD] = useState<Data | null>(null);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -60,18 +71,22 @@ export default function PartnerCard({ api }: { api: Api }) {
     setBusy(false);
   };
 
-  if (!d) return <div className={`${hcCard.base} h-32 animate-pulse`} aria-hidden />;
+  if (!d) return <div className={`${bare ? "rounded-2xl" : hcCard.base} h-32 hc-shimmer`} aria-hidden />;
 
   const none = d.candidates.length === 0;
 
   return (
-    <section className={`${hcCard.base} p-5`}>
-      <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50">
-          <Handshake className="h-5 w-5 text-hc-brand-dark" aria-hidden />
-        </span>
+    <section className={bare ? "" : `${hcCard.base} p-5`}>
+      <div className={`flex items-start ${bare ? "" : "gap-3"}`}>
+        {!bare && (
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50">
+            <Handshake className="h-5 w-5 text-hc-brand-dark" aria-hidden />
+          </span>
+        )}
         <div className="min-w-0 flex-1">
-          <p className={`${hcKicker} text-slate-500`}>Ábyrgðarfélagi</p>
+          {/* The step above already says "Ábyrgðarfélagi"; saying it twice
+              is how the nesting looked like a mistake. */}
+          {!bare && <p className={`${hcKicker} text-slate-500`}>Ábyrgðarfélagi</p>}
 
           {d.partner ? (
             <>

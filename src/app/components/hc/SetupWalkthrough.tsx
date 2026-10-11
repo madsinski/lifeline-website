@@ -22,6 +22,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import Sheet from "./Sheet";
 import CalendarConnect, { type CalendarApi } from "./CalendarConnect";
+import InstallGuide from "./InstallGuide";
 import NudgeSettings from "./NudgeSettings";
 import PartnerCard from "./PartnerCard";
 import { CoachStep, SETUP_ROWS } from "./SetupFlow";
@@ -125,8 +126,19 @@ export default function SetupWalkthrough({ api, onClose }: { api: Api; onClose: 
                   </button>
                 </div>
               )}
-              {row.key === "partner" && <PartnerCard api={api} />}
-              {row.key === "nudge" && <NudgeSettings api={api} />}
+              {row.key === "partner" && <PartnerCard api={api} bare />}
+              {row.key === "nudge" && (
+                <div className="space-y-3">
+                  <NudgeSettings api={api} />
+                  {/* Install sits with the reminder, not on its own.
+                  On iOS a web app is only offered notification
+                  permission once it is on the home screen — so an
+                  iPhone user who sets a reminder here and never
+                  installs gets nothing, silently. The guide reports
+                  whether this device is done. */}
+                      <InstallGuide bare />
+                </div>
+              )}
             </div>
           </>
         )}

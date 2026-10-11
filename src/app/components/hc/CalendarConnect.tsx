@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+
 // Calendar setup — same flow as the Fjarlækningar HSU min-síða
 // (CalendarSetup): pick Google / Apple / Outlook / other. Google is a direct
 // push sync (appointments land within seconds of any change); the others
@@ -189,7 +191,23 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
     </div>
   );
 
-  return (
+  /*
+   * Out to the body.
+   *
+   * This was a plain fixed overlay, and a fixed element inside a
+   * transformed or filtered ancestor is positioned against that ancestor
+   * rather than the viewport. Sheet animates itself with
+   * transform: translateY(), so opening this from inside a sheet — which
+   * is exactly what the onboarding walkthrough does — measured the
+   * dialog against the sheet panel and clipped its top off screen.
+   *
+   * A portal to the body has no ancestor to be trapped by. Same fix as
+   * Sheet's own, for the same reason.
+   */
+  const host = typeof document === "undefined" ? null : document.body;
+  if (!host) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/60 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="cal-title" onClick={close}>
       <div className="max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
@@ -326,6 +344,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    host,
   );
 }

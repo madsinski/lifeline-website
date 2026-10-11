@@ -35,6 +35,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, CalendarDays, Check, ChevronDown, PlayCircle, UserRound, Users } from "lucide-react";
 import CalendarConnect, { type CalendarApi } from "./CalendarConnect";
+import InstallGuide from "./InstallGuide";
 import NudgeSettings from "./NudgeSettings";
 import PartnerCard from "./PartnerCard";
 import SetupWalkthrough from "./SetupWalkthrough";
@@ -56,7 +57,7 @@ export const SETUP_ROWS: { key: Key; title: string; why: string; icon: typeof Be
   { key: "coach", title: "Þjálfarinn þinn", why: "Sá sem fer yfir áætlunina með þér og svarar skilaboðum.", icon: UserRound },
   { key: "calendar", title: "Dagatalið", why: "Tímar og myndsímtöl birtast sjálfkrafa í dagatalinu þínu, með hlekk á fundinn.", icon: CalendarDays },
   { key: "partner", title: "Ábyrgðarfélagi", why: "Einn sem þú velur sér hvað þú ert búinn að gera — ekkert annað.", icon: Users },
-  { key: "nudge", title: "Dagleg áminning", why: "Lítil ýting á þeim tíma sem þú velur. Það sem helst skilur á milli þeirra sem halda áfram.", icon: Bell },
+  { key: "nudge", title: "Áminning og appið", why: "Lítil ýting á þeim tíma sem þú velur — og Lifeline á heimaskjáinn, sem þarf til að tilkynningar berist í iPhone.", icon: Bell },
 ];
 
 export default function SetupFlow({ api, place = "onboarding" }: {
@@ -210,8 +211,19 @@ export default function SetupFlow({ api, place = "onboarding" }: {
                       </button>
                     </div>
                   )}
-                  {row.key === "partner" && <PartnerCard api={api} />}
-                  {row.key === "nudge" && <NudgeSettings api={api} />}
+                  {row.key === "partner" && <PartnerCard api={api} bare />}
+                  {row.key === "nudge" && (
+                    <div className="space-y-3">
+                      <NudgeSettings api={api} />
+                      {/* Install sits with the reminder, not on its own.
+                      On iOS a web app is only offered notification
+                      permission once it is on the home screen — so an
+                      iPhone user who sets a reminder here and never
+                      installs gets nothing, silently. The guide reports
+                      whether this device is done. */}
+                      <InstallGuide bare />
+                    </div>
+                  )}
                 </div>
               )}
             </li>

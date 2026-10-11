@@ -63,8 +63,13 @@ function guess(): Platform {
   return "desktop";
 }
 
-export default function InstallGuide() {
-  const [open, setOpen] = useState(false);
+export default function InstallGuide({ bare = false, defaultOpen = false }: {
+  /** Drop the card shell, for use inside another card. */
+  bare?: boolean;
+  /** Start expanded, where this is the point of the step rather than an aside. */
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const [pick, setPick] = useState<Platform>(guess);
   const installed = typeof window !== "undefined"
     && (window.matchMedia?.("(display-mode: standalone)").matches
@@ -73,7 +78,9 @@ export default function InstallGuide() {
   const cur = STEPS[pick];
 
   return (
-    <section className="rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-slate-200 print:hidden">
+    <section className={bare
+      ? "overflow-hidden rounded-2xl ring-1 ring-slate-200 print:hidden"
+      : "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-slate-200 print:hidden"}>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
         className="flex w-full items-center gap-3 p-4 text-left">
         <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${installed ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-slate-100 text-slate-500"}`}>
