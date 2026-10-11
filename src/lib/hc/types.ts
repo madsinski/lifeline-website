@@ -16,7 +16,18 @@ export const PILLARS: Pillar[] = ["sleep", "exercise", "nutrition", "mental"];
 export const PILLAR_META: Record<Pillar, { label: string; color: string; soft: string; ring: string; ink: string }> = {
   sleep: { label: "Svefn", color: "#767194", soft: "#F1F0F6", ring: "#C9C6DA", ink: "#4F4A6E" },
   exercise: { label: "Hreyfing", color: "#EA580C", soft: "#FFF4ED", ring: "#FBC9A6", ink: "#C2410C" },
-  nutrition: { label: "Næring", color: "#65A30D", soft: "#F4FAE9", ring: "#C8E39A", ink: "#3F6212" },
+  /*
+   * ring was #C8E39A, measured at 1.41:1 against white — the faintest of
+   * the four, so an unticked Næring circle read as washed out beside a
+   * Svefn one at 1.67 or a Hreyfing one at 1.50. #BCDC85 is 1.53:1, which
+   * puts it mid-pack without changing the hue.
+   *
+   * All four of these are below the 3.0:1 WCAG asks of a UI component's
+   * boundary. Raising them all is a change to every checklist row in the
+   * app and wants a decision, not a quiet edit — this one only brings the
+   * odd one out into line.
+   */
+  nutrition: { label: "Næring", color: "#65A30D", soft: "#F4FAE9", ring: "#BCDC85", ink: "#3F6212" },
   mental: { label: "Andleg líðan", color: "#0EA5E9", soft: "#EAF7FD", ring: "#A5DDF5", ink: "#0369A1" },
 };
 

@@ -801,7 +801,14 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
    ./Sheet, which the two call sites below use unchanged apart from asking
    for the wider panel this one had. */
 
-function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
+/**
+ * The recipe, as a sleeve.
+ *
+ * Exported because Í dag's checklist opens it too: a meal row there has to
+ * behave like every other row — tap the text, get the detail — and the
+ * detail for a meal is its recipe. One sheet rather than two that drift.
+ */
+export function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
   const t = mealText(m);
   return (
     <Sheet title={mealName(m)} onClose={onClose} max="max-w-3xl">

@@ -16,13 +16,13 @@
 // bar — a progress bar against a guessed target is worse than none.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check, ChevronRight, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { localDate } from "@/lib/hc/workout";
 import { proteinState, proteinTarget, totalsOf, type MealLogRow } from "@/lib/hc/nutrition-log";
 import { mealName, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
 
-export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget, only, flush = false, tone }: {
+export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget, only, flush = false, tone, onOpenMeal, onLogged }: {
   /** The meal in each slot today, as the plan has it. */
   day: Record<MealSlot, Meal | null>;
   /** From the report's þyngd row; null means no protein bar. */
@@ -56,6 +56,23 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
   flush?: boolean;
   /** The pillar colour for a ticked row, so Næring reads as Næring. */
   tone?: { color: string; ring: string };
+  /**
+   * Open this meal's detail.
+   *
+   * Every other row in Í dag's checklist opens a sleeve when you tap its
+   * text; a meal row that only had a tick was the odd one out. Given, the
+   * row grows the same chevron and the same tap target.
+   */
+  onOpenMeal?: (meal: Meal) => void;
+  /**
+   * Which slots are logged today, after a change.
+   *
+   * MealLogger owns meal_log, so it is the only thing that knows. Í dag uses
+   * it to tick the habits a meal completes — which needs the whole set, not
+   * just the slot that was tapped, because "prótein í hverri máltíð" is only
+   * done when every meal is.
+   */
+  onLogged?: (slots: MealSlot[]) => void;
   /**
    * Reports the band this bar measures against, so the plan can be built to
    * land inside it. Without this the plan was assembled to maximise protein
@@ -118,6 +135,15 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
     }
     setBusy(null);
   };
+
+  /* Up to the caller after every change and on first load, off the render
+     tick so a parent setState never lands inside this one. */
+  useEffect(() => {
+    if (!onLogged || rows === null) return;
+    const slots = rows.map((r) => r.action_key as MealSlot);
+    const t = setTimeout(() => onLogged(slots), 0);
+    return () => clearTimeout(t);
+  }, [rows, onLogged]);
 
   const totals = totalsOf(rows ?? []);
   // What the plan puts on the table today, so the bar can say what reaching
@@ -195,15 +221,37 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
                         : <Check className="h-5 w-5" strokeWidth={3} />}
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className={`font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
-                        {mealName(meal)}
-                      </p>
-                      <p className="mt-0.5 text-sm text-slate-500">
-                        {[SLOT_IS[slot],
-                          meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
-                          meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
-                          .filter(Boolean).join(" · ")}
-                      </p>
+                      {/* The text is the way in, as it is on every other
+                          row: tick on the left, detail behind the words. */}
+                      {onOpenMeal ? (
+                        <button type="button" onClick={() => onOpenMeal(meal)}
+                          className="flex w-full items-start gap-2 text-left">
+                          <span className="min-w-0 flex-1">
+                            <span className={`block font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
+                              {mealName(meal)}
+                            </span>
+                            <span className="mt-0.5 block text-sm text-slate-500">
+                              {[SLOT_IS[slot],
+                                meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
+                                meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
+                                .filter(Boolean).join(" · ")}
+                            </span>
+                          </span>
+                          <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+                        </button>
+                      ) : (
+                        <>
+                          <p className={`font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
+                            {mealName(meal)}
+                          </p>
+                          <p className="mt-0.5 text-sm text-slate-500">
+                            {[SLOT_IS[slot],
+                              meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
+                              meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
+                              .filter(Boolean).join(" · ")}
+                          </p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </li>

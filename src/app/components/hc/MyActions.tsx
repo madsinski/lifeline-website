@@ -13,6 +13,7 @@ import * as cache from "@/lib/hc/client-cache";
 import ActionSheet from "./ActionSheet";
 import Sheet from "./Sheet";
 import MealLogger from "./MealLogger";
+import { Recipe } from "./NutritionView";
 import { type Meal, type MealSlot } from "@/lib/hc/meals";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, Loader2, Plus, RotateCcw } from "lucide-react";
@@ -51,6 +52,38 @@ const WHEN_ORDER: WhenOfDay[] = ["morning", "midday", "evening"];
  * here. The optional second snack goes with dinner, since that is when
  * somebody who added one tends to eat it.
  */
+/**
+ * Habits that eating the planned meal actually completes.
+ *
+ * Mads asked for a meal tick to satisfy its habit. The list is two entries
+ * long on purpose: of the 22 nutrition habits in the library, these are the
+ * only ones where eating what the plan laid out is the same act as keeping
+ * the habit. "D-vítamín yfir veturinn", "Feitur fiskur tvisvar í viku",
+ * "Minna salt", "Vatn í stað sykraðra drykkja" — eating breakfast says
+ * nothing about any of them, and ticking them off the back of a meal would
+ * be the app claiming somebody did something they did not.
+ *
+ *   naering-protein-morgunmatur  breakfast alone. The plan's breakfast is
+ *                                chosen against the protein target, so
+ *                                eating it *is* a protein-rich breakfast.
+ *   naering-protein              every meal of the day, because the habit
+ *                                is "prótein í hverri máltíð" — one meal
+ *                                does not finish it.
+ *
+ * Two more were tempting and left out: "Skipulag máltíða" and
+ * "Diskaaðferðin" are arguably satisfied by following the plan, and
+ * arguably not, and a judgement call that silently ticks something is worse
+ * than one the person makes themselves.
+ *
+ * Only ever ticks. Unticking a meal leaves the habit ticked, for somebody
+ * to clear if they want: a tick that vanishes because of an unrelated tap
+ * is more alarming than one that stays.
+ */
+const MEAL_SATISFIES: { key: string; slots: MealSlot[]; needsAll?: boolean }[] = [
+  { key: "naering-protein-morgunmatur", slots: ["breakfast"] },
+  { key: "naering-protein", slots: ["breakfast", "lunch", "snack", "dinner"], needsAll: true },
+];
+
 const MEAL_WHEN: Record<WhenOfDay, MealSlot[]> = {
   morning: ["breakfast"],
   midday: ["lunch", "snack"],
@@ -198,6 +231,31 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   };
   /** Which section's picker is open. */
   const [adding, setAdding] = useState<WhenOfDay | null>(null);
+  /** The meal whose recipe is open, from a checklist row. */
+  const [recipe, setRecipe] = useState<Meal | null>(null);
+
+  /*
+   * A ticked meal ticks the habit it completes.
+   *
+   * Only the two links in MEAL_SATISFIES, only in the direction of ticking,
+   * and only when the habit is not already done — so nothing is written
+   * twice and nothing is cleared behind somebody's back. The habit's own
+   * row updates through the same `toggle` the tick uses, so the two agree
+   * without a reload.
+   */
+  const satisfyFromMeals = useCallback((logged: MealSlot[]) => {
+    const have = new Set(logged);
+    for (const link of MEAL_SATISFIES) {
+      const met = link.needsAll
+        ? link.slots.every((sl) => have.has(sl))
+        : link.slots.some((sl) => have.has(sl));
+      if (!met) continue;
+      const habit = plan.modules.find((m) => m.key === link.key);
+      if (!habit || doneOn(habit.uid, today)) continue;
+      toggle(habit.uid);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- toggle and doneOn are stable for a given day
+  }, [plan.modules, today]);
 
   const setPref = (uid: string, patch: { hidden?: boolean; note?: string; at_time?: string | null }) => {
     const before = prefs;
@@ -515,7 +573,8 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                        and a ticked habit are the same green. Measured: a
                        white check on #65A30D is 3.1:1, which clears the 3.0
                        bar for a large glyph. */
-                    flush tone={{ color: PILLAR_META.nutrition.color, ring: PILLAR_META.nutrition.ring }} />
+                    flush tone={{ color: PILLAR_META.nutrition.color, ring: PILLAR_META.nutrition.ring }}
+                    onOpenMeal={setRecipe} onLogged={satisfyFromMeals} />
                 ))
               )}
 
@@ -543,6 +602,10 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       {/* The picker. A list of what fits this time of day and is not already
           in the plan, added one at a time by the server so this screen never
           has to hold the whole plan to append to it. */}
+      {/* The same recipe sleeve the Næring page opens — one sheet, not two
+          that drift apart. */}
+      {recipe && <Recipe m={recipe} onClose={() => setRecipe(null)} />}
+
       {adding && onAddAction && (
         <Sheet title={`Bæta við — ${WHEN_META[adding].label}`} onClose={() => setAdding(null)} canvas>
           <AddPicker api={api} when={adding} inPlan={new Set(plan.modules.map((m) => m.key).filter((k): k is string => !!k))}
