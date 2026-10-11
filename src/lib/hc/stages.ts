@@ -68,8 +68,46 @@ function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean): string
   }
 }
 
+/**
+ * The coaching-only track.
+ *
+ * Somebody who wants the coaching and not the workup used to reach the
+ * package step and stop, holding an app whose surfaces all wanted a report
+ * they were never going to have. These four steps are the honest version of
+ * what that person does: make an account, tell us who they are, watch the
+ * introduction, and build a plan from the library themselves.
+ *
+ * The plan step is the same step — /api/hc/my-plan already lets a
+ * participant assemble and publish their own, and only loses the
+ * report-derived suggestions. Æfingar and Næring read hc_training_settings
+ * and the meal library rather than the report, so they work on day one.
+ *
+ * followup and reevaluation are left out: both are health-check concepts
+ * (three months after what? a year after which measurements?). Adding the
+ * check later is a track change, not a new journey, so habits and history
+ * survive it.
+ */
+const COACH_TRACK: StepKey[] = ["account", "profile", "welcome", "plan"];
+
+/** Which steps this journey actually has. */
+export function trackSteps(entry: HcJourney["entry"]): StepKey[] | null {
+  return entry === "coach" ? COACH_TRACK : null;
+}
+
 export function journeySteps(j: HcJourney, profileComplete: boolean): JourneyStep[] {
-  const steps = DEFS.map((d) => ({ ...d, doneAt: doneAtFor(d.key, j, profileComplete), state: "upcoming" as StepState }));
+  const only = trackSteps(j.entry);
+  let defs = only ? DEFS.filter((d) => only.includes(d.key)) : DEFS;
+  /*
+   * On the coaching track the plan is the participant's own work, so the
+   * blurb cannot promise three months written by a nurse after an
+   * interview that is not going to happen.
+   */
+  if (only) {
+    defs = defs.map((d) => (d.key === "plan"
+      ? { ...d, title: "Áætlunin þín", blurb: "Veldu aðgerðir og æfingar úr safninu. Þú getur breytt þeim hvenær sem er." }
+      : d));
+  }
+  const steps = defs.map((d) => ({ ...d, doneAt: doneAtFor(d.key, j, profileComplete), state: "upcoming" as StepState }));
   // Strictly sequential now that activation, measurements and the blood draw
   // are one step — the parallelism lives inside it instead.
   let foundCurrent = false;

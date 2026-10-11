@@ -63,7 +63,8 @@ export interface HcJourney {
   video_consults_per_month?: number | null;
   location_id: string | null;
   stage: string;
-  entry: "b2c" | "b2b" | "heilsugaesla";
+  /** 'coach' is the coaching-only track: no package, tests, report or interview. */
+  entry: "b2c" | "b2b" | "heilsugaesla" | "coach";
   company_id: string | null;
   profile_completed_at: string | null;
   welcome_seen_at: string | null;

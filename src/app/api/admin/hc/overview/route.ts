@@ -22,8 +22,21 @@ export async function GET(req: NextRequest) {
     const { data } = await supabaseAdmin.from("clients_decrypted").select("id, full_name").in("id", ids);
     for (const c of data || []) names[c.id] = c.full_name;
   }
+  /*
+   * The funnel counts health checks, so the coaching track is counted apart.
+   *
+   * A coaching journey never pays for a check and never gives blood. Mixed
+   * into this funnel it would pile up in the early stages and read as
+   * people who stalled before paying — making conversion look worse the
+   * more successful the coaching product is. They are not invisible: the
+   * count goes back as `coachTrack`.
+   */
   const funnel: Record<string, number> = {};
-  for (const j of journeys || []) funnel[j.stage] = (funnel[j.stage] || 0) + 1;
+  let coachTrack = 0;
+  for (const j of journeys || []) {
+    if (j.entry === "coach") { coachTrack++; continue; }
+    funnel[j.stage] = (funnel[j.stage] || 0) + 1;
+  }
   const revenue = { self: 0, union: 0, company: 0, count: 0 };
   for (const o of orders || []) {
     revenue.count++;
@@ -32,6 +45,7 @@ export async function GET(req: NextRequest) {
   }
   return NextResponse.json({
     funnel,
+    coachTrack,
     revenue,
     journeys: (journeys || []).slice(0, 100).map((j) => ({ ...j, client_name: names[j.client_id] ?? null })),
     packages: packages || [],

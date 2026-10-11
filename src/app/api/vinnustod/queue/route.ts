@@ -18,6 +18,20 @@ export async function GET(req: NextRequest) {
     .from("hc_journeys")
     .select("id, client_id, location_id, stage, entry, paid_at, protocol_activated_at, blood_test_booked_for, blood_test_done_at, blood_results_at, measurements_booked_for, measurements_done_at, report_generated_at, report_sms_sent_at, report_imported_at, interview_booked_for, interview_mode, interviewer_id, interview_done_at, meeting_url, plan_published_at, followup_booked_for, followup_done_at, followup_mode, followup_meeting_url, referral_to_heilsugaesla, doctor_review_requested_at, doctor_reviewed_at, updated_at")
     .is("cancelled_at", null)
+    /*
+     * The coaching track is not clinical work.
+     *
+     * Its steps end at a plan the participant writes themselves, so such a
+     * journey sits at stage 'plan' and then 'action' — both inside the
+     * filter below. Without this they would queue up in the workstation
+     * waiting for a nurse to write something nobody asked her for.
+     *
+     * The same mistake own_report_at made and that this file already warns
+     * about: a stage is not by itself evidence that Lifeline has taken
+     * somebody on. If they later add the health check, entry flips back to
+     * b2c/b2b and they appear here as they should.
+     */
+    .neq("entry", "coach")
     // Anyone mid-journey, plus anyone whose report is already in hand: a
     // client the nurse created from a report has not done the customer-facing
     // steps (profile, payment), so their stage still reads "profile" — they

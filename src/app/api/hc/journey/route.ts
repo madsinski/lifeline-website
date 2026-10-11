@@ -106,6 +106,31 @@ export async function POST(req: NextRequest) {
   if (!journey) return NextResponse.json({ error: "no_journey" }, { status: 404 });
   const actor = `client:${user.id}`;
 
+  /*
+   * Pick a track, or change your mind.
+   *
+   * A track change rather than a new journey, on purpose: somebody who
+   * starts with coaching and later wants the workup keeps their habits,
+   * their streaks and their plan history. Starting them again would throw
+   * all of it away to record a decision.
+   *
+   * Only ever between the coaching track and the health check, and only
+   * while the check has not been paid for — once there is an order, the
+   * stage machinery and the money disagree about what this journey is.
+   */
+  if (body.action === "choose_track") {
+    const track = body.track === "coach" ? "coach" : "check";
+    const profile = await getClientProfile(user.id);
+    if (track === "coach") {
+      if (journey.paid_at) return NextResponse.json({ error: "already_paid" }, { status: 409 });
+      await patchJourney(journey.id, { entry: "coach" }, `client:${user.id}`, "journey_track_coach");
+    } else {
+      // Back to whatever this person would have been without the choice.
+      await patchJourney(journey.id, { entry: profile?.company_id ? "b2b" : "b2c" }, `client:${user.id}`, "journey_track_check");
+    }
+    return NextResponse.json({ ok: true, track });
+  }
+
   if (body.action === "welcome_seen") {
     const j = journey.welcome_seen_at ? journey : await patchJourney(journey.id, { welcome_seen_at: new Date().toISOString() }, actor, "welcome_seen");
     return NextResponse.json({ journey: j });

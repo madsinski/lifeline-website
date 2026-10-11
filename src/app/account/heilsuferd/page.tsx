@@ -21,6 +21,7 @@ import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
 import JourneyNav from "@/app/components/hc/JourneyNav";
 import SetupFlow from "@/app/components/hc/SetupFlow";
+import TrackChoice from "@/app/components/hc/TrackChoice";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
@@ -179,6 +180,23 @@ function Heilsuferd() {
       <RetentionReview api={api} onDone={() => load(true)} />
       {next && <div className="mb-4"><AppointmentCard a={next} /></div>}
       {data.profile.complete && data.profile.health_consent === false && <ConsentCard reload={() => load(true)} />}
+      {/* Which journey this is, while the choice is still free.
+          Hidden once anything is paid for — after that the money has
+          decided and a card offering to change it would be lying — and
+          hidden on the coaching track, where it has been answered. A B2B
+          employee never sees it either: their employer bought the check,
+          so "bara þjálfunin" is not theirs to pick. */}
+      {!data.journey.paid_at
+        && data.journey.entry !== "coach"
+        && data.journey.entry !== "b2b"
+        && !data.plan
+        && <TrackChoice api={api}
+             onDone={async () => { await load(true); }}
+             /* The uploader already lives in the tests step, which knows
+                how to record a report somebody brought themselves
+                (own_report_at). Opening that step beats a second copy of
+                it here. */
+             onUpload={() => setOpen("tests")} />}
       {/* Hero: where you are, in one glance, and the one thing to do next. */}
       <section className={`${hcCard.hero} overflow-hidden p-6 sm:p-8`}>
         <div className="flex items-center gap-5">
