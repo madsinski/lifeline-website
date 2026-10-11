@@ -46,7 +46,7 @@ interface Worker { id: string; name: string | null; role: string | null; photo_u
  * them from here is exactly as valid as saving them from the journey page.
  */
 const INTRO = [
-  { key: "track", title: "Hvar viltu byrja?", why: "Fyrsta spurningin: heilsufarsskoðun, skýrsla sem þú ert með, eða bara þjálfunin." },
+  { key: "track", title: "Hvar viltu byrja?", why: "Þrjár leiðir inn, eftir því hvað þú ert með í höndunum." },
   { key: "profile", title: "Upplýsingar um þig", why: "Nafn, kennitala, sími og heimilisfang — og samþykki fyrir heilsufarsupplýsingum." },
 ] as const;
 
@@ -140,7 +140,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload }: {
 
             <div className="mt-4">
               {row.key === "track" && (
-                <TrackChoice api={api} preview onDone={() => {}} />
+                <TrackChoice api={api} preview bare onDone={() => {}} />
               )}
               {row.key === "profile" && data && reload && (
                 <ProfileForm data={data} reload={reload} api={api} />

@@ -28,7 +28,7 @@ import { ClipboardCheck, FileHeart, Sparkles } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-export default function TrackChoice({ api, onDone, onUpload, preview = false }: {
+export default function TrackChoice({ api, onDone, onUpload, preview = false, bare = false }: {
   api: Api;
   onDone: () => Promise<void> | void;
   /** Opens the report uploader, for somebody who already has one. */
@@ -43,6 +43,15 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false }: 
    * from a review screen would be a real change to their journey.
    */
   preview?: boolean;
+  /*
+   * Drop the card and the heading.
+   *
+   * Inside the walkthrough this was a bordered card within a bordered step,
+   * under a step header that had already said "Hvar viltu byrja?" — the
+   * question asked twice, the second time in smaller type. Bare mode leaves
+   * the three answers, which is the part the step is for.
+   */
+  bare?: boolean;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -58,10 +67,14 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false }: 
   };
 
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">Hvar viltu byrja?</p>
-      <h2 className="mt-0.5 text-xl font-bold text-slate-900">Þetta er þín ferð</h2>
-      <p className="mt-1.5 text-sm text-slate-600">
+    <section className={bare ? "" : "rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6"}>
+      {!bare && (
+        <>
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">Hvar viltu byrja?</p>
+          <h2 className="mt-0.5 text-xl font-bold text-slate-900">Þetta er þín ferð</h2>
+        </>
+      )}
+      <p className={`text-sm text-slate-600 ${bare ? "" : "mt-1.5"}`}>
         Þú getur breytt þessu síðar. Ekkert af því sem þú gerir í appinu fer forgörðum ef þú skiptir.
       </p>
       {preview && (
@@ -70,52 +83,63 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false }: 
         </p>
       )}
 
+      {/* Said as things about yourself, not as product categories.
+          "Heilsufarsskoðun og áætlun" / "Ég er með skýrslu þegar" /
+          "Bara þjálfunin" asked people to work out which box they were in.
+          A sentence in the first person is a statement you either recognise
+          or you do not, and the three here are the three situations somebody
+          arriving actually arrives in: I have a report, I have none and want
+          to get on with it myself, or I want the whole thing with a coach. */}
       <div className="mt-4 space-y-2">
-        {/* The full check first: it is what most people come for and what
-            the rest of the journey is built around. */}
-        <button type="button" disabled={!!busy || preview} onClick={() => void choose("check")}
-          className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 p-3.5 text-left transition hover:border-hc-brand disabled:opacity-50">
-          <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand">
-            <ClipboardCheck className="h-4 w-4" aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-slate-900">Heilsufarsskoðun og áætlun</span>
-            <span className="block text-sm leading-snug text-slate-600">
-              Mælingar, blóðprufa og skýrsla, svo viðtal og áætlun byggð á niðurstöðunum.
-            </span>
-          </span>
-        </button>
-
-        {onUpload && (
-          <button type="button" disabled={!!busy || preview} onClick={onUpload}
-            className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 p-3.5 text-left transition hover:border-hc-brand disabled:opacity-50">
-            <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand">
-              <FileHeart className="h-4 w-4" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold text-slate-900">Ég er með skýrslu þegar</span>
-              <span className="block text-sm leading-snug text-slate-600">
-                Grunnheilsa-skýrsla úr sjúklingagáttinni. Settu hana inn og við sleppum mælingunum.
+        {([
+          {
+            key: "report" as const,
+            icon: FileHeart,
+            title: "Ég er með heilsufarsskýrslu frá Lifeline",
+            body: "Ég vil setja hana inn hér og byggja áætlunina á henni.",
+            foot: "Mælingar og blóðprufa eru þá þegar frágengnar.",
+          },
+          {
+            key: "coach" as const,
+            icon: Sparkles,
+            title: "Ég er ekki með skýrslu og vil setja upp mitt eigið prógramm",
+            body: "Æfingar, næring, svefn og daglegar venjur — ég stilli þetta sjálf(ur).",
+            foot: "Engar mælingar, engin blóðprufa og engin kennitala.",
+          },
+          {
+            key: "check" as const,
+            icon: ClipboardCheck,
+            title: "Ég vil heilsuþjálfun með Lifeline",
+            body: "Mælingar, blóðprufa og skýrsla, svo viðtal og áætlun með þjálfara.",
+            foot: "Þetta er heilsufarsskoðunin og eftirfylgdin.",
+          },
+        ]).map((o) => {
+          const Icon = o.icon;
+          const act = o.key === "report"
+            ? onUpload
+            : () => void choose(o.key === "coach" ? "coach" : "check");
+          if (o.key === "report" && !onUpload) return null;
+          return (
+            <button key={o.key} type="button" disabled={!!busy || preview} onClick={act}
+              className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-hc-brand disabled:opacity-60">
+              <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand">
+                <Icon className="h-4 w-4" aria-hidden />
               </span>
-            </span>
-          </button>
-        )}
-
-        <button type="button" disabled={!!busy || preview} onClick={() => void choose("coach")}
-          className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 p-3.5 text-left transition hover:border-hc-brand disabled:opacity-50">
-          <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand">
-            <Sparkles className="h-4 w-4" aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-slate-900">Bara þjálfunin, engin skoðun</span>
-            <span className="block text-sm leading-snug text-slate-600">
-              Æfingar, næring, svefn og dagleg venjur. Engar mælingar og engin blóðprufa.
-              {/* No health claim: this says what it contains, not what it
-                  will do to anybody's risk. */}
-            </span>
-          </span>
-        </button>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold leading-snug text-slate-900">{o.title}</span>
+                <span className="mt-0.5 block text-sm leading-snug text-slate-600">{o.body}</span>
+                {/* What it commits you to, in the smallest type on the card.
+                    The thing people most want to know before choosing is
+                    what they are signing up for, and on the middle option
+                    that is "no kennitala" — which is true, and is the
+                    difference the audit turned up. */}
+                <span className="mt-1 block text-xs text-slate-400">{o.foot}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
+
     </section>
   );
 }

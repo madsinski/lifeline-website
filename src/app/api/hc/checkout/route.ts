@@ -112,6 +112,10 @@ export async function GET(req: NextRequest) {
     package: pkg,
     unions,
     eligibility_error: eligibility(pkg, journey),
+    // Strict on purpose, whatever the track: this is buying the health
+    // check, and the kennitala is what the patient portal and the union
+    // application need. Somebody on the coaching track who buys a check is
+    // asking for exactly the thing that requires it.
     profile_complete: isProfileComplete(profile),
     company_code: code,
   });

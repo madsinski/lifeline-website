@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { cleanKennitala, isValidKennitala, isValidIcelandicPhone } from "@/lib/kennitala";
-import { currentJourney, getClientProfile, hcAudit, isProfileComplete, patchJourney, refreshStage, requireUser } from "@/lib/hc/server";
+import { currentJourney, getClientProfile, hcAudit, isProfileComplete, patchJourney, refreshStage, requireUser, profileTrackOf } from "@/lib/hc/server";
 import { hasHealthConsent, recordHealthConsent } from "@/lib/health-consent";
 
 export const runtime = "nodejs";
@@ -32,7 +32,11 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     profile: {
       email: user.email ?? null, full_name: p?.full_name ?? null, phone: p?.phone ?? null, address: p?.address ?? null,
-      kennitala_last4: (last4 as string | null) ?? null, complete: isProfileComplete(p),
+      // Against this journey's own requirements: the coaching track needs a
+      // name, the health check needs the kennitala the patient portal and the
+      // union application are for.
+      kennitala_last4: (last4 as string | null) ?? null,
+      complete: isProfileComplete(p, profileTrackOf((await currentJourney(user.id))?.entry)),
     },
     health_consent: await hasHealthConsent(user.id),
     has_journey: !!(await currentJourney(user.id)),
@@ -101,13 +105,13 @@ export async function POST(req: NextRequest) {
   const profile = await getClientProfile(user.id);
   const journey = await currentJourney(user.id);
   if (journey) {
-    if (isProfileComplete(profile) && !journey.profile_completed_at) {
+    if (isProfileComplete(profile, profileTrackOf(journey.entry)) && !journey.profile_completed_at) {
       await patchJourney(journey.id, { profile_completed_at: new Date().toISOString() }, `client:${user.id}`, "profile_complete");
     } else {
       await refreshStage(journey);
     }
   }
-  return NextResponse.json({ ok: true, complete: isProfileComplete(profile) });
+  return NextResponse.json({ ok: true, complete: isProfileComplete(profile, profileTrackOf(journey?.entry)) });
 }
 
 export async function PUT(req: NextRequest) {

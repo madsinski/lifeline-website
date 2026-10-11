@@ -52,11 +52,24 @@ export function ConsentBox({ checked, onChange, error }: { checked: boolean; onC
   );
 }
 
-export default function ProfileForm({ data, reload, api }: {
+export default function ProfileForm({ data, reload, api, track = "care" }: {
   data: ProfileFormData;
   reload: () => Promise<void>;
   /** The caller's fetch wrapper, so this works from any surface. */
   api: Api;
+  /*
+   * Which set of details this journey actually needs.
+   *
+   * "care" is the health check: kennitala, phone and address, because the
+   * patient portal and the union application need them — this form has
+   * always said so in its own first line.
+   *
+   * "app" is the coaching-only track, where neither of those things exists.
+   * Asking for a kennitala there collects a national health-service
+   * identifier for no purpose, which is a data minimisation problem before
+   * it is a conversion problem. A name is what the app needs.
+   */
+  track?: "care" | "app";
 }) {
   const addr = splitAddress(data.profile.address);
   const [f, setF] = useState({
@@ -99,14 +112,25 @@ export default function ProfileForm({ data, reload, api }: {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <p className="text-sm text-slate-600">Við þurfum þessar upplýsingar fyrir sjúklingagáttina og til að útbúa umsókn til stéttarfélagsins þíns ef við á.</p>
+      <p className="text-sm text-slate-600">
+        {track === "app"
+          ? "Bara nafnið, til að heilsa þér og setja á áætlunina. Kennitölu þarf ekki fyrir þjálfunina."
+          : "Við þurfum þessar upplýsingar fyrir sjúklingagáttina og til að útbúa umsókn til stéttarfélagsins þíns ef við á."}
+      </p>
       <div className="grid gap-3 sm:grid-cols-2">
         {field("full_name", "Fullt nafn", { autoComplete: "name" })}
-        {field("kennitala", data.profile.kennitala_last4 ? `Kennitala (skráð: ••••••-${data.profile.kennitala_last4})` : "Kennitala", { inputMode: "numeric", placeholder: data.profile.kennitala_last4 ? "Sláðu inn til að breyta" : "000000-0000" })}
-        {field("phone", "Farsími", { autoComplete: "tel", inputMode: "tel" })}
-        {field("address", "Heimilisfang", { autoComplete: "street-address" })}
-        {field("postcode", "Póstnúmer", { autoComplete: "postal-code", inputMode: "numeric", maxLength: 3 })}
-        {field("town", "Bæjarfélag", { autoComplete: "address-level2" })}
+        {/* Everything below here exists for the patient portal and the union
+            application. Neither is part of the coaching track, so neither is
+            asked for there. */}
+        {track === "care" && (
+          <>
+            {field("kennitala", data.profile.kennitala_last4 ? `Kennitala (skráð: ••••••-${data.profile.kennitala_last4})` : "Kennitala", { inputMode: "numeric", placeholder: data.profile.kennitala_last4 ? "Sláðu inn til að breyta" : "000000-0000" })}
+            {field("phone", "Farsími", { autoComplete: "tel", inputMode: "tel" })}
+            {field("address", "Heimilisfang", { autoComplete: "street-address" })}
+            {field("postcode", "Póstnúmer", { autoComplete: "postal-code", inputMode: "numeric", maxLength: 3 })}
+            {field("town", "Bæjarfélag", { autoComplete: "address-level2" })}
+          </>
+        )}
       </div>
       {!data.profile.health_consent && <ConsentBox checked={consent} onChange={setConsent} error={errors.consent} />}
       {errors.form && <p className="text-sm text-red-600">{errors.form}</p>}
@@ -116,7 +140,9 @@ export default function ProfileForm({ data, reload, api }: {
         </button>
         {saved && <span className="text-sm text-emerald-700">Vistað</span>}
       </div>
-      <p className="text-xs text-slate-500">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir sjálf(ur).</p>
+      {track === "care" && (
+        <p className="text-xs text-slate-500">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir sjálf(ur).</p>
+      )}
       <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
         Ábending: Í stillingum hér til hliðar getur þú sett upp <strong>PIN</strong> fyrir fljótlegri innskráningu og tengt ferðina við <strong>Google eða Apple dagatal</strong>.
       </div>

@@ -47,8 +47,36 @@ export async function getClientProfile(userId: string): Promise<ClientProfile | 
   return (data as ClientProfile | null) ?? null;
 }
 
-export function isProfileComplete(p: ClientProfile | null): boolean {
-  return !!(p && p.full_name?.trim() && p.phone?.trim() && p.address?.trim() && p.kennitala_encrypted);
+/**
+ * Whether we have what this journey actually needs.
+ *
+ * Two different questions were wearing one name. The strict set — name,
+ * phone, address and kennitala — exists for the health check: the form says
+ * so itself, "fyrir sjúklingagáttina og umsókn til stéttarfélagsins". Both
+ * are care concerns.
+ *
+ * On the coaching-only track there is no patient portal and no union
+ * application, so demanding a kennitala and a home address collects
+ * national health-service identifiers for no purpose at all. That is a data
+ * minimisation problem before it is a conversion problem, and it was
+ * blocking the one track built for people who explicitly do not want the
+ * workup. A name is what the app needs; it greets them with it.
+ *
+ * The strict rule is still the default, so anything that forgets to say
+ * which track it is asking about keeps the old, safer answer.
+ */
+export function isProfileComplete(
+  p: ClientProfile | null,
+  track: "care" | "app" = "care",
+): boolean {
+  if (!p?.full_name?.trim()) return false;
+  if (track === "app") return true;
+  return !!(p.phone?.trim() && p.address?.trim() && p.kennitala_encrypted);
+}
+
+/** The requirement set a journey falls under. */
+export function profileTrackOf(entry: string | null | undefined): "care" | "app" {
+  return entry === "coach" ? "app" : "care";
 }
 
 /** Decrypt a kennitala blob. Logs the access (lög nr. 90/2018 audit trail). */
@@ -101,6 +129,8 @@ export async function getOrCreateJourney(userId: string, locationSlug?: string |
       location_id: loc?.id ?? null,
       entry: profile?.company_id ? "b2b" : "b2c",
       company_id: profile?.company_id ?? null,
+      // A brand-new journey is b2c or b2b here, never 'coach' — the track
+      // is chosen afterwards — so this is the strict set by construction.
       profile_completed_at: isProfileComplete(profile) ? new Date().toISOString() : null,
     })
     .select("*")
@@ -112,7 +142,7 @@ export async function getOrCreateJourney(userId: string, locationSlug?: string |
 /** Recompute and persist the stage after any change. */
 export async function refreshStage(j: HcJourney): Promise<HcJourney> {
   const profile = await getClientProfile(j.client_id);
-  const stage = stageFor(j, isProfileComplete(profile));
+  const stage = stageFor(j, isProfileComplete(profile, profileTrackOf(j.entry)));
   if (stage === j.stage) return j;
   const { data } = await supabaseAdmin
     .from("hc_journeys")

@@ -8,9 +8,9 @@ import { DEFAULT_TRAINING, sanitizeTraining, type TrainingSettings } from "./ada
 import { DEFAULT_PERSONAL, sanitizePersonal, type Personal, type SwapSnapshot } from "./personalise";
 import { sanitizeNutrition, type NutritionPrefs } from "./nutrition";
 
-const COLS = "level, load_step, injuries, started_on, place, places, cardio, emphasis, training_days, activities, nutrition_prefs, program_key, days, hiit_split, swaps, drops, extra, meal_picks";
+const COLS = "level, load_step, injuries, started_on, place, places, cardio, emphasis, training_days, activities, nutrition_prefs, program_key, days, hiit_split, swaps, drops, extra, meal_picks, self_weight_kg, self_height_cm";
 
-type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; places: string[] | null; cardio: string | null; emphasis: string | null; training_days: number[] | null; activities: unknown; nutrition_prefs: unknown; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; drops: string[] | null; extra: Record<string, SwapSnapshot[]> | null; meal_picks: Record<string, string> | null };
+type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; places: string[] | null; cardio: string | null; emphasis: string | null; training_days: number[] | null; activities: unknown; nutrition_prefs: unknown; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; drops: string[] | null; extra: Record<string, SwapSnapshot[]> | null; meal_picks: Record<string, string> | null; self_weight_kg: number | null; self_height_cm: number | null };
 
 function personalOf(r: Row | null): Personal {
   if (!r) return DEFAULT_PERSONAL;
@@ -21,9 +21,15 @@ export async function loadTraining(journeyId: string): Promise<TrainingSettings 
   return (await loadPlanPrefs(journeyId)).settings;
 }
 
-export async function loadPlanPrefs(journeyId: string): Promise<{ settings: TrainingSettings & { saved: boolean }; personal: Personal; nutrition: NutritionPrefs }> {
+export async function loadPlanPrefs(journeyId: string): Promise<{
+  settings: TrainingSettings & { saved: boolean };
+  personal: Personal;
+  nutrition: NutritionPrefs;
+  /** What the participant told us about their body, where no measurement exists. */
+  body: { weight_kg: number | null; height_cm: number | null };
+}> {
   const { data } = await supabaseAdmin.from("hc_training_settings").select(COLS).eq("journey_id", journeyId).maybeSingle<Row>();
-  if (!data) return { settings: { ...DEFAULT_TRAINING, saved: false }, personal: DEFAULT_PERSONAL, nutrition: sanitizeNutrition(null) };
+  if (!data) return { settings: { ...DEFAULT_TRAINING, saved: false }, personal: DEFAULT_PERSONAL, nutrition: sanitizeNutrition(null), body: { weight_kg: null, height_cm: null } };
   return {
     settings: { ...sanitizeTraining({
       level: data.level, load: data.load_step, injuries: data.injuries, started_on: data.started_on,
@@ -32,6 +38,10 @@ export async function loadPlanPrefs(journeyId: string): Promise<{ settings: Trai
     }), saved: true },
     personal: personalOf(data),
     nutrition: sanitizeNutrition(data.nutrition_prefs),
+    body: {
+      weight_kg: data.self_weight_kg != null ? Number(data.self_weight_kg) : null,
+      height_cm: data.self_height_cm != null ? Number(data.self_height_cm) : null,
+    },
   };
 }
 
@@ -53,7 +63,7 @@ async function snapshots(ids: string[]): Promise<Map<string, SwapSnapshot>> {
  * load/injuries are sent, personal fields when days/swaps/… are sent. The
  * first save sets the start date to today unless one is given.
  */
-export async function saveTraining(journeyId: string, clientId: string, body: Record<string, unknown>, by: string): Promise<{ settings: TrainingSettings & { saved: boolean }; personal: Personal; nutrition: NutritionPrefs }> {
+export async function saveTraining(journeyId: string, clientId: string, body: Record<string, unknown>, by: string): Promise<{ settings: TrainingSettings & { saved: boolean }; personal: Personal; nutrition: NutritionPrefs; body: { weight_kg: number | null; height_cm: number | null } }> {
   const prev = await loadPlanPrefs(journeyId);
   const row: Record<string, unknown> = { journey_id: journeyId, client_id: clientId, updated_by: by, updated_at: new Date().toISOString() };
 
@@ -81,6 +91,30 @@ export async function saveTraining(journeyId: string, clientId: string, body: Re
   if ("days" in body && !Array.isArray(body.days)) personal.days = p.days;
   if ("hiit_split" in body) personal.hiit_split = p.hiit_split;
   if ("meal_picks" in body) personal.meal_picks = p.meal_picks;
+
+  /*
+   * What they told us about their body.
+   *
+   * Bounded rather than trusted: a protein target is computed from this, so
+   * a fat-fingered 700 kg would quietly produce a 1120-1400 g target and the
+   * whole Næring page would read as failure. Outside the range it is
+   * ignored, which leaves the previous value standing.
+   */
+  const selfBody: Record<string, unknown> = {};
+  if ("self_weight_kg" in body) {
+    const w = Number(body.self_weight_kg);
+    if (Number.isFinite(w) && w >= 30 && w <= 300) {
+      selfBody.self_weight_kg = Math.round(w * 10) / 10;
+      selfBody.self_body_at = new Date().toISOString();
+    } else if (body.self_weight_kg === null) {
+      selfBody.self_weight_kg = null;
+    }
+  }
+  if ("self_height_cm" in body) {
+    const h = Number(body.self_height_cm);
+    if (Number.isFinite(h) && h >= 100 && h <= 250) selfBody.self_height_cm = Math.round(h);
+    else if (body.self_height_cm === null) selfBody.self_height_cm = null;
+  }
   if ("drops" in body) personal.drops = p.drops;
   if ("extra" in body) {
     // Added exercises arrive as library ids and are snapshotted here, the
@@ -101,8 +135,13 @@ export async function saveTraining(journeyId: string, clientId: string, body: Re
 
   const nutrition = "nutrition_prefs" in body ? sanitizeNutrition(body.nutrition_prefs) : prev.nutrition;
   row.nutrition_prefs = nutrition;
+  Object.assign(row, selfBody);
 
   const { error } = await supabaseAdmin.from("hc_training_settings").upsert(row, { onConflict: "journey_id" });
   if (error) throw new Error(error.message);
-  return { settings: { ...s, started_on, saved: true }, personal, nutrition };
+  const bodyOut = {
+    weight_kg: "self_weight_kg" in selfBody ? (selfBody.self_weight_kg as number | null) : prev.body.weight_kg,
+    height_cm: "self_height_cm" in selfBody ? (selfBody.self_height_cm as number | null) : prev.body.height_cm,
+  };
+  return { settings: { ...s, started_on, saved: true }, personal, nutrition, body: bodyOut };
 }

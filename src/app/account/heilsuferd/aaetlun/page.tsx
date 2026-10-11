@@ -151,6 +151,8 @@ function PlanPageInner() {
   const [lectures, setLectures] = useState<(LectureRef & { completed?: boolean })[]>([]);
   const [appointments, setAppointments] = useState<Upcoming[]>([]);
   const [training, setTraining] = useState<TrainingSettings>(DEFAULT_TRAINING);
+  /** What they told us about their body, where no measurement exists. */
+  const [selfBody, setSelfBody] = useState<{ weight_kg: number | null; height_cm: number | null }>({ weight_kg: null, height_cm: null });
   const [personal, setPersonal] = useState<Personal>(DEFAULT_PERSONAL);
   const [gym, setGym] = useState<{ name: string | null; url: string | null; info: string | null } | null>(null);
   // The setup wizard: opened on demand, and by itself the first time, when
@@ -220,6 +222,7 @@ function PlanPageInner() {
       setLectures((pj.lectures as (LectureRef & { completed?: boolean })[]) ?? []);
       setAppointments((pj.appointments as Upcoming[]) ?? []);
       if (tj?.settings) setTraining(tj.settings as TrainingSettings);
+      if (tj?.body) setSelfBody(tj.body as { weight_kg: number | null; height_cm: number | null });
       if (tj?.personal) setPersonal(tj.personal as Personal);
       if (tj?.gym !== undefined) setGym(tj.gym as typeof gym);
       if (tj?.nutrition) setNutritionPrefs(tj.nutrition as NutritionPrefs);
@@ -390,7 +393,20 @@ function PlanPageInner() {
     };
     return { weightKg: val("thyngd"), bodyFatPct: val("fitumassi"), sex: data?.report?.sex ?? null };
   }, [data]);
-  const weightKg = body.weightKg;
+  /*
+   * Measured first, then what they told us.
+   *
+   * Weight used to come only from the report's þyngd row, so everything
+   * calibrated against body mass — the 1,6–2,0 g/kg protein target above
+   * all — switched itself off for anybody without a report. That is the
+   * whole coaching track, which exists for people who do not want the
+   * workup, and the page was telling them the target would appear after
+   * measurements that are never going to happen.
+   *
+   * A measurement always wins. A figure somebody typed is not a figure a
+   * nurse measured, and where both exist the clinical one is the one to use.
+   */
+  const weightKg = body.weightKg ?? selfBody.weight_kg;
 
   const reportTitlesBySlug = useMemo(() => {
     const out: Record<string, string> = {};
@@ -737,6 +753,12 @@ function PlanPageInner() {
                   ) : (
                     <NutritionView api={api} nutrition={plan.nutrition} picks={personal.meal_picks}
                       prefs={nutritionPrefs} signals={reportSignalsBySlug} weightKg={weightKg}
+                      onSelfWeight={async (kg) => {
+                        const r = await api(`/api/hc/training${qs}`, { method: "POST", body: JSON.stringify({ self_weight_kg: kg }) });
+                        cache.invalidate("/api/hc/training");
+                        const j = await r.json().catch(() => ({}));
+                        if (r.ok && j.body) setSelfBody(j.body);
+                      }}
                       onPick={(slot, id) => {
                         const picks = { ...personal.meal_picks };
                         if (id) picks[slot] = id; else delete picks[slot];

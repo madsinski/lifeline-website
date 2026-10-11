@@ -19,7 +19,7 @@ import { FIBRE_TARGET, proteinTarget } from "@/lib/hc/nutrition-log";
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
 
-export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg }: {
+export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg, onSelfWeight }: {
   api: Api;
   nutrition: PlanNutrition;
   picks: Record<string, string>;
@@ -41,8 +41,15 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   onCustomise?: () => void;
   /** Planning lights, for naming the emphasis the report asks for. */
   signals?: Record<string, Signal | null>;
-  /** From the report's þyngd row, for the protein target. */
+  /** Measured weight, or what they told us — whichever the page resolved. */
   weightKg?: number | null;
+  /**
+   * Save a weight they typed, where no measurement exists.
+   *
+   * Without this the protein target — the number the whole page is built
+   * around — simply never appears on the coaching track.
+   */
+  onSelfWeight?: (kg: number) => void;
 }) {
   const [meals, setMeals] = useState<Meal[] | null>(() => cache.peek<{ meals: Meal[] }>("/api/hc/library?kind=meals")?.body.meals ?? null);
   const [slotOpen, setSlotOpen] = useState<MealSlot | null>(null);
@@ -104,6 +111,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   const [headOpen, setHeadOpen] = useState(false);
   /** The Prógrammið sleeve. */
   const [detail, setDetail] = useState(false);
+  const [wInput, setWInput] = useState("");
   /** The sliding week. Its scroll position is its own, not React's. */
   const stripRef = useRef<HTMLDivElement | null>(null);
   const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
@@ -480,10 +488,32 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                       Trefjar og næringargildi eru reiknuð út frá hráefnum uppskriftanna og eru því áætluð.
                       {sum.noFibre > 0 && " Nokkrar uppskriftir hafa ekki trefjagildi, svo talan getur verið lægri en raunin."}
                     </p>
-                    {!weightKg && (
-                      <p className="mt-2 text-xs text-slate-500">
-                        Próteinmarkið reiknast af þyngd úr mælingunum. Það birtist þegar þyngd liggur fyrir.
-                      </p>
+                    {/* Where the target comes from, and how to get one.
+                        This used to say the figure would appear "þegar þyngd
+                        liggur fyrir" — from measurements that, on the
+                        coaching track, are never going to be taken. So it
+                        asks instead. */}
+                    {!weightKg && onSelfWeight && (
+                      <div className="mt-3 rounded-xl bg-slate-50 p-3">
+                        <label className="block text-sm font-semibold text-slate-700" htmlFor="self-weight">
+                          Próteinmarkið reiknast af þyngd
+                        </label>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          Settu hana inn hér, eða láttu mælingarnar um það ef þú ferð í heilsufarsskoðun.
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <input id="self-weight" type="number" inputMode="decimal" min={30} max={300} step="0.5"
+                            value={wInput} onChange={(e) => setWInput(e.target.value)}
+                            placeholder="kg"
+                            className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-lime-500/30" />
+                          <button type="button"
+                            disabled={!wInput.trim()}
+                            onClick={() => { const v = Number(wInput.replace(",", ".")); if (Number.isFinite(v)) onSelfWeight(v); }}
+                            className="rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+                            Vista
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 );
