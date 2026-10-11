@@ -124,6 +124,36 @@ const RUNNING: ModalityGuide = {
   ],
 };
 
+
+/*
+ * Walking and hiking, which were being handed the running guide.
+ *
+ * BY_MODALITY mapped every cardio session to RUNNING, so a hike was told
+ * about patellofemoral pain in recreational runners, shin splints, and to
+ * warm up with five to ten minutes of jogging. All true of running and
+ * none of it about the walk in front of the person.
+ *
+ * Deliberately without figures or citations. The other entries carry
+ * published injury epidemiology because it exists for those sports; I am
+ * not going to invent a percentage for hiking to make this one match. What
+ * is here is descriptive and checkable by anyone who has walked up a hill.
+ */
+const WALKING: ModalityGuide = {
+  trains: "Þol á jöfnum hraða",
+  tag: "Zone 2 / þol",
+  loads: ["Hné", "Ökklar", "Mjóbak"],
+  common: [
+    { area: "Hné", note: "Mest reynir á hnén á niðurleið — brattar brekkur niður frekar en upp." },
+    { area: "Ökklar", note: "Ójafnt undirlag; ökklatognun er algengasta bráða meiðslin á göngu." },
+    { area: "Mjóbak", note: "Þungur bakpoki í langan tíma, sérstaklega ef hann situr laust." },
+  ],
+  warmup: ["Fyrstu 10 mínúturnar rólega", "Liðkun á ökklum og mjöðmum ef lagt er beint í brekku"],
+  cooldown: ["Hægðu á þér síðasta spölinn", "Teygjur á kálfum og aftanlæri"],
+  evidence:
+    "Ganga er álagslítil og þolir mikið magn. Það sem helst fer úrskeiðis er undirlagið og brekkur niður í móti, ekki vegalengdin sjálf.",
+  sources: [],
+};
+
 /**
  * Keyed on what the plan actually calls things. Matched loosely because a
  * session is named by a person ("Innanhússfótbolti", "Fótbolti með vinnunni")
@@ -133,6 +163,9 @@ const BY_PHRASE: [RegExp, ModalityGuide][] = [
   [/fótbolt|futsal|innanhúss|football|soccer/i, FOOTBALL],
   [/crossfit|wod|functional fitness/i, CROSSFIT],
   [/lyfting|styrkt|styrkur|strength|ræktin|upper|lower|full body|core/i, STRENGTH],
+  // Before RUNNING: "Gönguferð" contains none of its words, but the
+  // modality fallback below would have sent it there regardless.
+  [/göng|ganga|hike|walk|fjallganga/i, WALKING],
   [/hlaup|skokk|run|zone ?2|þol|cardio/i, RUNNING],
 ];
 

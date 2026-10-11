@@ -327,14 +327,21 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                     {d}
                   </p>
                   {/* The chips sit in a row beside the label on a phone and
-                      stack under it on a wide screen. */}
+                      stack under it on a wide screen.
+
+                      Two on a day share the row rather than wrapping. With
+                      a fixed width each, a second activity pushed the + on
+                      to a line of its own underneath, which read as a
+                      stray control. flex-1 with min-w-0 lets them split
+                      the space and truncate; from sm up they stack in the
+                      grid cell and take its full width. */}
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 sm:contents">
                   {here.map((s) => (
                     <React.Fragment key={s.id}>
                     <button type="button" {...handle({ kind: "session", id: s.id }, s.title)}
                       onClick={() => { setPickedDay(i); setOpenSession(s.id); setEditing(editing === s.id ? null : s.id); }}
                       aria-label={`${s.title}, ${WEEKDAYS[i].toLowerCase()}`}
-                      className={`flex min-h-10 select-none flex-col justify-center rounded-lg px-2 py-1 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 cursor-grab active:cursor-grabbing ${MODALITY_IS[s.modality].cls} ${shownDay === i ? "outline outline-2 outline-hc-ink" : ""}`}>
+                      className={`flex min-h-10 min-w-0 flex-1 select-none flex-col justify-center rounded-lg px-2 py-1 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 cursor-grab active:cursor-grabbing sm:flex-none ${MODALITY_IS[s.modality].cls} ${shownDay === i ? "outline outline-2 outline-hc-ink" : ""}`}>
                       <span className="block truncate">{s.title}</span>
                       {/* What it trains, under the name. The little coloured
                           bar that used to sit here said the same thing in a
@@ -385,7 +392,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                         onClick={() => { setPickedDay(a.day); setEditing(editing === a.id ? null : a.id); }}
                         title={`${a.name}${a.at ? ` · ${a.at}` : ""} — ${activityFocus(a)}`}
                         aria-label={`${a.name}, ${WEEKDAYS[a.day].toLowerCase()}`}
-                        className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} flex min-h-10 select-none flex-col justify-center rounded-lg px-2 py-1 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 ${mm.cls} ${shownDay === a.day ? "outline outline-2 outline-hc-ink" : ""}`}>
+                        className={`${onMoveActivity ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} flex min-h-10 min-w-0 flex-1 select-none flex-col justify-center rounded-lg px-2 py-1 text-left text-[11px] font-bold leading-tight shadow-sm ring-1 sm:flex-none ${mm.cls} ${shownDay === a.day ? "outline outline-2 outline-hc-ink" : ""}`}>
                         <span className="flex items-center gap-1">
                           <ActivityIcon name={a.name} className="h-3 w-3 shrink-0" />
                           <span className="truncate">{a.name}</span>
@@ -466,7 +473,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                          already there — seven of them down the week, each
                          competing with the thing it sits next to. Still a
                          44px target; just not a second card. */
-                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-base font-semibold text-slate-300 transition hover:bg-orange-50 hover:text-orange-700 sm:mt-auto sm:h-7 sm:w-full">
+                      className="grid h-9 w-9 shrink-0 place-items-center self-center rounded-lg text-base font-semibold text-slate-300 transition hover:bg-orange-50 hover:text-orange-700 sm:mt-auto sm:h-7 sm:w-full">
                       <span aria-hidden>+</span>
                     </button>
                   )}

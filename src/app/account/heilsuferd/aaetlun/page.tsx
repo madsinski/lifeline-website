@@ -135,6 +135,8 @@ function PlanPageInner() {
   const [liveCounts, setLiveCounts] = useState<{ done: number; of: number } | null>(null);
   /** Which Þjálfari subpage to open on, when something linked into it. */
   const [coachSub, setCoachSub] = useState<"talk" | "book">("talk");
+  /** Arrived from a notification: land on the newest message. */
+  const [coachFocus, setCoachFocus] = useState(false);
   /** Every measured value on the journey, for "Mínar mælingar". */
   const [results, setResults] = useState<HcResult[] | null>(null);
   const [data, setData] = useState<Loaded | null | undefined>(undefined);
@@ -273,6 +275,8 @@ function PlanPageInner() {
     const want = u.searchParams.get("tab");
     // "sub" says which subpage of Þjálfari: an appointment belongs on Bóka.
     setCoachSub(u.searchParams.get("sub") === "book" ? "book" : "talk");
+    // A notification pointed at a message, so the thread should open on it.
+    setCoachFocus(u.searchParams.get("sub") !== "book" && want === "coach");
     const ok: Tab[] = ["today", "exercise", "nutrition", "coach", "report", "results"];
     if (!want || !ok.includes(want as Tab)) return false;
     setPeople(false);
@@ -619,7 +623,7 @@ function PlanPageInner() {
                   {/* Was HelpCard alone — one form behind one button. The
                       page is now the conversation, the coach and the diary,
                       with the request form kept inside the first of them. */}
-                  <CoachView api={api} startOn={coachSub} />
+                  <CoachView api={api} startOn={coachSub} focusNewest={coachFocus} />
                 </div>
               )}
               {tab === "exercise" && plan && baseExercise && (

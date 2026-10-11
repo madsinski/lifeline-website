@@ -30,10 +30,13 @@ type Api = (url: string, init?: RequestInit) => Promise<Response>;
 /**
  * How many messages the conversation shows before "Sjá eldri skilaboð".
  *
- * Enough to hold the thread you are in the middle of, few enough that the
- * page stays a page rather than becoming its own scroller again.
+ * Four: the end of the exchange, short enough that the thread never needs
+ * a scrollbar of its own and the page opens on the coach rather than
+ * halfway down a chat. The whole history is one button away, and that view
+ * does get its own scroller — it is a transcript then, and a transcript
+ * should not make the page a mile long.
  */
-const TAIL = 12;
+const TAIL = 4;
 
 interface Worker {
   id: string; name: string | null; role: string | null; organization: string | null;
@@ -115,10 +118,19 @@ const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.g
 const when = (iso: string) => { const d = new Date(iso); return `${d.getDate()}. ${MO[d.getMonth()]} kl. ${hhmm(d)}`; };
 const longWhen = (iso: string) => { const d = new Date(iso); return `${DAYS_LONG[d.getDay()]} ${d.getDate()}. ${MO[d.getMonth()]}, kl. ${hhmm(d)}`; };
 
-export default function CoachView({ api, startOn }: {
+export default function CoachView({ api, startOn, focusNewest = false }: {
   api: Api;
   /** "book" to open on Bóka, where an upcoming appointment lives. */
   startOn?: "talk" | "book";
+  /**
+   * Scroll to the end of the thread on arrival.
+   *
+   * Set when a notification sent the person here to read one message.
+   * Opening Þjálfari from the navbar does not set it: the coach card is
+   * the point of the page, and starting halfway down a chat answered a
+   * question nobody asked.
+   */
+  focusNewest?: boolean;
 }) {
   /*
    * Which subpage, with the caller able to say.
@@ -163,12 +175,20 @@ export default function CoachView({ api, startOn }: {
    */
   useEffect(() => {
     if (tab !== "talk") return;
-    // Two passes: one as soon as the rows exist, one after the images and
-    // the pinned header have settled, because the first can land short.
+    /*
+     * Only when something sent you here to read a message.
+     *
+     * Opening Þjálfari normally should start at the top: the coach card is
+     * the point of the page and scrolling past it to the end of a chat
+     * answered a question nobody asked. A notification is the exception —
+     * you tapped a specific message, so that is what you should be looking
+     * at. Sending a message scrolls too, to your own words.
+     */
+    if (!focusNewest && !pending.length) return;
     const a = setTimeout(() => end.current?.scrollIntoView({ block: "end", behavior: "auto" }), 80);
     const b2 = setTimeout(() => end.current?.scrollIntoView({ block: "end", behavior: "smooth" }), 420);
     return () => { clearTimeout(a); clearTimeout(b2); };
-  }, [data?.thread.length, pending.length, tab]);
+  }, [data?.thread.length, pending.length, tab, focusNewest]);
 
   const post = async (payload: Record<string, unknown>) => {
     setBusy(true); setErr("");
@@ -403,7 +423,8 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
             the last few messages render; the rest are one tap away, which
             is also the right default for reading a conversation you already
             know the beginning of. */}
-        <div className="space-y-2 bg-slate-50/60 p-4">
+        <div className={`space-y-2 bg-slate-50/60 p-4 ${
+          showAll ? "max-h-[55vh] overflow-y-auto overscroll-contain" : ""}`}>
           {data.thread.length > TAIL && !showAll && (
             <button type="button" onClick={() => setShowAll(true)}
               className="mx-auto block rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50">

@@ -34,6 +34,8 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
    * the guide, and the summary row below disappears.
    */
   open?: boolean;
+  /** No summary row of its own — and pt-3 on the panel, since the row that
+   *  used to separate it from whatever is above has gone with it. */
   headless?: boolean;
 }) {
   const g = guideFor(name, modality);
@@ -59,7 +61,7 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
       </button>}
 
       {open && (
-        <div className="space-y-3 px-4 pb-4">
+        <div className={`space-y-3 px-4 pb-4 ${headless ? "pt-3" : ""}`}>
           <div>
             <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-amber-700">
               <AlertTriangle className="h-3.5 w-3.5" aria-hidden />Algengustu meiðslin í þessari grein
