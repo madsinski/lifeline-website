@@ -41,6 +41,12 @@ export interface Meal {
   protein: number | null;
   carbs: number | null;
   fat: number | null;
+  /**
+   * Estimated fibre per serving, computed from the ingredient list by
+   * scripts/meal-fibre.py. Null on the few rows whose ingredients the
+   * table could not identify well enough to stand behind.
+   */
+  fibre_g?: number | null;
   dietary_tags: string[] | null;
   illustration_url: string | null;
   /** Shown with the picture when its licence asks for it; null for ours. */

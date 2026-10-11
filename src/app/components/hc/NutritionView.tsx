@@ -15,6 +15,7 @@ import type { ActionPlan } from "@/lib/hc/types";
 import { ALLERGEN_OPTIONS, DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type NutritionPrefs } from "@/lib/hc/nutrition";
 import type { Signal } from "@/lib/hc/grunnheilsa";
 import MealLogger from "./MealLogger";
+import { FIBRE_TARGET } from "@/lib/hc/nutrition-log";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
@@ -107,34 +108,25 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
   return (
     <div className="space-y-6">
-      {/* The hero, built like the exercise one: a white card with the next
-          thing to do in solid colour, the protein bar where that one has its
-          stage bar, and the week inside it rather than as a section below.
-          The gradient panel it replaced carried the programme name, some
-          chips and little else. */}
-      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6">
-        {/* The name and the way in on one line, as on Æfingar.
-            The kicker was "N Æ R I N G A R Á Æ T L U N I N   M Í N" at
-            0.18em — twenty letters of Icelandic compound pulled apart —
-            above a heading that already says which plan this is, with the
-            Breyta button orphaned on a line of its own below. */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-lime-700">Áætlunin mín</p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <h2 className="min-w-0 text-2xl font-bold text-slate-900">{nutrition.name}</h2>
-            {onChangeProgram && !onCustomise && (
-              <button type="button" onClick={onChangeProgram} className="rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
-            )}
-            {/* Was a full-width 816×48 block at the end of the page. The page
-                is for what to eat; changing the plan is the rarer errand. */}
-            {/* One pill, one sleeve — the same shape Æfingar gives
-                "Prógrammið": where am I, how is the week, what do I change,
-                in the order you would ask. */}
-            <button type="button" onClick={() => setDetail(true)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-lime-100 px-3 py-1 text-sm font-semibold text-lime-900 ring-1 ring-lime-200 transition hover:bg-lime-200">
-              <Sliders className="h-3.5 w-3.5" aria-hidden /> Prógrammið
+      {/* No outer card.
+          Æfingar is bare sections on the page background with its day cards
+          sitting directly on it; Næring had everything inside one white
+          panel, so every card within it was a card inside a card — the
+          nesting Mads kept seeing. The page is sections now, like the other
+          one, and the only cards are the things that really are cards. */}
+      <section className="space-y-3">
+        {/* The day, named — the heading Æfingar puts over its day card.
+            A heading rather than a card header, because the card below is
+            the thing and this is just its label. */}
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+            {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
+          </h3>
+          {pickedDay !== null && pickedDay !== todayIdx && (
+            <button type="button" onClick={() => setPickedDay(null)} className="text-xs font-semibold text-lime-800 hover:underline">
+              Fara aftur á daginn í dag
             </button>
-          </div>
+          )}
         </div>
 
         {/* ── Næsta máltíð ────────────────────────────────────────────
@@ -222,7 +214,9 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           </div>
         )}
 
-        {/* ── The planner ─────────────────────────────────────────────
+      </section>
+
+      {/* ── The planner ─────────────────────────────────────────────
             One day at a time, sliding sideways — the meal equivalent of
             the exercise week, and the reason it is not a seven-row list
             any more. A day of meals is four or five lines; seven of those
@@ -238,6 +232,30 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
             One detail worth keeping: scroll position is not state here.
             The strip owns where it is, and the day buttons above scroll it
             rather than re-render it, so a swipe never fights a setState. */}
+      <section className="space-y-3">
+        {/* The name and the way in on one line, as on Æfingar.
+            The kicker was "N Æ R I N G A R Á Æ T L U N I N   M Í N" at
+            0.18em — twenty letters of Icelandic compound pulled apart —
+            above a heading that already says which plan this is, with the
+            Breyta button orphaned on a line of its own below. */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-lime-700">Áætlunin mín</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            <h2 className="min-w-0 text-2xl font-bold text-slate-900">{nutrition.name}</h2>
+            {onChangeProgram && !onCustomise && (
+              <button type="button" onClick={onChangeProgram} className="rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
+            )}
+            {/* Was a full-width 816×48 block at the end of the page. The page
+                is for what to eat; changing the plan is the rarer errand. */}
+            {/* One pill, one sleeve — the same shape Æfingar gives
+                "Prógrammið": where am I, how is the week, what do I change,
+                in the order you would ask. */}
+            <button type="button" onClick={() => setDetail(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-lime-100 px-3 py-1 text-sm font-semibold text-lime-900 ring-1 ring-lime-200 transition hover:bg-lime-200">
+              <Sliders className="h-3.5 w-3.5" aria-hidden /> Prógrammið
+            </button>
+          </div>
+        </div>
         {week && (
           <div className="mt-4">
             <div className="mb-2 flex items-baseline justify-between gap-2">
@@ -428,13 +446,16 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                     t.carbs += Number(m.carbs) || 0;
                     t.fat += Number(m.fat) || 0;
                     t.kcal += Number(m.calories) || 0;
+                    t.fibre += Number(m.fibre_g) || 0;
+                    if (m.fibre_g == null) t.noFibre += 1;
                   }
                   return t;
-                }, { protein: 0, carbs: 0, fat: 0, kcal: 0 });
+                }, { protein: 0, carbs: 0, fat: 0, kcal: 0, fibre: 0, noFibre: 0 });
                 const per = (v: number) => Math.round(v / week.length);
                 const prot = per(sum.protein);
                 const rows: { label: string; got: number; unit: string; target: { min: number; max: number } | null }[] = [
                   { label: "Prótein", got: prot, unit: "g", target: band },
+                  { label: "Trefjar", got: per(sum.fibre), unit: "g", target: FIBRE_TARGET },
                   { label: "Kolvetni", got: per(sum.carbs), unit: "g", target: null },
                   { label: "Fita", got: per(sum.fat), unit: "g", target: null },
                   { label: "Orka", got: per(sum.kcal), unit: "kkal", target: null },
@@ -471,14 +492,14 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                         Skiptu einhverri máltíð út fyrir próteinríkari — þær sem eru efst í „Skipta“ eru valdar eftir próteini.
                       </p>
                     )}
-                    {/* Fibre is missing on purpose, not forgotten: the meals
-                        table has protein, carbs and fat on all 164 rows and
-                        no fibre column at all. A bar reading 0 g against a
-                        25–35 g target would tell every single person their
-                        plan fails on fibre, which is a claim about their food
-                        that we cannot make. */}
+                    {/* What the fibre number is, said plainly. It is
+                        arithmetic over the recipe's own ingredients
+                        (scripts/meal-fibre.py), not a laboratory figure, and
+                        a handful of recipes could not be worked out at all —
+                        so the week's total is a floor, not a verdict. */}
                     <p className="mt-2 text-xs text-slate-500">
-                      Trefjar eru ekki í næringargildum uppskriftasafnsins og eru því ekki taldar hér.
+                      Trefjar og næringargildi eru reiknuð út frá hráefnum uppskriftanna og eru því áætluð.
+                      {sum.noFibre > 0 && " Nokkrar uppskriftir hafa ekki trefjagildi, svo talan getur verið lægri en raunin."}
                     </p>
                     {!weightKg && (
                       <p className="mt-2 text-xs text-slate-500">
