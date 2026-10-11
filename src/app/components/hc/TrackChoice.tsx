@@ -118,7 +118,10 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
           const act = o.key === "report"
             ? onUpload
             : () => void choose(o.key === "coach" ? "coach" : "check");
-          if (o.key === "report" && !onUpload) return null;
+          /* Hidden only where it could not work. In preview every option
+             shows, because the point of a review screen is to see all
+             three — and nothing there does anything anyway. */
+          if (o.key === "report" && !onUpload && !preview) return null;
           return (
             <button key={o.key} type="button" disabled={!!busy || preview} onClick={act}
               className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-hc-brand disabled:opacity-60">
