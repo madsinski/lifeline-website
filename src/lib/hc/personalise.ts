@@ -41,9 +41,11 @@ export interface Personal {
   extra: Record<string, SwapSnapshot[]>;
   /** meal slot → meals.id */
   meal_picks: Record<string, string>;
+  /** Meal ids kept as favourites, for the swap library filter. */
+  meal_favourites: string[];
 }
 
-export const DEFAULT_PERSONAL: Personal = { program_key: null, days: {}, hiit_split: false, swaps: {}, drops: [], extra: {}, meal_picks: {} };
+export const DEFAULT_PERSONAL: Personal = { meal_favourites: [], program_key: null, days: {}, hiit_split: false, swaps: {}, drops: [], extra: {}, meal_picks: {} };
 
 export type Modality = "strength" | "hiit" | "cardio" | "other";
 export const MODALITY_IS: Record<Modality, { label: string; short: string; cls: string; dot: string }> = {

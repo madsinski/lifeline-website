@@ -273,3 +273,36 @@ export function alternativesFor(
   const nearIds = new Set(near.map((m) => m.id));
   return { near, rest: ranked.filter((m) => !nearIds.has(m.id)) };
 }
+
+/**
+ * How a meal does on protein, for the slot it is in.
+ *
+ * Against this slot's share of the day rather than a flat number: 30 g is a
+ * strong breakfast and a thin dinner, and a single threshold would label
+ * every snack a failure. SLOT_SHARE already encodes what each meal is
+ * expected to carry, so the rating is simply whether it carries it.
+ *
+ * Returns null where there is no target to measure against — no weight, no
+ * band, no verdict. Better a missing rating than an invented one.
+ */
+export type ProteinRating = "high" | "mid" | "low";
+
+export function proteinRating(
+  m: Pick<Meal, "protein">,
+  slot: MealSlot,
+  dayTargetG: number | null | undefined,
+): ProteinRating | null {
+  const target = Number(dayTargetG);
+  if (!Number.isFinite(target) || target <= 0) return null;
+  const want = target * SLOT_SHARE[slot];
+  if (want <= 0) return null;
+  const got = Number(m.protein) || 0;
+  const ratio = got / want;
+  return ratio >= 1 ? "high" : ratio >= 0.7 ? "mid" : "low";
+}
+
+export const PROTEIN_RATING_IS: Record<ProteinRating, { label: string; cls: string }> = {
+  high: { label: "Hátt prótein", cls: "bg-lime-100 text-lime-900 ring-lime-300" },
+  mid: { label: "Miðlungs", cls: "bg-amber-50 text-amber-900 ring-amber-200" },
+  low: { label: "Lágt prótein", cls: "bg-slate-100 text-slate-600 ring-slate-200" },
+};

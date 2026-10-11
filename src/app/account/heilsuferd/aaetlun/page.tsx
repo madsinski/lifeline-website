@@ -753,6 +753,12 @@ function PlanPageInner() {
                   ) : (
                     <NutritionView api={api} nutrition={plan.nutrition} picks={personal.meal_picks}
                       prefs={nutritionPrefs} signals={reportSignalsBySlug} weightKg={weightKg}
+                      favourites={personal.meal_favourites ?? []}
+                      onFavourite={(mealId, on) => {
+                        const cur = personal.meal_favourites ?? [];
+                        const next = on ? [...new Set([...cur, mealId])] : cur.filter((x) => x !== mealId);
+                        void savePersonal({ ...personal, meal_favourites: next }, ["meal_favourites"]);
+                      }}
                       onSelfWeight={async (kg) => {
                         const r = await api(`/api/hc/training${qs}`, { method: "POST", body: JSON.stringify({ self_weight_kg: kg }) });
                         cache.invalidate("/api/hc/training");

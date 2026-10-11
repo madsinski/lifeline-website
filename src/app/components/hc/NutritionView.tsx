@@ -7,8 +7,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Sheet from "./Sheet";
-import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Plus, Sliders, Utensils } from "lucide-react";
-import { OPTIONAL_SLOTS, alternativesFor, dayFor, mealName, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
+import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Plus, Sliders, Star, Utensils } from "lucide-react";
+import { OPTIONAL_SLOTS, PROTEIN_RATING_IS, alternativesFor, dayFor, proteinRating, mealName, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { WEEKDAYS, WEEKDAYS_SHORT, weekdayOf } from "@/lib/hc/personalise";
 import * as cache from "@/lib/hc/client-cache";
 import type { ActionPlan } from "@/lib/hc/types";
@@ -19,7 +19,7 @@ import { FIBRE_TARGET, proteinTarget } from "@/lib/hc/nutrition-log";
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
 
-export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg, onSelfWeight }: {
+export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg, onSelfWeight, favourites = [], onFavourite }: {
   api: Api;
   nutrition: PlanNutrition;
   picks: Record<string, string>;
@@ -41,6 +41,10 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   onCustomise?: () => void;
   /** Planning lights, for naming the emphasis the report asks for. */
   signals?: Record<string, Signal | null>;
+  /** Meal ids kept as favourites, for the library's filter. */
+  favourites?: string[];
+  /** Mark or unmark a favourite. */
+  onFavourite?: (mealId: string, on: boolean) => void;
   /** Measured weight, or what they told us — whichever the page resolved. */
   weightKg?: number | null;
   /**
@@ -95,10 +99,19 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
    * first, and a card that reshuffles itself at 15:00 while somebody is
    * reading it would be worse than one that is an hour stale.
    */
-  const [nextSlot] = useState<MealSlot>(() => {
+  /*
+   * Which meal the top card is showing.
+   *
+   * The clock picks it when the page opens, and tapping a row in the
+   * planner picks it after that — so the list below is how you move the
+   * card, rather than every row opening a library you did not ask for.
+   */
+  const [pickedSlot, setPickedSlot] = useState<MealSlot | null>(null);
+  const [clockSlot] = useState<MealSlot>(() => {
     const h = new Date().getHours();
     return h < 10 ? "breakfast" : h < 15 ? "lunch" : "dinner";
   });
+  const nextSlot: MealSlot = pickedSlot ?? clockSlot;
   /*
    * The week starts closed.
    *
@@ -112,8 +125,27 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   /** The Prógrammið sleeve. */
   const [detail, setDetail] = useState(false);
   const [wInput, setWInput] = useState("");
+  /** How the swap library is being looked at. */
+  const [libFilter, setLibFilter] = useState<"all" | "fav" | "protein">("all");
   /** The sliding week. Its scroll position is its own, not React's. */
   const stripRef = useRef<HTMLDivElement | null>(null);
+  /*
+   * Open on today.
+   *
+   * shownDay already defaulted to today, but the strip itself did not: it
+   * starts at scrollLeft 0, which is Monday, so on a Thursday the card you
+   * were shown and the day you were scrolled to disagreed. Scrolled rather
+   * than re-ordered, so the week still reads Monday to Sunday.
+   *
+   * Instant, not smooth: this is where the page opens, not a move the
+   * person made, and animating it would look like the page twitching.
+   */
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el || !week) return;
+    const target = el.children[todayIdx] as HTMLElement | undefined;
+    if (target) el.scrollLeft = target.offsetLeft - el.offsetLeft;
+  }, [week, todayIdx]);
   const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
 
   return (
@@ -311,6 +343,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                     <ul className="space-y-2">
                       {SLOTS.filter((sl) => d[sl] || !OPTIONAL_SLOTS.includes(sl)).map((sl) => {
                         const m = d[sl];
+                        const on = i === shownDay && sl === nextSlot;
                         return (
                           <li key={sl}>
                             {/* Shaped like the checklist at the foot of the
@@ -328,26 +361,39 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                                 rather than a filled check so it cannot be
                                 mistaken for "done" — ticking belongs to
                                 today, and this card is any day of the week. */}
-                            <button type="button"
-                              onClick={() => { setPickedDay(i); setSlotOpen(sl); }}
-                              aria-label={`${SLOT_IS[sl]}${m ? `: ${mealName(m)}` : ""} — skipta um máltíð ${WEEKDAYS[i].toLowerCase()}`}
-                              className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left ring-1 ring-slate-200 transition hover:ring-slate-300">
-                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-slate-200 text-slate-400 transition">
+                            {/* Two targets, not one.
+                                The whole row used to open the swap library,
+                                so looking at Thursday's lunch and choosing a
+                                different lunch were the same gesture. The
+                                row now puts that meal in the card at the
+                                top — which is what the list is for — and the
+                                circle on the left, where the tick sits in a
+                                checklist, is the only way into the library. */}
+                            <div className={`flex items-center gap-3 rounded-2xl p-3 ring-1 transition ${
+                              on ? "bg-lime-50 ring-2 ring-lime-500" : "bg-white ring-slate-200"}`}>
+                              <button type="button"
+                                onClick={() => { setPickedDay(i); setSlotOpen(sl); }}
+                                aria-label={`Skipta um ${SLOT_IS[sl].toLowerCase()} ${WEEKDAYS[i].toLowerCase()}`}
+                                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-slate-200 text-slate-400 transition hover:border-lime-500 hover:bg-lime-50 hover:text-lime-700">
                                 <ArrowLeftRight className="h-4 w-4" aria-hidden />
-                              </span>
-                              <span className="min-w-0 flex-1">
+                              </button>
+                              <button type="button"
+                                onClick={() => { setPickedDay(i); setPickedSlot(sl); }}
+                                aria-pressed={on}
+                                className="min-w-0 flex-1 text-left"
+                                aria-label={`Sýna ${SLOT_IS[sl].toLowerCase()}${m ? `: ${mealName(m)}` : ""} í kortinu að ofan`}>
                                 <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{SLOT_IS[sl]}</span>
                                 <span className={`block truncate font-semibold ${m ? "text-slate-900" : "text-slate-400"}`}>
                                   {m ? mealName(m) : "Engin máltíð"}
                                 </span>
-                              </span>
+                              </button>
                               {m && (
                                 <span className="shrink-0 text-right text-xs text-slate-500">
                                   {m.protein != null && <span className="block font-semibold text-slate-700">{Math.round(Number(m.protein))} g</span>}
                                   {m.calories != null && <span className="block">{Math.round(Number(m.calories))} kkal</span>}
                                 </span>
                               )}
-                            </button>
+                            </div>
                           </li>
                         );
                       })}
@@ -576,44 +622,110 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
       )}
 
       {slotOpen && meals && (
-        <Sheet title={`${SLOT_IS[slotOpen]} · ${shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}`} onClose={() => setSlotOpen(null)}>
-          {/* The near ones first, and said so.
-              This was one ungrouped list of eighteen in the library's own
-              order, so a 40 g dinner sat next to a 12 g one with nothing to
-              tell them apart — and protein is the number the plan is held
-              to. The first group lands within 8 g of what it replaces. */}
+        <Sheet title={`${SLOT_IS[slotOpen]} · ${shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}`}
+          onClose={() => setSlotOpen(null)} canvas>
+          {/* ── The library, as a list ────────────────────────────────
+              It was a grid of 4:3 picture tiles two or three to a row: on a
+              phone that is a 150px-wide tile with ten-pixel type under an
+              illustration you cannot read at that size, which is why it was
+              unusable. Rows give the name room to be read, the thumbnail
+              stays small enough to be decoration rather than the content,
+              and the number that matters gets a word next to it.
+
+              Rated against this slot's share of the day rather than a flat
+              threshold: 30 g is a strong breakfast and a thin dinner, and
+              one number for every slot would call every snack a failure. */}
           {(() => {
-            const alts = alternativesFor(day?.[slotOpen] ?? null, meals, nutrition.key, slotOpen, prefs, targetG, shownDay);
-            return alts.near.length > 0 ? (
-              <p className="px-3 pt-3 text-xs font-bold uppercase tracking-wide text-slate-500">
-                Svipað og núverandi
-              </p>
-            ) : null;
+            const current = day?.[slotOpen] ?? null;
+            const alts = alternativesFor(current, meals, nutrition.key, slotOpen, prefs, targetG, shownDay);
+            const near = new Set(alts.near.map((m) => m.id));
+            let list = [...alts.near, ...alts.rest];
+            if (libFilter === "fav") list = list.filter((m) => favourites.includes(m.id));
+            if (libFilter === "protein") list = list.slice().sort((a, b) => (Number(b.protein) || 0) - (Number(a.protein) || 0));
+
+            return (
+              <div className="p-3">
+                {/* Three ways to look at it, which is as many as anybody
+                    wants while choosing supper. */}
+                <div className="mb-3 flex gap-1.5">
+                  {([["all", "Allt"], ["fav", "Eftirlæti"], ["protein", "Mest prótein"]] as const).map(([k, label]) => (
+                    <button key={k} type="button" onClick={() => setLibFilter(k)}
+                      aria-pressed={libFilter === k}
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                        libFilter === k ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}>
+                      {label}{k === "fav" && favourites.length > 0 ? ` (${favourites.length})` : ""}
+                    </button>
+                  ))}
+                </div>
+
+                {list.length === 0 && (
+                  <p className="rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-slate-200">
+                    {libFilter === "fav"
+                      ? "Þú hefur ekki merkt neina máltíð sem eftirlæti. Ýttu á stjörnuna við máltíð til að setja hana hér."
+                      : "Engar aðrar máltíðir passa við skilyrðin."}
+                  </p>
+                )}
+
+                <ul className="space-y-2">
+                  {list.slice(0, 40).map((m) => {
+                    const on = current?.id === m.id;
+                    const fav = favourites.includes(m.id);
+                    const rating = proteinRating(m, slotOpen, targetG);
+                    return (
+                      <li key={m.id}>
+                        <div className={`flex items-center gap-3 rounded-2xl bg-white p-2.5 ring-1 transition ${
+                          on ? "ring-2 ring-lime-600" : "ring-slate-200"}`}>
+                          <button type="button"
+                            onClick={() => { onPick(pickKey(shownDay, slotOpen) as MealSlot, m.id); setSlotOpen(null); }}
+                            className="flex min-w-0 flex-1 items-center gap-3 text-left">
+                            {m.illustration_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={m.illustration_url} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                            ) : (
+                              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-lime-50 text-lime-300" aria-hidden>
+                                <Utensils className="h-5 w-5" />
+                              </span>
+                            )}
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center gap-1.5">
+                                {on && <Check className="h-3.5 w-3.5 shrink-0 text-lime-600" aria-hidden />}
+                                <span className="truncate font-semibold leading-tight text-slate-900">{mealName(m)}</span>
+                              </span>
+                              <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                                {rating && (
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${PROTEIN_RATING_IS[rating].cls}`}>
+                                    {PROTEIN_RATING_IS[rating].label}
+                                  </span>
+                                )}
+                                <span className="text-xs tabular-nums text-slate-500">
+                                  {[m.protein != null ? `${Math.round(Number(m.protein))} g prótein` : null,
+                                    m.calories != null ? `${Math.round(Number(m.calories))} kkal` : null,
+                                    m.fibre_g != null ? `${Math.round(Number(m.fibre_g))} g trefjar` : null]
+                                    .filter(Boolean).join(" · ")}
+                                </span>
+                                {near.has(m.id) && (
+                                  <span className="text-[10px] font-semibold text-slate-400">≈ svipað og núverandi</span>
+                                )}
+                              </span>
+                            </span>
+                          </button>
+                          {/* The star is its own target, so marking a
+                              favourite never changes what you are eating. */}
+                          <button type="button" onClick={() => onFavourite?.(m.id, !fav)}
+                            aria-pressed={fav}
+                            aria-label={fav ? `Taka ${mealName(m)} úr eftirlæti` : `Setja ${mealName(m)} í eftirlæti`}
+                            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${
+                              fav ? "text-amber-500 hover:bg-amber-50" : "text-slate-300 hover:bg-slate-100 hover:text-slate-500"}`}>
+                            <Star className={`h-5 w-5 ${fav ? "fill-current" : ""}`} aria-hidden />
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
           })()}
-          <ul className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
-            {(() => {
-              const alts = alternativesFor(day?.[slotOpen] ?? null, meals, nutrition.key, slotOpen, prefs, targetG, shownDay);
-              return [...alts.near, ...alts.rest].slice(0, 18);
-            })().map((m) => {
-              const on = day?.[slotOpen]?.id === m.id;
-              return (
-                <li key={m.id}>
-                  <button type="button" onClick={() => { onPick(pickKey(shownDay, slotOpen) as MealSlot, m.id); setSlotOpen(null); }}
-                    className={`w-full overflow-hidden rounded-2xl bg-white text-left ring-1 transition ${on ? "ring-2 ring-lime-600" : "ring-slate-200 hover:ring-lime-500"}`}>
-                    <span className="relative block aspect-[4/3] bg-lime-50">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {m.illustration_url && <img src={m.illustration_url} alt="" loading="lazy" className="h-full w-full object-cover" />}
-                      {on && <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-lime-600 text-white"><Check className="h-4 w-4" /></span>}
-                    </span>
-                    <span className="block p-2">
-                      <span className="line-clamp-2 text-xs font-semibold leading-tight text-slate-900">{mealName(m)}</span>
-                      <span className="mt-0.5 block text-[10px] text-slate-500">{[m.protein != null ? `${m.protein} g prót.` : null, m.calories != null ? `${m.calories} kkal` : null].filter(Boolean).join(" · ")}</span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
         </Sheet>
       )}
       {recipe && <Recipe m={recipe} onClose={() => setRecipe(null)} />}

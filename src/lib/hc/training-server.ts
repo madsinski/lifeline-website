@@ -8,13 +8,13 @@ import { DEFAULT_TRAINING, sanitizeTraining, type TrainingSettings } from "./ada
 import { DEFAULT_PERSONAL, sanitizePersonal, type Personal, type SwapSnapshot } from "./personalise";
 import { sanitizeNutrition, type NutritionPrefs } from "./nutrition";
 
-const COLS = "level, load_step, injuries, started_on, place, places, cardio, emphasis, training_days, activities, nutrition_prefs, program_key, days, hiit_split, swaps, drops, extra, meal_picks, self_weight_kg, self_height_cm";
+const COLS = "level, load_step, injuries, started_on, place, places, cardio, emphasis, training_days, activities, nutrition_prefs, program_key, days, hiit_split, swaps, drops, extra, meal_picks, self_weight_kg, self_height_cm, meal_favourites";
 
-type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; places: string[] | null; cardio: string | null; emphasis: string | null; training_days: number[] | null; activities: unknown; nutrition_prefs: unknown; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; drops: string[] | null; extra: Record<string, SwapSnapshot[]> | null; meal_picks: Record<string, string> | null; self_weight_kg: number | null; self_height_cm: number | null };
+type Row = { level: string; load_step: number; injuries: string[]; started_on: string | null; place: string | null; places: string[] | null; cardio: string | null; emphasis: string | null; training_days: number[] | null; activities: unknown; nutrition_prefs: unknown; program_key: string | null; days: Record<string, number> | null; hiit_split: boolean | null; swaps: Record<string, SwapSnapshot> | null; drops: string[] | null; extra: Record<string, SwapSnapshot[]> | null; meal_picks: Record<string, string> | null; self_weight_kg: number | null; self_height_cm: number | null; meal_favourites: string[] | null };
 
 function personalOf(r: Row | null): Personal {
   if (!r) return DEFAULT_PERSONAL;
-  return { program_key: r.program_key, days: r.days ?? {}, hiit_split: !!r.hiit_split, swaps: r.swaps ?? {}, drops: r.drops ?? [], extra: r.extra ?? {}, meal_picks: r.meal_picks ?? {} };
+  return { program_key: r.program_key, days: r.days ?? {}, hiit_split: !!r.hiit_split, swaps: r.swaps ?? {}, drops: r.drops ?? [], extra: r.extra ?? {}, meal_picks: r.meal_picks ?? {}, meal_favourites: r.meal_favourites ?? [] };
 }
 
 export async function loadTraining(journeyId: string): Promise<TrainingSettings & { saved: boolean }> {
@@ -91,6 +91,19 @@ export async function saveTraining(journeyId: string, clientId: string, body: Re
   if ("days" in body && !Array.isArray(body.days)) personal.days = p.days;
   if ("hiit_split" in body) personal.hiit_split = p.hiit_split;
   if ("meal_picks" in body) personal.meal_picks = p.meal_picks;
+  /*
+   * Favourites, bounded and shaped.
+   *
+   * Ids only, deduped, and capped — this is a list somebody taps into
+   * existence one meal at a time, so anything arriving as a thousand
+   * entries is a bug or an attack, not a preference.
+   */
+  if ("meal_favourites" in body) {
+    const raw = Array.isArray(body.meal_favourites) ? body.meal_favourites : [];
+    const ids = [...new Set(raw.filter((x): x is string =>
+      typeof x === "string" && /^[0-9a-f-]{36}$/i.test(x)))].slice(0, 300);
+    personal.meal_favourites = ids;
+  }
 
   /*
    * What they told us about their body.
