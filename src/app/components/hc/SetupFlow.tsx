@@ -83,6 +83,21 @@ export default function SetupFlow({ api, place = "onboarding" }: {
   const [busy, setBusy] = useState(false);
   const [walk, setWalk] = useState(false);
   /*
+   * iPhone, and not on the home screen yet.
+   *
+   * Read once on mount. Installing happens in another context — the user
+   * leaves, adds it, and comes back through the icon — so this does not
+   * need to be live, and a value that flips under somebody's finger would
+   * be worse than one that is a minute old.
+   */
+  const [iosNeedsInstall] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const standalone = window.matchMedia?.("(display-mode: standalone)").matches
+      || (navigator as unknown as { standalone?: boolean }).standalone === true;
+    return ios && !standalone;
+  });
+  /*
    * The participant's own details, for the walkthrough's profile step.
    *
    * /api/hc/profile already returns exactly the shape ProfileForm wants —
@@ -238,14 +253,34 @@ export default function SetupFlow({ api, place = "onboarding" }: {
                   {row.key === "partner" && <PartnerCard api={api} bare />}
                   {row.key === "nudge" && (
                     <div className="space-y-3">
-                      <NudgeSettings api={api} />
-                      {/* Install sits with the reminder, not on its own.
-                      On iOS a web app is only offered notification
-                      permission once it is on the home screen — so an
-                      iPhone user who sets a reminder here and never
-                      installs gets nothing, silently. The guide reports
-                      whether this device is done. */}
-                      <InstallGuide bare />
+                      {/* Install first on iPhone, because there the order is not a
+                          preference. Safari exposes the Notification and Push APIs
+                          only to an installed app — in a tab they do not exist, so
+                          permission cannot even be asked for, and a subscription
+                          made in the tab would not serve the installed app anyway.
+                          Offering the reminder first therefore sent iPhone users at
+                          a switch that could not work, and told them why only after
+                          they had tried it.
+
+                          Android and desktop take notifications in the browser and
+                          carry them into the installed app, so there the reminder
+                          comes first and the install is the follow-up. */}
+                      {iosNeedsInstall ? (
+                        <>
+                          <InstallGuide bare defaultOpen />
+                          <div className="rounded-2xl bg-slate-50 p-3">
+                            <p className="text-xs text-slate-600">
+                              Þegar Lifeline er á heimaskjánum opnarðu appið þaðan og velur áminningu hér.
+                            </p>
+                            <div className="mt-2 opacity-60"><NudgeSettings api={api} /></div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <NudgeSettings api={api} />
+                          <InstallGuide bare />
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -295,6 +330,8 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
   busy: boolean;
   onPick: (id: string) => void;
 }) {
+  /* Which bio is open. One at a time, so the list stays a list. */
+  const [bioOpen, setBioOpen] = useState<string | null>(null);
   if (coaches === null) {
     return (
       <div className="space-y-2" aria-busy="true">
@@ -326,29 +363,52 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
       <ul className="space-y-1.5">
         {all.map((c) => {
           const on = c.id === myCoach?.id;
+          const openBio = bioOpen === c.id;
           return (
-            <li key={c.id}>
-              <button type="button" disabled={busy} onClick={() => onPick(c.id)}
-                aria-pressed={on}
-                className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition disabled:opacity-50 ${
-                  on ? "border-hc-brand bg-hc-brand/5" : "border-slate-200 bg-white hover:border-hc-brand"}`}>
-                {c.photo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.photo_url} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
-                ) : (
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand" aria-hidden>
-                    <UserRound className="h-5 w-5" />
+            <li key={c.id}
+              className={`overflow-hidden rounded-xl border transition ${
+                on ? "border-hc-brand bg-hc-brand/5" : "border-slate-200 bg-white"}`}>
+              {/* A row, not a button wrapping a button.
+                  The card used to be one big <button aria-pressed>, and a
+                  bio toggle inside it would have been a button inside a
+                  button — invalid, and the browser picks which one your tap
+                  meant. Selecting and reading are two targets now. */}
+              <div className="flex items-center gap-3 p-2.5">
+                <button type="button" disabled={busy} onClick={() => onPick(c.id)}
+                  aria-pressed={on}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-50">
+                  {c.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.photo_url} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand" aria-hidden>
+                      <UserRound className="h-5 w-5" />
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold leading-tight text-slate-900">{c.name ?? "Þjálfari"}</span>
+                    {c.role && <span className="block text-xs text-slate-500">{ROLE_IS[c.role] ?? c.role}</span>}
                   </span>
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold leading-tight text-slate-900">{c.name ?? "Þjálfari"}</span>
-                  {c.role && <span className="block text-xs text-slate-500">{ROLE_IS[c.role] ?? c.role}</span>}
-                  {c.bio && <span className="mt-0.5 block text-xs leading-snug text-slate-500">{c.bio}</span>}
-                </span>
+                </button>
                 {on && (
                   <span className="shrink-0 rounded-full bg-hc-brand px-2 py-0.5 text-[10px] font-bold text-white">valinn</span>
                 )}
-              </button>
+                {c.bio && (
+                  <button type="button" onClick={() => setBioOpen(openBio ? null : c.id)}
+                    aria-expanded={openBio}
+                    aria-label={`Um ${c.name ?? "þjálfarann"}`}
+                    className="shrink-0 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+                    <ChevronDown className={`h-4 w-4 transition ${openBio ? "rotate-180" : ""}`} aria-hidden />
+                  </button>
+                )}
+              </div>
+
+              {openBio && c.bio && (
+                <div className="border-t border-slate-100 bg-white/70 px-3 py-2.5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Um þjálfarann</p>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600">{c.bio}</p>
+                </div>
+              )}
             </li>
           );
         })}

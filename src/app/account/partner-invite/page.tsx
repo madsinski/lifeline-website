@@ -88,14 +88,14 @@ export default function PartnerInvitePage() {
         {s.k === "ready" && (
           <>
             <h1 className="mt-4 text-xl font-bold text-slate-900">
-              {s.inviter ? `${s.inviter} bað þig um að vera ábyrgðarfélagi` : "Þú fékkst boð um að vera ábyrgðarfélagi"}
+              {s.inviter ? `${s.inviter} bað þig um að vera félagi` : "Þú fékkst boð um að vera félagi"}
             </h1>
             {/* What they are agreeing to, before they agree. The whole point
                 of the feature is that it is one number and nothing else, so
                 that is what the screen says. */}
             <p className="mt-2 text-sm text-slate-600">
-              Ábyrgðarfélagi sér eitt: hversu marga af síðustu 14 dögum hinn gerði eitthvað.
-              Ekki hvað var gert, engar mælingar, engar skýrslur. Þú getur hætt hvenær sem er.
+              Þú sérð eitt: hversu marga af síðustu 14 dögum hann gerði eitthvað.
+              Ekki hvað hann gerði, engar mælingar og engar skýrslur. Þú getur hætt hvenær sem er.
             </p>
             {s.authed ? (
               <div className="mt-5 flex flex-wrap gap-2">
@@ -124,7 +124,7 @@ export default function PartnerInvitePage() {
           <>
             <h1 className="mt-4 text-xl font-bold text-slate-900">Þá eruð þið tengd</h1>
             <p className="mt-1.5 text-sm text-slate-600">
-              {s.inviter ? `${s.inviter} getur nú valið þig sem ábyrgðarfélaga.` : "Boðinu er svarað."}
+              {s.inviter ? `${s.inviter} getur nú valið þig sem félaga.` : "Boðinu er svarað."}
               {" "}Þú getur gert það sama úr þínum stillingum.
             </p>
             <Link href="/account/heilsuferd/adgangur"

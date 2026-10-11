@@ -75,6 +75,21 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
   const [myCoach, setMyCoach] = useState<Worker | null>(null);
   const [calConnected, setCalConnected] = useState(false);
   const [busy, setBusy] = useState(false);
+  /*
+   * iPhone, and not on the home screen yet.
+   *
+   * Read once on mount. Installing happens in another context — the user
+   * leaves, adds it, and comes back through the icon — so this does not
+   * need to be live, and a value that flips under somebody's finger would
+   * be worse than one that is a minute old.
+   */
+  const [iosNeedsInstall] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const standalone = window.matchMedia?.("(display-mode: standalone)").matches
+      || (navigator as unknown as { standalone?: boolean }).standalone === true;
+    return ios && !standalone;
+  });
 
   const load = useCallback(async () => {
     const [coach, cal] = await Promise.all([
@@ -207,14 +222,34 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
               {row.key === "partner" && <PartnerCard api={api} bare pick />}
               {row.key === "nudge" && (
                 <div className="space-y-3">
-                  <NudgeSettings api={api} />
-                  {/* Install sits with the reminder, not on its own.
-                  On iOS a web app is only offered notification
-                  permission once it is on the home screen — so an
-                  iPhone user who sets a reminder here and never
-                  installs gets nothing, silently. The guide reports
-                  whether this device is done. */}
+                  {/* Install first on iPhone, because there the order is not a
+                      preference. Safari exposes the Notification and Push APIs
+                      only to an installed app — in a tab they do not exist, so
+                      permission cannot even be asked for, and a subscription
+                      made in the tab would not serve the installed app anyway.
+                      Offering the reminder first therefore sent iPhone users at
+                      a switch that could not work, and told them why only after
+                      they had tried it.
+
+                      Android and desktop take notifications in the browser and
+                      carry them into the installed app, so there the reminder
+                      comes first and the install is the follow-up. */}
+                  {iosNeedsInstall ? (
+                    <>
+                      <InstallGuide bare defaultOpen />
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-xs text-slate-600">
+                          Þegar Lifeline er á heimaskjánum opnarðu appið þaðan og velur áminningu hér.
+                        </p>
+                        <div className="mt-2 opacity-60"><NudgeSettings api={api} /></div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <NudgeSettings api={api} />
                       <InstallGuide bare />
+                    </>
+                  )}
                 </div>
               )}
             </div>

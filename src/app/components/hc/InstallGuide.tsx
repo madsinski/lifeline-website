@@ -54,6 +54,90 @@ const STEPS: Record<Platform, { label: string; Icon: typeof Share; steps: string
   },
 };
 
+
+/**
+ * What the screen looks like at the step that matters.
+ *
+ * The instructions are accurate but they are words about an interface, and
+ * the one place people get stuck is recognising the row to tap — it is
+ * halfway down a sheet of a dozen similar rows with an icon they have never
+ * looked at closely. So this draws it: the sheet, some neighbours greyed
+ * out, and the row you want picked out in brand colour with its real label.
+ *
+ * Drawn rather than screenshotted. A screenshot of iOS would be a copy of
+ * Apple's interface that goes stale every September and has to be retaken on
+ * a device we do not have in CI; a sketch stays true as long as the row is
+ * still called "Bæta á heimaskjá", and it says plainly that it is a sketch.
+ */
+function Sketch({ platform }: { platform: Platform }) {
+  const rows: Record<Platform, { before: string[]; target: string; icon: string; after: string[]; chrome: "share" | "menu" | "bar" }> = {
+    ios: {
+      chrome: "share",
+      before: ["Afrita", "Bæta í leslista", "Bæta við bókamerki"],
+      target: "Bæta á heimaskjá",
+      icon: "＋",
+      after: ["Afrita slóð"],
+    },
+    android: {
+      chrome: "menu",
+      before: ["Ný flipi", "Bókamerki", "Niðurhal"],
+      target: "Setja upp app",
+      icon: "⤓",
+      after: ["Stillingar"],
+    },
+    desktop: {
+      chrome: "bar",
+      before: [],
+      target: "Setja upp Lifeline",
+      icon: "⤓",
+      after: [],
+    },
+  };
+  const r = rows[platform];
+
+  return (
+    <figure className="m-0">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 p-3">
+        {/* The bit of browser chrome you press first. */}
+        <div className="mb-2 flex items-center gap-2 rounded-xl bg-white px-2.5 py-2 shadow-sm">
+          <span className="truncate text-[11px] text-slate-400">lifelinehealth.is</span>
+          <span className="flex-1" />
+          <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-bold ${
+            r.chrome === "bar" ? "bg-hc-brand text-white ring-2 ring-hc-brand/30" : "bg-slate-100 text-slate-500"}`} aria-hidden>
+            {r.chrome === "share" ? "⇪" : r.chrome === "menu" ? "⋮" : "⤓"}
+          </span>
+        </div>
+
+        {/* The sheet or menu it opens, with the row to tap. */}
+        {r.chrome !== "bar" && (
+          <div className="rounded-xl bg-white p-1.5 shadow-sm">
+            {r.before.map((x) => (
+              <div key={x} className="flex items-center justify-between px-2 py-1.5 text-[11px] text-slate-300">
+                <span>{x}</span><span aria-hidden>▢</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between rounded-lg bg-hc-brand/10 px-2 py-2 ring-1 ring-hc-brand/40">
+              <span className="text-[11px] font-bold text-hc-brand-dark">{r.target}</span>
+              <span className="grid h-5 w-5 place-items-center rounded bg-hc-brand text-[11px] font-bold text-white" aria-hidden>{r.icon}</span>
+            </div>
+            {r.after.map((x) => (
+              <div key={x} className="flex items-center justify-between px-2 py-1.5 text-[11px] text-slate-300">
+                <span>{x}</span><span aria-hidden>▢</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {r.chrome === "bar" && (
+          <p className="rounded-xl bg-white px-2.5 py-2 text-[11px] font-bold text-hc-brand-dark shadow-sm">{r.target}</p>
+        )}
+      </div>
+      <figcaption className="mt-1.5 text-[11px] text-slate-400">
+        Einfölduð mynd — hnappurinn getur heitið örlítið annað eftir útgáfu.
+      </figcaption>
+    </figure>
+  );
+}
+
 /** Best guess from the user agent, with the others a tap away. */
 function guess(): Platform {
   if (typeof navigator === "undefined") return "desktop";
@@ -116,6 +200,9 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
             ))}
           </div>
 
+          {/* The picture before the words: the one place people get stuck
+              is recognising the row to tap. */}
+          <Sketch platform={pick} />
           <ol className="space-y-2">
             {cur.steps.map((t, i) => (
               <li key={i} className="flex gap-2.5 text-sm text-hc-ink">

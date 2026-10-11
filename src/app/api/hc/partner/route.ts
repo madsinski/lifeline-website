@@ -145,13 +145,13 @@ export async function POST(req: NextRequest) {
     const inviter = (me?.full_name as string | null) ?? "Einhver í Lifeline";
     await sendEmail({
       to: email,
-      subject: `${inviter} bað þig um að vera ábyrgðarfélagi`,
+      subject: `${inviter} bað þig um að vera félagi`,
       html: renderBrandedEmail({
-        title: "Viltu vera ábyrgðarfélagi?",
+        title: "Viltu vera félagi?",
         preheader: `${inviter} bað þig um að fylgjast með.`,
         accentLabel: "Boð",
         bodyHtml: `<p><strong>${escapeHtml(inviter)}</strong> er að byggja upp heilsuvenjur með Lifeline og bað þig um að fylgjast með.</p>
-               <p>Ábyrgðarfélagi sér eitt: hversu marga af síðustu 14 dögum hinn gerði eitthvað. Ekki hvað, ekki mælingar, ekki skýrslur. Þú getur hætt hvenær sem er.</p>`,
+               <p>Þú sérð eitt: hversu marga af síðustu 14 dögum hann gerði eitthvað. Ekki hvað hann gerði, engar mælingar og engar skýrslur. Þú getur hætt hvenær sem er.</p>`,
         ctaLabel: "Sjá boðið",
         ctaUrl: link,
         footerNote: "Ef þú þekkir ekki sendandann máttu hunsa þennan póst.",

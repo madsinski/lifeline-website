@@ -123,7 +123,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
         <div className="min-w-0 flex-1">
           {/* The step above already says "Ábyrgðarfélagi"; saying it twice
               is how the nesting looked like a mistake. */}
-          {!bare && <p className={`${hcKicker} text-slate-500`}>Ábyrgðarfélagi</p>}
+          {!bare && <p className={`${hcKicker} text-slate-500`}>Félagi</p>}
 
           {d.partner ? (
             <>
@@ -140,8 +140,8 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
           ) : (
             <p className="mt-0.5 text-sm text-hc-ink-2">
               {none
-                ? "Þú þarft að eiga vin í Lifeline til að velja ábyrgðarfélaga."
-                : "Veldu einn úr vinahópnum. Þið sjáið hvort annað mæta — ekkert annað."}
+                ? "Bjóddu einhverjum sem þú þekkir — hann sér bara hvaða daga þú gerðir eitthvað."
+                : "Veldu einn. Hann sér hvaða daga þú gerðir eitthvað — ekkert annað."}
             </p>
           )}
 
@@ -162,9 +162,9 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
             </p>
           )}
 
+          {/* Simpler, and the same promise: one number, nothing else. */}
           <p className="mt-2 text-xs text-slate-500">
-            Félaginn sér hvaða daga þú gerðir eitthvað. Hann sér hvorki skýrsluna þína,
-            mælingar né hvaða aðgerðir þú valdir.
+            Hann sér ekki skýrsluna þína, mælingar eða hvað þú valdir að gera.
           </p>
 
           {err && <p role="alert" className="mt-2 text-sm font-semibold text-red-700">{err}</p>}
@@ -172,7 +172,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
           <div className="mt-3 flex flex-wrap gap-2">
             {!none && (
               <button type="button" className={hcBtn.secondary} onClick={() => setPicking(true)} disabled={busy}>
-                {d.partner ? "Skipta um félaga" : "Velja ábyrgðarfélaga"}
+                {d.partner ? "Skipta um félaga" : "Velja félaga"}
               </button>
             )}
             {d.partner && (
@@ -215,10 +215,10 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
       </div>
 
       {picking && (
-        <Sheet title="Velja ábyrgðarfélaga" onClose={() => !busy && setPicking(false)} max="max-w-sm">
+        <Sheet title="Velja félaga" onClose={() => !busy && setPicking(false)} max="max-w-sm">
           <div className="p-4 pt-0">
             <p className="text-sm text-hc-ink-2">
-              Félaginn sér hvaða daga þú gerðir eitthvað. Þú getur skipt eða fjarlægt hvenær sem er.
+              Hann sér hvaða daga þú gerðir eitthvað. Þú getur skipt eða fjarlægt hvenær sem er.
             </p>
             <div className="mt-3 space-y-1.5">
               {d.candidates.map((c) => (
