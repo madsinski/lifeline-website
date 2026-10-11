@@ -55,4 +55,17 @@ export const hcTabs = {
 };
 
 /** Kicker above a heading ("NÆSTI TÍMI"). */
-export const hcKicker = "text-xs font-bold uppercase tracking-[0.15em]";
+/*
+ * The shared kicker.
+ *
+ * tracking adds its space *after* the last character too, so a kicker that
+ * exactly fills its column overflows by one letter-space — which is how
+ * "HEILSUFERÐIN ÞÍN · VESTMANNAEYJAR" pushed the ferðin page 4px wide at
+ * 320px, and body's overflow-x:auto turned 4px into a scrollable page.
+ *
+ * 0.08em is the value the Æfingar and Næring headings already settled on
+ * for the same reason, so this brings the shared one into line rather than
+ * patching one caller. Still unmistakably a kicker; it just stops reserving
+ * space to the right of a letter that has nothing after it.
+ */
+export const hcKicker = "text-xs font-bold uppercase tracking-[0.08em]";
