@@ -15,7 +15,9 @@ export default function Footer() {
   const pathname = usePathname();
 
   // Match Navbar — survey respondent pages + research docs are chrome-free.
-  if (pathname.startsWith("/survey") || pathname.startsWith("/research") || pathname.startsWith("/verkefnalysing") || pathname.startsWith("/present") || pathname.startsWith("/security-review") || pathname.startsWith("/leidbeiningar") || pathname.startsWith("/legal-review") || pathname.startsWith("/vinnustod") || pathname.startsWith("/app")) {
+  // Same list as the Navbar, plus the participant app: a training plan does
+  // not need a newsletter signup and a sitemap under it.
+  if (pathname.startsWith("/survey") || pathname.startsWith("/research") || pathname.startsWith("/verkefnalysing") || pathname.startsWith("/present") || pathname.startsWith("/security-review") || pathname.startsWith("/leidbeiningar") || pathname.startsWith("/legal-review") || pathname.startsWith("/vinnustod") || pathname.startsWith("/app") || pathname.startsWith("/account/heilsuferd")) {
     return null;
   }
 

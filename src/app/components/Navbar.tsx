@@ -102,7 +102,20 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   // render their own self-contained header (logo + back button), so the
   // marketing nav must not also render — otherwise the header doubles up.
   // Placed after all hooks so the rules of hooks are respected.
-  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar", "/vinnustod", "/app"];
+  /*
+   * /account/heilsuferd is an app, not a page of the site.
+   *
+   * It already carries its own navigation — the bottom bar with Í dag,
+   * Æfingar, Næring, Þjálfari — and it was being wrapped in the marketing
+   * header and footer as well. Measured on Æfingar: 1300 of 2292px, more
+   * than half the page, was site chrome. A participant checking today's
+   * training scrolled past their plan into a newsletter signup, "SÍÐUR /
+   * Heim / Hafa samband" and the social icons.
+   *
+   * /account/login and /account/signup keep the chrome: those are doors
+   * into the site and the brand belongs on them.
+   */
+  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar", "/vinnustod", "/app", "/account/heilsuferd"];
   if (chromeFree.some((p) => pathname.startsWith(p))) {
     return null;
   }
