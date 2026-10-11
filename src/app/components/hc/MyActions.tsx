@@ -527,6 +527,19 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lif
         transform: lifted ? `translateY(${carryY}px) scale(1.03)` : undefined,
         transition: lifted ? "none" : settling ? "transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)" : undefined,
         zIndex: lifted ? 20 : undefined,
+        /*
+         * No text selection, and no long-press callout.
+         *
+         * A 420ms press on a word is Android's own select-this-text
+         * gesture: Chrome puts up the selection handles and takes the
+         * touch, so the drag never started on a phone while working
+         * perfectly with a mouse. Turning selection off on the row is what
+         * makes the hold ours. The sleeve is where any text worth copying
+         * lives.
+         */
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
       }}
       className={`relative transition-shadow ${lifted ? "overflow-visible shadow-xl" : "overflow-hidden"} ${
         settling ? "duration-200" : ""}`}>

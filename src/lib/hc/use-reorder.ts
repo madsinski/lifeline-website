@@ -23,8 +23,31 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const HOLD_MS = 420;
-/** Past this before the hold fires, the finger is scrolling or swiping. */
-const SLOP = 10;
+/**
+ * Past this before the hold fires, the finger is scrolling or swiping.
+ *
+ * 14 rather than 10: a thumb resting on a phone for 420ms does not hold
+ * still to within ten pixels, and cancelling an intended hold is worse
+ * than occasionally arming on a slow scroll — the arming is harmless,
+ * since the first real movement after it still reorders rather than
+ * scrolls.
+ */
+const SLOP = 14;
+
+/*
+ * Stop the page scrolling while a row is being carried.
+ *
+ * touch-action cannot do this. It is read when the gesture begins, so the
+ * row would have to carry touch-action:none from the start — which would
+ * mean no scrolling from a checklist row at all. Instead, once the hold
+ * has fired, a non-passive touchmove listener preventDefaults the scroll.
+ * Without it Chrome takes the gesture, fires pointercancel, and the drag
+ * ends the instant the finger moves: the whole thing works with a mouse
+ * and does nothing at all on a phone.
+ */
+function blockScroll(e: TouchEvent) {
+  if (e.cancelable) e.preventDefault();
+}
 
 export interface Reorder {
   /** The row being carried, or null. */
@@ -129,6 +152,7 @@ export function useReorder(onCommit: (order: string[]) => void): Reorder {
 
       const up = () => {
         stop();
+        window.removeEventListener("touchmove", blockScroll);
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", up);
         window.removeEventListener("pointercancel", up);
@@ -148,6 +172,7 @@ export function useReorder(onCommit: (order: string[]) => void): Reorder {
 
       timer.current = window.setTimeout(() => {
         lifted = true;
+        window.addEventListener("touchmove", blockScroll, { passive: false });
         live.current = siblings;
         setDragging(uid);
         setOrder(siblings);
@@ -157,7 +182,10 @@ export function useReorder(onCommit: (order: string[]) => void): Reorder {
     },
   }), [onCommit, stop]);
 
-  useEffect(() => stop, [stop]);
+  useEffect(() => () => {
+    stop();
+    window.removeEventListener("touchmove", blockScroll);
+  }, [stop]);
 
   return { dragging, order, offset, handlers };
 }
