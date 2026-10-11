@@ -532,7 +532,10 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
 
       {/* The dock's own height, kept clear so the last message is not
           hidden underneath it. */}
-      <div aria-hidden className="h-24" />
+      {/* The dock's height, kept clear so the last message is not hidden
+          under it. 20 rather than 24: at 24 the page measured 851px against
+          an 844px screen, so entering Þjálfari began 7px scrolled. */}
+      <div aria-hidden className="h-20" />
       {prompts && (
         <Sheet title="Tilbúin skilaboð" onClose={() => setPrompts(false)}>
           <ul className="divide-y divide-slate-100">
