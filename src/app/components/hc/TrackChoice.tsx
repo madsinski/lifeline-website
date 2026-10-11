@@ -28,15 +28,26 @@ import { ClipboardCheck, FileHeart, Sparkles } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-export default function TrackChoice({ api, onDone, onUpload }: {
+export default function TrackChoice({ api, onDone, onUpload, preview = false }: {
   api: Api;
   onDone: () => Promise<void> | void;
   /** Opens the report uploader, for somebody who already has one. */
   onUpload?: () => void;
+  /*
+   * Show it without letting it act.
+   *
+   * This card only appears before anything is paid for, which means anyone
+   * reviewing the product cannot see it — they have a plan already. The
+   * walkthrough shows it in preview so the whole first run can be read in
+   * one place, and the buttons do nothing because changing somebody's track
+   * from a review screen would be a real change to their journey.
+   */
+  preview?: boolean;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
 
   const choose = async (track: "coach" | "check") => {
+    if (preview) return;
     setBusy(track);
     await api("/api/hc/journey", {
       method: "POST",
@@ -53,11 +64,16 @@ export default function TrackChoice({ api, onDone, onUpload }: {
       <p className="mt-1.5 text-sm text-slate-600">
         Þú getur breytt þessu síðar. Ekkert af því sem þú gerir í appinu fer forgörðum ef þú skiptir.
       </p>
+      {preview && (
+        <p className="mt-2 rounded-xl bg-slate-100 px-3 py-2 text-xs text-slate-600">
+          Þetta er fyrsta spurningin sem nýr þátttakandi fær. Hnapparnir hér eru óvirkir.
+        </p>
+      )}
 
       <div className="mt-4 space-y-2">
         {/* The full check first: it is what most people come for and what
             the rest of the journey is built around. */}
-        <button type="button" disabled={!!busy} onClick={() => void choose("check")}
+        <button type="button" disabled={!!busy || preview} onClick={() => void choose("check")}
           className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 p-3.5 text-left transition hover:border-hc-brand disabled:opacity-50">
           <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand">
             <ClipboardCheck className="h-4 w-4" aria-hidden />
@@ -71,7 +87,7 @@ export default function TrackChoice({ api, onDone, onUpload }: {
         </button>
 
         {onUpload && (
-          <button type="button" disabled={!!busy} onClick={onUpload}
+          <button type="button" disabled={!!busy || preview} onClick={onUpload}
             className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 p-3.5 text-left transition hover:border-hc-brand disabled:opacity-50">
             <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand">
               <FileHeart className="h-4 w-4" aria-hidden />
@@ -85,7 +101,7 @@ export default function TrackChoice({ api, onDone, onUpload }: {
           </button>
         )}
 
-        <button type="button" disabled={!!busy} onClick={() => void choose("coach")}
+        <button type="button" disabled={!!busy || preview} onClick={() => void choose("coach")}
           className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 p-3.5 text-left transition hover:border-hc-brand disabled:opacity-50">
           <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand">
             <Sparkles className="h-4 w-4" aria-hidden />

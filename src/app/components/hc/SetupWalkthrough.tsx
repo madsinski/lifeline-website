@@ -26,11 +26,37 @@ import InstallGuide from "./InstallGuide";
 import NudgeSettings from "./NudgeSettings";
 import PartnerCard from "./PartnerCard";
 import { CoachStep, SETUP_ROWS } from "./SetupFlow";
+import ProfileForm, { type ProfileFormData } from "./ProfileForm";
+import TrackChoice from "./TrackChoice";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 interface Worker { id: string; name: string | null; role: string | null; photo_url?: string | null; bio?: string | null }
 
-export default function SetupWalkthrough({ api, onClose }: { api: Api; onClose: () => void }) {
+/*
+ * The whole first run, in order.
+ *
+ * SETUP_ROWS is the four things that come after the account exists. A new
+ * participant meets two things before them — which journey this is, and who
+ * they are — so the walkthrough puts those first. Without them this screen
+ * showed four fifths of onboarding and called it the onboarding.
+ *
+ * Both are the real components: TrackChoice in preview, because changing
+ * somebody's track from a review screen would be a real change to their
+ * journey, and ProfileForm live, because it is their own details and saving
+ * them from here is exactly as valid as saving them from the journey page.
+ */
+const INTRO = [
+  { key: "track", title: "Hvar viltu byrja?", why: "Fyrsta spurningin: heilsufarsskoðun, skýrsla sem þú ert með, eða bara þjálfunin." },
+  { key: "profile", title: "Upplýsingar um þig", why: "Nafn, kennitala, sími og heimilisfang — og samþykki fyrir heilsufarsupplýsingum." },
+] as const;
+
+export default function SetupWalkthrough({ api, onClose, data, reload }: {
+  api: Api;
+  onClose: () => void;
+  /** For the profile step; omitted where the caller has no journey loaded. */
+  data?: ProfileFormData;
+  reload?: () => Promise<void>;
+}) {
   const [i, setI] = useState(0);
   const [calOpen, setCalOpen] = useState(false);
   const [coaches, setCoaches] = useState<Worker[] | null>(null);
@@ -71,8 +97,11 @@ export default function SetupWalkthrough({ api, onClose }: { api: Api; onClose: 
     await load();
   };
 
-  const last = i === SETUP_ROWS.length;
-  const row = SETUP_ROWS[i];
+  /* Intro steps only where the caller can supply what they need. */
+  const intro = data && reload ? INTRO : INTRO.filter((x) => x.key === "track");
+  const steps: { key: string; title: string; why: string }[] = [...intro, ...SETUP_ROWS];
+  const last = i === steps.length;
+  const row = steps[i];
 
   return (
     <Sheet title="Uppsetning, skref fyrir skref" onClose={onClose} max="max-w-md">
@@ -80,7 +109,7 @@ export default function SetupWalkthrough({ api, onClose }: { api: Api; onClose: 
         {/* Where you are. Dots rather than "3/4", because the point of
             walking it is that the next thing is one thing. */}
         <div className="mb-4 flex items-center gap-1.5" aria-hidden>
-          {SETUP_ROWS.map((r, n) => (
+          {steps.map((r, n) => (
             <span key={r.key}
               className={`h-1.5 flex-1 rounded-full ${n < i ? "bg-hc-brand" : n === i ? "bg-hc-brand/60" : "bg-slate-200"}`} />
           ))}
@@ -104,12 +133,18 @@ export default function SetupWalkthrough({ api, onClose }: { api: Api; onClose: 
         ) : (
           <>
             <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">
-              Skref {i + 1} af {SETUP_ROWS.length}
+              Skref {i + 1} af {steps.length}
             </p>
             <h3 className="mt-0.5 text-xl font-bold text-slate-900">{row.title}</h3>
             <p className="mt-1 text-sm text-slate-600">{row.why}</p>
 
             <div className="mt-4">
+              {row.key === "track" && (
+                <TrackChoice api={api} preview onDone={() => {}} />
+              )}
+              {row.key === "profile" && data && reload && (
+                <ProfileForm data={data} reload={reload} api={api} />
+              )}
               {row.key === "coach" && (
                 <CoachStep myCoach={myCoach} coaches={coaches} busy={busy} onPick={pickCoach} />
               )}

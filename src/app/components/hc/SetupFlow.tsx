@@ -39,6 +39,7 @@ import InstallGuide from "./InstallGuide";
 import NudgeSettings from "./NudgeSettings";
 import PartnerCard from "./PartnerCard";
 import SetupWalkthrough from "./SetupWalkthrough";
+import type { ProfileFormData } from "./ProfileForm";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -81,6 +82,14 @@ export default function SetupFlow({ api, place = "onboarding" }: {
   const [myCoach, setMyCoach] = useState<Worker | null>(null);
   const [busy, setBusy] = useState(false);
   const [walk, setWalk] = useState(false);
+  /*
+   * The participant's own details, for the walkthrough's profile step.
+   *
+   * /api/hc/profile already returns exactly the shape ProfileForm wants —
+   * email, name, phone, address, kennitala_last4, complete — plus the
+   * consent flag, which that endpoint keeps separately.
+   */
+  const [profile, setProfile] = useState<ProfileFormData | null>(null);
 
   const calendarApi: CalendarApi = {
     call: api,
@@ -102,11 +111,12 @@ export default function SetupFlow({ api, place = "onboarding" }: {
    * down is worse than one that shows an item as not-yet-done.
    */
   const load = useCallback(async () => {
-    const [coach, cal, partner, nudge] = await Promise.all([
+    const [coach, cal, partner, nudge, prof] = await Promise.all([
       api("/api/hc/coach").then((r) => (r.ok ? r.json() : null)).catch(() => null),
       api("/api/hc/google").then((r) => (r.ok ? r.json() : null)).catch(() => null),
       api("/api/hc/partner").then((r) => (r.ok ? r.json() : null)).catch(() => null),
       api("/api/hc/nudges").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      api("/api/hc/profile").then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]);
     /*
      * Out of the effect's own tick.
@@ -119,6 +129,9 @@ export default function SetupFlow({ api, place = "onboarding" }: {
     setTimeout(() => {
       setMyCoach(coach?.coach ?? null);
       setCoaches(coach?.coaches ?? []);
+      setProfile(prof?.profile
+        ? { profile: { ...prof.profile, health_consent: !!prof.health_consent } }
+        : null);
       setDone({
         coach: !!coach?.coach,
         calendar: !!cal?.connected,
@@ -231,7 +244,10 @@ export default function SetupFlow({ api, place = "onboarding" }: {
         })}
       </ul>
 
-      {walk && <SetupWalkthrough api={api} onClose={() => { setWalk(false); void load(); }} />}
+      {walk && (
+        <SetupWalkthrough api={api} onClose={() => { setWalk(false); void load(); }}
+          data={profile ?? undefined} reload={load} />
+      )}
 
       <CalendarConnect api={calendarApi} open={calOpen}
         onClose={() => { setCalOpen(false); void load(); }}
