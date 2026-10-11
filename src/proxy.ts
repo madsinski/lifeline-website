@@ -28,6 +28,7 @@ const BYPASS_PREFIXES = [
   //    listed), so they have to bypass the coming-soon gate the same
   //    way /business/onboard does. Removing any of these silently
   //    breaks links already sent to people outside the system.
+  "/account/partner-invite",// ábyrgðarfélagi invite-token URLs (emailed to non-members)
   "/business/onboard",      // B2B employee invite-token URLs
   "/business/claim",        // B2B company-claim token URLs
   "/survey",                // per-recipient feedback survey links

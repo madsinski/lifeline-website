@@ -18,6 +18,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { hcAudit, requireUser } from "@/lib/hc/server";
+import { randomUUID } from "crypto";
+import { renderBrandedEmail, sendEmail } from "@/lib/email";
+
+/** Names go into an email body; a quote in a surname should not become markup. */
+function escapeHtml(v: string): string {
+  return v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 export const runtime = "nodejs";
 
@@ -93,6 +100,68 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   const partnerId: string | null = typeof body?.partnerId === "string" ? body.partnerId : null;
+
+  // ── Invite somebody who is not here yet ───────────────────────────────
+  //
+  // The candidate list is accepted friendships only, which left a new
+  // participant with an empty list and no way to fill it. This is the way
+  // to fill it.
+  //
+  // The response is identical whether or not the address belongs to a
+  // member. Who is a customer of a health service is information about that
+  // person, and a form that answers "already a member" is a membership
+  // oracle anybody could query an address against. Nothing is shared by
+  // inviting — accepting is what creates the friendship.
+  if (typeof body?.invite_email === "string") {
+    const email = body.invite_email.trim().toLowerCase().slice(0, 254);
+    // Deliberately loose: the mail either arrives or it does not, and a
+    // clever regex here only rejects addresses that work.
+    if (!/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) {
+      return NextResponse.json({ error: "bad-email" }, { status: 400 });
+    }
+    const { data: me } = await supabaseAdmin
+      .from("clients").select("full_name, email").eq("id", user.id).maybeSingle();
+    if ((me?.email as string | null)?.toLowerCase() === email) {
+      return NextResponse.json({ error: "self" }, { status: 400 });
+    }
+
+    const token = randomUUID().replace(/-/g, "") + randomUUID().replace(/-/g, "").slice(0, 8);
+    // One live invite per address per inviter — a second attempt resends
+    // rather than stacking rows, which also stops the form being used to
+    // mail somebody over and over.
+    const { data: live } = await supabaseAdmin.from("hc_partner_invites")
+      .select("id, token").eq("inviter_id", user.id).eq("email", email).eq("status", "pending").maybeSingle();
+
+    let useToken = live?.token as string | undefined;
+    if (!useToken) {
+      const { error } = await supabaseAdmin.from("hc_partner_invites")
+        .insert({ inviter_id: user.id, email, token });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      useToken = token;
+    }
+
+    const origin = new URL(req.url).origin;
+    const link = `${origin}/account/partner-invite?t=${useToken}`;
+    const inviter = (me?.full_name as string | null) ?? "Einhver í Lifeline";
+    await sendEmail({
+      to: email,
+      subject: `${inviter} bað þig um að vera ábyrgðarfélagi`,
+      html: renderBrandedEmail({
+        title: "Viltu vera ábyrgðarfélagi?",
+        preheader: `${inviter} bað þig um að fylgjast með.`,
+        accentLabel: "Boð",
+        bodyHtml: `<p><strong>${escapeHtml(inviter)}</strong> er að byggja upp heilsuvenjur með Lifeline og bað þig um að fylgjast með.</p>
+               <p>Ábyrgðarfélagi sér eitt: hversu marga af síðustu 14 dögum hinn gerði eitthvað. Ekki hvað, ekki mælingar, ekki skýrslur. Þú getur hætt hvenær sem er.</p>`,
+        ctaLabel: "Sjá boðið",
+        ctaUrl: link,
+        footerNote: "Ef þú þekkir ekki sendandann máttu hunsa þennan póst.",
+      }),
+    }).catch(() => ({ ok: false }));
+
+    await hcAudit(`self:${user.id}`, "accountability_partner_invited", null, {});
+    // Same answer either way, on purpose.
+    return NextResponse.json({ ok: true, invited: true });
+  }
 
   if (!partnerId) {
     await supabaseAdmin.from("clients")

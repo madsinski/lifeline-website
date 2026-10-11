@@ -55,6 +55,8 @@ export default function PartnerCard({ api, bare = false }: {
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
 
   const load = useCallback(async () => {
     const r = await api("/api/hc/partner");
@@ -74,6 +76,31 @@ export default function PartnerCard({ api, bare = false }: {
   if (!d) return <div className={`${bare ? "rounded-2xl" : hcCard.base} h-32 hc-shimmer`} aria-hidden />;
 
   const none = d.candidates.length === 0;
+
+  /*
+   * Ask somebody who is not here yet.
+   *
+   * The candidate list is accepted friendships only, so a new participant
+   * saw an empty list and no way to fill it. The answer is deliberately the
+   * same whether or not the address belongs to a member: who uses a health
+   * service is information about that person, and a form that replies
+   * "already a member" is a membership oracle anybody could query.
+   */
+  const invite = async () => {
+    const v = email.trim();
+    if (!v) return;
+    setBusy(true); setErr(null);
+    const r = await api("/api/hc/partner", { method: "POST", body: JSON.stringify({ invite_email: v }) });
+    const j = await r.json().catch(() => ({}));
+    setBusy(false);
+    if (!r.ok) {
+      setErr(j.error === "bad-email" ? "Þetta netfang virkar ekki."
+        : j.error === "self" ? "Það er netfangið þitt."
+        : "Tókst ekki að senda boðið.");
+      return;
+    }
+    setEmail(""); setSent(true);
+  };
 
   return (
     <section className={bare ? "" : `${hcCard.base} p-5`}>
@@ -138,6 +165,36 @@ export default function PartnerCard({ api, bare = false }: {
               <button type="button" className={hcBtn.ghost} onClick={() => void choose(null)} disabled={busy}>
                 Fjarlægja
               </button>
+            )}
+          </div>
+
+          {/* Inviting by email, which is the only way the list ever fills.
+              No search over members and no directory: that would disclose
+              who is a Lifeline customer, which is not ours to tell. */}
+          <div className="mt-3 border-t border-slate-100 pt-3">
+            {sent ? (
+              <p className="text-sm text-slate-600" role="status">
+                Boðið er sent. Þú sérð hann í listanum þegar hann hefur samþykkt.{" "}
+                <button type="button" onClick={() => setSent(false)} className="font-semibold text-hc-brand-dark hover:underline">
+                  Bjóða öðrum
+                </button>
+              </p>
+            ) : (
+              <>
+                <label className="block text-xs font-semibold text-slate-600" htmlFor="partner-email">
+                  {none ? "Bjóddu einhverjum sem þú þekkir" : "Eða bjóddu einhverjum nýjum"}
+                </label>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  <input id="partner-email" type="email" inputMode="email" autoComplete="email"
+                    value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="nafn@netfang.is"
+                    className="min-w-0 flex-1 rounded-hc-element border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-hc-brand/30" />
+                  <button type="button" onClick={() => void invite()} disabled={busy || !email.trim()}
+                    className={`${hcBtn.secondary} disabled:opacity-40`}>
+                    Senda boð
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
