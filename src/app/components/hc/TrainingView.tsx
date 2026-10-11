@@ -617,9 +617,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
  */
 const TONE: Record<Modality, { band: string; ring: string; today: string; tile: string; ink: string; pill: string; go: string }> = {
   strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-600 hover:bg-orange-700" },
-  hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200",     go: "bg-rose-600 hover:bg-rose-700",     quiet: "border-rose-200 text-rose-800 hover:bg-rose-50" },
-  cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200",       go: "bg-sky-600 hover:bg-sky-700",       quiet: "border-sky-200 text-sky-800 hover:bg-sky-50" },
-  other:    { band: "bg-slate-50",     ring: "ring-slate-200",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-slate-200",   go: "bg-slate-700 hover:bg-slate-800",   quiet: "border-slate-300 text-slate-800 hover:bg-slate-50" },
+  hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200",     go: "bg-rose-600 hover:bg-rose-700" },
+  cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200",       go: "bg-sky-600 hover:bg-sky-700" },
+  other:    { band: "bg-slate-50",     ring: "ring-slate-200",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-slate-200",   go: "bg-slate-700 hover:bg-slate-800" },
 };
 
 /** The shell and header both cards share. */
@@ -744,9 +744,9 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
       today={today}
       open={open}
       onToggle={onToggle}
-      /* The point of the page. Today's session gets the solid button; the
-         others get a quiet one, because doing Thursday's workout on Monday
-         is allowed but is not what we are suggesting. */
+      /* The point of the page, and the same button on every day. Today is
+         marked by the ring and the eyebrow; the action does not need to be
+         a different weight to say it again. */
       actions={(onStart || onDid) && (
         <div className="border-b border-slate-100 px-4 py-3">
           {done ? (
