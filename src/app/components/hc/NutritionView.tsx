@@ -20,11 +20,21 @@ import MealLogger from "./MealLogger";
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
 
-export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg }: {
+export default function NutritionView({ api, nutrition, picks, onPick, onPickMany, onChangeProgram, prefs, onCustomise, signals, weightKg }: {
   api: Api;
   nutrition: PlanNutrition;
   picks: Record<string, string>;
   onPick: (slot: MealSlot, mealId: string | null) => void;
+  /**
+   * Several picks in one save.
+   *
+   * A swap writes two days at once, and two onPick calls in the same tick
+   * both read the same copy of meal_picks — so the second overwrote the
+   * first and the meal was copied onto the target instead of trading
+   * places with it. Measured: dragging Tuesday onto Monday left both days
+   * eating Monday's dinner.
+   */
+  onPickMany?: (entries: [string, string | null][]) => void;
   /** Opens the programme chooser, when the participant may change it. */
   onChangeProgram?: () => void;
   /** What they eat — restrictions are a hard filter on the library. */
@@ -83,9 +93,14 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
     if (!Number.isInteger(to) || to === from || !week) return;
     const a = week[from]?.dinner ?? null;
     const b = week[to]?.dinner ?? null;
+    const entries: [string, string | null][] = [
+      [pickKey(to, "dinner"), a?.id ?? null],
+      [pickKey(from, "dinner"), b?.id ?? null],
+    ];
+    if (onPickMany) { onPickMany(entries); return; }
+    // No batch save available: do the half that matters rather than two
+    // writes that race each other.
     if (a) onPick(pickKey(to, "dinner") as MealSlot, a.id);
-    if (b) onPick(pickKey(from, "dinner") as MealSlot, b.id);
-    else onPick(pickKey(from, "dinner") as MealSlot, null);
   });
   const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
   const totals = day ? SLOTS.reduce((t, s) => ({ kcal: t.kcal + (day[s]?.calories ?? 0), protein: t.protein + (day[s]?.protein ?? 0) }), { kcal: 0, protein: 0 }) : null;
