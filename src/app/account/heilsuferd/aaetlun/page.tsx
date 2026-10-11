@@ -742,16 +742,7 @@ function PlanPageInner() {
                         if (id) picks[slot] = id; else delete picks[slot];
                         void savePersonal({ ...personal, meal_picks: picks }, ["meal_picks"]);
                       }}
-                      /* One save for a swap. Two onPick calls in a tick both
-                         start from this same object, so the second discards
-                         the first. */
-                      onPickMany={(entries) => {
-                        const picks = { ...personal.meal_picks };
-                        for (const [k, id] of entries) {
-                          if (id) picks[k] = id; else delete picks[k];
-                        }
-                        void savePersonal({ ...personal, meal_picks: picks }, ["meal_picks"]);
-                      }}
+
                       onCustomise={() => setNutritionSetup(true)}
                       onChangeProgram={() => setPicker("nutrition")} />
                   )}

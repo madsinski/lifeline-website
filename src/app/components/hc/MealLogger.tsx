@@ -22,7 +22,7 @@ import { localDate } from "@/lib/hc/workout";
 import { proteinState, proteinTarget, totalsOf, type MealLogRow } from "@/lib/hc/nutrition-log";
 import { mealName, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
 
-export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget }: {
+export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget, only }: {
   /** The meal in each slot today, as the plan has it. */
   day: Record<MealSlot, Meal | null>;
   /** From the report's þyngd row; null means no protein bar. */
@@ -35,6 +35,15 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
    * the two halves mount separately there.
    */
   part?: "bar" | "list" | "both";
+  /**
+   * Render one slot's row only.
+   *
+   * The "næsta máltíð" card carries its own tick, and the write belongs
+   * here — this component owns hc_action_logs for meals, and a second
+   * copy of that write living in the card would be two things to keep in
+   * step. The card asks for one row instead.
+   */
+  only?: MealSlot;
   /**
    * Reports the band this bar measures against, so the plan can be built to
    * land inside it. Without this the plan was assembled to maximise protein
@@ -149,7 +158,7 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
 
       {!compact && part !== "bar" && (
         <ul className="space-y-2">
-          {SLOTS.filter((s) => day[s]).map((slot) => {
+          {SLOTS.filter((s) => day[s]).filter((s) => !only || s === only).map((slot) => {
             const meal = day[slot]!;
             const done = !!loggedSlot(slot);
             return (

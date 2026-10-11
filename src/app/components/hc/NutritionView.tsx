@@ -5,11 +5,10 @@
 // picture, protein and energy and the full recipe, and other meals to swap in.
 // Picks are saved to hc_training_settings.meal_picks through onPick.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Sheet from "./Sheet";
-import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Salad, Sliders } from "lucide-react";
-import { DragGhost, useDrag } from "./useDrag";
-import { alternativesFor, dayFor, mealName, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
+import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Plus, Salad, Sliders, Utensils } from "lucide-react";
+import { OPTIONAL_SLOTS, alternativesFor, dayFor, mealName, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { WEEKDAYS, WEEKDAYS_SHORT, weekdayOf } from "@/lib/hc/personalise";
 import * as cache from "@/lib/hc/client-cache";
 import type { ActionPlan } from "@/lib/hc/types";
@@ -20,21 +19,20 @@ import MealLogger from "./MealLogger";
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
 
-export default function NutritionView({ api, nutrition, picks, onPick, onPickMany, onChangeProgram, prefs, onCustomise, signals, weightKg }: {
+export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg }: {
   api: Api;
   nutrition: PlanNutrition;
   picks: Record<string, string>;
   onPick: (slot: MealSlot, mealId: string | null) => void;
   /**
-   * Several picks in one save.
+   * One pick, saved.
    *
-   * A swap writes two days at once, and two onPick calls in the same tick
-   * both read the same copy of meal_picks — so the second overwrote the
-   * first and the meal was copied onto the target instead of trading
-   * places with it. Measured: dragging Tuesday onto Monday left both days
-   * eating Monday's dinner.
+   * Note for anyone adding a second write: two onPick calls in the same
+   * tick both start from the same copy of meal_picks, so the second
+   * discards the first. The old day-to-day swap wrote two keys and needed a
+   * batch save for exactly that reason. Anything that touches two slots at
+   * once needs one save, not two calls.
    */
-  onPickMany?: (entries: [string, string | null][]) => void;
   /** Opens the programme chooser, when the participant may change it. */
   onChangeProgram?: () => void;
   /** What they eat — restrictions are a hard filter on the library. */
@@ -73,35 +71,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
   const day = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, shownDay, targetG) : null), [meals, nutrition.key, picks, prefs, shownDay, targetG]);
   const today = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, todayIdx, targetG) : null), [meals, nutrition.key, picks, prefs, todayIdx, targetG]);
   const week = useMemo(() => (meals ? weekFor(meals, nutrition.key, picks, prefs, targetG) : null), [meals, nutrition.key, picks, prefs, targetG]);
-  /*
-   * Drag a dinner onto another day to trade them.
-   *
-   * A move rather than a copy: a week has seven dinners and dropping
-   * Thursday's onto Monday has to do something with Monday's, so the two
-   * exchange places. Both ends are written as explicit per-day picks —
-   * dayFor already reads picks[pickKey(day, slot)] before falling back to
-   * the plan's own suggestion, so this is only a matter of saying what
-   * each day holds now.
-   *
-   * Dinner only. It is the meal people actually plan around, the week row
-   * shows it, and dragging a breakfast you cannot see is not a gesture
-   * anyone would attempt.
-   */
-  const { drag, handle } = useDrag<{ day: number }>((payload, target) => {
-    const to = Number(target.replace("nday:", ""));
-    const from = payload.day;
-    if (!Number.isInteger(to) || to === from || !week) return;
-    const a = week[from]?.dinner ?? null;
-    const b = week[to]?.dinner ?? null;
-    const entries: [string, string | null][] = [
-      [pickKey(to, "dinner"), a?.id ?? null],
-      [pickKey(from, "dinner"), b?.id ?? null],
-    ];
-    if (onPickMany) { onPickMany(entries); return; }
-    // No batch save available: do the half that matters rather than two
-    // writes that race each other.
-    if (a) onPick(pickKey(to, "dinner") as MealSlot, a.id);
-  });
+
   /*
    * The meal you are about to eat, by the clock.
    *
@@ -127,7 +97,12 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
    * Opening it is one tap, and the day you are looking at is named on the
    * button, so nothing is hidden without saying so.
    */
-  const [weekOpen, setWeekOpen] = useState(false);
+  /** The næsta-máltíð card's detail, as Æfingar keeps its guide. */
+  const [headOpen, setHeadOpen] = useState(false);
+  /** The Prógrammið sleeve. */
+  const [detail, setDetail] = useState(false);
+  /** The sliding week. Its scroll position is its own, not React's. */
+  const stripRef = useRef<HTMLDivElement | null>(null);
   const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
 
   return (
@@ -152,68 +127,90 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
             )}
             {/* Was a full-width 816×48 block at the end of the page. The page
                 is for what to eat; changing the plan is the rarer errand. */}
-            {onCustomise && (
-              <button type="button" onClick={onCustomise}
-                className="inline-flex items-center gap-1.5 rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 transition hover:bg-lime-50">
-                <Sliders className="h-3.5 w-3.5" aria-hidden /> Breyta
-              </button>
-            )}
+            {/* One pill, one sleeve — the same shape Æfingar gives
+                "Prógrammið": where am I, how is the week, what do I change,
+                in the order you would ask. */}
+            <button type="button" onClick={() => setDetail(true)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-lime-100 px-3 py-1 text-sm font-semibold text-lime-900 ring-1 ring-lime-200 transition hover:bg-lime-200">
+              <Sliders className="h-3.5 w-3.5" aria-hidden /> Prógrammið
+            </button>
           </div>
         </div>
 
-        {/* One meal: the one you are about to eat.
-            This block named today's dinner and then listed breakfast and
-            lunch under it, and the three cards below drew all three again.
-            Now it carries the next meal whole — picture, protein, and the
-            recipe as the thing to tap — and the cards below are a compact
-            list of the rest of the day.
+        {/* ── Næsta máltíð ────────────────────────────────────────────
+            The same card Æfingar gives the day's session: a tile, an
+            eyebrow saying which meal and whether it is today, the name,
+            the time it takes, the detail behind a header dropdown, and one
+            solid action along the bottom.
 
-            No calorie count here. The number that drives the plan is
-            protein, the band is right underneath, and the one consistent
-            warning in the research on these apps is that putting calories
-            in front of people pulls attention to them "at the expense of
-            nutrition". Energy stays on the recipe, where it informs rather
-            than scores. */}
+            The detail is in the dropdown rather than on the face because
+            the face answers "what am I eating"; the macros answer "is that
+            alright", which is a different question and a later one. */}
         {(() => {
           const m = day?.[nextSlot] ?? null;
-          const label = shownDay === todayIdx ? SLOT_IS[nextSlot] : `${SLOT_IS[nextSlot]} · ${WEEKDAYS[shownDay].toLowerCase()}`;
+          const mins = m ? (m.prep_time_min ?? 0) + (m.cook_time_min ?? 0) : 0;
+          const isToday = shownDay === todayIdx;
           return (
-            <div className="mt-4 overflow-hidden rounded-2xl bg-lime-600 text-white">
-              <div className="flex items-stretch gap-3">
-                {m?.illustration_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.illustration_url} alt="" loading="lazy" className="h-auto w-24 shrink-0 self-stretch object-cover sm:w-32" />
-                ) : (
-                  <span className="flex w-24 shrink-0 items-center justify-center bg-lime-700/40 sm:w-32" aria-hidden>
-                    <Salad className="h-8 w-8 text-lime-200" />
+            <div className={`mt-4 overflow-hidden rounded-3xl bg-white ring-1 transition ${
+              isToday ? "ring-2 ring-lime-500" : "ring-slate-200"}`}>
+              <button type="button" onClick={() => setHeadOpen((v) => !v)} aria-expanded={headOpen}
+                className="flex w-full items-center gap-3 p-4 text-left">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-lime-100 text-lime-800">
+                  <Utensils className="h-5 w-5" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-lime-700">
+                    {SLOT_IS[nextSlot]}{isToday ? " · í dag" : ` · ${WEEKDAYS[shownDay].toLowerCase()}`}
                   </span>
-                )}
-                <div className="min-w-0 flex-1 py-3 pr-3">
-                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-lime-100">{label}</p>
-                  <p className="mt-0.5 font-bold leading-tight">
-                    {m ? mealName(m) : day ? "Engin máltíð valin" : "Hleð máltíðum…"}
-                  </p>
+                  <span className="block font-bold leading-tight text-slate-900">
+                    {m ? mealName(m) : day ? "Engin máltíð valin" : "Hleð…"}
+                  </span>
                   {m && (
-                    <p className="mt-1 text-sm text-lime-50">
-                      {[m.protein != null ? `${m.protein} g prótein` : null,
-                        m.prep_time_min ? `${m.prep_time_min + (m.cook_time_min ?? 0)} mín.` : null]
-                        .filter(Boolean).join(" · ")}
-                    </p>
+                    <span className="mt-0.5 block text-sm text-slate-500">
+                      {[m.protein != null ? `${Math.round(Number(m.protein))} g prótein` : null,
+                        mins ? `${mins} mín.` : null].filter(Boolean).join(" · ")}
+                    </span>
                   )}
-                  {m && (
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
-                      <button type="button" onClick={() => setRecipe(m)}
-                        className="rounded-full bg-white px-3 py-1 text-lime-800 transition hover:bg-lime-50">
-                        Uppskrift
-                      </button>
-                      <button type="button" onClick={() => setSlotOpen(nextSlot)}
-                        className="inline-flex items-center gap-1 rounded-full bg-lime-700/60 px-3 py-1 text-white transition hover:bg-lime-700">
-                        <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta
-                      </button>
-                    </div>
+                </span>
+                <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${headOpen ? "rotate-180" : ""}`} aria-hidden />
+              </button>
+
+              {headOpen && m && (
+                <div className="border-t border-slate-100 bg-slate-50/60 px-4 pb-4 pt-3.5">
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    {([["Prótein", m.protein, "g"], ["Kolvetni", m.carbs, "g"],
+                       ["Fita", m.fat, "g"], ["Orka", m.calories, "kkal"]] as const).map(([label, v, unit]) => (
+                      <div key={label} className="rounded-xl bg-white p-2 ring-1 ring-slate-200">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
+                        <p className="text-sm font-bold tabular-nums text-slate-900">
+                          {v != null ? Math.round(Number(v)) : "—"}<span className="text-[10px] font-normal text-slate-500"> {unit}</span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  {mealText(m).description && (
+                    <p className="mt-3 text-sm leading-relaxed text-slate-600">{mealText(m).description}</p>
                   )}
+                  <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold">
+                    <button type="button" onClick={() => setRecipe(m)}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                      Uppskriftin
+                    </button>
+                    <button type="button" onClick={() => setSlotOpen(nextSlot)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-lime-200 px-3 py-1.5 text-lime-800 hover:bg-lime-50">
+                      <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta um máltíð
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* The tick, which is MealLogger's write — not a second copy
+                  of it living in this card. */}
+              {today && isToday && day?.[nextSlot] && (
+                <div className="border-t border-slate-100 p-3">
+                  <MealLogger day={today} weightKg={weightKg ?? null} part="list" only={nextSlot} />
+                </div>
+              )}
             </div>
           );
         })()}
@@ -225,60 +222,116 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
           </div>
         )}
 
-        {/* The week, inside the hero as the exercise one has it — behind a
-            tap, because seven rows is about a phone screen and "what is
-            Thursday?" is not a question anyone has while deciding what to
-            eat now. The button names the day on screen, so nothing is
-            hidden without saying what. */}
+        {/* ── The planner ─────────────────────────────────────────────
+            One day at a time, sliding sideways — the meal equivalent of
+            the exercise week, and the reason it is not a seven-row list
+            any more. A day of meals is four or five lines; seven of those
+            is a screen and a half of vertical scrolling to answer "what is
+            Thursday", and the answer you actually want is one day wide.
+
+            Scroll-snap rather than a carousel library: the browser already
+            does momentum, snapping and the trackpad, and it keeps working
+            when JavaScript is busy. Each day is its own snap target, the
+            strip is the only thing that scrolls, and the page behind it
+            does not move.
+
+            One detail worth keeping: scroll position is not state here.
+            The strip owns where it is, and the day buttons above scroll it
+            rather than re-render it, so a swipe never fights a setState. */}
         {week && (
           <div className="mt-4">
-            <button type="button" onClick={() => setWeekOpen((v) => !v)} aria-expanded={weekOpen}
-              className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 text-left transition hover:bg-slate-50">
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Vikan</span>
-              <span className="flex min-w-0 items-center gap-1.5">
-                <span className="truncate text-xs text-slate-500">
-                  {weekOpen ? "Kvöldmatur · dragðu til að skipta" : `Sýnir ${shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}`}
-                </span>
-                <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${weekOpen ? "rotate-180" : ""}`} aria-hidden />
-              </span>
-            </button>
-          </div>
-        )}
-        {week && weekOpen && (
-          <div className="mt-2">
-            {/* Rows on a phone, the week as a grid from sm up.
-                Seven columns inside 360px gives each day about 44px, and a
-                meal called "Rauðar linsur í dal með hrísgrjónum" became
-                "Rauð linsul í dal með hrísgr" stacked four lines deep —
-                unreadable, and the same squeeze that made Æfingar print
-                "Styrk". A full-width row has space for the real name.
-                Same treatment as the training week, so the two pages read
-                alike. */}
-            <div className="flex flex-col sm:grid sm:grid-cols-7 sm:gap-1.5">
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Vikan</p>
+              <p className="text-[11px] text-slate-400">Strjúktu til hliðar</p>
+            </div>
+
+            {/* The days, as a row of taps that move the strip. */}
+            <div className="mb-2 flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {WEEKDAYS_SHORT.map((lbl, i) => (
+                <button key={i} type="button"
+                  onClick={() => {
+                    setPickedDay(i);
+                    stripRef.current?.children[i]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+                  }}
+                  aria-pressed={i === shownDay}
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase transition ${
+                    i === shownDay ? "bg-lime-600 text-white"
+                      : i === todayIdx ? "bg-lime-50 text-lime-800 ring-1 ring-lime-200"
+                      : "text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50"}`}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+
+            <div ref={stripRef}
+              onScroll={(e) => {
+                /* Which day is centred, read off the strip rather than
+                   driven into it. */
+                const el = e.currentTarget;
+                const i = Math.round(el.scrollLeft / el.clientWidth);
+                if (i !== shownDay && i >= 0 && i < 7) setPickedDay(i);
+              }}
+              className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {week.map((d, i) => {
-                const on = i === shownDay;
                 const protein = SLOTS.reduce((t, sl) => t + (d[sl]?.protein ?? 0), 0);
+                const low = band && protein < band.min;
                 return (
-                  <button key={i} type="button" onClick={() => setPickedDay(i)} aria-pressed={on}
-                    data-drop={`nday:${i}`}
-                    {...(d.dinner ? handle({ day: i }, mealName(d.dinner)) : {})}
-                    aria-label={`${WEEKDAYS[i]}${i === todayIdx ? " (í dag)" : ""}${d.dinner ? ` — ${mealName(d.dinner)}. Dragðu á annan dag til að skipta.` : ""}`}
-                    className={`flex items-center gap-2 border-b border-slate-100 px-1 py-2 text-left transition last:border-b-0 sm:min-h-[84px] sm:flex-col sm:items-stretch sm:gap-1 sm:rounded-xl sm:border sm:p-1.5 ${
-                      d.dinner ? "cursor-grab active:cursor-grabbing" : ""} ${
-                      drag?.over === `nday:${i}` ? "bg-lime-100 sm:border-lime-400"
-                        : on ? "bg-lime-50 sm:border-lime-500"
-                        : i === todayIdx ? "bg-lime-50/60 sm:border-lime-300"
-                        : "sm:border-slate-200 sm:bg-white sm:hover:border-slate-300"}`}>
-                    <span className={`w-9 shrink-0 text-[11px] font-bold uppercase sm:w-auto sm:text-center ${i === todayIdx ? "text-lime-800" : "text-slate-400"}`}>
-                      {WEEKDAYS_SHORT[i]}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm leading-tight text-slate-700 sm:flex-initial sm:overflow-hidden sm:text-[10px] sm:whitespace-normal">
-                      {d.dinner ? mealName(d.dinner) : "—"}
-                    </span>
-                    <span className="shrink-0 text-xs font-semibold tabular-nums text-slate-500 sm:text-[10px]">
-                      {protein} g
-                    </span>
-                  </button>
+                  <div key={i} data-drop={`nday:${i}`}
+                    className={`w-full shrink-0 snap-center rounded-2xl p-2.5 ring-1 transition ${i === todayIdx ? "bg-lime-50/60 ring-lime-300" : "bg-white ring-slate-200"}`}>
+                    <div className="mb-1.5 flex items-baseline justify-between">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        {WEEKDAYS[i]}{i === todayIdx ? " · í dag" : ""}
+                      </p>
+                      <p className={`text-xs font-bold tabular-nums ${low ? "text-amber-700" : "text-slate-500"}`}>
+                        {protein} g prótein
+                      </p>
+                    </div>
+
+                    <ul className="space-y-1">
+                      {SLOTS.filter((sl) => d[sl] || !OPTIONAL_SLOTS.includes(sl)).map((sl) => {
+                        const m = d[sl];
+                        return (
+                          <li key={sl}>
+                            <div className="flex items-center gap-2 rounded-xl bg-white/80 px-2 py-1.5 ring-1 ring-slate-100">
+                              <span className="w-16 shrink-0 text-[10px] font-bold uppercase leading-tight text-slate-400">
+                                {SLOT_IS[sl]}
+                              </span>
+                              {m ? (
+                                <button type="button" onClick={() => setRecipe(m)}
+                                  className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-800 hover:underline">
+                                  {mealName(m)}
+                                </button>
+                              ) : <span className="min-w-0 flex-1 text-xs text-slate-400">—</span>}
+                              <span className="shrink-0 text-[10px] tabular-nums text-slate-500">
+                                {m?.protein != null ? `${Math.round(Number(m.protein))}g` : ""}
+                              </span>
+                              <button type="button" onClick={() => { setPickedDay(i); setSlotOpen(sl); }}
+                                aria-label={`Skipta um ${SLOT_IS[sl].toLowerCase()} ${WEEKDAYS[i].toLowerCase()}`}
+                                className="shrink-0 rounded-full p-1 text-lime-700 transition hover:bg-lime-50">
+                                <ArrowLeftRight className="h-3 w-3" aria-hidden />
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+
+                    {/* A second millimál, if this day wants one. The pick is
+                        the state — choosing a meal makes the slot exist and
+                        clearing it takes it away — so there is no setting
+                        that can disagree with what is on the plate. */}
+                    {!d.snack2 ? (
+                      <button type="button" onClick={() => { setPickedDay(i); setSlotOpen("snack2"); }}
+                        className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-[11px] font-semibold text-slate-500 transition hover:border-lime-400 hover:text-lime-800">
+                        <Plus className="h-3 w-3" aria-hidden /> Millimál
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => onPick(pickKey(i, "snack2") as MealSlot, null)}
+                        className="mt-1.5 text-[11px] font-semibold text-slate-400 transition hover:text-slate-700">
+                        Fjarlægja millimál 2
+                      </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -407,6 +460,129 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
         )}
       </section>
 
+      {/* ── Prógrammið ──────────────────────────────────────────────
+          What the plan is, and the question the page cannot answer on its
+          face: do these meals actually add up?
+
+          Measured against the plan, not against what was eaten. The plan is
+          what this sleeve can be held responsible for — whether somebody
+          ate it is in the log, and mixing the two would let a week read as
+          a success because it was well planned. */}
+      {detail && week && (
+        <Sheet title="Prógrammið" onClose={() => setDetail(false)} canvas>
+          <div className="space-y-3 p-3">
+            <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Áætlunin</p>
+              <h3 className="mt-0.5 text-lg font-bold text-slate-900">{nutrition.name}</h3>
+              {nutrition.principles?.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {nutrition.principles.map((pr, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-slate-600">
+                      <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-lime-600" aria-hidden />
+                      <span>{pr}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* The macro verdict. An average day across the seven, because
+                one day under is normal and a week under is the thing worth
+                knowing. */}
+            <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Meðaldagur í vikunni</p>
+              {(() => {
+                const sum = week.reduce((t, d) => {
+                  for (const sl of SLOTS) {
+                    const m = d[sl];
+                    if (!m) continue;
+                    t.protein += Number(m.protein) || 0;
+                    t.carbs += Number(m.carbs) || 0;
+                    t.fat += Number(m.fat) || 0;
+                    t.kcal += Number(m.calories) || 0;
+                  }
+                  return t;
+                }, { protein: 0, carbs: 0, fat: 0, kcal: 0 });
+                const per = (v: number) => Math.round(v / week.length);
+                const prot = per(sum.protein);
+                const rows: { label: string; got: number; unit: string; target: { min: number; max: number } | null }[] = [
+                  { label: "Prótein", got: prot, unit: "g", target: band },
+                  { label: "Kolvetni", got: per(sum.carbs), unit: "g", target: null },
+                  { label: "Fita", got: per(sum.fat), unit: "g", target: null },
+                  { label: "Orka", got: per(sum.kcal), unit: "kkal", target: null },
+                ];
+                return (
+                  <div className="mt-2 space-y-2">
+                    {rows.map((r) => {
+                      const under = r.target && r.got < r.target.min;
+                      const over = r.target && r.got > r.target.max;
+                      const pct = r.target ? Math.min(100, Math.round((r.got / r.target.max) * 100)) : null;
+                      return (
+                        <div key={r.label}>
+                          <div className="flex items-baseline justify-between text-sm">
+                            <span className="font-semibold text-slate-700">{r.label}</span>
+                            <span className="tabular-nums text-slate-600">
+                              <strong className={under ? "text-amber-700" : over ? "text-slate-900" : "text-lime-700"}>{r.got}</strong>
+                              <span className="text-slate-400"> {r.unit}</span>
+                              {r.target && <span className="text-xs text-slate-400"> · mark {r.target.min}–{r.target.max}</span>}
+                            </span>
+                          </div>
+                          {pct != null && (
+                            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                              <div className={`h-full rounded-full ${under ? "bg-amber-400" : "bg-lime-500"}`} style={{ width: `${pct}%` }} />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {/* Said plainly, once. A bar that is short tells you
+                        something is off; it does not tell you what to do. */}
+                    {band && prot < band.min && (
+                      <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                        Máltíðirnar í vikunni skila að meðaltali {prot} g próteini á dag, undir markinu {band.min}–{band.max} g.
+                        Skiptu einhverri máltíð út fyrir próteinríkari — þær sem eru efst í „Skipta“ eru valdar eftir próteini.
+                      </p>
+                    )}
+                    {/* Fibre is missing on purpose, not forgotten: the meals
+                        table has protein, carbs and fat on all 164 rows and
+                        no fibre column at all. A bar reading 0 g against a
+                        25–35 g target would tell every single person their
+                        plan fails on fibre, which is a claim about their food
+                        that we cannot make. */}
+                    <p className="mt-2 text-xs text-slate-500">
+                      Trefjar eru ekki í næringargildum uppskriftasafnsins og eru því ekki taldar hér.
+                    </p>
+                    {!weightKg && (
+                      <p className="mt-2 text-xs text-slate-500">
+                        Próteinmarkið reiknast af þyngd úr mælingunum. Það birtist þegar þyngd liggur fyrir.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </section>
+
+            {onCustomise && (
+              <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Breyta</p>
+                <p className="mt-1 text-sm text-slate-600">Áherslur, mataræði og það sem þú vilt sleppa.</p>
+                <button type="button" onClick={() => { setDetail(false); onCustomise(); }}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
+                  <Sliders className="h-3.5 w-3.5" aria-hidden /> Breyta áætluninni
+                </button>
+              </section>
+            )}
+
+            {onChangeProgram && (
+              <button type="button" onClick={() => { setDetail(false); onChangeProgram(); }}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                Skipta um næringaráætlun
+              </button>
+            )}
+          </div>
+        </Sheet>
+      )}
+
       {slotOpen && meals && (
         <Sheet title={`${SLOT_IS[slotOpen]} · ${shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}`} onClose={() => setSlotOpen(null)}>
           {/* The near ones first, and said so.
@@ -448,8 +624,6 @@ export default function NutritionView({ api, nutrition, picks, onPick, onPickMan
           </ul>
         </Sheet>
       )}
-
-      <DragGhost drag={drag} />
       {recipe && <Recipe m={recipe} onClose={() => setRecipe(null)} />}
       {(nutrition.description || nutrition.goal || nutrition.principles.length > 0) && (
         <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">

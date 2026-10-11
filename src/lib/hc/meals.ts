@@ -4,9 +4,25 @@
 
 import { COOKING_IS, mealAllowed, type NutritionPrefs } from "./nutrition";
 
-export type MealSlot = "breakfast" | "lunch" | "snack" | "dinner";
-export const SLOTS: MealSlot[] = ["breakfast", "lunch", "snack", "dinner"];
-export const SLOT_IS: Record<MealSlot, string> = { breakfast: "Morgunmatur", lunch: "Hádegi", snack: "Millimál", dinner: "Kvöldmatur" };
+export type MealSlot = "breakfast" | "lunch" | "snack" | "dinner" | "snack2";
+
+/**
+ * Every slot a day can hold, in the order you eat them.
+ *
+ * snack2 is opt-in: a day has four meals unless somebody asks for a second
+ * millimál. The pick *is* the state — a meal chosen for snack2 means the
+ * slot exists, clearing it means it does not — so there is no settings
+ * column that can disagree with what is on the plate.
+ */
+export const SLOTS: MealSlot[] = ["breakfast", "snack", "lunch", "snack2", "dinner"];
+
+/** The four that are always there, which is what a plan is generated for. */
+export const CORE_SLOTS: MealSlot[] = ["breakfast", "lunch", "snack", "dinner"];
+
+/** Slots that only appear once chosen. */
+export const OPTIONAL_SLOTS: MealSlot[] = ["snack2"];
+
+export const SLOT_IS: Record<MealSlot, string> = { breakfast: "Morgunmatur", lunch: "Hádegi", snack: "Millimál", dinner: "Kvöldmatur", snack2: "Millimál 2" };
 
 export interface Meal {
   id: string;
@@ -59,7 +75,7 @@ const RULES: Record<string, Rule> = {
  * Roughly how a day's protein divides across the slots. Used to turn one
  * daily target into a per-slot share.
  */
-const SLOT_SHARE: Record<MealSlot, number> = { breakfast: 0.25, lunch: 0.3, snack: 0.15, dinner: 0.3 };
+const SLOT_SHARE: Record<MealSlot, number> = { breakfast: 0.25, lunch: 0.3, snack: 0.15, dinner: 0.3, snack2: 0.15 };
 
 function score(m: Meal, r: Rule, slot: MealSlot, slotTarget?: number): number {
   const tags = m.dietary_tags ?? [];
@@ -169,6 +185,10 @@ export function dayFor(
   return Object.fromEntries(SLOTS.map((slot) => {
     const chosen = picks[pickKey(weekday, slot)] ?? picks[slot];
     if (chosen && byId.get(chosen)) return [slot, byId.get(chosen)!];
+    // An optional slot exists only when something was put in it. Suggesting
+    // a second millimál to everybody would be the plan telling people to eat
+    // more, which is not what a nutrition plan is for.
+    if (OPTIONAL_SLOTS.includes(slot)) return [slot, null];
     const ranked = mealsFor(all, programKey, slot, prefs, proteinTargetG, weekday);
     if (!ranked.length) return [slot, null];
     // Rotate within the best fits rather than walking the whole list. Walking
@@ -177,7 +197,7 @@ export function dayFor(
     // one of the seven best in each slot, and the offsets pair them so no
     // single day collects all the lowest.
     const pool = ranked.slice(0, 7);
-    const offset = SLOTS.indexOf(slot) * 2;
+    const offset = CORE_SLOTS.indexOf(slot) * 2;
     return [slot, pool[(weekday + offset) % pool.length]];
   })) as Record<MealSlot, Meal | null>;
 }
