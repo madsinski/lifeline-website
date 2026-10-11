@@ -33,14 +33,16 @@
 // people who only wanted to look around.
 
 import { useCallback, useEffect, useState } from "react";
-import { Bell, CalendarDays, Check, ChevronDown, UserRound, Users } from "lucide-react";
+import { Bell, CalendarDays, Check, ChevronDown, PlayCircle, UserRound, Users } from "lucide-react";
 import CalendarConnect, { type CalendarApi } from "./CalendarConnect";
 import NudgeSettings from "./NudgeSettings";
 import PartnerCard from "./PartnerCard";
+import SetupWalkthrough from "./SetupWalkthrough";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-type Key = "coach" | "calendar" | "partner" | "nudge";
+export type SetupKey = "coach" | "calendar" | "partner" | "nudge";
+type Key = SetupKey;
 
 interface Worker { id: string; name: string | null; role: string | null; photo_url?: string | null; bio?: string | null }
 
@@ -50,7 +52,7 @@ const ROLE_IS: Record<string, string> = {
 };
 
 /** The four things, and why each one is worth a minute now. */
-const ROWS: { key: Key; title: string; why: string; icon: typeof Bell }[] = [
+export const SETUP_ROWS: { key: Key; title: string; why: string; icon: typeof Bell }[] = [
   { key: "coach", title: "Þjálfarinn þinn", why: "Sá sem fer yfir áætlunina með þér og svarar skilaboðum.", icon: UserRound },
   { key: "calendar", title: "Dagatalið", why: "Tímar og myndsímtöl birtast sjálfkrafa í dagatalinu þínu, með hlekk á fundinn.", icon: CalendarDays },
   { key: "partner", title: "Ábyrgðarfélagi", why: "Einn sem þú velur sér hvað þú ert búinn að gera — ekkert annað.", icon: Users },
@@ -77,6 +79,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
   const [coaches, setCoaches] = useState<Worker[] | null>(null);
   const [myCoach, setMyCoach] = useState<Worker | null>(null);
   const [busy, setBusy] = useState(false);
+  const [walk, setWalk] = useState(false);
 
   const calendarApi: CalendarApi = {
     call: api,
@@ -133,8 +136,8 @@ export default function SetupFlow({ api, place = "onboarding" }: {
     await load();
   };
 
-  const count = ROWS.filter((r) => done[r.key]).length;
-  const all = count === ROWS.length;
+  const count = SETUP_ROWS.filter((r) => done[r.key]).length;
+  const all = count === SETUP_ROWS.length;
   const settings = place === "settings";
 
   return (
@@ -150,7 +153,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
               : "Fjögur atriði, ein mínúta hvert"}
           </h3>
         </div>
-        <p className="text-sm font-semibold tabular-nums text-slate-500">{count}/{ROWS.length}</p>
+        <p className="text-sm font-semibold tabular-nums text-slate-500">{count}/{SETUP_ROWS.length}</p>
       </div>
       <p className="mt-1.5 text-sm text-slate-600">
         {settings
@@ -160,8 +163,18 @@ export default function SetupFlow({ api, place = "onboarding" }: {
           : "Ekkert af þessu er skylda og þú getur komið að því síðar í stillingum. Það er einfaldlega best að gera það núna."}
       </p>
 
+      {/* The way to actually walk it.
+          The card is right for fixing one thing; it is the wrong shape for
+          seeing what a new participant meets, because they do not meet a
+          summary — they meet one question at a time. */}
+      <button type="button" onClick={() => setWalk(true)}
+        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3.5 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+        <PlayCircle className="h-4 w-4 text-hc-brand" aria-hidden />
+        {settings ? "Skoða skref fyrir skref" : "Leiða mig í gegnum það"}
+      </button>
+
       <ul className="mt-4 overflow-hidden rounded-2xl ring-1 ring-slate-200">
-        {ROWS.map((row) => {
+        {SETUP_ROWS.map((row) => {
           const Icon = row.icon;
           const on = open === row.key;
           const ok = done[row.key];
@@ -206,6 +219,8 @@ export default function SetupFlow({ api, place = "onboarding" }: {
         })}
       </ul>
 
+      {walk && <SetupWalkthrough api={api} onClose={() => { setWalk(false); void load(); }} />}
+
       <CalendarConnect api={calendarApi} open={calOpen}
         onClose={() => { setCalOpen(false); void load(); }}
         intro="Tímar hjá Lifeline birtast í dagatalinu þínu og myndsímtöl fá hlekk á fundinn." />
@@ -223,7 +238,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
  * what currently distinguishes the entries, both of which are the same
  * person wearing two hats.
  */
-function CoachStep({ myCoach, coaches, busy, onPick }: {
+export function CoachStep({ myCoach, coaches, busy, onPick }: {
   myCoach: Worker | null;
   coaches: Worker[] | null;
   busy: boolean;
