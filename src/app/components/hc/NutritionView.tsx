@@ -15,6 +15,7 @@ import type { ActionPlan } from "@/lib/hc/types";
 import { ALLERGEN_OPTIONS, DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type NutritionPrefs } from "@/lib/hc/nutrition";
 import type { Signal } from "@/lib/hc/grunnheilsa";
 import { FIBRE_TARGET, proteinTarget } from "@/lib/hc/nutrition-log";
+import MealLogger from "./MealLogger";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -48,7 +49,7 @@ const TONE = {
 } as const;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
 
-export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg, onSelfWeight, favourites = [], onFavourite }: {
+export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg, onSelfWeight, favourites = [], onFavourite, todayMeals }: {
   api: Api;
   nutrition: PlanNutrition;
   picks: Record<string, string>;
@@ -70,6 +71,14 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   onCustomise?: () => void;
   /** Planning lights, for naming the emphasis the report asks for. */
   signals?: Record<string, Signal | null>;
+  /**
+   * Today's meals, for the tick in the top card.
+   *
+   * The page computes these for Í dag's checklist already, and both surfaces
+   * must agree about what today's breakfast is — so it is passed in rather
+   * than worked out twice.
+   */
+  todayMeals?: Record<MealSlot, Meal | null> | null;
   /** Meal ids kept as favourites, for the library's filter. */
   favourites?: string[];
   /** Mark or unmark a favourite. */
@@ -277,12 +286,19 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 </div>
               )}
 
-              {/* No tick in this card.
-                  The checklist at the foot of the page already carries every
-                  slot's tick, and one of them repeated up here meant the
-                  same meal could be ticked in two places — the card said
-                  "what now", then asked you to confirm it in the middle of
-                  saying it. */}
+              {/* The action, with the weight Æfingar gives its day card.
+                  MealLogger's own write, so this tick and the one in Í dag's
+                  checklist are the same row in meal_log — in sync by
+                  construction rather than by being kept in step.
+
+                  Only on today. meal_log is keyed by date, so offering to
+                  tick Thursday's dinner on a Sunday would either lie about
+                  the date or quietly log the wrong day. */}
+              {isToday && todayMeals && day?.[nextSlot] && (
+                <div className="border-t border-slate-100 p-3">
+                  <MealLogger day={todayMeals} weightKg={null} part="button" only={nextSlot} />
+                </div>
+              )}
             </div>
           );
         })()}
@@ -338,7 +354,11 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 slides tells you so the moment you touch it. Three lines of
                 furniture for one card. */}
             {/* The days, as a row of taps that move the strip. */}
-            <div className="mb-2 flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* py, not pb. An overflow-x container clips its top edge as
+                well as its bottom, so a pill with a ring lost the ring's
+                top pixel — and the selected pill, which has the heaviest
+                ring, lost the most. */}
+            <div className="mb-2 flex gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {WEEKDAYS_SHORT.map((lbl, i) => (
                 <button key={i} type="button"
                   onClick={() => {
@@ -363,7 +383,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 const i = Math.round(el.scrollLeft / el.clientWidth);
                 if (i !== shownDay && i >= 0 && i < 7) setPickedDay(i);
               }}
-              className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              className="-mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {week.map((d, i) => {
                 const protein = SLOTS.reduce((t, sl) => t + (d[sl]?.protein ?? 0), 0);
                 const low = band && protein < band.min;

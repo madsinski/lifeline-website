@@ -795,6 +795,7 @@ function PlanPageInner() {
                   ) : (
                     <NutritionView api={api} nutrition={plan.nutrition} picks={personal.meal_picks}
                       prefs={nutritionPrefs} signals={reportSignalsBySlug} weightKg={weightKg}
+                      todayMeals={todayMeals}
                       favourites={personal.meal_favourites ?? []}
                       onFavourite={(mealId, on) => {
                         const cur = personal.meal_favourites ?? [];

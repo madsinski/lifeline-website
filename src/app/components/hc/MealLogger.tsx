@@ -34,7 +34,7 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
    * hero shows the stage, and the slot-by-slot list stays further down, so
    * the two halves mount separately there.
    */
-  part?: "bar" | "list" | "both";
+  part?: "bar" | "list" | "both" | "button";
   /**
    * Render one slot's row only.
    *
@@ -161,7 +161,7 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
   return (
     <div className="space-y-3">
       {/* The day so far */}
-      {part !== "list" && (
+      {part !== "list" && part !== "button" && (
       <div className={part === "bar" ? "" : "rounded-2xl bg-white p-4 ring-1 ring-slate-200"}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-sm font-semibold text-slate-800">Dagurinn þinn</p>
@@ -194,7 +194,30 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
       </div>
       )}
 
-      {!compact && part !== "bar" && (
+      {/* ── One solid button, for the card that leads a page ──────────
+          The Næring page's top card needed the same weight of action
+          Æfingar gives its day card. It is MealLogger's write, not a second
+          copy of it: the tick here and the tick in Í dag's checklist are
+          the same row in meal_log, so they are in sync by construction
+          rather than by being kept that way.
+
+          Not "ég gerði þetta". That is an exercise sentence — you do a
+          workout, you eat a meal — so it says "ég borðaði þetta". */}
+      {part === "button" && only && day[only] && (
+        <button type="button" onClick={() => void toggle(only)} disabled={busy !== null}
+          aria-pressed={!!loggedSlot(only)}
+          className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold transition ${
+            loggedSlot(only)
+              ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
+              : "bg-lime-700 text-white hover:bg-lime-800"}`}>
+          {busy === only
+            ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            : <Check className="h-4 w-4" strokeWidth={3} aria-hidden />}
+          {loggedSlot(only) ? "Búið" : "Ég borðaði þetta"}
+        </button>
+      )}
+
+      {!compact && part !== "bar" && part !== "button" && (
         <ul className={flush ? "" : "space-y-2"}>
           {SLOTS.filter((s) => day[s]).filter((s) => !only || s === only).map((slot) => {
             const meal = day[slot]!;
