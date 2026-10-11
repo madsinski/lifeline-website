@@ -8,7 +8,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Sheet from "./Sheet";
 import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Salad, Sliders } from "lucide-react";
-import { dayFor, mealName, mealsFor, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
+import { DragGhost, useDrag } from "./useDrag";
+import { alternativesFor, dayFor, mealName, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { WEEKDAYS, WEEKDAYS_SHORT, weekdayOf } from "@/lib/hc/personalise";
 import * as cache from "@/lib/hc/client-cache";
 import type { ActionPlan } from "@/lib/hc/types";
@@ -43,6 +44,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   const [pickedDay, setPickedDay] = useState<number | null>(null);
   const shownDay = pickedDay ?? todayIdx;
   const [recipe, setRecipe] = useState<Meal | null>(null);
+
   // The band the protein bar measures against, reported up by MealLogger so
   // the plan is built to land inside it rather than to maximise protein.
   const [band, setBand] = useState<{ min: number; max: number } | null>(null);
@@ -61,6 +63,30 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   const day = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, shownDay, targetG) : null), [meals, nutrition.key, picks, prefs, shownDay, targetG]);
   const today = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, todayIdx, targetG) : null), [meals, nutrition.key, picks, prefs, todayIdx, targetG]);
   const week = useMemo(() => (meals ? weekFor(meals, nutrition.key, picks, prefs, targetG) : null), [meals, nutrition.key, picks, prefs, targetG]);
+  /*
+   * Drag a dinner onto another day to trade them.
+   *
+   * A move rather than a copy: a week has seven dinners and dropping
+   * Thursday's onto Monday has to do something with Monday's, so the two
+   * exchange places. Both ends are written as explicit per-day picks —
+   * dayFor already reads picks[pickKey(day, slot)] before falling back to
+   * the plan's own suggestion, so this is only a matter of saying what
+   * each day holds now.
+   *
+   * Dinner only. It is the meal people actually plan around, the week row
+   * shows it, and dragging a breakfast you cannot see is not a gesture
+   * anyone would attempt.
+   */
+  const { drag, handle } = useDrag<{ day: number }>((payload, target) => {
+    const to = Number(target.replace("nday:", ""));
+    const from = payload.day;
+    if (!Number.isInteger(to) || to === from || !week) return;
+    const a = week[from]?.dinner ?? null;
+    const b = week[to]?.dinner ?? null;
+    if (a) onPick(pickKey(to, "dinner") as MealSlot, a.id);
+    if (b) onPick(pickKey(from, "dinner") as MealSlot, b.id);
+    else onPick(pickKey(from, "dinner") as MealSlot, null);
+  });
   const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
   const totals = day ? SLOTS.reduce((t, s) => ({ kcal: t.kcal + (day[s]?.calories ?? 0), protein: t.protein + (day[s]?.protein ?? 0) }), { kcal: 0, protein: 0 }) : null;
 
@@ -126,7 +152,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           <div className="mt-5">
             <div className="mb-1.5 flex items-baseline justify-between">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Vikan</p>
-              <p className="text-[11px] text-slate-400">Kvöldmatur og prótein · ýttu á dag</p>
+              <p className="text-[11px] text-slate-400">Kvöldmatur · ýttu á dag, dragðu til að skipta</p>
             </div>
             {/* Rows on a phone, the week as a grid from sm up.
                 Seven columns inside 360px gives each day about 44px, and a
@@ -142,9 +168,15 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 const protein = SLOTS.reduce((t, sl) => t + (d[sl]?.protein ?? 0), 0);
                 return (
                   <button key={i} type="button" onClick={() => setPickedDay(i)} aria-pressed={on}
-                    aria-label={`${WEEKDAYS[i]}${i === todayIdx ? " (í dag)" : ""}`}
+                    data-drop={`nday:${i}`}
+                    {...(d.dinner ? handle({ day: i }, mealName(d.dinner)) : {})}
+                    aria-label={`${WEEKDAYS[i]}${i === todayIdx ? " (í dag)" : ""}${d.dinner ? ` — ${mealName(d.dinner)}. Dragðu á annan dag til að skipta.` : ""}`}
                     className={`flex items-center gap-2 border-b border-slate-100 px-1 py-2 text-left transition last:border-b-0 sm:min-h-[84px] sm:flex-col sm:items-stretch sm:gap-1 sm:rounded-xl sm:border sm:p-1.5 ${
-                      on ? "bg-lime-50 sm:border-lime-500" : i === todayIdx ? "bg-lime-50/60 sm:border-lime-300" : "sm:border-slate-200 sm:bg-white sm:hover:border-slate-300"}`}>
+                      d.dinner ? "cursor-grab active:cursor-grabbing" : ""} ${
+                      drag?.over === `nday:${i}` ? "bg-lime-100 sm:border-lime-400"
+                        : on ? "bg-lime-50 sm:border-lime-500"
+                        : i === todayIdx ? "bg-lime-50/60 sm:border-lime-300"
+                        : "sm:border-slate-200 sm:bg-white sm:hover:border-slate-300"}`}>
                     <span className={`w-9 shrink-0 text-[11px] font-bold uppercase sm:w-auto sm:text-center ${i === todayIdx ? "text-lime-800" : "text-slate-400"}`}>
                       {WEEKDAYS_SHORT[i]}
                     </span>
@@ -230,8 +262,24 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
       {slotOpen && meals && (
         <Sheet title={`${SLOT_IS[slotOpen]} · ${shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}`} onClose={() => setSlotOpen(null)}>
+          {/* The near ones first, and said so.
+              This was one ungrouped list of eighteen in the library's own
+              order, so a 40 g dinner sat next to a 12 g one with nothing to
+              tell them apart — and protein is the number the plan is held
+              to. The first group lands within 8 g of what it replaces. */}
+          {(() => {
+            const alts = alternativesFor(day?.[slotOpen] ?? null, meals, nutrition.key, slotOpen, prefs, targetG, shownDay);
+            return alts.near.length > 0 ? (
+              <p className="px-3 pt-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+                Svipað og núverandi
+              </p>
+            ) : null;
+          })()}
           <ul className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
-            {mealsFor(meals, nutrition.key, slotOpen, prefs, targetG).slice(0, 18).map((m) => {
+            {(() => {
+              const alts = alternativesFor(day?.[slotOpen] ?? null, meals, nutrition.key, slotOpen, prefs, targetG, shownDay);
+              return [...alts.near, ...alts.rest].slice(0, 18);
+            })().map((m) => {
               const on = day?.[slotOpen]?.id === m.id;
               return (
                 <li key={m.id}>
@@ -254,6 +302,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
         </Sheet>
       )}
 
+      <DragGhost drag={drag} />
       {recipe && <Recipe m={recipe} onClose={() => setRecipe(null)} />}
       {(nutrition.description || nutrition.goal || nutrition.principles.length > 0) && (
         <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">

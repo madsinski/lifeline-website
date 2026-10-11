@@ -207,3 +207,43 @@ export function libraryDepth(all: Meal[], prefs: NutritionPrefs): { slot: MealSl
     return { slot, have: inSlot.filter((m) => mealAllowed(m, prefs)).length, total: inSlot.length };
   });
 }
+
+/**
+ * The closest things to a meal you already have.
+ *
+ * The `swaps` column was built for this and is empty on all 164 rows, so
+ * "the alternatives somebody curated" does not exist. These are derived
+ * instead: same slot, already past the person's restrictions and their
+ * focus, ordered by how near they land to what they are replacing —
+ * protein first, then calories.
+ *
+ * Protein leads because that is the number the plan is held to. Swapping
+ * a 40 g dinner for a 12 g one quietly breaks the day's target, and a list
+ * ordered by anything else makes that the easiest mistake to make.
+ */
+export function alternativesFor(
+  current: Meal | null,
+  all: Meal[],
+  programKey: string | null | undefined,
+  slot: MealSlot,
+  prefs?: NutritionPrefs,
+  proteinTargetG?: number | null,
+  weekday = 0,
+): { near: Meal[]; rest: Meal[] } {
+  const ranked = mealsFor(all, programKey, slot, prefs, proteinTargetG, weekday)
+    .filter((m) => m.id !== current?.id);
+  if (!current) return { near: [], rest: ranked };
+
+  const p = Number(current.protein) || 0;
+  const k = Number(current.calories) || 0;
+  const distance = (m: Meal) =>
+    Math.abs((Number(m.protein) || 0) - p) * 10 + Math.abs((Number(m.calories) || 0) - k) / 10;
+
+  const sorted = ranked.slice().sort((a, b) => distance(a) - distance(b));
+  /* Within 8 g of protein is "the same meal in different words" as far as
+     the day's total is concerned; past that it is a different decision and
+     belongs in the longer list. */
+  const near = sorted.filter((m) => Math.abs((Number(m.protein) || 0) - p) <= 8).slice(0, 6);
+  const nearIds = new Set(near.map((m) => m.id));
+  return { near, rest: ranked.filter((m) => !nearIds.has(m.id)) };
+}
