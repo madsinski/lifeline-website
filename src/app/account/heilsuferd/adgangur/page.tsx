@@ -71,10 +71,10 @@ function Adgangur() {
         {/* The heading and the way back are up already; the cards need the
             session, so they are the only part that waits. */}
         {!userId && (
-          <div className="animate-pulse space-y-4" aria-busy="true" aria-label="Hleð aðgangi">
-            <div className="h-28 rounded-3xl bg-slate-200/70" />
-            <div className="h-40 rounded-3xl bg-slate-200/60" />
-            <div className="h-28 rounded-3xl bg-slate-200/50" />
+          <div className="space-y-4" aria-busy="true" aria-label="Hleð aðgangi">
+            <div className="h-28 rounded-3xl hc-shimmer" />
+            <div className="h-40 rounded-3xl hc-shimmer" />
+            <div className="h-28 rounded-3xl hc-shimmer" />
           </div>
         )}
         {userId && (<>

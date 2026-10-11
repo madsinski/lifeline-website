@@ -432,3 +432,52 @@ main.readonly-locked a {
 @media (min-width: 640px) {
   :root { --hc-dock-offset: 0px; }
 }
+
+/*
+ * Loading, with something to look at.
+ *
+ * Two pieces. A thin indeterminate bar across the top, which says "this is
+ * coming" without taking the screen, and a shimmer for the skeletons that
+ * replaces a flat grey pulse — a sweep reads as progress where a fade reads
+ * as a broken image.
+ *
+ * Both stop for prefers-reduced-motion. An indeterminate bar is decoration
+ * by definition, so it has nothing to say to somebody who has asked for
+ * stillness; the skeleton keeps its shape and simply holds still.
+ */
+@keyframes hc-bar {
+  0%   { transform: translateX(-100%) scaleX(0.35); }
+  50%  { transform: translateX(10%)   scaleX(0.55); }
+  100% { transform: translateX(100%)  scaleX(0.35); }
+}
+
+@keyframes hc-shimmer {
+  0%   { background-position: 180% 0; }
+  100% { background-position: -80% 0; }
+}
+
+.hc-loading-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, #10B981, #34D399, transparent);
+  animation: hc-bar 1.15s cubic-bezier(0.45, 0, 0.35, 1) infinite;
+}
+
+.hc-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    rgb(226 232 240 / 0.75) 30%,
+    rgb(241 245 249 / 0.95) 48%,
+    rgb(226 232 240 / 0.75) 62%
+  );
+  background-size: 220% 100%;
+  animation: hc-shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hc-loading-bar::after { animation: none; transform: scaleX(0.4); }
+  .hc-shimmer { animation: none; }
+}

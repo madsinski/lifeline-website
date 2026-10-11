@@ -29,6 +29,7 @@ import CoachView from "@/app/components/hc/CoachView";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
 import JourneyNav, { type JourneyPlace, JourneyHeader } from "@/app/components/hc/JourneyNav";
+import { LoadingBar, Skeleton } from "@/app/components/hc/Loading";
 import type { Upcoming } from "@/lib/hc/upcoming";
 import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
@@ -83,14 +84,19 @@ interface Loaded {
  */
 function PlanSkeleton() {
   return (
-    <div className="animate-pulse space-y-4" aria-busy="true" aria-label="Hleð áætluninni">
-      <div className="h-11 rounded-hc-element bg-slate-200/70" />
-      <div className="h-28 rounded-3xl bg-slate-200/70" />
+    <div className="space-y-4" aria-busy="true" aria-label="Hleð áætluninni">
+      {/* A bar at the top says something is happening; the blocks below
+          keep the layout from jumping when it lands. The blocks shimmer
+          rather than blink — a sweep reads as progress where a fade reads
+          as a broken image. */}
+      <LoadingBar />
+      <Skeleton className="h-11 rounded-hc-element" />
+      <Skeleton className="h-28" />
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="h-24 rounded-3xl bg-slate-200/60" />
-        <div className="h-24 rounded-3xl bg-slate-200/60" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24" />
       </div>
-      <div className="h-40 rounded-3xl bg-slate-200/50" />
+      <Skeleton className="h-40" />
     </div>
   );
 }

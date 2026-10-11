@@ -104,9 +104,9 @@ function Fraedsla() {
         {library && <LectureLibrary api={api} onClose={() => setLibrary(false)} />}
 
         {lectures === null && (
-          <div className="animate-pulse space-y-2" aria-busy="true" aria-label="Hleð fræðslu">
-            <div className="h-28 rounded-hc-card bg-slate-200/70" />
-            <div className="h-16 rounded-hc-card bg-slate-200/50" />
+          <div className="space-y-2" aria-busy="true" aria-label="Hleð fræðslu">
+            <div className="h-28 rounded-hc-card hc-shimmer" />
+            <div className="h-16 rounded-hc-card hc-shimmer" />
           </div>
         )}
 
