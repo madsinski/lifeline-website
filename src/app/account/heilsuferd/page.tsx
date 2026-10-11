@@ -19,7 +19,8 @@ import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
-import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
+import JourneyNav from "@/app/components/hc/JourneyNav";
+import SetupFlow from "@/app/components/hc/SetupFlow";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
@@ -477,7 +478,22 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
     case "account":
       return <p className="text-sm text-slate-600">Aðgangurinn þinn er á <strong>{data.profile.email}</strong>. Hér heldur þú utan um alla heilsuferðina.</p>;
     case "profile":
-      return <ProfileForm data={data} reload={reload} />;
+      /*
+       * The details, then the rest of the setup.
+       *
+       * The coach, the calendar, the ábyrgðarfélagi and the daily reminder
+       * were all built and all four sat in Stillingar — a page you reach by
+       * finishing onboarding and then going looking for it. So we asked a
+       * new participant for a kennitala and left the parts that decide
+       * whether they come back to be found later, or never. They are
+       * offered here, at the first step they actually do.
+       */
+      return (
+        <div className="space-y-5">
+          <ProfileForm data={data} reload={reload} />
+          <SetupFlow api={api} />
+        </div>
+      );
     case "welcome":
       return <WelcomeStep data={data} />;
     case "package":
