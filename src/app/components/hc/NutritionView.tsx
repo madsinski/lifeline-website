@@ -5,7 +5,7 @@
 // picture, protein and energy and the full recipe, and other meals to swap in.
 // Picks are saved to hc_training_settings.meal_picks through onPick.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Sheet from "./Sheet";
 import { ArrowLeftRight, Check, ChevronDown, ChevronLeft, Clock, Info, Plus, Sliders, Utensils } from "lucide-react";
 import { OPTIONAL_SLOTS, alternativesFor, dayFor, mealName, mealText, pickKey, SLOT_IS, SLOTS, weekFor, type Meal, type MealSlot } from "@/lib/hc/meals";
@@ -14,8 +14,7 @@ import * as cache from "@/lib/hc/client-cache";
 import type { ActionPlan } from "@/lib/hc/types";
 import { ALLERGEN_OPTIONS, DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type NutritionPrefs } from "@/lib/hc/nutrition";
 import type { Signal } from "@/lib/hc/grunnheilsa";
-import MealLogger from "./MealLogger";
-import { FIBRE_TARGET } from "@/lib/hc/nutrition-log";
+import { FIBRE_TARGET, proteinTarget } from "@/lib/hc/nutrition-log";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
@@ -54,12 +53,16 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   const shownDay = pickedDay ?? todayIdx;
   const [recipe, setRecipe] = useState<Meal | null>(null);
 
-  // The band the protein bar measures against, reported up by MealLogger so
-  // the plan is built to land inside it rather than to maximise protein.
-  const [band, setBand] = useState<{ min: number; max: number } | null>(null);
-  const onTarget = useCallback((t: { min: number; max: number } | null) => {
-    setBand((prev) => (prev?.min === t?.min && prev?.max === t?.max ? prev : t));
-  }, []);
+  /*
+   * The protein band, computed here.
+   *
+   * MealLogger used to work this out and report it upwards, which was fine
+   * while it was on the page. It is gone with the checklist, and the band is
+   * not its business anyway — the plan is built to land inside it, so the
+   * page that builds the plan should own it. Same function MealLogger
+   * called: 1,6-2,0 g per kilo.
+   */
+  const band = useMemo(() => proteinTarget(weightKg), [weightKg]);
   const targetG = band ? Math.round((band.min + band.max) / 2) : null;
 
   useEffect(() => {
@@ -70,7 +73,6 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   }, [api]);
 
   const day = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, shownDay, targetG) : null), [meals, nutrition.key, picks, prefs, shownDay, targetG]);
-  const today = useMemo(() => (meals ? dayFor(meals, nutrition.key, picks, prefs, todayIdx, targetG) : null), [meals, nutrition.key, picks, prefs, todayIdx, targetG]);
   const week = useMemo(() => (meals ? weekFor(meals, nutrition.key, picks, prefs, targetG) : null), [meals, nutrition.key, picks, prefs, targetG]);
 
   /*
@@ -206,12 +208,6 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           );
         })()}
 
-        {/* The bar, in the place the exercise hero keeps its stage. */}
-        {today && (
-          <div className="mt-3">
-            <MealLogger day={today} weightKg={weightKg ?? null} part="bar" onTarget={onTarget} />
-          </div>
-        )}
 
       </section>
 
@@ -373,7 +369,15 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
       </section>
 
-      {today && <MealLogger day={today} weightKg={weightKg ?? null} part="list" />}
+      {/* The checklist is gone, and with it meal logging.
+          It was the only write path — part="bar" only ever displayed — so
+          the "Dagurinn þinn" bar went with it rather than sit at 0 g of 4
+          meals for ever with no way to move. Næring is the planner now:
+          what is next, what the week holds, and whether it adds up.
+
+          If ticking meals comes back it belongs on Í dag, beside the habit
+          checklist, which is where "what did I actually do today" already
+          lives. */}
 
       {/* The compact day list used to sit here, and the planner above now
           is that list — same meals, same slots, same swap, in the card that
