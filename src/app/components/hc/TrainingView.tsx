@@ -264,7 +264,11 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               on its baseline, it reads as what it is: the way into this
               programme. */}
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-700">Æfingaáætlunin mín</p>
+            {/* Tracking down from 0.18em and the word shortened. "Æ F I N G A Á Æ
+              T L U N I N   M Í N" is what 0.18em does to a seventeen-letter
+              Icelandic compound: the heading under it already says which
+              programme this is. */}
+            <p className="text-xs font-bold uppercase tracking-[0.08em] text-orange-700">Áætlunin mín</p>
             <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
               <h2 className="min-w-0 text-2xl font-bold text-slate-900">{exercise.name}</h2>
               {/* One pill, one sleeve.
@@ -377,21 +381,25 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                               is orange because it is mainly strength — and
                               this says "and also HIIT" without making it a
                               second kind of session. */}
-                          {activitySecondary(a) && (
-                            <span aria-hidden
-                              className={`ml-auto h-2 w-2 shrink-0 rounded-full ring-1 ring-white/70 ${
-                                MODALITY_IS[activitySecondary(a)!]?.dot ?? ""}`}
-                              title={`Einnig ${MODALITY_IS[activitySecondary(a)!]?.label ?? ""}`} />
-                          )}
                         </span>
                         {/* Everything it covers, not just the headline one:
                             CrossFit is strength AND hiit, and a week that
                             counts it once is a week that double-books. */}
-                        <span className="block truncate text-[10px] font-semibold opacity-70">
-                          {(a.covers?.length ? a.covers : [am])
-                            .map((c) => MODALITY_IS[c]?.label ?? c)
-                            .join(" + ")}
-                          {a.at ? ` · ${a.at}` : ""}
+                        {/* The secondary attribute sits with the words it
+                            qualifies. In the chip's top corner it read as
+                            an unread badge, which is what a small coloured
+                            dot means everywhere else on a phone. */}
+                        <span className="flex items-center gap-1 truncate text-[10px] font-semibold opacity-70">
+                          <span className="truncate">
+                            {(a.covers?.length ? a.covers : [am])
+                              .map((c) => MODALITY_IS[c]?.label ?? c)
+                              .join(" + ")}
+                            {a.at ? ` · ${a.at}` : ""}
+                          </span>
+                          {activitySecondary(a) && (
+                            <span aria-hidden
+                              className={`h-1.5 w-1.5 shrink-0 rounded-full ${MODALITY_IS[activitySecondary(a)!]?.dot ?? ""}`} />
+                          )}
                         </span>
                       </button>
                       {/* Tapped: time, swap, remove — in place, because
@@ -439,7 +447,13 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                       aria-label={here.length === 0 && mine.length === 0
                         ? `Bæta við æfingu á ${WEEKDAYS[i].toLowerCase()}`
                         : `Bæta við öðru á ${WEEKDAYS[i].toLowerCase()}`}
-                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-base font-semibold text-slate-400 ring-1 ring-slate-200 transition hover:bg-orange-50 hover:text-orange-700 sm:mt-auto sm:h-7 sm:w-full">
+                      /* Quieter than the activity beside it. A boxed
+                         button the same height as the chip made "add
+                         something" look as important as the training
+                         already there — seven of them down the week, each
+                         competing with the thing it sits next to. Still a
+                         44px target; just not a second card. */
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-base font-semibold text-slate-300 transition hover:bg-orange-50 hover:text-orange-700 sm:mt-auto sm:h-7 sm:w-full">
                       <span aria-hidden>+</span>
                     </button>
                   )}
