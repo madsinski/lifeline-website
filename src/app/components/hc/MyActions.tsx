@@ -13,7 +13,7 @@ import * as cache from "@/lib/hc/client-cache";
 import ActionSheet from "./ActionSheet";
 import Sheet from "./Sheet";
 import MealLogger from "./MealLogger";
-import { SLOT_IS, type Meal, type MealSlot } from "@/lib/hc/meals";
+import { type Meal, type MealSlot } from "@/lib/hc/meals";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronRight, EyeOff, Loader2, Plus, RotateCcw } from "lucide-react";
 import { PILLAR_META, type ActionPlan, type Pillar, type PlanItem, type WhenOfDay } from "@/lib/hc/types";
@@ -490,34 +490,48 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                   dropped into Morgunn would simply reappear under Kvöld.
                   Offering what fits is honest; letting somebody pick and
                   then moving it would not be. */}
-              {/* Today's meals, each in the part of the day it belongs to.
-                  Breakfast and the first snack are the morning, lunch the
-                  middle, dinner and a second snack the evening — which is
-                  what the plan's own slots already mean, so nothing here
-                  invents a schedule.
+              {/* Today's meals, as items in the list rather than a card in it.
+                  They were a bordered block inside a bordered section — a
+                  card in a card, which is exactly how it read: a separate
+                  thing bolted on rather than part of the day. MealLogger
+                  renders them flush now, in the same row as every other
+                  item, and still owns the write: it is the only thing that
+                  touches meal_log.
 
-                  MealLogger renders the rows and owns the write: it is the
-                  only thing that touches meal_log, and a second copy of
-                  that write living here would be two things to keep in
-                  step. */}
+                  Where they sit: after the nutrition habits of this section,
+                  because the habit is the rule ("próteinríkur morgunmatur")
+                  and the meal is this morning's instance of it. Reading rule
+                  then instance is the order they make sense in.
+
+                  Two ticks, not one, and deliberately so. "Did I keep to a
+                  protein-rich breakfast" and "did I eat the breakfast the
+                  plan laid out" are different claims — somebody can manage
+                  the first with eggs that are not in the plan — and a single
+                  tick would have to silently decide which one it meant. */}
               {meals && MEAL_WHEN[p].some((sl) => meals[sl]) && (
-                <li className="border-t border-slate-100 px-3 py-2.5">
-                  <p className="mb-1.5 px-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                    {MEAL_WHEN[p].length === 1 ? SLOT_IS[MEAL_WHEN[p][0]] : "Máltíðir"}
-                  </p>
-                  <div className="space-y-2">
-                    {MEAL_WHEN[p].filter((sl) => meals[sl]).map((sl) => (
-                      <MealLogger key={sl} day={meals} weightKg={null} part="list" only={sl} />
-                    ))}
-                  </div>
-                </li>
+                MEAL_WHEN[p].filter((sl) => meals[sl]).map((sl) => (
+                  <MealLogger key={`meal-${sl}`} day={meals} weightKg={null} part="list" only={sl}
+                    /* The same two values ActionRow uses, so a ticked meal
+                       and a ticked habit are the same green. Measured: a
+                       white check on #65A30D is 3.1:1, which clears the 3.0
+                       bar for a large glyph. */
+                    flush tone={{ color: PILLAR_META.nutrition.color, ring: PILLAR_META.nutrition.ring }} />
+                ))
               )}
 
               {onAddAction && (
                 <li className="border-t border-slate-100 px-4 py-2.5">
                   <button type="button" onClick={() => setAdding(p)}
+                    aria-label={`Bæta við aðgerð — ${meta.label}`}
                     className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-400 hover:text-slate-700">
-                    <Plus className="h-3.5 w-3.5" aria-hidden /> Bæta við í {meta.label.toLowerCase()}
+                    {/* Just "Bæta við". "Bæta við í morgunn" does not
+                        decline — it would want "að morgni", "um daginn",
+                        "um kvöldið" — and the button sits inside the
+                        section whose heading already names it, so the
+                        words were redundant as well as wrong. The
+                        accessible name carries the section for anybody
+                        who cannot see where the button is. */}
+                    <Plus className="h-3.5 w-3.5" aria-hidden /> Bæta við
                   </button>
                 </li>
               )}
@@ -530,7 +544,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
           in the plan, added one at a time by the server so this screen never
           has to hold the whole plan to append to it. */}
       {adding && onAddAction && (
-        <Sheet title={`Bæta við í ${WHEN_META[adding].label.toLowerCase()}`} onClose={() => setAdding(null)} canvas>
+        <Sheet title={`Bæta við — ${WHEN_META[adding].label}`} onClose={() => setAdding(null)} canvas>
           <AddPicker api={api} when={adding} inPlan={new Set(plan.modules.map((m) => m.key).filter((k): k is string => !!k))}
             onAdd={async (key) => { await onAddAction(key); setAdding(null); }} />
         </Sheet>

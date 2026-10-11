@@ -17,6 +17,35 @@ import type { Signal } from "@/lib/hc/grunnheilsa";
 import { FIBRE_TARGET, proteinTarget } from "@/lib/hc/nutrition-log";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
+
+/**
+ * Three levels of attention, and the contrast each one is allowed.
+ *
+ * The page had lime and slate applied by eye, and two of the results failed
+ * WCAG AA outright: text-slate-400 on white is 2.6:1 where body text needs
+ * 4.5, and white on lime-600 — which every solid block used — is 3.1:1. So
+ * this is a correctness fix before it is a design one. lime-700 is 5.0:1 and
+ * slate-500 is 4.8:1; both pass, and they are the darkest steps that still
+ * read as the same hue.
+ *
+ * The levels exist so "what should I look at" has one answer per screen:
+ *
+ *   act   the one thing to do now — the next meal. Solid, white on lime-700.
+ *   on    what you have selected. A 2px lime ring on a tinted ground, which
+ *         reads as chosen without competing with `act`.
+ *   off   everything else. White, hairline slate ring.
+ *
+ * Nothing else gets a fill. A page where three things are solid is a page
+ * with no priority at all.
+ */
+const TONE = {
+  act: "bg-lime-700 text-white",
+  actRing: "ring-2 ring-lime-700",
+  on: "bg-lime-50 ring-2 ring-lime-600",
+  off: "bg-white ring-1 ring-slate-200",
+  label: "text-slate-500",
+  quiet: "text-slate-600",
+} as const;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
 
 export default function NutritionView({ api, nutrition, picks, onPick, onChangeProgram, prefs, onCustomise, signals, weightKg, onSelfWeight, favourites = [], onFavourite }: {
@@ -184,29 +213,39 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           const m = day?.[nextSlot] ?? null;
           const mins = m ? (m.prep_time_min ?? 0) + (m.cook_time_min ?? 0) : 0;
           const isToday = shownDay === todayIdx;
+          /*
+           * Priority 1, and the only fill on the page.
+           *
+           * A white card with a pale ring was the same weight as every other
+           * card here, so "the meal you are about to eat" looked like a list
+           * item. The header band carries the fill; the body stays white so
+           * the macros and the recipe text keep their contrast.
+           */
           return (
-            <div className={`mt-4 overflow-hidden rounded-3xl bg-white ring-1 transition ${
-              isToday ? "ring-2 ring-lime-500" : "ring-slate-200"}`}>
+            <div className={`mt-4 overflow-hidden rounded-3xl bg-white transition ${
+              isToday ? TONE.actRing : "ring-1 ring-slate-200"}`}>
               <button type="button" onClick={() => setHeadOpen((v) => !v)} aria-expanded={headOpen}
-                className="flex w-full items-center gap-3 p-4 text-left">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-lime-100 text-lime-800">
+                className={`flex w-full items-center gap-3 p-4 text-left ${isToday ? TONE.act : "bg-white"}`}>
+                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                  isToday ? "bg-white/20 text-white" : "bg-lime-100 text-lime-800"}`}>
                   <Utensils className="h-5 w-5" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-lime-700">
+                  <span className={`block text-[11px] font-bold uppercase tracking-[0.1em] ${
+                    isToday ? "text-lime-100" : "text-lime-800"}`}>
                     {SLOT_IS[nextSlot]}{isToday ? " · í dag" : ` · ${WEEKDAYS[shownDay].toLowerCase()}`}
                   </span>
-                  <span className="block font-bold leading-tight text-slate-900">
+                  <span className={`block font-bold leading-tight ${isToday ? "text-white" : "text-slate-900"}`}>
                     {m ? mealName(m) : day ? "Engin máltíð valin" : "Hleð…"}
                   </span>
                   {m && (
-                    <span className="mt-0.5 block text-sm text-slate-500">
+                    <span className={`mt-0.5 block text-sm ${isToday ? "text-lime-50" : "text-slate-600"}`}>
                       {[m.protein != null ? `${Math.round(Number(m.protein))} g prótein` : null,
                         mins ? `${mins} mín.` : null].filter(Boolean).join(" · ")}
                     </span>
                   )}
                 </span>
-                <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${headOpen ? "rotate-180" : ""}`} aria-hidden />
+                <ChevronDown className={`h-5 w-5 shrink-0 transition ${isToday ? "text-lime-100" : "text-slate-500"} ${headOpen ? "rotate-180" : ""}`} aria-hidden />
               </button>
 
               {headOpen && m && (
@@ -215,7 +254,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                     {([["Prótein", m.protein, "g"], ["Kolvetni", m.carbs, "g"],
                        ["Fita", m.fat, "g"], ["Orka", m.calories, "kkal"]] as const).map(([label, v, unit]) => (
                       <div key={label} className="rounded-xl bg-white p-2 ring-1 ring-slate-200">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
                         <p className="text-sm font-bold tabular-nums text-slate-900">
                           {v != null ? Math.round(Number(v)) : "—"}<span className="text-[10px] font-normal text-slate-500"> {unit}</span>
                         </p>
@@ -308,7 +347,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                   }}
                   aria-pressed={i === shownDay}
                   className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase transition ${
-                    i === shownDay ? "bg-lime-600 text-white"
+                    i === shownDay ? "bg-lime-700 text-white"
                       : i === todayIdx ? "bg-lime-50 text-lime-800 ring-1 ring-lime-200"
                       : "text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50"}`}>
                   {lbl}
@@ -369,12 +408,12 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                                 top — which is what the list is for — and the
                                 circle on the left, where the tick sits in a
                                 checklist, is the only way into the library. */}
-                            <div className={`flex items-center gap-3 rounded-2xl p-3 ring-1 transition ${
-                              on ? "bg-lime-50 ring-2 ring-lime-500" : "bg-white ring-slate-200"}`}>
+                            <div className={`flex items-center gap-3 rounded-2xl p-3 transition ${
+                              on ? TONE.on : TONE.off}`}>
                               <button type="button"
                                 onClick={() => { setPickedDay(i); setSlotOpen(sl); }}
                                 aria-label={`Skipta um ${SLOT_IS[sl].toLowerCase()} ${WEEKDAYS[i].toLowerCase()}`}
-                                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-slate-200 text-slate-400 transition hover:border-lime-500 hover:bg-lime-50 hover:text-lime-700">
+                                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-slate-200 text-slate-500 transition hover:border-lime-500 hover:bg-lime-50 hover:text-lime-700">
                                 <ArrowLeftRight className="h-4 w-4" aria-hidden />
                               </button>
                               <button type="button"
@@ -383,7 +422,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                                 className="min-w-0 flex-1 text-left"
                                 aria-label={`Sýna ${SLOT_IS[sl].toLowerCase()}${m ? `: ${mealName(m)}` : ""} í kortinu að ofan`}>
                                 <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{SLOT_IS[sl]}</span>
-                                <span className={`block truncate font-semibold ${m ? "text-slate-900" : "text-slate-400"}`}>
+                                <span className={`block truncate font-semibold ${m ? "text-slate-900" : "text-slate-500"}`}>
                                   {m ? mealName(m) : "Engin máltíð"}
                                 </span>
                               </button>
@@ -410,7 +449,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                       </button>
                     ) : (
                       <button type="button" onClick={() => onPick(pickKey(i, "snack2") as MealSlot, null)}
-                        className="mt-1.5 text-[11px] font-semibold text-slate-400 transition hover:text-slate-700">
+                        className="mt-1.5 text-[11px] font-semibold text-slate-500 transition hover:text-slate-700">
                         Fjarlægja millimál 2
                       </button>
                     )}
@@ -451,7 +490,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
         <Sheet title="Prógrammið" onClose={() => setDetail(false)} canvas>
           <div className="space-y-3 p-3">
             <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Áætlunin</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Áætlunin</p>
               <h3 className="mt-0.5 text-lg font-bold text-slate-900">{nutrition.name}</h3>
               {nutrition.principles?.length > 0 && (
                 <ul className="mt-2 space-y-1">
@@ -469,7 +508,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 one day under is normal and a week under is the thing worth
                 knowing. */}
             <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Meðaldagur í vikunni</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Meðaldagur í vikunni</p>
               {(() => {
                 const sum = week.reduce((t, d) => {
                   for (const sl of SLOTS) {
@@ -505,8 +544,8 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                             <span className="font-semibold text-slate-700">{r.label}</span>
                             <span className="tabular-nums text-slate-600">
                               <strong className={under ? "text-amber-700" : over ? "text-slate-900" : "text-lime-700"}>{r.got}</strong>
-                              <span className="text-slate-400"> {r.unit}</span>
-                              {r.target && <span className="text-xs text-slate-400"> · mark {r.target.min}–{r.target.max}</span>}
+                              <span className="text-slate-500"> {r.unit}</span>
+                              {r.target && <span className="text-xs text-slate-500"> · mark {r.target.min}–{r.target.max}</span>}
                             </span>
                           </div>
                           {pct != null && (
@@ -590,7 +629,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
               if (chips.length === 0) return null;
               return (
                 <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Áherslur og það sem er sleppt</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Áherslur og það sem er sleppt</p>
                   <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
                     {chips.map((c) => (
                       <span key={c.key} className={`rounded-full px-2.5 py-1 font-semibold ring-1 ${c.cls}`}>{c.label}</span>
@@ -602,7 +641,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
             {onCustomise && (
               <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Breyta</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Breyta</p>
                 <p className="mt-1 text-sm text-slate-600">Áherslur, mataræði og það sem þú vilt sleppa.</p>
                 <button type="button" onClick={() => { setDetail(false); onCustomise(); }}
                   className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
@@ -704,7 +743,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                                     .filter(Boolean).join(" · ")}
                                 </span>
                                 {near.has(m.id) && (
-                                  <span className="text-[10px] font-semibold text-slate-400">≈ svipað og núverandi</span>
+                                  <span className="text-[10px] font-semibold text-slate-500">≈ svipað og núverandi</span>
                                 )}
                               </span>
                             </span>
@@ -734,7 +773,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-slate-800">
             <Info className="h-4 w-4 text-lime-700" aria-hidden />
             Um áætlunina — það sem skiptir mestu
-            <ChevronDown className="ml-auto h-4 w-4 text-slate-400 transition group-open:rotate-180" aria-hidden />
+            <ChevronDown className="ml-auto h-4 w-4 text-slate-500 transition group-open:rotate-180" aria-hidden />
           </summary>
           <div className="mt-3 space-y-4">
             {nutrition.goal && <p className="text-sm font-medium text-slate-800">{nutrition.goal}</p>}
@@ -774,7 +813,7 @@ function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
               so this is empty today — but a picture that needs a credit and
               does not carry one is a licence breach, not a missing nicety. */}
           {m.illustration_credit && (
-            <p className="px-4 pt-1 text-[11px] text-slate-400">Mynd: {m.illustration_credit}</p>
+            <p className="px-4 pt-1 text-[11px] text-slate-500">Mynd: {m.illustration_credit}</p>
           )}
         </>
       )}

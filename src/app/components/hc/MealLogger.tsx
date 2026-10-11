@@ -22,7 +22,7 @@ import { localDate } from "@/lib/hc/workout";
 import { proteinState, proteinTarget, totalsOf, type MealLogRow } from "@/lib/hc/nutrition-log";
 import { mealName, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
 
-export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget, only }: {
+export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget, only, flush = false, tone }: {
   /** The meal in each slot today, as the plan has it. */
   day: Record<MealSlot, Meal | null>;
   /** From the report's þyngd row; null means no protein bar. */
@@ -44,6 +44,18 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
    * step. The card asks for one row instead.
    */
   only?: MealSlot;
+  /**
+   * Render rows the way Í dag's checklist renders every other item.
+   *
+   * On the Næring page these were cards in their own right. Dropped into the
+   * Í dag list they became a card inside a card, which is exactly how they
+   * looked — a separate thing bolted on rather than part of the day. This
+   * variant drops the card and matches ActionRow: same padding, same 40px
+   * tick, same type, and the pillar's own colour when it is ticked.
+   */
+  flush?: boolean;
+  /** The pillar colour for a ticked row, so Næring reads as Næring. */
+  tone?: { color: string; ring: string };
   /**
    * Reports the band this bar measures against, so the plan can be built to
    * land inside it. Without this the plan was assembled to maximise protein
@@ -157,10 +169,44 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
       )}
 
       {!compact && part !== "bar" && (
-        <ul className="space-y-2">
+        <ul className={flush ? "" : "space-y-2"}>
           {SLOTS.filter((s) => day[s]).filter((s) => !only || s === only).map((slot) => {
             const meal = day[slot]!;
             const done = !!loggedSlot(slot);
+
+            /* Flush: the row Í dag's checklist uses for everything else. */
+            if (flush) {
+              return (
+                <li key={slot} className="border-t border-slate-100 first:border-t-0">
+                  <div className="flex items-start gap-3 px-3 py-3 sm:px-4">
+                    <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
+                      aria-pressed={done}
+                      aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${SLOT_IS[slot]} — ${mealName(meal)}`}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-white transition active:scale-90 ${
+                        done ? "border-transparent text-white" : "text-transparent"}`}
+                      style={done
+                        ? { background: tone?.color ?? "#3F6212" }
+                        : { borderColor: tone?.ring ?? "#CBD5E1" }}>
+                      {busy === slot
+                        ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                        : <Check className="h-5 w-5" strokeWidth={3} />}
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className={`font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
+                        {mealName(meal)}
+                      </p>
+                      <p className="mt-0.5 text-sm text-slate-500">
+                        {[SLOT_IS[slot],
+                          meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
+                          meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
+                          .filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              );
+            }
+
             return (
               <li key={slot}>
                 <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
@@ -169,7 +215,7 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
                     done ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-white ring-slate-200 hover:ring-slate-300"}`}>
                   <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${
                     done ? "border-transparent bg-emerald-600 text-white" : "border-slate-200 text-transparent"}`}>
-                    {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-slate-400" /> : <Check className="h-5 w-5" strokeWidth={3} />}
+                    {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : <Check className="h-5 w-5" strokeWidth={3} />}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{SLOT_IS[slot]}</span>
