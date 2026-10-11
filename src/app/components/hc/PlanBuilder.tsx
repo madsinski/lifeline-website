@@ -830,16 +830,17 @@ function NutritionEditor({ value, templates, onChange, api, journeyId, weightKg 
               onDone={(r) => r.day_example && onChange({ ...value, day_example: r.day_example })} />
             <DayExampleEditor api={api} value={value.day_example ?? []} onChange={(day_example) => onChange({ ...value, day_example })} />
           </div>
-          {/* And what actually comes out of it.
-              The template above says "high protein, three meals"; this says
-              "Thursday is skyr again". Only the first was answerable from
-              this screen, although meal_picks has been arriving with the
-              training settings all along. */}
-          <div className="mt-3 rounded-xl border border-slate-100 p-3">
-            <CoachMealWeek api={api} journeyId={journeyId} programKey={value.key ?? null} weightKg={weightKg} />
-          </div>
+
         </div>
       )}
+      {/* And what actually comes out of it.
+          Outside the `value &&` block on purpose: with no template chosen
+          there is no week, and saying so is the useful thing to show. My
+          first attempt nested it inside, where its own empty state could
+          never render — invisible exactly when it had something to say. */}
+      <div className="mt-3 rounded-xl border border-slate-100 p-3">
+        <CoachMealWeek api={api} journeyId={journeyId} programKey={value?.key ?? null} weightKg={weightKg} />
+      </div>
     </div>
   );
 }
