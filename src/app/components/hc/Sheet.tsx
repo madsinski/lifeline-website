@@ -24,9 +24,22 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 
-export default function Sheet({ title, onClose, children, max = "max-w-lg", canvas = false, header, draggable = true }: {
+export default function Sheet({ title, onClose, children, max = "max-w-lg", canvas = false, header, draggable = true, scrollResetKey }: {
   /** The dialog's accessible name. */
   title: string;
+  /**
+   * Change this to send the sheet back to the top.
+   *
+   * A sheet whose content is replaced in place — the onboarding walkthrough
+   * swapping one step for the next — keeps the scroll position of what was
+   * there before. Step 2 is a tall form, and arriving at it already scrolled
+   * to the bottom means the first thing anybody sees is the save button,
+   * with the question they are meant to answer off screen above.
+   *
+   * Passing the step number here resets it on every step. A sheet with one
+   * body does not need it.
+   */
+  scrollResetKey?: string | number;
   onClose: () => void;
   children: React.ReactNode;
   /** Tailwind max-width for the panel; some libraries want a wide one. */
@@ -144,6 +157,13 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
    */
   // No state for this: there is nothing to synchronise, and setting it in
   // an effect would cost a render and trip the compiler's rule for it.
+  /* Back to the top whenever the caller says the content changed. */
+  useEffect(() => {
+    if (scrollResetKey === undefined) return;
+    const el = scroller.current;
+    if (el) el.scrollTop = 0;
+  }, [scrollResetKey]);
+
   const host = typeof document === "undefined" ? null : document.body;
   if (!host) return null;
 

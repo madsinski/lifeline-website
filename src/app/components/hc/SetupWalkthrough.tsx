@@ -136,7 +136,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
   const row = steps[i];
 
   return (
-    <Sheet title="Uppsetning, skref fyrir skref" onClose={onClose} max="max-w-md">
+    <Sheet title="Uppsetning, skref fyrir skref" onClose={onClose} max="max-w-md" scrollResetKey={i}>
       <div className="p-4">
         {/* Where you are. Dots rather than "3/4", because the point of
             walking it is that the next thing is one thing. */}
