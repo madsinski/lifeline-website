@@ -48,7 +48,8 @@ import TrainingWizard from "@/app/components/hc/TrainingWizard";
 import NutritionView from "@/app/components/hc/NutritionView";
 import NutritionWizard from "@/app/components/hc/NutritionWizard";
 import { DEFAULT_NUTRITION, type NutritionPrefs } from "@/lib/hc/nutrition";
-import type { Meal } from "@/lib/hc/meals";
+import { dayFor, type Meal } from "@/lib/hc/meals";
+import { proteinTarget } from "@/lib/hc/nutrition-log";
 import ProgramPicker from "@/app/components/hc/ProgramPicker";
 import TodayOverview, { TodayHeader } from "@/app/components/hc/TodayOverview";
 import { DEFAULT_PERSONAL, personalise, type Personal } from "@/lib/hc/personalise";
@@ -408,6 +409,35 @@ function PlanPageInner() {
    */
   const weightKg = body.weightKg ?? selfBody.weight_kg;
 
+  /*
+   * Today's meals, computed here because two tabs need them.
+   *
+   * Næring plans the week; Í dag is where "did I actually do it" lives. The
+   * meal checklist used to sit on Næring, which is why taking it off that
+   * page left ticking with nowhere to go — the fix was never to put it back
+   * there but to pass the day's meals to the checklist that already holds
+   * every other habit.
+   *
+   * Same dayFor the Næring page uses, so the two always agree about what
+   * Tuesday's lunch is.
+   */
+  const [mealLib, setMealLib] = useState<Meal[] | null>(null);
+  useEffect(() => {
+    (async () => {
+      const r = await cache.load(api, "/api/hc/library?kind=meals");
+      if (r.status < 400) setMealLib((r.body as { meals: Meal[] }).meals ?? []);
+    })();
+  }, [api]);
+
+  const todayMeals = useMemo(() => {
+    const key = plan?.nutrition?.key ?? null;
+    if (!mealLib || !key) return null;
+    const band = proteinTarget(weightKg);
+    const targetG = band ? Math.round((band.min + band.max) / 2) : null;
+    const wd = (new Date().getDay() + 6) % 7;
+    return dayFor(mealLib, key, personal.meal_picks ?? {}, nutritionPrefs, wd, targetG);
+  }, [mealLib, plan?.nutrition?.key, personal.meal_picks, nutritionPrefs, weightKg]);
+
   const reportTitlesBySlug = useMemo(() => {
     const out: Record<string, string> = {};
     for (const item of data?.report?.report.items ?? []) if (item.slug) out[item.slug] = item.title;
@@ -635,6 +665,18 @@ function PlanPageInner() {
                   {!soonHidden && <UpcomingSoon items={upcoming} onDismiss={hideSoon} />}
                   <MyActions api={api} journeyId={data.journey_id} plan={plan}
                     onEditPillar={(pl) => { setEditPillar(pl); setEditing(true); }} logs={data.logs} prefs={data.prefs}
+                    /* One library action appended server side, then the page
+                       reloads so the new habit appears with everything else
+                       rather than being patched in locally. */
+                    onAddAction={async (key) => {
+                      const r = await api("/api/hc/my-plan", { method: "POST", body: JSON.stringify({ add_key: key }) });
+                      if (r.ok) { cache.invalidate("/api/hc/plan", "/api/hc/my-plan", "/api/hc/actions"); setReloadKey((k) => k + 1); }
+                    }}
+                    /* Today's meals, so the checklist is the whole day.
+                       Næring plans them and this is where "did I" lives —
+                       which is why removing the meal checklist from Næring
+                       left ticking with no home until now. */
+                    meals={todayMeals}
                     links={{ exercise: plan.exercise ? () => setTab("exercise", exercise?.sessions.find((x) => x.weekday === ((new Date().getDay() + 6) % 7))?.id) : null, nutrition: plan.nutrition ? () => setTab("nutrition") : null, lecture: lectureFor }}
                     exercise={exercise} training={training} doneToday={doneToday} onLogs={setLiveLogs} onCounts={setLiveCounts}
                     onCompleteActivity={(a) => void finishWorkout({

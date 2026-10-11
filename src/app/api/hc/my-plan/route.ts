@@ -133,6 +133,53 @@ export async function POST(req: NextRequest) {
   const byKey = new Map(lib.map((m) => [m.key, m]));
   const before = new Map(((existing?.modules ?? []) as PlanItem[]).map((m) => [m.uid, m]));
 
+  /*
+   * Append one library action, server side.
+   *
+   * The "+" at the foot of a time-of-day section on Í dag sends one key.
+   * The alternative was for that screen to rebuild the whole items array
+   * and send it back, which means a surface that only wants to add a habit
+   * holding — and potentially clobbering — every other habit in the plan.
+   * Appending here reads the stored plan, adds one, and leaves the rest
+   * untouched by construction.
+   *
+   * Still a published version with an audit line, like any other change the
+   * participant makes to their own plan.
+   */
+  if (typeof body.add_key === "string") {
+    const m = byKey.get(body.add_key);
+    if (!m) return NextResponse.json({ error: "unknown_action" }, { status: 400 });
+    if (!existing) return NextResponse.json({ error: "Engin áætlun til að breyta." }, { status: 404 });
+    const current = (existing.modules ?? []) as PlanItem[];
+    if (current.some((x) => x.key === m.key)) {
+      return NextResponse.json({ ok: true, plan: existing, already: true });
+    }
+    if (current.length >= 24) {
+      return NextResponse.json({ error: "Áætlunin er full — taktu eitthvað út fyrst." }, { status: 409 });
+    }
+    // The same copy the items path makes from a library module: fields taken
+    // from the library, never from the request.
+    const added: PlanItem = {
+      uid: randomUUID(), key: m.key, pillar: m.pillar, title: m.title,
+      summary: m.summary, details: m.details, frequency: m.frequency, note: null,
+    };
+    const version = existing.version + 1;
+    const { data: plan, error } = await supabaseAdmin.from("hc_action_plans_decrypted")
+      .update({
+        modules: [...current, added], version,
+        updated_by: label0, updated_at: new Date().toISOString(),
+        edited_by_client_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id).select("*").single();
+    if (error || !plan) return NextResponse.json({ error: "Tókst ekki að vista." }, { status: 500 });
+    await supabaseAdmin.from("hc_plan_versions").insert({
+      plan_id: existing.id, journey_id: journey.id, version, by_kind: "self", by_label: label0,
+      goals: plan.goals, modules: plan.modules, lecture_slugs: plan.lecture_slugs,
+    });
+    await hcAudit(label0, "plan_self_add", journey.id, { version, key: m.key });
+    return NextResponse.json({ ok: true, plan });
+  }
+
   const items: PlanItem[] = [];
   for (const raw of (Array.isArray(body.items) ? body.items : []).slice(0, 24)) {
     if (!raw || typeof raw !== "object") continue;

@@ -11,8 +11,11 @@
 
 import * as cache from "@/lib/hc/client-cache";
 import ActionSheet from "./ActionSheet";
+import Sheet from "./Sheet";
+import MealLogger from "./MealLogger";
+import { SLOT_IS, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronRight, EyeOff, RotateCcw } from "lucide-react";
+import { Check, ChevronRight, EyeOff, Loader2, Plus, RotateCcw } from "lucide-react";
 import { PILLAR_META, type ActionPlan, type Pillar, type PlanItem, type WhenOfDay } from "@/lib/hc/types";
 import { Sun, Sunrise, Moon, Clock } from "lucide-react";
 import { useSwipe } from "@/lib/hc/use-swipe";
@@ -39,6 +42,21 @@ import { useReorder } from "@/lib/hc/use-reorder";
  * thing would be a migration to change a label.
  */
 const WHEN_ORDER: WhenOfDay[] = ["morning", "midday", "evening"];
+
+/**
+ * Which meals belong to which part of the day.
+ *
+ * Straight from what the plan's slots already mean — breakfast is the
+ * morning, dinner is the evening — rather than a second schedule invented
+ * here. The optional second snack goes with dinner, since that is when
+ * somebody who added one tends to eat it.
+ */
+const MEAL_WHEN: Record<WhenOfDay, MealSlot[]> = {
+  morning: ["breakfast"],
+  midday: ["lunch", "snack"],
+  evening: ["dinner", "snack2"],
+  anytime: [],
+};
 const WHEN_META: Record<WhenOfDay, { label: string; ink: string; soft: string; Icon: typeof Sun }> = {
   morning: { label: "Morgunn", ink: "#B45309", soft: "#FEF3C7", Icon: Sunrise },
   midday: { label: "Dagur", ink: "#0369A1", soft: "#E0F2FE", Icon: Sun },
@@ -65,7 +83,7 @@ export interface ActionLinks {
   lecture?: (p: Pillar) => { title: string; href: string } | null;
 }
 
-export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links, onEditPillar,
+export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links, onAddAction, meals, onEditPillar,
   exercise, training, doneToday, onCompleteSession, onCompleteActivity, onLogs, onCounts }: {
   api: Api;
   journeyId: string;
@@ -73,6 +91,22 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   logs: ActionLog[];
   prefs: ActionPref[];
   links?: ActionLinks;
+  /**
+   * Append one library action to the plan, by key.
+   *
+   * The server does the appending (/api/hc/my-plan with add_key) so this
+   * screen never holds the whole plan in order to add one habit to it.
+   */
+  onAddAction?: (key: string) => Promise<void>;
+  /**
+   * Today's meals from the Næring plan, keyed by slot.
+   *
+   * Næring plans the week and this is where "did I" lives. The meal
+   * checklist used to be on Næring, so taking it off that page left ticking
+   * with no home; the right home was always the checklist that holds every
+   * other habit. Writes go to meal_log through MealLogger, which owns them.
+   */
+  meals?: Record<MealSlot, Meal | null> | null;
   /** Opens the plan editor with this pillar already chosen. */
   onEditPillar?: (p: Pillar) => void;
   /**
@@ -162,6 +196,9 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
     const remove = () => setLogs((ls) => ls.filter((l) => !(l.action_uid === uid && l.done_on === day)));
     send({ action_uid: uid, done_on: day, done: !was }, was ? remove : add, was ? add : remove);
   };
+  /** Which section's picker is open. */
+  const [adding, setAdding] = useState<WhenOfDay | null>(null);
+
   const setPref = (uid: string, patch: { hidden?: boolean; note?: string; at_time?: string | null }) => {
     const before = prefs;
     send({ action_uid: uid, ...patch }, () => setPrefs((ps) => {
@@ -446,10 +483,58 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                   onHide={() => setPref(a.uid, { hidden: true })} />
                 ));
               })()}
+              {/* Add something to this part of the day.
+                  Only actions the library tags for this time are offered:
+                  `when` is stamped onto a plan from hc_plan_modules at read
+                  time, not chosen by the participant, so an evening habit
+                  dropped into Morgunn would simply reappear under Kvöld.
+                  Offering what fits is honest; letting somebody pick and
+                  then moving it would not be. */}
+              {/* Today's meals, each in the part of the day it belongs to.
+                  Breakfast and the first snack are the morning, lunch the
+                  middle, dinner and a second snack the evening — which is
+                  what the plan's own slots already mean, so nothing here
+                  invents a schedule.
+
+                  MealLogger renders the rows and owns the write: it is the
+                  only thing that touches meal_log, and a second copy of
+                  that write living here would be two things to keep in
+                  step. */}
+              {meals && MEAL_WHEN[p].some((sl) => meals[sl]) && (
+                <li className="border-t border-slate-100 px-3 py-2.5">
+                  <p className="mb-1.5 px-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                    {MEAL_WHEN[p].length === 1 ? SLOT_IS[MEAL_WHEN[p][0]] : "Máltíðir"}
+                  </p>
+                  <div className="space-y-2">
+                    {MEAL_WHEN[p].filter((sl) => meals[sl]).map((sl) => (
+                      <MealLogger key={sl} day={meals} weightKg={null} part="list" only={sl} />
+                    ))}
+                  </div>
+                </li>
+              )}
+
+              {onAddAction && (
+                <li className="border-t border-slate-100 px-4 py-2.5">
+                  <button type="button" onClick={() => setAdding(p)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-400 hover:text-slate-700">
+                    <Plus className="h-3.5 w-3.5" aria-hidden /> Bæta við í {meta.label.toLowerCase()}
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
         );
       })}
+
+      {/* The picker. A list of what fits this time of day and is not already
+          in the plan, added one at a time by the server so this screen never
+          has to hold the whole plan to append to it. */}
+      {adding && onAddAction && (
+        <Sheet title={`Bæta við í ${WHEN_META[adding].label.toLowerCase()}`} onClose={() => setAdding(null)} canvas>
+          <AddPicker api={api} when={adding} inPlan={new Set(plan.modules.map((m) => m.key).filter((k): k is string => !!k))}
+            onAdd={async (key) => { await onAddAction(key); setAdding(null); }} />
+        </Sheet>
+      )}
 
       {live.length === 0 && (
         <p className="rounded-2xl bg-white p-6 text-center text-slate-500 shadow-sm">
@@ -607,4 +692,73 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lif
 
 /** The participant's own note on an action: what got in the way, what worked. The nurse sees it. */
 
+/**
+ * What can be added to one part of the day.
+ *
+ * The library, minus what is already in the plan, minus everything tagged
+ * for another time. `when` comes from hc_plan_modules and is stamped on at
+ * read time rather than chosen, so a habit the library calls an evening one
+ * would reappear under Kvöld however it was added here — offering only what
+ * fits is the honest version of this screen.
+ */
+function AddPicker({ api, when, inPlan, onAdd }: {
+  api: Api;
+  when: WhenOfDay;
+  inPlan: Set<string>;
+  onAdd: (key: string) => Promise<void>;
+}) {
+  const [lib, setLib] = useState<{ key: string; pillar: Pillar; title: string; summary: string; when?: WhenOfDay }[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const r = await api("/api/hc/my-plan").then((x) => (x.ok ? x.json() : null)).catch(() => null);
+      if (!alive) return;
+      setTimeout(() => setLib(r?.library ?? r?.modules ?? []), 0);
+    })();
+    return () => { alive = false; };
+  }, [api]);
+
+  if (lib === null) {
+    return (
+      <div className="space-y-2 p-3" aria-busy="true">
+        <div className="h-16 rounded-2xl hc-shimmer" />
+        <div className="h-16 rounded-2xl hc-shimmer" />
+      </div>
+    );
+  }
+
+  /* Anytime actions belong in every section, since that is what the tag
+     means — they are not pinned to a part of the day. */
+  const fits = lib.filter((m) => !inPlan.has(m.key) && (m.when === when || m.when === "anytime" || !m.when));
+
+  if (!fits.length) {
+    return (
+      <p className="p-4 text-sm text-slate-500">
+        Ekkert fleira í safninu passar við þennan tíma dags. Þú getur búið til þína eigin aðgerð í áætluninni.
+      </p>
+    );
+  }
+
+  return (
+    <ul className="space-y-2 p-3">
+      {fits.slice(0, 30).map((m) => (
+        <li key={m.key}>
+          <button type="button" disabled={!!busy}
+            onClick={async () => { setBusy(m.key); await onAdd(m.key); setBusy(null); }}
+            className="flex w-full items-start gap-3 rounded-2xl bg-white p-3 text-left ring-1 ring-slate-200 transition hover:ring-slate-300 disabled:opacity-50">
+            <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full"
+              style={{ background: PILLAR_META[m.pillar].soft, color: PILLAR_META[m.pillar].ink }} aria-hidden>
+              {busy === m.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold leading-tight text-slate-900">{m.title}</span>
+              {m.summary && <span className="mt-0.5 block text-sm leading-snug text-slate-600">{m.summary}</span>}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
