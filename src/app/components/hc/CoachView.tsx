@@ -408,31 +408,36 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
             a label you then send unread. The sheet shows each one in full,
             so you choose the message rather than its title — and it stays
             out of the way until asked for, which a permanent row did not. */}
-        {/* Docked, like Messenger's.
-            It used to sit at the end of the thread, so writing a reply to
-            an old message meant scrolling to the bottom to find the box.
-            Sticky rather than fixed: it stays in the card's column and
-            inherits its width, and the page is still the only scroller.
-            The offset clears the bottom navbar through the shared token —
-            above sm that token is 0 because the navbar is hidden there. */}
-        <div className="sticky z-10 flex items-end gap-2 border-t border-slate-100 bg-white/95 p-3 backdrop-blur"
-          style={{ bottom: "var(--hc-dock-offset)" }}>
-          <button type="button" onClick={() => setPrompts(true)}
-            aria-label="Tilbúin skilaboð"
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-hc-brand-dark">
-            <MessageSquarePlus className="h-5 w-5" aria-hidden />
-          </button>
-          <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
-            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void onSend(); } }}
-            placeholder="Skrifaðu skilaboð…" aria-label="Skilaboð til þjálfarans"
-            className="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-hc-element border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-hc-brand focus:ring-2 focus:ring-hc-brand/20" />
-          <button type="button" onClick={() => void onSend()} disabled={busy || !draft.trim()}
-            aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
-            <Send className="h-4 w-4" aria-hidden />
-          </button>
-        </div>
       </section>
 
+      {/* Docked, like Messenger's — and outside the card on purpose.
+          It used to sit at the end of the thread, so writing a reply to an
+          old message meant scrolling to the bottom to find the box. The
+          first attempt put it inside the thread card, which looked right
+          and did not stick: the card carries overflow-hidden for its
+          rounded corners, and an overflow ancestor becomes the box a
+          sticky element is confined to — measured at 235px above the
+          viewport floor and never reaching it.
+          As a sibling its containing block is the page, which is the thing
+          that scrolls. The offset clears the bottom navbar through the
+          shared --hc-dock-offset token; above sm that is 0, because the
+          navbar is hidden there. */}
+<div className="sticky z-10 flex items-end gap-2 rounded-hc-card border border-slate-200 bg-white/95 p-3 shadow-hc-card backdrop-blur"
+        style={{ bottom: "var(--hc-dock-offset)" }}>
+        <button type="button" onClick={() => setPrompts(true)}
+          aria-label="Tilbúin skilaboð"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-hc-brand-dark">
+          <MessageSquarePlus className="h-5 w-5" aria-hidden />
+        </button>
+        <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void onSend(); } }}
+          placeholder="Skrifaðu skilaboð…" aria-label="Skilaboð til þjálfarans"
+          className="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-hc-element border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-hc-brand focus:ring-2 focus:ring-hc-brand/20" />
+        <button type="button" onClick={() => void onSend()} disabled={busy || !draft.trim()}
+          aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
+          <Send className="h-4 w-4" aria-hidden />
+        </button>
+      </div>
       {prompts && (
         <Sheet title="Tilbúin skilaboð" onClose={() => setPrompts(false)}>
           <ul className="divide-y divide-slate-100">
