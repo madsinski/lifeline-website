@@ -40,8 +40,16 @@ export interface AppAccess {
    *   trial       inside the 14 days
    *   expired     the trial has run out and nothing replaced it
    *   none        no subscription row at all (should not happen after ensureTrial)
+   *   open        the paywall is not enforcing; see PAYWALL_ENFORCED
    */
-  reason: "paid" | "health" | "trial" | "expired" | "none";
+  reason: "paid" | "health" | "trial" | "expired" | "none" | "open";
+  /**
+   * What the gate WOULD have said, when reason is "open".
+   *
+   * Null whenever access was genuinely earned, so a caller can tell
+   * "subscribed" from "let in because the door is open".
+   */
+  blocked?: "expired" | "none" | null;
   /** When the trial ends, for the countdown. */
   trialEndsAt: string | null;
   /** Days left, floored, never negative. */
@@ -95,6 +103,22 @@ export async function ensureTrial(clientId: string): Promise<Row | null> {
  * whose trial lapsed months ago still reaches the plan they paid a nurse to
  * write.
  */
+/**
+ * Whether the paywall actually turns anybody away.
+ *
+ * Mads' call, 2026-10-12: keep the real gateway, let everyone through for
+ * now. Nothing is stubbed or deleted to achieve that — the Straumur
+ * checkout, the trial clock, the tiers and the discount codes all stay
+ * exactly where they are, so enforcing again is this one line and not a
+ * rebuild.
+ *
+ * While it is false, appAccess still works out the real answer first and
+ * reports it in `blocked`. That matters: without it the honest state would
+ * be invisible, and nobody could tell how many people the paywall would be
+ * stopping on the day it goes back on.
+ */
+const PAYWALL_ENFORCED = false;
+
 export async function appAccess(clientId: string): Promise<AppAccess> {
   const [sub, journeyRes] = await Promise.all([
     ensureTrial(clientId),
@@ -118,8 +142,8 @@ export async function appAccess(clientId: string): Promise<AppAccess> {
   }
 
   const ends = sub?.trial_ends_at ?? sub?.current_period_end ?? null;
-  if (!sub) return { ok: false, reason: "none", trialEndsAt: null, daysLeft: null };
-  if (!live) return { ok: false, reason: "expired", trialEndsAt: ends, daysLeft: 0 };
+  if (!sub) return deny("none", null);
+  if (!live) return deny("expired", ends);
 
   if (ends) {
     const ms = new Date(ends).getTime() - Date.now();
@@ -129,7 +153,7 @@ export async function appAccess(clientId: string): Promise<AppAccess> {
         daysLeft: Math.max(0, Math.floor(ms / 86400_000)),
       };
     }
-    return { ok: false, reason: "expired", trialEndsAt: ends, daysLeft: 0 };
+    return deny("expired", ends);
   }
 
   /*
@@ -139,4 +163,13 @@ export async function appAccess(clientId: string): Promise<AppAccess> {
    * gives it a date.
    */
   return { ok: true, reason: "trial", trialEndsAt: null, daysLeft: null };
+}
+
+/**
+ * One exit for every "no", so the switch cannot be honoured in some
+ * branches and forgotten in others.
+ */
+function deny(reason: "expired" | "none", trialEndsAt: string | null): AppAccess {
+  if (PAYWALL_ENFORCED) return { ok: false, reason, trialEndsAt, daysLeft: 0 };
+  return { ok: true, reason: "open", blocked: reason, trialEndsAt, daysLeft: null };
 }

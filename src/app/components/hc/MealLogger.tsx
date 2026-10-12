@@ -272,6 +272,41 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
         );
         return flush ? rows : <ul className="space-y-2">{rows}</ul>;
       })()}
+
+      {/* part="button": the one solid action at the foot of Næring's "í dag"
+          card, the place Æfingar puts its own.
+
+          This branch went missing when I removed the old progress-bar
+          variant: the list above is gated `part !== "button"` and nothing
+          was left to answer `part === "button"`, so the card rendered the
+          action as an empty div and the tick simply vanished. Mads noticed
+          before I did.
+
+          Same toggle() and same meal_log row as the checklist row, so this
+          and Í dag agree by construction rather than by being kept in
+          step. */}
+      {part === "button" && (() => {
+        const slot = only ?? SLOTS.find((x) => day[x]);
+        if (!slot || !day[slot]) return null;
+        const done = !!loggedSlot(slot);
+        return (
+          <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
+            aria-pressed={done}
+            className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold transition disabled:opacity-60 ${
+              done
+                ? "bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500"
+                : "bg-lime-700 text-white hover:bg-lime-800"}`}>
+            {busy === slot
+              ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+              : <Check className="h-5 w-5" strokeWidth={3} aria-hidden />}
+            {/* One label in both states. "Ég borðaði þetta" is already past
+                tense, so there is no second wording to switch to — the
+                filled tick and the emerald ring carry "done", the way the
+                checklist rows do it. */}
+            Ég borðaði þetta
+          </button>
+        );
+      })()}
     </div>
   );
 }
