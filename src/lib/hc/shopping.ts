@@ -21,7 +21,7 @@
 // UI says which meals a line came from so that is visible rather than
 // implied.
 
-import { SLOTS, type Meal, type MealSlot } from "./meals";
+import { mealText, SLOTS, type Meal, type MealSlot } from "./meals";
 
 export interface ShoppingLine {
   /** What to buy, as the recipes name it. */
@@ -44,6 +44,13 @@ const UNIT_ALIASES: Record<string, string> = {
   msk: "msk", tsk: "tsk",
   stk: "stk", sneið: "sneið", sneiðar: "sneið", sneiðum: "sneið",
   dós: "dós", dósir: "dós", búnt: "búnt", poki: "poki", pakki: "pakki",
+  /* 40 of 156 meals have no Icelandic ingredient lines and fall back to
+     the English column, which measures in cups and spoons. Recognising
+     those keeps their amounts addable instead of landing in the
+     unquantified pile. */
+  cup: "cup", cups: "cup", tbsp: "msk", tsp: "tsk",
+  clove: "stk", cloves: "stk", slice: "sneið", slices: "sneið",
+  can: "dós", cans: "dós", tin: "dós", tins: "dós", handful: "búnt",
 };
 
 /**
@@ -57,6 +64,21 @@ export function parseLine(raw: string): { qty: number | null; unit: string | nul
   const s = raw.trim();
   if (!s) return { qty: null, unit: null, food: "" };
 
+  /*
+   * "1/2" before anything else.
+   *
+   * Written as two digits round a slash it would otherwise read as the
+   * number 1 followed by the food "/2 cup mixed berries" — which is what
+   * the first version put on screen. Rewritten to a glyph so the rest of
+   * the parse is the same either way.
+   */
+  const ascii = s.match(/^(\d+)\s*\/\s*(\d+)\s+(.*)$/);
+  if (ascii) {
+    const [, a, bb, rest] = ascii;
+    const v = Number(a) / Number(bb);
+    if (Number.isFinite(v) && v > 0 && v < 1) return withUnit(v, rest);
+  }
+
   // Leading quantity: a number, a fraction glyph, or both ("1½").
   const m = s.match(/^(\d+(?:[.,]\d+)?)?\s*([½¼¾⅓⅔⅛])?\s*(.*)$/u);
   if (!m) return { qty: null, unit: null, food: s };
@@ -66,14 +88,17 @@ export function parseLine(raw: string): { qty: number | null; unit: string | nul
   const qty = (numRaw ? parseFloat(numRaw.replace(",", ".")) : 0) + (fracRaw ? FRACTIONS[fracRaw] : 0);
   if (!Number.isFinite(qty) || qty <= 0) return { qty: null, unit: null, food: s };
 
-  // A unit, if the next word is one.
-  const rest = (rest0 ?? "").trim();
+  return withUnit(qty, (rest0 ?? "").trim());
+}
+
+/** Peel a unit off the front of the remainder, if the next word is one. */
+function withUnit(qty: number, rest: string): { qty: number; unit: string | null; food: string } {
   const um = rest.match(/^([a-záðéíóúýþæö]+)\.?\s+(.*)$/iu);
   const maybe = um?.[1]?.toLowerCase();
   if (maybe && UNIT_ALIASES[maybe]) {
     return { qty, unit: UNIT_ALIASES[maybe], food: (um?.[2] ?? "").trim() };
   }
-  // No unit: "1 laukur", "2 egg".
+  // No unit: "1 laukur", "2 egg", "½ avókadó".
   return { qty, unit: null, food: rest };
 }
 
@@ -101,7 +126,15 @@ export function shoppingList(days: Record<MealSlot, Meal | null>[]): ShoppingLin
       const meal = day[slot];
       if (!meal) continue;
       const name = meal.name_is || meal.name;
-      for (const raw of meal.ingredients ?? []) {
+      /*
+       * Through mealText, which is the one place that knows ingredients_is
+       * is the Icelandic column and `ingredients` the English one. Reading
+       * meal.ingredients directly put "1/2 cup mixed berries" on an
+       * Icelandic shopping list — the English rows are where the cups and
+       * the ASCII fractions live, which is also why a SQL check that
+       * preferred Icelandic found none of them.
+       */
+      for (const raw of mealText(meal).ingredients) {
         const { qty, unit, food } = parseLine(raw);
         const key = qty == null ? `raw:${raw.toLowerCase().trim()}` : `${foodKey(food)}|${unit ?? ""}`;
         const prev = merged.get(key);
