@@ -35,7 +35,7 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
   return (
     <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-emerald-100" aria-label="Næsti tími">
       <div className="flex items-stretch">
-        <div className="w-1.5 shrink-0 bg-[#10B981]" aria-hidden />
+        <div className="w-1.5 shrink-0 bg-hc-brand" aria-hidden />
         <div className="flex-1 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
@@ -56,7 +56,7 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
           {a.video && (a.link ? (
             <a href={a.link} target="_blank" rel="noreferrer"
               className={`mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-base font-bold transition ${
-                soon ? "bg-[#10B981] text-white shadow-lg shadow-emerald-500/25 hover:bg-[#047857]" : "bg-slate-900 text-white hover:bg-slate-700"}`}>
+                soon ? "bg-hc-brand text-white shadow-lg shadow-emerald-500/25 hover:bg-hc-brand-dark" : "bg-hc-ink text-white hover:bg-slate-700"}`}>
               <Video className="h-5 w-5" aria-hidden /> Tengjast myndsímtalinu
             </a>
           ) : (

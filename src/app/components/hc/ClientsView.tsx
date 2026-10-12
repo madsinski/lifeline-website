@@ -77,7 +77,7 @@ export default function ClientsView({ api, onOpenClient }: {
         <span className="flex-1" />
         {tab === "groups" && (
           <button type="button" onClick={() => setAdding(true)}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700">
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-slate-700">
             <Plus className="h-4 w-4" /> Nýr hópur
           </button>
         )}
@@ -212,7 +212,7 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
         {msg && <p className="mt-2 text-sm text-red-700">{msg}</p>}
         <div className="mt-3 flex gap-2">
           <button type="button" disabled={busy || !f.name.trim()} onClick={save}
-            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#10B981] px-3 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-40">
+            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-hc-brand px-3 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Stofna hóp
           </button>
           <button type="button" onClick={onClose} className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Hætta við</button>

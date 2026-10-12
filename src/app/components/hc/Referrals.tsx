@@ -117,7 +117,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
               {isDoctor && isInHouse(r.target) && (
                 <div className="mt-2">
                   <button type="button" disabled={busy} onClick={() => decide(r.id, "done")}
-                    className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-slate-900 px-2.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
+                    className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-hc-ink px-2.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
                     <Check className="h-3.5 w-3.5" /> Metið
                   </button>
                 </div>
@@ -174,7 +174,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
               placeholder="Til læknisins — fer ekki til skjólstæðings"
               className="mt-2 w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm" />
             <button type="button" disabled={busy} onClick={send}
-              className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
+              className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {isDoctor ? "Skrá tilvísun" : "Senda til læknis"}
             </button>

@@ -62,7 +62,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
   return (
     <section>
       <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
-        Beiðnir <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[11px] text-white">{rows.length}</span>
+        Beiðnir <span className="rounded-full bg-hc-ink px-2 py-0.5 text-[11px] text-white">{rows.length}</span>
       </h2>
       <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {rows.map((r) => (
@@ -90,7 +90,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
                   placeholder="Svar sem skjólstæðingurinn sér í heilsuferðinni sinni…" />
                 <div className="flex flex-wrap gap-2">
                   <button type="button" disabled={busy} onClick={() => void send(r.id, "done")}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-slate-900 px-3 text-sm font-semibold text-white disabled:opacity-50">
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-hc-ink px-3 text-sm font-semibold text-white disabled:opacity-50">
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
                     Svara og loka
                   </button>

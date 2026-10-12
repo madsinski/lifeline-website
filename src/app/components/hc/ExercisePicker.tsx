@@ -65,10 +65,10 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
         <div className="border-b border-slate-100 p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-bold text-[#0F172A]">{mode === "replace" ? "Skipta um æfingu" : "Æfingasafn"}</h2>
+              <h2 className="text-lg font-bold text-hc-ink">{mode === "replace" ? "Skipta um æfingu" : "Æfingasafn"}</h2>
               <p className="text-xs text-slate-500">Sama safn og í /admin/content. Mest fyrir minnst: stórar hreyfingar sem nota marga vöðvahópa.</p>
             </div>
-            <button type="button" onClick={onClose} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            <button type="button" onClick={onClose} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
               {mode === "add" && added.length ? `Klárt (${added.length})` : "Loka"}
             </button>
           </div>
@@ -139,7 +139,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" onClick={(e) => { e.stopPropagation(); setOpen(null); }}>
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-lg font-bold text-[#0F172A]">{open.name_is || open.name}</h3>
+              <h3 className="text-lg font-bold text-hc-ink">{open.name_is || open.name}</h3>
               <button type="button" onClick={() => setOpen(null)} className="text-slate-400 hover:text-slate-700" aria-label="Loka">✕</button>
             </div>
             {open.video_url

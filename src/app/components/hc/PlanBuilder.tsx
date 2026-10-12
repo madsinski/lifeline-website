@@ -108,7 +108,7 @@ function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) 
       {WIZARD_STEPS.map((label, i) => (
         <button key={label} type="button" onClick={() => onGo(i)} aria-current={step === i ? "step" : undefined}
           className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
-            step === i ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+            step === i ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`}>
           <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
             step === i ? "bg-white/20" : i < step ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}`}>
             {i < step ? "✓" : i + 1}
@@ -134,7 +134,7 @@ function WizardFooter({ step, onGo }: { step: number; onGo: (n: number) => void 
           Æfingar" does not, and that is the whole job of this control. */}
       {next ? (
         <button type="button" onClick={() => onGo(step + 1)}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+          className="inline-flex items-center gap-1.5 rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
           Næsta: {next} <ArrowRight className="h-4 w-4" />
         </button>
       ) : (
@@ -495,8 +495,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           </select>
           <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
           <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Prenta</button>
-          <button onClick={() => void save()} disabled={busy} className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Vista drög</button>
-          <button onClick={publish} disabled={busy || draft.modules.length === 0} className="rounded-xl bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+          <button onClick={() => void save()} disabled={busy} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Vista drög</button>
+          <button onClick={publish} disabled={busy || draft.modules.length === 0} className="rounded-xl bg-hc-brand px-4 py-2 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
             {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
           </button>
         </div>
@@ -517,13 +517,13 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           onDrop={onDropOut}
           aria-label="Aðgerðasafn"
         >
-          <p className="text-sm font-bold text-[#0F172A]">Aðgerðasafn</p>
+          <p className="text-sm font-bold text-hc-ink">Aðgerðasafn</p>
           <p className="mb-3 text-xs text-slate-500">Dragðu aðgerð inn í áætlunina, eða úr henni hingað til að fjarlægja.</p>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Leita…" className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
           <div className="mb-3 flex flex-wrap gap-1">
             {(["all", ...PILLARS] as const).map((p) => (
               <button key={p} onClick={() => setFilter(p)}
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${filter === p ? "bg-[#0F172A] text-white" : "bg-slate-100 text-slate-600"}`}>
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${filter === p ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-600"}`}>
                 {p === "all" ? "Allt" : PILLAR_META[p].label}
               </button>
             ))}
@@ -542,7 +542,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                 >
                   <div className="flex items-start gap-2">
                     <div className="flex-1">
-                      <p className="font-semibold text-[#0F172A]">{m.title}</p>
+                      <p className="font-semibold text-hc-ink">{m.title}</p>
                       <p className="text-xs text-slate-600">{m.summary}</p>
                       {fit ? <FitMeter fit={fit} titles={markerTitles} rank={i + 1} /> : <Rating m={m} />}
                     </div>
@@ -588,7 +588,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                 >
                   <div className="mb-2 flex items-center gap-2">
                     <PillarIcon pillar={p} size="sm" />
-                    <h3 className="font-bold text-[#0F172A]">{meta.label}</h3>
+                    <h3 className="font-bold text-hc-ink">{meta.label}</h3>
                     <span className="flex-1" />
                     <button onClick={() => addCustom(p)} className="text-xs font-semibold text-slate-500 hover:text-slate-800">+ Eigin aðgerð</button>
                   </div>
@@ -661,7 +661,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                                   frequency is a hint whose full value is one
                                   click away in the editor. */}
                                 <span className="flex items-center gap-1.5">
-                                  <span className="min-w-0 font-semibold leading-tight text-[#0F172A]">{m.title}</span>
+                                  <span className="min-w-0 font-semibold leading-tight text-hc-ink">{m.title}</span>
                                   {/* A note is the one thing worth knowing
                                       about a closed row: it is written to
                                       the client. */}
@@ -683,7 +683,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                           </div>
                           {open && (
                             <div className="space-y-1 border-t border-slate-100 p-2">
-                              <input value={m.title} onChange={(e) => patchItem(m.uid, { title: e.target.value })} className="w-full rounded px-1 font-semibold text-[#0F172A] hover:bg-slate-50" aria-label="Heiti" />
+                              <input value={m.title} onChange={(e) => patchItem(m.uid, { title: e.target.value })} className="w-full rounded px-1 font-semibold text-hc-ink hover:bg-slate-50" aria-label="Heiti" />
                               <input value={m.summary} onChange={(e) => patchItem(m.uid, { summary: e.target.value })} placeholder="Lýsing" className="w-full rounded px-1 text-sm text-slate-600 hover:bg-slate-50" aria-label="Lýsing" />
                               <input value={m.frequency ?? ""} onChange={(e) => patchItem(m.uid, { frequency: e.target.value || null })} placeholder="Tíðni" className="w-40 rounded bg-slate-50 px-2 py-0.5 text-xs text-slate-600" aria-label="Tíðni" />
                               <textarea
@@ -757,14 +757,14 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
             <textarea value={draft.nurse_note} onChange={(e) => update({ nurse_note: e.target.value })} rows={4} placeholder="Birtist efst á yfirlitinu." className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
           </label>
           <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="font-bold text-[#0F172A]">Tilbúið?</p>
+            <p className="font-bold text-hc-ink">Tilbúið?</p>
             <p className="mt-0.5 text-sm text-slate-600">
               {draft.modules.length} aðgerðir · {draft.exercise ? "æfingaáætlun" : "engin æfingaáætlun"} · {draft.nutrition ? "næringaráætlun" : "engin næringaráætlun"} · {draft.lecture_slugs.length ? `${draft.lecture_slugs.length} fræðsla` : "engin fræðsla"}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
               <button onClick={publish} disabled={busy || draft.modules.length === 0}
-                className="rounded-xl bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+                className="rounded-xl bg-hc-brand px-4 py-2 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
                 {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
               </button>
             </div>
@@ -833,7 +833,7 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
               className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm font-normal" />
           </label>
           <button type="button" disabled={busy} onClick={run}
-            className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40">
+            className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Setja saman
           </button>
         </div>
@@ -889,7 +889,7 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
   return (
     <div className="rounded-2xl border border-orange-100 bg-white p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-bold text-[#0F172A]">Æfingaáætlun</h3>
+        <h3 className="font-bold text-hc-ink">Æfingaáætlun</h3>
         <span className="flex-1" />
         <select value={value?.key ?? ""} onChange={(e) => pick(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm" aria-label="Æfingasniðmát">
           <option value="">Engin æfingaáætlun</option>
@@ -947,7 +947,7 @@ function NutritionEditor({ value, templates, onChange, api, journeyId, weightKg 
   return (
     <div className="rounded-2xl border border-lime-100 bg-white p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="font-bold text-[#0F172A]">Næringaráætlun</h3>
+        <h3 className="font-bold text-hc-ink">Næringaráætlun</h3>
         <span className="flex-1" />
         <select value={value?.key ?? ""} onChange={(e) => pick(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm" aria-label="Næringarsniðmát">
           <option value="">Engin næringaráætlun</option>

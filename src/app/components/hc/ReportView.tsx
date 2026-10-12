@@ -324,7 +324,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
                   and "byrjum hér" belongs beside its own number rather than
                   next to a title three words long. */}
               {s.pillar && s.key === weakest && (
-                <span className="ml-auto rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>
+                <span className="ml-auto rounded-full bg-hc-ink px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>
               )}
               {avg !== undefined && (
                 <span className={`flex items-baseline gap-1 ${s.pillar && s.key === weakest ? "" : "ml-auto"}`}>
@@ -558,7 +558,7 @@ function BandScale({ bands, value, unit, sex }: {
       <div className="relative pt-6">
         {/* the value, sitting where it actually falls */}
         <div className="absolute top-0 -translate-x-1/2 whitespace-nowrap" style={{ left: `${at}%` }}>
-          <span className="rounded-md bg-slate-900 px-1.5 py-0.5 text-[11px] font-bold text-white">
+          <span className="rounded-md bg-hc-ink px-1.5 py-0.5 text-[11px] font-bold text-white">
             {fmt(value)}{unit ? ` ${unit}` : ""}
           </span>
         </div>
@@ -567,7 +567,7 @@ function BandScale({ bands, value, unit, sex }: {
             <div key={i} className={TONE_BAR[b.tone]} style={{ width: width(b.min ?? lo, b.max ?? hi) }} title={b.label} />
           ))}
         </div>
-        <span className="absolute bottom-0 h-4 w-0.5 -translate-x-1/2 rounded bg-slate-900" style={{ left: `${at}%` }} aria-hidden />
+        <span className="absolute bottom-0 h-4 w-0.5 -translate-x-1/2 rounded bg-hc-ink" style={{ left: `${at}%` }} aria-hidden />
       </div>
       <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
         {ordered.map((b, i) => (

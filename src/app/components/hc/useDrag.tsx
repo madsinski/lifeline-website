@@ -81,7 +81,7 @@ export function useDrag<P>(onDrop: (payload: P, target: string) => void) {
 export function DragGhost({ drag }: { drag: DragState<unknown> | null }) {
   if (!drag) return null;
   return (
-    <div className="pointer-events-none fixed z-[100] -translate-x-1/2 -translate-y-[130%] rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-xl"
+    <div className="pointer-events-none fixed z-[100] -translate-x-1/2 -translate-y-[130%] rounded-xl bg-hc-ink px-3 py-2 text-sm font-semibold text-white shadow-xl"
       style={{ left: drag.x, top: drag.y }}>
       {drag.label}
     </div>

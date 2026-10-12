@@ -39,7 +39,7 @@ export default function WsHeader({ name, role, items }: { name: string; role: st
         <div className="relative">
           <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu"
             className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-2.5 hover:bg-slate-50">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#10B981] text-xs font-bold text-white">{initials}</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-hc-brand text-xs font-bold text-white">{initials}</span>
             <span className="hidden max-w-[10rem] truncate text-sm font-medium text-slate-700 sm:block">{name}</span>
             <ChevronDown className="h-4 w-4 text-slate-400" />
           </button>

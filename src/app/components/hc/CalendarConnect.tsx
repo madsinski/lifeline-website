@@ -258,7 +258,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                     {g.lastError && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{g.lastError}</p>}
                     <div className="flex flex-wrap gap-2">
                       <button disabled={busy} onClick={() => act({ method: "PATCH", body: JSON.stringify({ sync: true }) }, "Samstillt.")}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-hc-ink px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
                         <RefreshCw className="h-4 w-4" /> Samstilla núna
                       </button>
                       <button disabled={busy} onClick={() => act({ method: "PATCH", body: JSON.stringify({ enabled: !g.enabled }) }, g.enabled ? "Samstilling í bið." : "Samstilling virk.")}
@@ -296,7 +296,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                 <p className="mt-1 text-sm text-slate-600">Ýttu á hnappinn á iPhone eða Mac og veldu „Gerast áskrifandi“. Tímarnir uppfærast sjálfkrafa.</p>
                 {!ics ? <p className="mt-3 text-sm text-slate-500">Augnablik…</p> : (
                   <>
-                    <a href={ics.webcal} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 sm:w-auto">Bæta við Apple-dagatal</a>
+                    <a href={ics.webcal} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-hc-ink px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 sm:w-auto">Bæta við Apple-dagatal</a>
                     <div className="mt-4 hidden items-center gap-4 rounded-2xl bg-slate-50 p-3 sm:flex">
                       <Qr value={ics.webcal} />
                       <p className="text-xs text-slate-600">Á tölvu? Skannaðu kóðann með myndavélinni á iPhone.</p>

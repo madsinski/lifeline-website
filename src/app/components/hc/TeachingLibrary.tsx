@@ -47,7 +47,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
           <button type="button" onClick={() => setOpen(null)} className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold ring-1 ring-slate-200">← Til baka</button>
           <span className="flex-1" />
           {lecture.kind === "slides" && (
-            <button type="button" onClick={() => void stage.current?.requestFullscreen?.()} className="rounded-full bg-slate-900 px-4 py-1.5 text-sm font-semibold text-white">Kynna á skjá</button>
+            <button type="button" onClick={() => void stage.current?.requestFullscreen?.()} className="rounded-full bg-hc-ink px-4 py-1.5 text-sm font-semibold text-white">Kynna á skjá</button>
           )}
           {canEdit && <a href="/admin/lectures" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold ring-1 ring-slate-200">Breyta í stjórnborði</a>}
         </div>

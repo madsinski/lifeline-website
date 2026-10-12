@@ -25,7 +25,7 @@ export interface Checkpoint {
 
 const DOT: Record<Checkpoint["state"], string> = {
   done: "bg-emerald-500 text-white",
-  current: "bg-slate-900 text-white ring-4 ring-slate-900/10",
+  current: "bg-hc-ink text-white ring-4 ring-slate-900/10",
   waiting: "bg-amber-100 text-amber-800",
   upcoming: "bg-slate-100 text-slate-400",
 };

@@ -835,7 +835,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
           return (
             <section key={k} className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card sm:p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">{st.icon}</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hc-ink text-white">{st.icon}</span>
                 <div className="min-w-0">
                   <h2 className="truncate font-bold text-slate-900">{st.title}</h2>
                   <p className="truncate text-xs text-slate-500">{st.status}</p>
@@ -1466,7 +1466,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
                 <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Sniðmát">
                   {MESSAGE_TEMPLATES.map((t) => (
                     <button key={t.key} type="button" role="radio" aria-checked={tpl === t.key} onClick={() => pick(t.key)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${tpl === t.key ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${tpl === t.key ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
                       {t.label}
                     </button>
                   ))}
@@ -1580,7 +1580,7 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
             <div className="flex gap-1" role="radiogroup" aria-label="Form">
               {([["in_person", "Á staðnum"], ["video", "Myndsímtal"]] as const).map(([k, l]) => (
                 <button key={k} type="button" role="radio" aria-checked={m === k} onClick={() => setM(k)}
-                  className={`${btn} min-h-9 ${m === k ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>{l}</button>
+                  className={`${btn} min-h-9 ${m === k ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>{l}</button>
               ))}
             </div>
           )}
@@ -1731,7 +1731,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
           {STEPS.map((s, i) => (
             <li key={s}>
               <button type="button" onClick={() => setStep(i)} aria-current={step === i ? "step" : undefined}
-                className={`flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${step === i ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}>
+                className={`flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${step === i ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}>
                 <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${step === i ? "bg-white text-slate-900" : i < step ? "bg-emerald-500 text-white" : "bg-slate-100"}`}>
                   {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
                 </span>
@@ -1969,7 +1969,7 @@ function Login({ onDone }: { onDone: () => void }) {
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Lykilorð" autoComplete="current-password" className="w-full rounded-lg border border-slate-300 px-3 py-2.5" />
             <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> Treysta þessu tæki (PIN næst)</label>
             {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-            <button disabled={busy} className="w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white disabled:opacity-50">{busy ? "Augnablik…" : "Skrá inn"}</button>
+            <button disabled={busy} className="w-full rounded-lg bg-hc-brand py-2.5 font-semibold text-white disabled:opacity-50">{busy ? "Augnablik…" : "Skrá inn"}</button>
           </form>
         )}
       </div>

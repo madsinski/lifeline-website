@@ -135,7 +135,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
       {!data.profile.health_consent && <ConsentBox checked={consent} onChange={setConsent} error={errors.consent} />}
       {errors.form && <p className="text-sm text-red-600">{errors.form}</p>}
       <div className="flex items-center gap-3">
-        <button disabled={busy} className="rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+        <button disabled={busy} className="rounded-full bg-hc-brand px-5 py-2.5 font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
           {busy ? "Vistar…" : "Vista upplýsingar"}
         </button>
         {saved && <span className="text-sm text-emerald-700">Vistað</span>}

@@ -159,7 +159,7 @@ function ExercisePanel({ it, onSwap, body }: { it: ExerciseItem; onSwap?: (slot:
           demo loops, and object-cover was cutting the lift out of the frame.
           The video is the better demonstration when the library has one. */}
       {(it.video || it.image) && (
-        <div className="overflow-hidden rounded-2xl bg-slate-900">
+        <div className="overflow-hidden rounded-2xl bg-hc-ink">
           {it.video ? (
             <video src={it.video} poster={it.image ?? undefined} autoPlay loop muted playsInline
               className="h-52 w-full object-contain" aria-label={`Sýnikennsla: ${it.name}`} />

@@ -128,7 +128,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
             onChange={(e) => { if (e.target.files?.length) void read(e.target.files); e.target.value = ""; }} />
           <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}
-            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50 ${narrow ? "w-full" : ""}`}>
+            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-hc-ink px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50 ${narrow ? "w-full" : ""}`}>
             Velja skrá
           </button>
         </div>
@@ -190,7 +190,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
                       </span>
                     </span>
                     <button type="button" onClick={() => commit(m.client_id)} disabled={busy}
-                      className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-[#10B981] px-3 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-brand px-3 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
                       <Check className="h-4 w-4" /> Já, opna
                     </button>
                   </li>
@@ -230,7 +230,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
               <p className="mt-1 text-xs text-slate-500">Skjólstæðingurinn fær boð í tölvupósti og kemst þá inn á aðganginn sinn.</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button type="button" onClick={() => commit(null)} disabled={busy || !form.full_name.trim() || !form.email.trim()}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#10B981] px-4 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-40">
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-hc-brand px-4 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Stofna og opna vinnusvæði
                 </button>
                 {result.matches.length > 0 && (

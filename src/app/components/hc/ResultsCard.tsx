@@ -259,7 +259,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
               onChange={(e) => { if (e.target.files?.length) void readReport(e.target.files); e.target.value = ""; }} />
             <button type="button" onClick={() => setAsking(true)} disabled={reading}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
               {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
               {reading ? "Les skýrsluna…" : "Lesa úr skýrslu"}
             </button>
@@ -338,7 +338,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           )}
 
           <button type="button" onClick={saveImported} disabled={busy || !Object.values(take).some(Boolean)}
-            className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#10B981] px-4 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-40">
+            className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-hc-brand px-4 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
             <Check className="h-4 w-4" /> Vista valin gildi
           </button>
         </div>
@@ -441,7 +441,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
 
           <div className="flex items-center gap-2 border-t border-slate-100 pt-3">
             <button type="button" onClick={save} disabled={busy}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#10B981] px-4 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-40">
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-hc-brand px-4 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
               <Check className="h-4 w-4" /> {busy ? "Vista…" : "Vista gildi"}
             </button>
             <button type="button" onClick={() => { setDraft({}); setEditing(false); setMsg(""); }}

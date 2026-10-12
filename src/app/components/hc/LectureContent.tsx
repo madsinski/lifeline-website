@@ -98,14 +98,14 @@ export function Markdown({ text }: { text: string }) {
           const level = t.match(/^#+/)![0].length;
           const h = t.replace(/^#+\s*/, "");
           return level === 1
-            ? <h2 key={i} className="pt-2 text-2xl font-bold text-[#0F172A]">{inline(h)}</h2>
-            : <h3 key={i} className="pt-2 text-xl font-bold text-[#0F172A]">{inline(h)}</h3>;
+            ? <h2 key={i} className="pt-2 text-2xl font-bold text-hc-ink">{inline(h)}</h2>
+            : <h3 key={i} className="pt-2 text-xl font-bold text-hc-ink">{inline(h)}</h3>;
         }
         if (lines.every((l) => /^\s*[-*]\s/.test(l))) {
           return (
             <ul key={i} className="space-y-2">
               {lines.map((l, j) => (
-                <li key={j} className="flex gap-3"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#10B981]" />{inline(l.replace(/^\s*[-*]\s/, ""))}</li>
+                <li key={j} className="flex gap-3"><span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-hc-brand" />{inline(l.replace(/^\s*[-*]\s/, ""))}</li>
               ))}
             </ul>
           );
@@ -163,7 +163,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
           {(slide.title || slide.caption) && (
             <figcaption className="px-6 py-4">
               {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{counter}</p>}
-              {slide.title && <p className="mt-1 text-lg font-bold text-[#0F172A]">{slide.title}</p>}
+              {slide.title && <p className="mt-1 text-lg font-bold text-hc-ink">{slide.title}</p>}
               {slide.caption && <p className="text-sm text-slate-600">{slide.caption}</p>}
             </figcaption>
           )}
@@ -234,7 +234,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
             <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-white shadow-md"><Lightbulb className="h-8 w-8" aria-hidden /></span>
             <div>
               {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">{counter} · Ráð</p>}
-              <h2 className="mt-1 text-2xl font-bold text-[#0F172A]">{slide.title}</h2>
+              <h2 className="mt-1 text-2xl font-bold text-hc-ink">{slide.title}</h2>
               {slide.body && <p className="mt-2 whitespace-pre-line text-lg text-slate-700">{slide.body}</p>}
               <Refs refs={slide.refs} light />
             </div>
@@ -246,7 +246,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
         <div className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-200">
           <div className="min-h-[340px] p-7 sm:p-10">
             {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{counter}</p>}
-            <h2 className="mt-2 flex items-center gap-2 text-2xl font-bold text-[#0F172A]"><BookOpen className="h-6 w-6 text-slate-400" aria-hidden />{slide.title || "Heimildir"}</h2>
+            <h2 className="mt-2 flex items-center gap-2 text-2xl font-bold text-hc-ink"><BookOpen className="h-6 w-6 text-slate-400" aria-hidden />{slide.title || "Heimildir"}</h2>
             {slide.body && <p className="mt-2 text-sm text-slate-600">{slide.body}</p>}
             <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm leading-snug text-slate-700 marker:text-slate-400">
               {(slide.items ?? []).filter(Boolean).map((it, i) => <li key={i} className="break-words pl-1">{linkify(it)}</li>)}
@@ -295,7 +295,7 @@ export function SlideDeck({ slides, onLastSlide, start = 0, pillar }: { slides: 
     <ThemeCtx.Provider value={themeFor(pillar)}>
     <div>
       <div className="mb-3 h-1 overflow-hidden rounded-full bg-slate-200" aria-hidden>
-        <div className="h-full rounded-full bg-[#10B981] transition-all" style={{ width: `${((idx + 1) / slides.length) * 100}%` }} />
+        <div className="h-full rounded-full bg-hc-brand transition-all" style={{ width: `${((idx + 1) / slides.length) * 100}%` }} />
       </div>
       <div
         onTouchStart={(e) => { touch.current = e.touches[0].clientX; }}
@@ -316,11 +316,11 @@ export function SlideDeck({ slides, onLastSlide, start = 0, pillar }: { slides: 
         <div className="hidden flex-wrap justify-center gap-1.5 sm:flex" role="tablist" aria-label="Glærur">
           {slides.map((_, n) => (
             <button key={n} type="button" role="tab" aria-selected={n === idx} aria-label={`Glæra ${n + 1}`} onClick={() => setI(n)}
-              className={`h-2 rounded-full transition-all ${n === idx ? "w-6 bg-[#10B981]" : "w-2 bg-slate-300 hover:bg-slate-400"}`} />
+              className={`h-2 rounded-full transition-all ${n === idx ? "w-6 bg-hc-brand" : "w-2 bg-slate-300 hover:bg-slate-400"}`} />
           ))}
         </div>
         <button type="button" onClick={() => setI(Math.min(last, idx + 1))} disabled={idx === last}
-          className="inline-flex min-h-11 items-center gap-1 rounded-full bg-[#10B981] px-4 font-semibold text-white shadow-sm hover:bg-[#047857] disabled:opacity-30">
+          className="inline-flex min-h-11 items-center gap-1 rounded-full bg-hc-brand px-4 font-semibold text-white shadow-sm hover:bg-hc-brand-dark disabled:opacity-30">
           Næsta <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
       </div>

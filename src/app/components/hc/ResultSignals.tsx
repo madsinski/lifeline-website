@@ -31,7 +31,7 @@ export default function ResultSignals({ flagged }: { flagged: FlaggedValue[] }) 
   return (
     <section className="space-y-4">
       <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-xl font-bold text-[#0F172A]">Mælingarnar þínar</h2>
+        <h2 className="text-xl font-bold text-hc-ink">Mælingarnar þínar</h2>
         <p className="mt-1 text-sm text-slate-600">
           Borið saman við viðmið Lifeline. Læknirinn fer yfir niðurstöðurnar í heild og skýrslan þín er í sjúklingagáttinni.
         </p>

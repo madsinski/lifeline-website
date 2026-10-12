@@ -105,7 +105,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
     <section className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Sparkles className="h-5 w-5 text-emerald-700" />
-        <h3 className="font-bold text-[#0F172A]">Tillaga út frá niðurstöðum</h3>
+        <h3 className="font-bold text-hc-ink">Tillaga út frá niðurstöðum</h3>
         <span className="flex-1" />
         <button type="button" onClick={run} disabled={busy}
           className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-emerald-700 px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
@@ -147,7 +147,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
                 <button key={pr.key} type="button" onClick={() => preset(pr.key)}
                   aria-pressed={scope === pr.key}
                   className={`flex-1 rounded-lg px-2 py-1.5 text-sm font-semibold transition ${
-                    scope === pr.key ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                    scope === pr.key ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`}>
                   {pr.label}
                 </button>
               ))}
@@ -210,7 +210,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" disabled={!chosen.length}
               onClick={() => onApply(chosen, proposal.headline, proposal.summary)}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#10B981] px-4 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-40">
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-hc-brand px-4 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
               3. Setja {chosen.length} aðgerðir í áætlunina <ArrowRight className="h-4 w-4" />
             </button>
             {/* The prose the model wrote: useful once, not worth a screen. */}

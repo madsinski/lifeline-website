@@ -619,7 +619,7 @@ const TONE: Record<Modality, { band: string; ring: string; today: string; tile: 
   strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-600 hover:bg-orange-700" },
   hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200",     go: "bg-rose-600 hover:bg-rose-700" },
   cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200",       go: "bg-sky-600 hover:bg-sky-700" },
-  other:    { band: "bg-slate-50",     ring: "ring-slate-200",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-slate-200",   go: "bg-slate-700 hover:bg-slate-800" },
+  other:    { band: "bg-slate-50",     ring: "ring-slate-200",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-slate-200",   go: "bg-slate-700 hover:bg-hc-ink" },
 };
 
 /** The shell and header both cards share. */
@@ -668,7 +668,7 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white ${t.tile}`}>{tile}</span>
       <span className="min-w-0 flex-1">
         <span className={`block text-xs font-bold uppercase tracking-wide ${t.ink}`}>{eyebrow}</span>
-        <span className="block font-semibold leading-snug text-[#0F172A]">{title}</span>
+        <span className="block font-semibold leading-snug text-hc-ink">{title}</span>
         {meta && <span className="mt-0.5 block text-xs text-slate-500">{meta}</span>}
       </span>
       {headerToggles && <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${headerOpen ? "rotate-180" : ""}`} aria-hidden />}

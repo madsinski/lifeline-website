@@ -192,7 +192,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
       </ul>
 
       <button type="button" onClick={() => setWalk(true)}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-hc-ink px-5 py-3 font-bold text-white transition hover:bg-slate-800">
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-hc-ink px-5 py-3 font-bold text-white transition hover:bg-hc-ink">
         <PlayCircle className="h-4 w-4" aria-hidden />
         {count === 0 ? "Leiða mig í gegnum það" : all ? "Skoða skref fyrir skref" : "Halda áfram"}
       </button>

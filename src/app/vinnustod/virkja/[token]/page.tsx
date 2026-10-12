@@ -42,7 +42,7 @@ export default function ActivateWorker() {
             <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Nýtt lykilorð (minnst 10 stafir)" autoComplete="new-password" className="w-full rounded-lg border border-slate-300 px-3 py-2.5" />
             <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="Endurtaktu lykilorðið" autoComplete="new-password" className="w-full rounded-lg border border-slate-300 px-3 py-2.5" />
             {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-            <button disabled={busy} className="w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white disabled:opacity-50">{busy ? "Augnablik…" : "Virkja"}</button>
+            <button disabled={busy} className="w-full rounded-lg bg-hc-brand py-2.5 font-semibold text-white disabled:opacity-50">{busy ? "Augnablik…" : "Virkja"}</button>
           </form>
         ) : (
           <p className="mt-4 text-sm text-slate-600">{error || "Hleð…"}</p>

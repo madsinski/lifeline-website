@@ -62,7 +62,7 @@ export default function SettingsCard() {
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-      <p className="font-semibold text-[#0F172A]">Stillingar</p>
+      <p className="font-semibold text-hc-ink">Stillingar</p>
 
       <div className="mt-3 border-t border-slate-100 pt-3">
         <p className="text-sm font-medium text-slate-800">Innskráning með PIN</p>

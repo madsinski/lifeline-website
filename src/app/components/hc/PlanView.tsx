@@ -72,7 +72,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
                 aria-selected={tab === t.key}
                 onClick={() => setTab(t.key)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  tab === t.key ? "bg-[#0F172A] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  tab === t.key ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 {t.label}
@@ -151,7 +151,7 @@ function PillarHeading({ pillar }: { pillar: Pillar }) {
   return (
     <div className="flex items-center gap-2">
       <PillarIcon pillar={pillar} />
-      <h2 className="text-lg font-bold text-[#0F172A]">{m.label}</h2>
+      <h2 className="text-lg font-bold text-hc-ink">{m.label}</h2>
     </div>
   );
 }
@@ -171,7 +171,7 @@ function Overview({ plan, byPillar }: { plan: ActionPlan; byPillar: (p: Pillar) 
                 <PillarBadge pillar={p} />
                 <span className="text-xs text-slate-400">{items.length} {items.length === 1 ? "aðgerð" : "aðgerðir"}</span>
               </div>
-              {goal && <p className="mt-3 text-[15px] font-semibold leading-snug text-[#0F172A]">{goal.text}</p>}
+              {goal && <p className="mt-3 text-[15px] font-semibold leading-snug text-hc-ink">{goal.text}</p>}
               <ul className="mt-3 space-y-2">
                 {items.map((m) => (
                   <li key={m.uid} className="flex items-start gap-2 text-sm text-slate-700">
@@ -201,7 +201,7 @@ function ModuleCard({ m }: { m: PlanItem }) {
     <div className="flex items-start gap-3">
       <span className="mt-1 h-8 w-1 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
       <div className="flex-1">
-        <p className="font-semibold text-[#0F172A]">{m.title}</p>
+        <p className="font-semibold text-hc-ink">{m.title}</p>
         <p className="mt-0.5 text-sm text-slate-600">{m.summary}</p>
         {m.frequency && <span className="mt-2 inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">{m.frequency}</span>}
       </div>
@@ -356,7 +356,7 @@ function SessionCard({ s, n }: { s: ExerciseSession; n: number }) {
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-600 font-bold text-white">{n}</span>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{s.day}</p>
-          <p className="font-semibold text-[#0F172A]">{s.title}{s.focus ? <span className="font-normal text-slate-500"> · {s.focus}</span> : null}</p>
+          <p className="font-semibold text-hc-ink">{s.title}{s.focus ? <span className="font-normal text-slate-500"> · {s.focus}</span> : null}</p>
         </div>
         {s.minutes ? <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">{s.minutes} mín.</span> : null}
       </div>
@@ -438,7 +438,7 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
   const n = plan.nutrition!;
   return (
     <div>
-      <h2 className="text-xl font-bold text-[#0F172A]">{n.name}</h2>
+      <h2 className="text-xl font-bold text-hc-ink">{n.name}</h2>
       {n.goal && <p className="mt-1 text-sm text-slate-600">{n.goal}</p>}
       {n.description && <p className="mt-2 text-sm text-slate-600">{n.description}</p>}
       {n.principles.length > 0 && (
@@ -509,7 +509,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
   const perPillar = dense ? 4 : 5;
   return (
     <div className="plan-print mx-auto flex h-[276mm] w-[190mm] flex-col overflow-hidden text-[9.5pt] leading-snug text-slate-800">
-      <div className="h-1.5 w-full rounded-full bg-[#10B981]" />
+      <div className="h-1.5 w-full rounded-full bg-hc-brand" />
       <header className="mt-3 flex items-start justify-between gap-6">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
