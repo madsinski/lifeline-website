@@ -36,6 +36,7 @@ import { type FlowStep } from "@/app/components/hc/Flow";
 import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import WsRequests from "@/app/components/hc/WsRequests";
+import Caseload from "@/app/components/hc/Caseload";
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
 import ReportSignals from "@/app/components/hc/ReportSignals";
@@ -472,10 +473,19 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
         <h1 className="text-2xl font-bold text-slate-900">{greet}, {me.name.split(" ")[0]}</h1>
       </div>
 
-      {/* 1. The day usually starts with a report landing on the desk. */}
+      {/* 1. Who is waiting on you.
+             The screen used to open on the drop zone below, which is the
+             right first move for intake work and the wrong one for
+             coaching: a coach starting their day needs to know who needs
+             them, not to be handed a filing tray. The intake keeps its
+             place directly underneath, for the days that do start with a
+             report. */}
+      <Caseload api={api} onOpen={(journeyId) => onOpen(journeyId)} />
+
+      {/* 2. The day often does start with a report landing on the desk. */}
       <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} />
 
-      {/* 2. Or with looking someone up. */}
+      {/* 3. Or with looking someone up. */}
       <div>
         <label className="relative block">
           <span className="sr-only">Leita að skjólstæðingi</span>
