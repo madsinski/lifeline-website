@@ -22,7 +22,7 @@ import { localDate } from "@/lib/hc/workout";
 import { proteinState, proteinTarget, totalsOf, type MealLogRow } from "@/lib/hc/nutrition-log";
 import { mealName, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
 
-export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget, only, flush = false, tone, onOpenMeal, onLogged }: {
+export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget, only, flush = false, tone, onOpenMeal, onLogged, drag, lifted = false, carryY = 0, settling = false }: {
   /** The meal in each slot today, as the plan has it. */
   day: Record<MealSlot, Meal | null>;
   /** From the report's þyngd row; null means no protein bar. */
@@ -73,6 +73,21 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
    * done when every meal is.
    */
   onLogged?: (slots: MealSlot[]) => void;
+  /**
+   * Tap-and-hold to reorder, same as a habit row.
+   *
+   * A meal in Í dag's checklist is one item among the day's items, so it has
+   * to be carried like one. These are the hook's own handlers, passed
+   * through from the list that owns the order — MealLogger does not know
+   * about ordering, only that this row can be picked up.
+   */
+  drag?: { onPointerDown: (e: React.PointerEvent) => void; ref: (el: HTMLElement | null) => void };
+  /** Being carried right now. */
+  lifted?: boolean;
+  /** How far to follow the finger. */
+  carryY?: number;
+  /** Another row is being carried: glide, do not snap. */
+  settling?: boolean;
   /**
    * Reports the band this bar measures against, so the plan can be built to
    * land inside it. Without this the plan was assembled to maximise protein
@@ -229,7 +244,20 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
                  are the same shape rather than two shapes that happen to
                  measure the same. */
               return (
-                <li key={slot} className="border-t border-slate-100 px-3 py-3 first:border-t-0 sm:px-4">
+                <li key={slot} ref={drag?.ref}
+                  onPointerDown={drag?.onPointerDown}
+                  className={`border-t border-slate-100 px-3 py-3 first:border-t-0 sm:px-4 ${
+                    lifted ? "relative z-10 bg-white shadow-xl" : ""}`}
+                  style={{
+                    /* Follow the finger while carried, glide back otherwise —
+                       the same two states ActionRow uses, so a carried meal
+                       and a carried habit move alike. */
+                    transform: carryY ? `translateY(${carryY}px)` : undefined,
+                    transition: lifted ? "none" : settling ? "transform 160ms ease" : undefined,
+                    touchAction: drag ? "none" : undefined,
+                    userSelect: drag ? "none" : undefined,
+                    WebkitUserSelect: drag ? "none" : undefined,
+                  }}>
                   <div className="flex items-start gap-3">
                     <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
                       aria-pressed={done}

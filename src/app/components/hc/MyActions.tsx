@@ -527,18 +527,53 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               {/* Mid-drag the carried row sits where the finger is, so the
                   list shows the result before you let go. */}
               {(() => {
-                const ids = items.map((x) => x.uid);
+                /*
+                 * Habits and meals in one draggable list.
+                 *
+                 * The meals used to be rendered after this block, which is
+                 * why they could not be carried: they were not in `ids`, so
+                 * the reorder hook did not know they existed and dropping a
+                 * habit on one did nothing. A row somebody can see in a list
+                 * and cannot move is a list that feels broken.
+                 *
+                 * Meals get a synthetic uid, `meal:<slot>`. /api/hc/actions
+                 * stores the order against whatever uid strings it is given
+                 * and hc_action_prefs.action_uid is free text, so a meal
+                 * takes a sort_index exactly as a habit does — one order for
+                 * the section, persisted the same way.
+                 */
+                const mealSlots = meals ? MEAL_WHEN[p].filter((sl) => meals[sl]) : [];
+                type Entry =
+                  | { kind: "habit"; uid: string; a: PlanItem }
+                  | { kind: "meal"; uid: string; slot: MealSlot };
+                const entries: Entry[] = [
+                  ...items.map((a) => ({ kind: "habit" as const, uid: a.uid, a })),
+                  ...mealSlots.map((sl) => ({ kind: "meal" as const, uid: `meal:${sl}`, slot: sl })),
+                ];
+                /* The participant's order, where they have set one. */
+                const byPref = (u: string) => sortIdx.get(u) ?? Number.MAX_SAFE_INTEGER;
+                entries.sort((x, y) => byPref(x.uid) - byPref(y.uid));
+
+                const ids = entries.map((x) => x.uid);
                 const shown = reorder.order && reorder.order.some((u) => ids.includes(u))
-                  ? reorder.order.map((u) => items.find((x) => x.uid === u)).filter(Boolean) as typeof items
-                  : items;
-                return shown.map((a) => (
-                <ActionRow key={a.uid} a={a} meta={PILLAR_META[a.pillar]} today={today} doneOn={doneOn} onToggle={toggle}
-                  drag={reorder.handlers(a.uid, ids)} lifted={reorder.dragging === a.uid}
-                  atTime={prefs.find((x) => x.action_uid === a.uid)?.at_time ?? null}
-                  carryY={reorder.dragging === a.uid ? reorder.offset : 0}
-                  settling={!!reorder.dragging && reorder.dragging !== a.uid}
-                  onOpen={() => setSheet(a)}
-                  onHide={() => setPref(a.uid, { hidden: true })} />
+                  ? reorder.order.map((u) => entries.find((x) => x.uid === u)).filter(Boolean) as Entry[]
+                  : entries;
+
+                return shown.map((e) => e.kind === "habit" ? (
+                <ActionRow key={e.uid} a={e.a} meta={PILLAR_META[e.a.pillar]} today={today} doneOn={doneOn} onToggle={toggle}
+                  drag={reorder.handlers(e.uid, ids)} lifted={reorder.dragging === e.uid}
+                  atTime={prefs.find((x) => x.action_uid === e.uid)?.at_time ?? null}
+                  carryY={reorder.dragging === e.uid ? reorder.offset : 0}
+                  settling={!!reorder.dragging && reorder.dragging !== e.uid}
+                  onOpen={() => setSheet(e.a)}
+                  onHide={() => setPref(e.uid, { hidden: true })} />
+                ) : (
+                  <MealLogger key={e.uid} day={meals!} weightKg={null} part="list" only={e.slot}
+                    flush tone={{ color: PILLAR_META.nutrition.color, ring: PILLAR_META.nutrition.ring }}
+                    onOpenMeal={setRecipe} onLogged={satisfyFromMeals}
+                    drag={reorder.handlers(e.uid, ids)} lifted={reorder.dragging === e.uid}
+                    carryY={reorder.dragging === e.uid ? reorder.offset : 0}
+                    settling={!!reorder.dragging && reorder.dragging !== e.uid} />
                 ));
               })()}
               {/* Add something to this part of the day.
@@ -548,35 +583,8 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                   dropped into Morgunn would simply reappear under Kvöld.
                   Offering what fits is honest; letting somebody pick and
                   then moving it would not be. */}
-              {/* Today's meals, as items in the list rather than a card in it.
-                  They were a bordered block inside a bordered section — a
-                  card in a card, which is exactly how it read: a separate
-                  thing bolted on rather than part of the day. MealLogger
-                  renders them flush now, in the same row as every other
-                  item, and still owns the write: it is the only thing that
-                  touches meal_log.
-
-                  Where they sit: after the nutrition habits of this section,
-                  because the habit is the rule ("próteinríkur morgunmatur")
-                  and the meal is this morning's instance of it. Reading rule
-                  then instance is the order they make sense in.
-
-                  Two ticks, not one, and deliberately so. "Did I keep to a
-                  protein-rich breakfast" and "did I eat the breakfast the
-                  plan laid out" are different claims — somebody can manage
-                  the first with eggs that are not in the plan — and a single
-                  tick would have to silently decide which one it meant. */}
-              {meals && MEAL_WHEN[p].some((sl) => meals[sl]) && (
-                MEAL_WHEN[p].filter((sl) => meals[sl]).map((sl) => (
-                  <MealLogger key={`meal-${sl}`} day={meals} weightKg={null} part="list" only={sl}
-                    /* The same two values ActionRow uses, so a ticked meal
-                       and a ticked habit are the same green. Measured: a
-                       white check on #65A30D is 3.1:1, which clears the 3.0
-                       bar for a large glyph. */
-                    flush tone={{ color: PILLAR_META.nutrition.color, ring: PILLAR_META.nutrition.ring }}
-                    onOpenMeal={setRecipe} onLogged={satisfyFromMeals} />
-                ))
-              )}
+              {/* The meals are rendered above, inside the one draggable
+                  list, so that they can be carried like anything else. */}
 
               {onAddAction && (
                 <li className="border-t border-slate-100 px-4 py-2.5">
