@@ -26,6 +26,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { hcAudit, requireUser, siteOrigin } from "@/lib/hc/server";
 import { createStraumurCharge } from "@/lib/straumur";
+import { priceWithCode, redeem } from "@/lib/hc/discount";
 
 export const runtime = "nodejs";
 
@@ -79,23 +80,47 @@ export async function POST(req: NextRequest) {
   if (existing) return NextResponse.json({ ok: true, subscription: existing, already: true });
 
   /*
+   * The code, priced on the server.
+   *
+   * The browser sends a string and nothing else. It never sends a price, a
+   * discount or an amount — the catalogue price and the code's effect are
+   * both looked up here, so a tampered request can only ask for a code that
+   * exists and get what that code actually does.
+   */
+  const rawCode = typeof body?.code === "string" ? body.code : "";
+  const discount = rawCode.trim()
+    ? await priceWithCode(rawCode, "subscription", p.price_isk, user.id)
+    : null;
+  // A code that does not apply is not a reason to refuse the subscription;
+  // it just does not come off. Saying so beats a dead end at the till.
+  const chargeIsk = discount?.ok ? (discount.priceIsk ?? p.price_isk) : p.price_isk;
+  const monthsFree = discount?.ok ? (discount.monthsFree ?? 0) : 0;
+
+  /*
    * Charged through the same stub the rest of the site uses, so that when it
    * becomes a real charge this becomes a real subscription without the flow
    * changing shape. A failure here must not leave a row behind.
+   *
+   * Nothing is charged for a free period — there is no zero-krónur card
+   * transaction, and asking for one would fail on a real provider.
    */
-  const charge = await createStraumurCharge({
-    amountIsk: p.price_isk,
-    reference: `sub_${user.id.slice(0, 8)}`,
-    description: p.name,
-    customer: { name: user.email || "", email: user.email || "", phone: null },
-    returnUrl: `${siteOrigin(req)}/account/heilsuferd`,
-  });
-  if (!charge.ok) {
-    return NextResponse.json({ error: charge.error || "Greiðsla tókst ekki." }, { status: 402 });
+  if (chargeIsk > 0) {
+    const charge = await createStraumurCharge({
+      amountIsk: chargeIsk,
+      reference: `sub_${user.id.slice(0, 8)}`,
+      description: p.name,
+      customer: { name: user.email || "", email: user.email || "", phone: null },
+      returnUrl: `${siteOrigin(req)}/account/heilsuferd`,
+    });
+    if (!charge.ok) {
+      return NextResponse.json({ error: charge.error || "Greiðsla tókst ekki." }, { status: 402 });
+    }
   }
 
   const now = new Date();
-  const months = p.interval_months ?? 1;
+  // free_months extends the first period rather than discounting it: the
+  // customer gets that many months before anything is due.
+  const months = (p.interval_months ?? 1) + monthsFree;
   const end = new Date(now);
   end.setMonth(end.getMonth() + months);
 
@@ -111,8 +136,20 @@ export async function POST(req: NextRequest) {
     .single();
   if (error || !sub) return NextResponse.json({ error: "Tókst ekki að hefja áskrift." }, { status: 500 });
 
-  await hcAudit(`self:${user.id}`, "subscription_started", null, { tier: PAID_TIER, price: p.price_isk });
-  return NextResponse.json({ ok: true, subscription: sub });
+  /*
+   * Spent only now, after the row exists. A code redeemed before the
+   * subscription was written would be gone if the write failed.
+   */
+  if (discount?.ok && discount.code) {
+    await redeem(discount.code.code, user.id, "subscription",
+      discount.amountOffIsk ?? 0, monthsFree);
+  }
+
+  await hcAudit(`self:${user.id}`, "subscription_started", null, {
+    tier: PAID_TIER, price: p.price_isk, charged: chargeIsk,
+    code: discount?.ok ? discount.code?.code : null, months_free: monthsFree,
+  });
+  return NextResponse.json({ ok: true, subscription: sub, charged_isk: chargeIsk, months_free: monthsFree });
 }
 
 export async function DELETE(req: NextRequest) {

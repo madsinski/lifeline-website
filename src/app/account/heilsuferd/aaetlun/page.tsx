@@ -17,6 +17,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import PlanView from "@/app/components/hc/PlanView";
 import MyActions from "@/app/components/hc/MyActions";
+import Paywall from "@/app/components/hc/Paywall";
 import ResultSignals, { type FlaggedValue } from "@/app/components/hc/ResultSignals";
 import ResultsCard, { type HcResult } from "@/app/components/hc/ResultsCard";
 import ReportView from "@/app/components/hc/ReportView";
@@ -154,6 +155,16 @@ function PlanPageInner() {
   const [training, setTraining] = useState<TrainingSettings>(DEFAULT_TRAINING);
   /** What they told us about their body, where no measurement exists. */
   const [selfBody, setSelfBody] = useState<{ weight_kg: number | null; height_cm: number | null }>({ weight_kg: null, height_cm: null });
+  /*
+   * Whether the app is open to this person, from the server.
+   *
+   * Not computed here: the rule depends on a paid order, a published plan
+   * and a subscription row the browser can no longer read in full — see
+   * src/lib/hc/subscription.ts. Undefined means "not loaded", which must
+   * never render as "no access".
+   */
+  const [access, setAccess] = useState<{ ok: boolean; reason: string; trialEndsAt: string | null; daysLeft: number | null } | null>(null);
+  const [subPkg, setSubPkg] = useState<Record<string, unknown> | null>(null);
   const [personal, setPersonal] = useState<Personal>(DEFAULT_PERSONAL);
   const [gym, setGym] = useState<{ name: string | null; url: string | null; info: string | null } | null>(null);
   // The setup wizard: opened on demand, and by itself the first time, when
@@ -263,6 +274,23 @@ function PlanPageInner() {
       // Days, swaps and meal picks apply to every programme, so always load them.
       const t = (pj.plan ?? aj.plan) ? await cache.load(api, U.t) : null;
       apply(a.status < 400, aj, pj, t && t.status < 400 ? (t.body as J) : null);
+
+      /*
+       * Access, and the thing it sells.
+       *
+       * Both read after the plan so the page paints its content first — a
+       * paywall that flashes before the app has even drawn would hit people
+       * who are entitled to be here.
+       */
+      const [jr, sr] = await Promise.all([
+        cache.load(api, "/api/hc/journey"),
+        cache.load(api, "/api/hc/subscribe"),
+      ]);
+      if (jr.status < 400) {
+        const acc = (jr.body as { access?: typeof access }).access;
+        if (acc) setAccess(acc);
+      }
+      if (sr.status < 400) setSubPkg((sr.body as { package?: Record<string, unknown> }).package ?? null);
       /*
        * Warm everything the other tabs will ask for.
        *
@@ -649,7 +677,39 @@ function PlanPageInner() {
               }} />
 
             <div className="mt-4">
-              {tab === "today" && plan && (
+              {/* ── The paywall ──────────────────────────────────────
+                  Only these three tabs: Í dag, Æfingar and Næring are the
+                  subscription. The report and the coach thread stay open
+                  below, because a health-check customer paid for those —
+                  and appAccess() grants those people the app for good
+                  anyway, so nobody who bought a workup reaches this.
+
+                  `access === null` means not loaded. It must render as the
+                  app, not as a wall: a paywall that flashes before the
+                  answer arrives would hit entitled people every time. */}
+              {access && !access.ok && (tab === "today" || tab === "exercise" || tab === "nutrition") && (
+                <Paywall api={api} pkg={subPkg as never} trialEndsAt={access.trialEndsAt}
+                  onDone={async () => {
+                    cache.invalidate("/api/hc/journey", "/api/hc/subscribe");
+                    setReloadKey((k) => k + 1);
+                  }} />
+              )}
+
+              {/* The trial, counted down quietly rather than nagged about.
+                  Shown from the last week, because a reminder on day one is
+                  just an advert. */}
+              {access?.ok && access.reason === "trial" && access.daysLeft != null && access.daysLeft <= 7 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-hc-element bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+                  <span>
+                    {access.daysLeft === 0
+                      ? "Prufutímabilið endar í dag."
+                      : `${access.daysLeft} ${access.daysLeft === 1 ? "dagur" : "dagar"} eftir af prufutímabilinu.`}
+                  </span>
+                  <a href="/account/heilsuferd?ferd=1" className="font-semibold underline">Sjá áskriftina</a>
+                </div>
+              )}
+
+              {tab === "today" && plan && (!access || access.ok) && (
                 <div className="space-y-4 print:hidden">
                   <TodayHeader name={name} right={<NotificationBell unread={unread} onOpen={() => { setNotesOpen(true); void markSeen(); }} />} />
                   {/* The urgent card carries the next appointment now, so
@@ -711,7 +771,7 @@ function PlanPageInner() {
                   <CoachView api={api} startOn={coachSub} focusNewest={coachFocus} />
                 </div>
               )}
-              {tab === "exercise" && plan && baseExercise && (
+              {tab === "exercise" && plan && baseExercise && (!access || access.ok) && (
                 <div className="print:hidden">
                   {setup && isAdaptive(plan.exercise?.key) ? (
                     <TrainingWizard
@@ -786,7 +846,7 @@ function PlanPageInner() {
                   )}
                 </div>
               )}
-              {tab === "nutrition" && plan?.nutrition && (
+              {tab === "nutrition" && plan?.nutrition && (!access || access.ok) && (
                 <div className="print:hidden">
                   {nutritionSetup ? (
                     <NutritionWizard prefs={nutritionPrefs} signals={reportSignalsBySlug} meals={mealLibrary} saving={saving}

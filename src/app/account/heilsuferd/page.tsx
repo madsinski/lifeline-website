@@ -20,6 +20,7 @@ import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
 import JourneyNav from "@/app/components/hc/JourneyNav";
 import ProfileForm, { ConsentBox } from "@/app/components/hc/ProfileForm";
+import Paywall from "@/app/components/hc/Paywall";
 import SetupFlow from "@/app/components/hc/SetupFlow";
 import TrackChoice from "@/app/components/hc/TrackChoice";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
@@ -499,6 +500,48 @@ function TestTask({ n, title, done, children }: { n: number; title: string; done
   );
 }
 
+/**
+ * The subscription step.
+ *
+ * Fetches the package and the caller's own subscription, then either says
+ * they already have it or offers it. Separate from Paywall because a step
+ * has to handle "already subscribed" — a paywall never does, since it only
+ * appears to people who are not.
+ */
+function SubscriptionStep({ api, reload }: {
+  api: (url: string, init?: RequestInit) => Promise<Response>;
+  reload: () => Promise<void>;
+}) {
+  const [state, setState] = useState<{ package: Record<string, unknown> | null; subscription: { tier: string; status: string; current_period_end: string | null } | null } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    api("/api/hc/subscribe").then((r: Response) => (r.ok ? r.json() : null)).then((j: typeof state) => {
+      if (alive) setTimeout(() => setState(j ?? { package: null, subscription: null }), 0);
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [api]);
+
+  if (!state) return <div className="h-32 rounded-2xl hc-shimmer" aria-busy="true" aria-label="Hleð" />;
+
+  if (state.subscription) {
+    const until = state.subscription.current_period_end;
+    return (
+      <div className="space-y-2 text-sm text-slate-600">
+        <p className="font-semibold text-slate-900">Áskriftin er aktív.</p>
+        {until && (
+          <p>
+            Næsta greiðsla {new Date(until).toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" })}.
+          </p>
+        )}
+        <p>Þú getur sagt upp hvenær sem er í stillingum — appið er opið til loka þess tímabils sem er greitt.</p>
+      </div>
+    );
+  }
+
+  return <Paywall api={api} pkg={state.package as never} onDone={reload} />;
+}
+
 function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyStep; data: JourneyData; reload: () => Promise<void>; advance: () => Promise<void>; healthOrder: HcOrder | null }) {
   const loc = data.location;
   const j = data.journey;
@@ -696,6 +739,14 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
             )}
           </div>
         );
+    case "subscription":
+      /*
+       * The app, bought here. Paywall renders the offer, the code box and
+       * the terms, and it is the same component the app tabs show when a
+       * trial has run out — one place where the price and what it includes
+       * are written down.
+       */
+      return <SubscriptionStep api={api} reload={reload} />;
     case "followup":
       return <FollowupStep data={data} kind="followup_3m" reload={reload} />;
     case "reevaluation":
