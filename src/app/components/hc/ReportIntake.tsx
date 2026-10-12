@@ -96,12 +96,17 @@ export default function ReportIntake({ api, onOpen }: {
       onDrop={(e) => { e.preventDefault(); setOver(false); if (e.dataTransfer.files?.length) void read(e.dataTransfer.files); }}
       className={`rounded-3xl border-2 border-dashed p-5 transition ${over ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-white"}`}
     >
+      {/* The row stacks until there is room for it.
+          Icon | text | button on one line is right across a page and wrong
+          in a 340px column — the workstation puts this beside the work now,
+          and the body text was wrapping to ten lines in the strip left
+          between the icon and the button. */}
       {!result && (
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
             {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileUp className="h-6 w-6" />}
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 sm:flex-1">
             <p className="font-bold text-slate-900">{busy ? "Les skýrsluna…" : "Dragðu heilsufarsskýrslu hingað"}</p>
             <p className="text-sm text-slate-500">
               PDF frá Medalia, blóðprufusvar eða myndir af þeim. Við finnum skjólstæðinginn — eða stofnum hann — og opnum vinnusvæðið hans.
@@ -110,7 +115,7 @@ export default function ReportIntake({ api, onOpen }: {
           <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
             onChange={(e) => { if (e.target.files?.length) void read(e.target.files); e.target.value = ""; }} />
           <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
+            className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50 sm:w-auto">
             Velja skrá
           </button>
         </div>
