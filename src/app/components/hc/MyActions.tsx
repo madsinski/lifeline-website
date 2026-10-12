@@ -568,7 +568,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                   onOpen={() => setSheet(e.a)}
                   onHide={() => setPref(e.uid, { hidden: true })} />
                 ) : (
-                  <MealLogger key={e.uid} day={meals!} weightKg={null} part="list" only={e.slot}
+                  <MealLogger key={e.uid} day={meals!} part="list" only={e.slot}
                     flush tone={{ color: PILLAR_META.nutrition.color, ring: PILLAR_META.nutrition.ring }}
                     onOpenMeal={setRecipe} onLogged={satisfyFromMeals}
                     drag={reorder.handlers(e.uid, ids)} lifted={reorder.dragging === e.uid}

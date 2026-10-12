@@ -15,18 +15,16 @@
 // kg), using the weight from the report. With no weight on file there is no
 // bar — a progress bar against a guessed target is worse than none.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, ChevronRight, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { localDate } from "@/lib/hc/workout";
-import { proteinState, proteinTarget, totalsOf, type MealLogRow } from "@/lib/hc/nutrition-log";
+import { type MealLogRow } from "@/lib/hc/nutrition-log";
 import { mealName, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
 
-export default function MealLogger({ day, weightKg, compact = false, part = "both", onTarget, only, flush = false, tone, onOpenMeal, onLogged, drag, lifted = false, carryY = 0, settling = false }: {
+export default function MealLogger({ day, compact = false, part = "list", only, flush = false, tone, onOpenMeal, onLogged, drag, lifted = false, carryY = 0, settling = false }: {
   /** The meal in each slot today, as the plan has it. */
   day: Record<MealSlot, Meal | null>;
-  /** From the report's þyngd row; null means no protein bar. */
-  weightKg: number | null;
   /** On "Í dag" the bar is enough; the Næring tab shows every slot. */
   compact?: boolean;
   /**
@@ -34,7 +32,15 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
    * hero shows the stage, and the slot-by-slot list stays further down, so
    * the two halves mount separately there.
    */
-  part?: "bar" | "list" | "both" | "button";
+  /**
+   * Which half to render.
+   *
+   * There used to be a "bar" and a "both" — a protein progress bar reading
+   * from the log. Its last caller went when Næring became the planner, and
+   * removing it took the appTarget/onTarget plumbing with it. The band those
+   * fed is computed in NutritionView now, from the same function.
+   */
+  part?: "list" | "button";
   /**
    * Render one slot's row only.
    *
@@ -94,29 +100,20 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
    * and the bar measured it against 1,2–1,6 g/kg, so the two numbers on this
    * page described different things.
    */
-  onTarget?: (t: { min: number; max: number } | null) => void;
 }) {
   const [rows, setRows] = useState<MealLogRow[] | null>(null);
   const [busy, setBusy] = useState<MealSlot | null>(null);
   // The app computes a full macro target (Mifflin / Katch-McArdle / measured
   // BMR → TDEE → protein split) and stores it in macro_targets. When that
-  // exists it wins: two different protein numbers on two screens is worse
-  // than either number alone. Our 1,2–1,6 g/kg band is the fallback.
-  const [appTarget, setAppTarget] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return;
-    const [{ data }, { data: t }] = await Promise.all([
-      supabase.from("meal_log")
-        .select("date, action_key, source, description, kcal, protein, carbs, fat")
-        .eq("client_id", u.user.id).eq("date", localDate()),
-      supabase.from("macro_targets").select("target_protein")
-        .eq("client_id", u.user.id).eq("active", true).maybeSingle(),
-    ]);
+    const { data } = await supabase.from("meal_log")
+      .select("date, action_key, source, description, kcal, protein, carbs, fat")
+      .eq("client_id", u.user.id).eq("date", localDate());
     setTimeout(() => {
       setRows((data ?? []) as MealLogRow[]);
-      setAppTarget(t?.target_protein == null ? null : Number(t.target_protein));
     }, 0);
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -160,179 +157,121 @@ export default function MealLogger({ day, weightKg, compact = false, part = "bot
     return () => clearTimeout(t);
   }, [rows, onLogged]);
 
-  const totals = totalsOf(rows ?? []);
-  // What the plan puts on the table today, so the bar can say what reaching
-  // the target would take rather than leaving the hero's number unexplained.
-  const planned = useMemo(() => SLOTS.reduce(
-    (t, s) => ({ protein: t.protein + Number(day[s]?.protein ?? 0), kcal: t.kcal + Number(day[s]?.calories ?? 0) }),
-    { protein: 0, kcal: 0 }), [day]);
-  const target = useMemo(() => (appTarget != null
-    ? { min: Math.round(appTarget), max: Math.round(appTarget) }
-    : proteinTarget(weightKg)), [appTarget, weightKg]);
-  const state = proteinState(totals.protein, target);
 
-  useEffect(() => { onTarget?.(target); }, [target, onTarget]);
 
   return (
     <div className="space-y-3">
       {/* The day so far */}
-      {part !== "list" && part !== "button" && (
-      <div className={part === "bar" ? "" : "rounded-2xl bg-white p-4 ring-1 ring-slate-200"}>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-semibold text-slate-800">Dagurinn þinn</p>
-          <p className="text-sm text-slate-600">
-            {rows === null ? "…" : `${totals.meals} af ${SLOTS.filter((s) => day[s]).length} máltíðum skráðar`}
-          </p>
-        </div>
-        {target ? (
+      {/* Flush rows are <li>s for somebody else's list.
+          Wrapping them in a <ul> of their own made a list inside a list:
+          invalid, and — the reason it mattered — it stopped a meal being a
+          sibling of the habits. The reorder hook measures sibling
+          positions to work out what a carried row is passing, so a meal in
+          its own nested list could never interleave with them. */}
+      {!compact && part !== "button" && (() => {
+        const rows = (
           <>
-            <div className="mt-2 flex items-baseline justify-between text-sm">
-              <span className="font-medium text-slate-700">Prótein skráð</span>
-              <span className="font-semibold tabular-nums text-slate-900">
-                {Math.round(totals.protein)} g <span className="font-normal text-slate-500">af {target.min === target.max ? `${target.min}` : `${target.min}–${target.max}`} g</span>
-              </span>
-            </div>
-            <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
-              <div className={`h-full rounded-full transition-all ${state.tone}`} style={{ width: `${state.pct}%` }} />
-            </div>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {state.label} · {Math.round(totals.kcal)} kkal skráðar
-              {planned.protein > 0 && ` · áætlunin í dag gefur ${Math.round(planned.protein)} g`}
-            </p>
-          </>
-        ) : (
-          <p className="mt-1 text-xs text-slate-500">
-            {Math.round(totals.protein)} g prótein · {Math.round(totals.kcal)} kkal skráðar.
-            Skráðu þyngdina þína til að sjá próteinmarkmið.
-          </p>
-        )}
-      </div>
-      )}
+              {SLOTS.filter((s) => day[s]).filter((s) => !only || s === only).map((slot) => {
+                const meal = day[slot]!;
+                const done = !!loggedSlot(slot);
 
-      {/* ── One solid button, for the card that leads a page ──────────
-          The Næring page's top card needed the same weight of action
-          Æfingar gives its day card. It is MealLogger's write, not a second
-          copy of it: the tick here and the tick in Í dag's checklist are
-          the same row in meal_log, so they are in sync by construction
-          rather than by being kept that way.
+                /* Flush: the row Í dag's checklist uses for everything else. */
+                if (flush) {
+                  /* Padding on the <li>, as ActionRow has it, so the two rows
+                     are the same shape rather than two shapes that happen to
+                     measure the same. */
+                  return (
+                    <li key={slot} ref={drag?.ref}
+                      onPointerDown={drag?.onPointerDown}
+                      className={`border-t border-slate-100 px-3 py-3 first:border-t-0 sm:px-4 ${
+                        lifted ? "relative z-10 bg-white shadow-xl" : ""}`}
+                      style={{
+                        /* Follow the finger while carried, glide back otherwise —
+                           the same two states ActionRow uses, so a carried meal
+                           and a carried habit move alike. */
+                        transform: carryY ? `translateY(${carryY}px)` : undefined,
+                        transition: lifted ? "none" : settling ? "transform 160ms ease" : undefined,
+                        touchAction: drag ? "none" : undefined,
+                        userSelect: drag ? "none" : undefined,
+                        WebkitUserSelect: drag ? "none" : undefined,
+                      }}>
+                      <div className="flex items-start gap-3">
+                        <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
+                          aria-pressed={done}
+                          aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${SLOT_IS[slot]} — ${mealName(meal)}`}
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-white transition active:scale-90 ${
+                            done ? "border-transparent text-white" : "text-transparent"}`}
+                          style={done
+                            ? { background: tone?.color ?? "#3F6212" }
+                            : { borderColor: tone?.ring ?? "#CBD5E1" }}>
+                          {busy === slot
+                            ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                            : <Check className="h-5 w-5" strokeWidth={3} />}
+                        </button>
+                        <div className="min-w-0 flex-1">
+                          {/* The text is the way in, as it is on every other
+                              row: tick on the left, detail behind the words. */}
+                          {onOpenMeal ? (
+                            <button type="button" onClick={() => onOpenMeal(meal)}
+                              className="flex w-full items-start gap-2 text-left">
+                              <span className="min-w-0 flex-1">
+                                <span className={`block font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
+                                  {mealName(meal)}
+                                </span>
+                                <span className="mt-0.5 block text-sm text-slate-500">
+                                  {[SLOT_IS[slot],
+                                    meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
+                                    meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
+                                    .filter(Boolean).join(" · ")}
+                                </span>
+                              </span>
+                              <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+                            </button>
+                          ) : (
+                            <>
+                              <p className={`font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
+                                {mealName(meal)}
+                              </p>
+                              <p className="mt-0.5 text-sm text-slate-500">
+                                {[SLOT_IS[slot],
+                                  meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
+                                  meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
+                                  .filter(Boolean).join(" · ")}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                }
 
-          Not "ég gerði þetta". That is an exercise sentence — you do a
-          workout, you eat a meal — so it says "ég borðaði þetta". */}
-      {part === "button" && only && day[only] && (
-        <button type="button" onClick={() => void toggle(only)} disabled={busy !== null}
-          aria-pressed={!!loggedSlot(only)}
-          className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold transition ${
-            loggedSlot(only)
-              ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
-              : "bg-lime-700 text-white hover:bg-lime-800"}`}>
-          {busy === only
-            ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            : <Check className="h-4 w-4" strokeWidth={3} aria-hidden />}
-          {loggedSlot(only) ? "Búið" : "Ég borðaði þetta"}
-        </button>
-      )}
-
-      {!compact && part !== "bar" && part !== "button" && (
-        <ul className={flush ? "" : "space-y-2"}>
-          {SLOTS.filter((s) => day[s]).filter((s) => !only || s === only).map((slot) => {
-            const meal = day[slot]!;
-            const done = !!loggedSlot(slot);
-
-            /* Flush: the row Í dag's checklist uses for everything else. */
-            if (flush) {
-              /* Padding on the <li>, as ActionRow has it, so the two rows
-                 are the same shape rather than two shapes that happen to
-                 measure the same. */
-              return (
-                <li key={slot} ref={drag?.ref}
-                  onPointerDown={drag?.onPointerDown}
-                  className={`border-t border-slate-100 px-3 py-3 first:border-t-0 sm:px-4 ${
-                    lifted ? "relative z-10 bg-white shadow-xl" : ""}`}
-                  style={{
-                    /* Follow the finger while carried, glide back otherwise —
-                       the same two states ActionRow uses, so a carried meal
-                       and a carried habit move alike. */
-                    transform: carryY ? `translateY(${carryY}px)` : undefined,
-                    transition: lifted ? "none" : settling ? "transform 160ms ease" : undefined,
-                    touchAction: drag ? "none" : undefined,
-                    userSelect: drag ? "none" : undefined,
-                    WebkitUserSelect: drag ? "none" : undefined,
-                  }}>
-                  <div className="flex items-start gap-3">
+                return (
+                  <li key={slot}>
                     <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
                       aria-pressed={done}
-                      aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${SLOT_IS[slot]} — ${mealName(meal)}`}
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-white transition active:scale-90 ${
-                        done ? "border-transparent text-white" : "text-transparent"}`}
-                      style={done
-                        ? { background: tone?.color ?? "#3F6212" }
-                        : { borderColor: tone?.ring ?? "#CBD5E1" }}>
-                      {busy === slot
-                        ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
-                        : <Check className="h-5 w-5" strokeWidth={3} />}
+                      className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition ${
+                        done ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-white ring-slate-200 hover:ring-slate-300"}`}>
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${
+                        done ? "border-transparent bg-emerald-600 text-white" : "border-slate-200 text-transparent"}`}>
+                        {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : <Check className="h-5 w-5" strokeWidth={3} />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{SLOT_IS[slot]}</span>
+                        <span className={`block truncate font-semibold ${done ? "text-emerald-900" : "text-slate-900"}`}>{mealName(meal)}</span>
+                      </span>
+                      <span className="shrink-0 text-right text-xs text-slate-500">
+                        {meal.protein != null && <span className="block font-semibold text-slate-700">{Math.round(Number(meal.protein))} g</span>}
+                        {meal.calories != null && <span className="block">{Math.round(Number(meal.calories))} kkal</span>}
+                      </span>
                     </button>
-                    <div className="min-w-0 flex-1">
-                      {/* The text is the way in, as it is on every other
-                          row: tick on the left, detail behind the words. */}
-                      {onOpenMeal ? (
-                        <button type="button" onClick={() => onOpenMeal(meal)}
-                          className="flex w-full items-start gap-2 text-left">
-                          <span className="min-w-0 flex-1">
-                            <span className={`block font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
-                              {mealName(meal)}
-                            </span>
-                            <span className="mt-0.5 block text-sm text-slate-500">
-                              {[SLOT_IS[slot],
-                                meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
-                                meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
-                                .filter(Boolean).join(" · ")}
-                            </span>
-                          </span>
-                          <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
-                        </button>
-                      ) : (
-                        <>
-                          <p className={`font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
-                            {mealName(meal)}
-                          </p>
-                          <p className="mt-0.5 text-sm text-slate-500">
-                            {[SLOT_IS[slot],
-                              meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
-                              meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
-                              .filter(Boolean).join(" · ")}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              );
-            }
-
-            return (
-              <li key={slot}>
-                <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
-                  aria-pressed={done}
-                  className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition ${
-                    done ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-white ring-slate-200 hover:ring-slate-300"}`}>
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${
-                    done ? "border-transparent bg-emerald-600 text-white" : "border-slate-200 text-transparent"}`}>
-                    {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : <Check className="h-5 w-5" strokeWidth={3} />}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{SLOT_IS[slot]}</span>
-                    <span className={`block truncate font-semibold ${done ? "text-emerald-900" : "text-slate-900"}`}>{mealName(meal)}</span>
-                  </span>
-                  <span className="shrink-0 text-right text-xs text-slate-500">
-                    {meal.protein != null && <span className="block font-semibold text-slate-700">{Math.round(Number(meal.protein))} g</span>}
-                    {meal.calories != null && <span className="block">{Math.round(Number(meal.calories))} kkal</span>}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                  </li>
+                );
+              })}
+          </>
+        );
+        return flush ? rows : <ul className="space-y-2">{rows}</ul>;
+      })()}
     </div>
   );
 }

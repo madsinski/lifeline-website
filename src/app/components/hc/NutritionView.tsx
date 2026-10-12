@@ -303,7 +303,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                   the date or quietly log the wrong day. */}
               {isToday && todayMeals && day?.[nextSlot] && (
                 <div className="border-t border-slate-100 p-3">
-                  <MealLogger day={todayMeals} weightKg={null} part="button" only={nextSlot} />
+                  <MealLogger day={todayMeals} part="button" only={nextSlot} />
                 </div>
               )}
             </div>
