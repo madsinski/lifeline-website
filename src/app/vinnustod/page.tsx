@@ -24,6 +24,7 @@ import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CoachAsClient from "@/app/components/hc/CoachAsClient";
+import CoachBookings from "@/app/components/hc/CoachBookings";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import WeekCalendar from "@/app/components/hc/WeekCalendar";
 import ClientsView from "@/app/components/hc/ClientsView";
@@ -1213,6 +1214,22 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged, onJump }: {
          loaded. */
       status: "Eins og skjólstæðingurinn sér hana",
       body: <CoachAsClient api={api} journeyId={j.id} />,
+    },
+    {
+      /*
+       * What they have booked, and booking on their behalf.
+       *
+       * The diary already blocked this time out, but only as anonymous busy
+       * hours — opening a client said nothing about what they had booked,
+       * and changing it meant ringing them. Not hidden behind a published
+       * plan: a measurement visit is booked long before any plan exists.
+       */
+      key: "bookings",
+      title: "Bókanir",
+      icon: <CalendarClock className="h-4 w-4" />,
+      state: "current",
+      status: "Myndsamtöl og mælingar",
+      body: <CoachBookings api={api} journeyId={j.id} />,
     },
     {
       key: "followup",

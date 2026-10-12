@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
+import { MEASURE_IS } from "@/lib/hc/bookings";
 
 export const runtime = "nodejs";
 
@@ -52,10 +53,6 @@ export async function GET(req: NextRequest) {
    * Þjálfari page was invisible here — the coach's diary showed free time
    * that was not free. Same window, same location scoping.
    */
-  const MEASURE_IS: Record<string, string> = {
-    bodycomp: "líkamssamsetning", bloodpressure: "blóðþrýstingur",
-    vo2max: "þrekpróf", strength: "styrkur",
-  };
   const journeyIds = (data ?? []).map((r) => r.id as string);
   if (journeyIds.length) {
     const { data: bk } = await supabaseAdmin
@@ -71,7 +68,10 @@ export async function GET(req: NextRequest) {
         minutes: (b.minutes as number) ?? 30,
         what: b.kind === "video"
           ? "Myndsímtal"
-          : `Mæling: ${items.map((k) => MEASURE_IS[k] ?? k).join(", ") || "á staðnum"}`,
+          /* Lowercased because it sits mid-phrase after "Mæling:". The
+             shared table holds them capitalised, which is right standalone
+             and wrong here. */
+          : `Mæling: ${items.map((k) => (MEASURE_IS[k] ?? k).toLowerCase()).join(", ") || "á staðnum"}`,
         journey_id: b.journey_id as string,
       });
     }
