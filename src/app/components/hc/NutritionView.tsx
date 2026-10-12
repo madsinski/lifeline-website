@@ -17,6 +17,7 @@ import type { Signal } from "@/lib/hc/grunnheilsa";
 import { FIBRE_TARGET, proteinTarget } from "@/lib/hc/nutrition-log";
 import MealLogger from "./MealLogger";
 import ShoppingList, { ShoppingListButton } from "./ShoppingList";
+import DescribeMeal from "./DescribeMeal";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -167,6 +168,8 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   /** How the swap library is being looked at. */
   const [libFilter, setLibFilter] = useState<"all" | "fav" | "protein">("all");
   const [shopOpen, setShopOpen] = useState(false);
+  /** Which slot a described meal is replacing, when that sheet is open. */
+  const [describe, setDescribe] = useState<MealSlot | null>(null);
   /** The sliding week. Its scroll position is its own, not React's. */
   const stripRef = useRef<HTMLDivElement | null>(null);
   /*
@@ -304,8 +307,16 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                   tick Thursday's dinner on a Sunday would either lie about
                   the date or quietly log the wrong day. */}
               {isToday && todayMeals && day?.[nextSlot] && (
-                <div className="border-t border-slate-100 p-3">
+                <div className="space-y-2 border-t border-slate-100 p-3">
                   <MealLogger day={todayMeals} part="button" only={nextSlot} />
+                  {/* The plan says one thing and work says another.
+                      Secondary to the tick, because most days the planned
+                      meal is what happened — but one tap away, because the
+                      days it is not are the days the diary goes wrong. */}
+                  <button type="button" onClick={() => setDescribe(nextSlot)}
+                    className="w-full rounded-2xl px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                    Ég borðaði eitthvað annað
+                  </button>
                 </div>
               )}
             </div>
@@ -807,6 +818,16 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           })()}
         </Sheet>
       )}
+      {describe && (
+        <Sheet title="Hvað borðaðir þú?" onClose={() => setDescribe(null)}>
+          <DescribeMeal api={api} slot={describe}
+            /* The tick and this write the same meal_log row, so the card has
+               to re-read rather than assume. */
+            onLogged={() => { cache.invalidate("/api/hc/actions"); }}
+            onClose={() => setDescribe(null)} />
+        </Sheet>
+      )}
+
       {shopOpen && week && (
         <ShoppingList week={week} todayIdx={todayIdx} onClose={() => setShopOpen(false)} />
       )}
