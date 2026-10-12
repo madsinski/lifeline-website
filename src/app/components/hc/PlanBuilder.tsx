@@ -629,16 +629,19 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                                   ~16px on the few long ones; hiding half a
                                   habit's name costs the coach the ability to
                                   read their own plan.
-                                  break-words because Icelandic compounds do
-                                  not fit: "Styrktarþjálfun" beside a
-                                  "2–3 sinnum í viku" pill is one word wider
-                                  than the column, and a word that cannot
-                                  wrap clips instead. */}
-                              <span className="min-w-0 flex-1 break-words font-semibold leading-tight text-[#0F172A]">{m.title}</span>
+                                  When the two still do not fit, the
+                                  frequency yields rather than the name:
+                                  "Styrktarþjálfun" beside a "2–3 sinnum í
+                                  viku" pill overflowed a 355px column, and
+                                  breaking the word gave "Styrktarþjá/lfun".
+                                  A name has to be read exactly; the
+                                  frequency is a hint whose full value is one
+                                  click away in the editor. */}
+                              <span className="min-w-0 flex-1 font-semibold leading-tight text-[#0F172A]">{m.title}</span>
                               {/* A note is the one thing worth knowing about a
                                   closed row: it is written to the client. */}
                               {m.note && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-label="Hefur athugasemd" />}
-                              {m.frequency && <span className="shrink-0 text-xs text-slate-500">{m.frequency}</span>}
+                              {m.frequency && <span className="max-w-[38%] shrink truncate text-xs text-slate-500">{m.frequency}</span>}
                               <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
                             </button>
                             <button onClick={() => removeItem(m.uid)} className="shrink-0 text-slate-400 hover:text-red-500" aria-label={`Fjarlægja ${m.title}`}>×</button>
