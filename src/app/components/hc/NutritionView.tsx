@@ -233,28 +233,35 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           return (
             <div className={`mt-4 overflow-hidden rounded-3xl bg-white transition ${
               isToday ? TONE.actRing : "ring-1 ring-slate-200"}`}>
+              {/* White header with a coloured tile, exactly as Æfingar's day
+                  card has it. I had made this band solid to mark it as the
+                  priority, which gave Næring a card shape that exists
+                  nowhere else in the app — and the two pages are supposed to
+                  read alike. The solid colour belongs on the action at the
+                  bottom, which is where Æfingar puts it and where this card
+                  now puts "Ég borðaði þetta". Today is marked by the ring
+                  around the card and the "í dag" on the eyebrow, which is
+                  how the exercise card marks it too. */}
               <button type="button" onClick={() => setHeadOpen((v) => !v)} aria-expanded={headOpen}
-                className={`flex w-full items-center gap-3 p-4 text-left ${isToday ? TONE.act : "bg-white"}`}>
-                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                  isToday ? "bg-white/20 text-white" : "bg-lime-100 text-lime-800"}`}>
+                className="flex w-full items-center gap-3 p-4 text-left">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-lime-100 text-lime-800">
                   <Utensils className="h-5 w-5" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className={`block text-[11px] font-bold uppercase tracking-[0.1em] ${
-                    isToday ? "text-lime-100" : "text-lime-800"}`}>
+                  <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-lime-800">
                     {SLOT_IS[nextSlot]}{isToday ? " · í dag" : ` · ${WEEKDAYS[shownDay].toLowerCase()}`}
                   </span>
-                  <span className={`block font-bold leading-tight ${isToday ? "text-white" : "text-slate-900"}`}>
+                  <span className="block font-bold leading-tight text-slate-900">
                     {m ? mealName(m) : day ? "Engin máltíð valin" : "Hleð…"}
                   </span>
                   {m && (
-                    <span className={`mt-0.5 block text-sm ${isToday ? "text-lime-50" : "text-slate-600"}`}>
+                    <span className="mt-0.5 block text-sm text-slate-600">
                       {[m.protein != null ? `${Math.round(Number(m.protein))} g prótein` : null,
                         mins ? `${mins} mín.` : null].filter(Boolean).join(" · ")}
                     </span>
                   )}
                 </span>
-                <ChevronDown className={`h-5 w-5 shrink-0 transition ${isToday ? "text-lime-100" : "text-slate-500"} ${headOpen ? "rotate-180" : ""}`} aria-hidden />
+                <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition ${headOpen ? "rotate-180" : ""}`} aria-hidden />
               </button>
 
               {headOpen && m && (

@@ -21,7 +21,9 @@ export type StepKey =
   // inside "report", which is about the doctor confirming the numbers.
   | "upload"
   | "report" | "interview" | "plan"
-  | "followup" | "reevaluation";
+  | "followup" | "reevaluation"
+  // The app, which is a subscription and not part of the check's single fee.
+  | "subscription";
 
 export type StepState = "done" | "current" | "upcoming" | "optional";
 
@@ -58,11 +60,21 @@ const DEFS: { key: StepKey; title: string; blurb: string; optional?: boolean }[]
   { key: "report", title: "Skýrslan þín", blurb: "Læknir Lifeline staðfestir skýrsluna þegar niðurstöður liggja fyrir." },
   { key: "interview", title: "Viðtal", blurb: "Þú og hjúkrunarfræðingur farið yfir niðurstöðurnar og gerið áætlun." },
   { key: "plan", title: "Aðgerðaáætlun", blurb: "Áætlunin þín til næstu þriggja mánaða." },
+  /*
+   * Optional, and last, because it is a different purchase.
+   *
+   * The health check is one fee and the app is a monthly subscription. Put
+   * in the middle of the journey it would read as another thing you must
+   * buy before the next step unlocks, which is false — the check works
+   * without it and it works without the check. Optional and at the end is
+   * the honest position: offered, never in the way.
+   */
+  { key: "subscription", title: "Appið í símann", blurb: "Æfingar, næring og dagleg eftirfylgd. Mánaðarleg áskrift, óháð heilsufarsskoðuninni.", optional: true },
   { key: "followup", title: "Eftirfylgd eftir 3 mánuði", blurb: "Ráðlögð en valfrjáls.", optional: true },
   { key: "reevaluation", title: "Endurmat eftir ár", blurb: "Eða aukaviðtal við hjúkrunarfræðing.", optional: true },
 ];
 
-function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean): string | null {
+function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean, subscribed?: boolean): string | null {
   switch (key) {
     case "account": return j.created_at;
     case "profile": return profileComplete ? (j.profile_completed_at ?? j.created_at) : null;
@@ -85,6 +97,12 @@ function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean): string
     case "report": return j.report_generated_at ?? j.report_imported_at ?? j.own_report_at ?? null;
     case "interview": return j.interview_done_at;
     case "plan": return j.plan_published_at;
+    /*
+     * Not a journey column: a subscription lives in its own table with its
+     * own lifecycle, so the page passes in whether one is active. Undefined
+     * means "not loaded yet", which must not read as "not subscribed".
+     */
+    case "subscription": return subscribed ? new Date().toISOString() : null;
     case "followup": return j.followup_done_at;
     case "reevaluation": return j.completed_at;
   }
@@ -132,7 +150,7 @@ export function hasCoach(entry: HcJourney["entry"]): boolean {
   return entry !== "app";
 }
 
-export function journeySteps(j: HcJourney, profileComplete: boolean): JourneyStep[] {
+export function journeySteps(j: HcJourney, profileComplete: boolean, subscribed?: boolean): JourneyStep[] {
   const only = trackSteps(j.entry);
   let defs = only ? DEFS.filter((d) => only.includes(d.key)) : DEFS;
   /*
@@ -145,7 +163,7 @@ export function journeySteps(j: HcJourney, profileComplete: boolean): JourneySte
       ? { ...d, title: "Áætlunin þín", blurb: "Veldu aðgerðir og æfingar úr safninu. Þú getur breytt þeim hvenær sem er." }
       : d));
   }
-  const steps = defs.map((d) => ({ ...d, doneAt: doneAtFor(d.key, j, profileComplete), state: "upcoming" as StepState }));
+  const steps = defs.map((d) => ({ ...d, doneAt: doneAtFor(d.key, j, profileComplete, subscribed), state: "upcoming" as StepState }));
   // Strictly sequential now that activation, measurements and the blood draw
   // are one step — the parallelism lives inside it instead.
   let foundCurrent = false;
@@ -175,6 +193,7 @@ export const STEP_SHORT: Record<StepKey, string> = {
   package: "Greiðsla",
   tests: "Heilsufarsskoðun",
   upload: "Skýrslan inn",
+  subscription: "Appið",
   report: "Skýrsla",
   interview: "Viðtal",
   plan: "Áætlun",
