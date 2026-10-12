@@ -1170,30 +1170,25 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
         if (tab === "plan") return (
           <div className="space-y-4">
+            {/* The builder, bare and first.
+                Its own step bar is the navigation for this tab, so it has to
+                be reachable without scrolling — Mads asked for the five
+                steps at the top. The panel chrome that used to wrap it said
+                "Aðgerðaáætlun", which the tab already says, and pushed the
+                steps down by its own header. */}
+            {byKey.get("plan")?.body}
+
+            {/* Reference, under the work rather than over it.
+                The out-of-range values and the interview notes are what the
+                plan answers, so they need to be on this tab — but they are
+                things to look up while building, not things to read before
+                starting, and 178px of them sat between the coach and the
+                step bar. */}
             {d.report && (
               <ReportSignals report={d.report.report} signals={d.report.signals}
                 onOpen={() => setSheet("report")} />
             )}
-            {/* The interview notes are what the plan is built FROM, so they
-                go above it rather than in a panel beside it. */}
             <NotesPeek j={j} onBack={() => setWsTab("status")} />
-            {panel("plan")}
-            {/* No Viðtal or Eftirfylgd cards here either — Mads removed them
-                from Staða and then from here, so the workspace is the four
-                tabs and nothing else.
-
-                What left with them: booking and cancelling the viðtal,
-                recording its notes, marking it done, and the same for the
-                three-month follow-up. InterviewStep and FollowupStep are
-                still defined and still work; they have no mount point.
-
-                Two things point at the gap. NotesPeek above still shows the
-                interview notes, so they can be read but no longer written.
-                And the Í dag queue offers "Bóka viðtal" and "Hefja viðtal"
-                as actions — those open this client and now land on Staða
-                with nowhere to do either. Flagged, not patched: where that
-                belongs is a design decision, and Mads is mid-way through
-                making it. */}
           </div>
         );
 
