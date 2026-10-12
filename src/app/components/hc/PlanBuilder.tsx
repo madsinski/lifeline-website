@@ -628,8 +628,13 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                                   "Fastur fótaferða…". A second line costs
                                   ~16px on the few long ones; hiding half a
                                   habit's name costs the coach the ability to
-                                  read their own plan. */}
-                              <span className="min-w-0 flex-1 font-semibold leading-tight text-[#0F172A]">{m.title}</span>
+                                  read their own plan.
+                                  break-words because Icelandic compounds do
+                                  not fit: "Styrktarþjálfun" beside a
+                                  "2–3 sinnum í viku" pill is one word wider
+                                  than the column, and a word that cannot
+                                  wrap clips instead. */}
+                              <span className="min-w-0 flex-1 break-words font-semibold leading-tight text-[#0F172A]">{m.title}</span>
                               {/* A note is the one thing worth knowing about a
                                   closed row: it is written to the client. */}
                               {m.note && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-label="Hefur athugasemd" />}
