@@ -13,7 +13,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CalendarClock, Check, Loader2, Video, X } from "lucide-react";
-import EmptyState from "./EmptyState";
 import { MEASURE_IS, MEASURE_MINUTES, bookingLabel, bookingMinutes } from "@/lib/hc/bookings";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -33,10 +32,28 @@ interface Booking {
 const TIMES = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00",
   "13:30", "14:00", "14:30", "15:00", "15:30", "16:00"];
 
-const dayLabel = (iso: string) =>
-  new Date(iso).toLocaleDateString("is-IS", { weekday: "long", day: "numeric", month: "long" });
 const timeLabel = (iso: string) =>
   new Date(iso).toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" });
+
+/**
+ * When, said the way somebody checking a diary needs it.
+ *
+ * "miðvikudagur, 14. október kl. 10:30" is correct and still makes you work
+ * out whether that is soon. Naming today and tomorrow, and leading with the
+ * date rather than burying it mid-sentence, answers that first.
+ */
+function whenLabel(iso: string, asOf: number): { lead: string; rest: string } {
+  const d = new Date(iso);
+  const day0 = (t: number) => { const x = new Date(t); x.setHours(0, 0, 0, 0); return x.getTime(); };
+  const days = Math.round((day0(d.getTime()) - day0(asOf)) / 86400_000);
+  const time = timeLabel(iso);
+  if (days === 0) return { lead: "Í dag", rest: `kl. ${time}` };
+  if (days === 1) return { lead: "Á morgun", rest: `kl. ${time}` };
+  if (days === -1) return { lead: "Í gær", rest: `kl. ${time}` };
+  const date = d.toLocaleDateString("is-IS", { day: "numeric", month: "short" });
+  const weekday = d.toLocaleDateString("is-IS", { weekday: "short" });
+  return { lead: date, rest: `${weekday} · kl. ${time}` };
+}
 
 export default function CoachBookings({ api, journeyId }: { api: Api; journeyId: string }) {
   const [rows, setRows] = useState<Booking[] | null>(null);
@@ -112,9 +129,15 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           <p className={`font-semibold ${dim ? "text-slate-400" : "text-slate-900"}`}>
             {bookingLabel(b.kind, b.items)}
           </p>
-          <p className="text-sm text-slate-500">
-            {dayLabel(b.starts_at)} kl. {timeLabel(b.starts_at)}
-            {b.minutes ? ` · ${b.minutes} mín.` : ""}
+          {/* The date leads, and today and tomorrow are named, because the
+              question a coach is holding is "is that soon?" — which
+              "miðvikudagur, 14. október" makes you work out. */}
+          <p className="text-sm">
+            <span className={`font-semibold ${dim ? "text-slate-400" : "text-slate-900"}`}>
+              {whenLabel(b.starts_at, asOf).lead}
+            </span>
+            <span className="text-slate-500"> · {whenLabel(b.starts_at, asOf).rest}
+              {b.minutes ? ` · ${b.minutes} mín.` : ""}</span>
           </p>
           {b.note && <p className="mt-1 text-sm text-slate-600">{b.note}</p>}
           {/* The join link, when Google has given us one. */}
@@ -136,48 +159,15 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
     </li>
   );
 
-  return (
-    <div className="space-y-3">
-      {soon.length === 0 && past.length === 0 ? (
-        <EmptyState variant="waiting" title="Engin bókun"
-          body="Þegar skjólstæðingurinn bókar myndsamtal eða mælingu — eða þú bókar fyrir þau — sést það hér." />
-      ) : (
-        <>
-          {soon.length > 0 && (
-            <ul className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
-              {soon.map((b) => row(b, false))}
-            </ul>
-          )}
-          {past.length > 0 && (
-            <>
-              <p className="px-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">Liðið</p>
-              <ul className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
-                {past.map((b) => row(b, true))}
-              </ul>
-            </>
-          )}
-        </>
-      )}
-
-      {/* Booking on their behalf. Two buttons rather than one form, because
-          a video call and a measurement visit ask for different things. */}
-      {!adding ? (
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => setAdding("video")}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50">
-            <Video className="h-4 w-4" aria-hidden /> Bóka myndsamtal
-          </button>
-          <button type="button" onClick={() => setAdding("measurement")}
-            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50">
-            <CalendarClock className="h-4 w-4" aria-hidden /> Bóka mælingu
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3 rounded-2xl bg-white p-3 ring-1 ring-slate-200">
-          <p className="font-semibold text-slate-900">
-            {adding === "video" ? "Myndsamtal" : "Mæling"}
-          </p>
-
+  /*
+   * The booking form, rendered inside whichever section opened it.
+   *
+   * One form, two shapes: a measurement visit needs its items picked and a
+   * call does not, and the length is read back from the shared table rather
+   * than from this page.
+   */
+  const form = adding && (
+        <div className="space-y-3 rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
           {adding === "measurement" && (
             <div className="flex flex-wrap gap-1.5">
               {Object.keys(MEASURE_MINUTES).map((k) => {
@@ -233,7 +223,57 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
             </button>
           </div>
         </div>
-      )}
+  );
+
+  /*
+   * Two sections, split by what the booking is.
+   *
+   * Everything was one list with the two "book" buttons under the bottom of
+   * it, so a coach looking at the video calls had the measurement button
+   * nowhere near them and had to read every row to find out which kind each
+   * was. Grouped, the icon stops being the only thing that says what you
+   * are looking at, and the action sits with the thing it adds to.
+   */
+  const section = (kind: "video" | "measurement", title: string, icon: React.ReactNode) => {
+    const mine = { soon: soon.filter((b) => b.kind === kind), past: past.filter((b) => b.kind === kind) };
+    const open = adding === kind;
+    return (
+      <section className="rounded-2xl border border-hc-hairline bg-white p-3">
+        <div className="mb-2 flex items-center gap-2">
+          <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
+            kind === "video" ? "bg-sky-50 text-sky-700" : "bg-emerald-50 text-emerald-700"}`}>
+            {icon}
+          </span>
+          <h3 className="flex-1 font-bold text-slate-900">{title}</h3>
+          {!open && (
+            <button type="button" onClick={() => { setAdding(kind); setErr(null); }}
+              className="shrink-0 rounded-full bg-hc-ink px-3 py-1.5 text-xs font-bold text-white">
+              Bóka
+            </button>
+          )}
+        </div>
+
+        {mine.soon.length === 0 && mine.past.length === 0 && !open && (
+          <p className="px-1 pb-1 text-sm text-slate-500">
+            {kind === "video" ? "Ekkert myndsímtal bókað." : "Engin mæling bókuð."}
+          </p>
+        )}
+        {mine.soon.length > 0 && <ul className="overflow-hidden rounded-xl ring-1 ring-hc-hairline">{mine.soon.map((b) => row(b, false))}</ul>}
+        {mine.past.length > 0 && (
+          <>
+            <p className="mt-2 px-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">Liðið</p>
+            <ul className="mt-1 overflow-hidden rounded-xl ring-1 ring-hc-hairline">{mine.past.map((b) => row(b, true))}</ul>
+          </>
+        )}
+        {open && <div className="mt-2">{form}</div>}
+      </section>
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      {section("video", "Myndsímtöl", <Video className="h-4 w-4" aria-hidden />)}
+      {section("measurement", "Mælingar", <CalendarClock className="h-4 w-4" aria-hidden />)}
     </div>
   );
 }

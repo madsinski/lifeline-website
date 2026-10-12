@@ -171,6 +171,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   const [search, setSearch] = useState("");
   /** Which action's editor is open. One at a time, so a column stays short. */
   const [openItem, setOpenItem] = useState<string | null>(null);
+  /** The template picker and the publish controls, folded away by default. */
+  const [tools, setTools] = useState(false);
   const [preview, setPreview] = useState(false);
   // The preview shows the adaptive programme with the participant's own settings.
   const [previewTraining, setPreviewTraining] = useState<TrainingSettings | null>(null);
@@ -453,36 +455,54 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
 
   return (
     <div className="space-y-4">
-      {/* Top bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="min-w-[150px] flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Aðgerðaáætlun</p>
-          <p className="truncate font-semibold text-[#0F172A]">{clientName || "Skjólstæðingur"}</p>
-        </div>
+      {/* The five steps first.
+          The top bar used to come before them: the client's name, the
+          status, a template picker, Forskoða, Prenta, Vista drög and Birta
+          — eight controls, most of them for finishing a plan rather than
+          building one, standing between the coach and the step they came to
+          work on. Mads' call to put the steps first and the rest away.
+
+          Nothing is lost: Forskoða, Vista drög and Birta all appear again in
+          step 5, Frágangur, which is where finishing belongs. */}
+      <WizardNav step={step} onGo={setStep} />
+
+      {/* Status stays visible — it is information, not a control, and a
+          coach needs to know whether what they are looking at is live.
+          Everything that acts goes behind the disclosure. */}
+      <div className="flex flex-wrap items-center gap-2">
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
           {status === "published" ? (dirty ? "Birt · óvistaðar breytingar" : "Birt") : dirty ? "Óvistað" : status === "draft" ? "Drög" : "Ný"}
         </span>
-        <select
-          value=""
-          onChange={(e) => e.target.value && applyTemplate(e.target.value)}
-          className="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-sm"
-          aria-label="Byrja út frá sniðmáti"
-        >
-          <option value="">Byrja út frá sniðmáti…</option>
-          {lib.templates.map((t) => <option key={t.key} value={t.key}>{t.name}{t.scenario ? ` — ${t.scenario}` : ""}</option>)}
-        </select>
-        <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
-        <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Prenta</button>
-        <button onClick={() => void save()} disabled={busy} className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Vista drög</button>
-        <button onClick={publish} disabled={busy || draft.modules.length === 0} className="rounded-xl bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
-          {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
+        <span className="min-w-0 flex-1 truncate text-sm text-slate-500">{clientName || "Skjólstæðingur"}</span>
+        <button type="button" onClick={() => setTools((v) => !v)} aria-expanded={tools}
+          className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+          Sniðmát og útgáfa {tools ? "▴" : "▾"}
         </button>
       </div>
+
+      {tools && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
+          <select
+            value=""
+            onChange={(e) => e.target.value && applyTemplate(e.target.value)}
+            className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+            aria-label="Byrja út frá sniðmáti"
+          >
+            <option value="">Byrja út frá sniðmáti…</option>
+            {lib.templates.map((t) => <option key={t.key} value={t.key}>{t.name}{t.scenario ? ` — ${t.scenario}` : ""}</option>)}
+          </select>
+          <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
+          <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Prenta</button>
+          <button onClick={() => void save()} disabled={busy} className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Vista drög</button>
+          <button onClick={publish} disabled={busy || draft.modules.length === 0} className="rounded-xl bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+            {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
+          </button>
+        </div>
+      )}
+
       {msg && (
         <div role="status" className={`rounded-xl px-4 py-2 text-sm ${msg.tone === "ok" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}>{msg.text}</div>
       )}
-
-      <WizardNav step={step} onGo={setStep} />
 
       {step === 0 && <AiProposalPanel api={api} journeyId={journeyId} ready={readyProposal} onApply={applyProposal} />}
 
