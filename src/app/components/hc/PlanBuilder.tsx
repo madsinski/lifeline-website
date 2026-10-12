@@ -603,7 +603,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                           className={`rounded-xl border bg-white shadow-sm transition ${
                             carry?.uid === m.uid ? "opacity-50" : ""} ${open ? "border-slate-300" : "border-slate-200"}`}
                         >
-                          <div className="flex items-center gap-2 p-2">
+                          <div className="flex items-start gap-2 p-2">
                             {/* Both gestures live on this one element: the
                                 browser's native drag for a mouse, and a
                                 captured pointer drag for a finger or a pen. */}
@@ -615,13 +615,21 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                               role="button"
                               tabIndex={-1}
                               aria-label={`Færa ${m.title}`}
-                              className="cursor-grab select-none px-1 text-slate-300 active:cursor-grabbing"
+                              className="cursor-grab select-none px-1 pt-0.5 text-slate-300 active:cursor-grabbing"
                               style={{ touchAction: "none" }}
                             >⋮⋮</span>
                             <button type="button" onClick={() => setOpenItem(open ? null : m.uid)}
                               aria-expanded={open}
                               className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                              <span className="min-w-0 flex-1 truncate font-semibold text-[#0F172A]">{m.title}</span>
+                              {/* Wraps rather than truncates.
+                                  Collapsing the row to one line left about
+                                  140px for the title in a 355px column, and
+                                  "Fastur fótaferðartími" came out as
+                                  "Fastur fótaferða…". A second line costs
+                                  ~16px on the few long ones; hiding half a
+                                  habit's name costs the coach the ability to
+                                  read their own plan. */}
+                              <span className="min-w-0 flex-1 font-semibold leading-tight text-[#0F172A]">{m.title}</span>
                               {/* A note is the one thing worth knowing about a
                                   closed row: it is written to the client. */}
                               {m.note && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-label="Hefur athugasemd" />}
