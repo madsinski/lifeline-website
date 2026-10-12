@@ -978,7 +978,8 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
       {backBtn}
 
       {/* Who this is, and how to reach them. */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+      {/* Who this is: reference, not work. Hairline and flat. */}
+      <section className="rounded-2xl border border-hc-hairline bg-white p-4 sm:p-5">
         <div className="flex items-center gap-3">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-800">
             {cleanName(d.patient.full_name).split(" ").map((p) => p[0]).slice(0, 2).join("")}
@@ -1073,7 +1074,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
           const st = byKey.get(k);
           if (!st) return null;
           return (
-            <section key={k} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <section key={k} className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card sm:p-5">
               <div className="mb-3 flex items-center gap-2">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">{st.icon}</span>
                 <div className="min-w-0">
@@ -1095,7 +1096,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
                 stacked with ticks they answer the actual question at a
                 glance. Only the three tests — the nine-item strip is the
                 rail this page just lost. */}
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <section className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card sm:p-5">
               <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Heilsufarsskoðun</h2>
               <ul className="space-y-1">
                 {checkpoints.slice(0, 3).map((c) => {
@@ -1130,14 +1131,20 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
                 lg, where two columns would make both too narrow to read. */}
             <div className="grid gap-4 lg:grid-cols-2">
               {j.plan_published_at && (
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                  <h2 className="mb-3 font-bold text-slate-900">Framvinda</h2>
+                /* The one card allowed to raise its voice.
+                   Adherence already decides whether this person needs a
+                   nudge; the card now shows that decision in its own weight
+                   instead of leaving it to a word inside. Everything else
+                   on Staða is hairline-and-flat, so this is where the eye
+                   lands. */
+                <section className="rounded-2xl border-2 border-hc-focus-ring bg-hc-focus-surface p-4 shadow-hc-raised sm:p-5">
+                  <h2 className="mb-3 font-bold text-hc-focus">Framvinda</h2>
                   <Adherence d={d} />
                 </section>
               )}
               {/* The two-way thread, not the outbound SMS sheet — a
                   different thing, and Mads has removed its button. */}
-              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <section className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card sm:p-5">
                 <h2 className="mb-3 font-bold text-slate-900">Samtal við skjólstæðing</h2>
                 <ClientThread api={api} journeyId={j.id} />
               </section>

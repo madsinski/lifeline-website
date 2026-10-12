@@ -76,11 +76,34 @@ body.hc-scroll-lock {
   --hc-ink: #0F172A;
   --hc-ink-2: #475569;
   --hc-muted: #94A3B8;
-  --hc-border: #E2E8F0;
+  /* Two border weights, not one.
+     Every card on the workstation was white with the same slate ring, so
+     the tabs, the identity block, Framvinda, the conversation and the plan
+     builder all carried identical weight and nothing could lead the eye.
+     `hairline` is for surfaces that are merely present; `border` is for
+     ones with work in them. */
+  --hc-hairline: #EEF1F5;
+  --hc-border: #DFE4EB;
   --hc-surface: #FFFFFF;
-  --hc-page: #F8FAFC;
+  /* A warm ground rather than a clinical blue-grey. Slate-50 under white
+     cards reads like a spreadsheet; this is the "bright white cards, no
+     grey backdrop" direction, with just enough warmth that white lifts off
+     it. */
+  --hc-page: #FAFAF8;
   --hc-hero-from: #0F2A23;
   --hc-hero-to: #065F46;
+
+  /* Where the eye should go.
+     One accent for "this is the thing to do now", distinct from the brand
+     (which marks Lifeline, not urgency) and from the signal colours (which
+     are clinical readings). Amber was already doing this job informally on
+     the nudge card; naming it stops it being re-invented per component. */
+  --hc-focus: #B45309;
+  --hc-focus-surface: #FFFBEB;
+  --hc-focus-ring: #FDE68A;
+
+  /* No new elevation tokens: shadow-hc-card / -raised / -overlay already
+     exist further down this file and are the scale to use. */
 
   --hc-sleep: #767194;     --hc-sleep-soft: #F1F0F6;     --hc-sleep-ink: #4F4A6E;
   --hc-exercise: #EA580C;  --hc-exercise-soft: #FFF4ED;  --hc-exercise-ink: #C2410C;
@@ -123,6 +146,10 @@ body.hc-scroll-lock {
   --font-sans: var(--font-inter);
 
   /* heilsuferð / vinnustöð */
+  --color-hc-hairline: var(--hc-hairline);
+  --color-hc-focus: var(--hc-focus);
+  --color-hc-focus-surface: var(--hc-focus-surface);
+  --color-hc-focus-ring: var(--hc-focus-ring);
   --color-hc-brand: var(--hc-brand);
   --color-hc-brand-dark: var(--hc-brand-dark);
   --color-hc-brand-surface: var(--hc-brand-surface);
