@@ -25,6 +25,7 @@ import PinPad from "@/app/components/hc/PinPad";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CoachAsClient from "@/app/components/hc/CoachAsClient";
 import CoachBookings from "@/app/components/hc/CoachBookings";
+import ClientThread from "@/app/components/hc/ClientThread";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import WeekCalendar from "@/app/components/hc/WeekCalendar";
 import ClientsView from "@/app/components/hc/ClientsView";
@@ -385,7 +386,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         {rows === null ? <p className="py-10 text-center text-slate-500">Hleð…</p>
           : "patient" in view
-            ? <PatientView key={view.patient} id={view.patient} compose={!!view.compose} step={view.step} me={me}
+            ? <PatientView key={view.patient} id={view.patient} compose={!!view.compose} me={me}
                 onBack={() => (window.history.length > 1 ? window.history.back() : setView({ home: "today" }))} onChanged={load} />
             : (
               <div className="space-y-4">
@@ -834,15 +835,30 @@ function ClientRow({ r, t, f, expanded, onToggle, onOpen }: {
 
 // ── Client page ─────────────────────────────────────────────────────────────
 
-function PatientView({ id, compose, step, me, onBack, onChanged }: {
-  id: string; compose: boolean; step?: string; me: Me; onBack: () => void; onChanged: () => void;
+/*
+ * No `step` prop any more.
+ *
+ * It carried the old ?s= deep link, but readView() has ignored that param
+ * since the flow started opening itself, so the prop was always undefined
+ * and the tab landing is computed from the journey instead.
+ */
+function PatientView({ id, compose, me, onBack, onChanged }: {
+  id: string; compose: boolean; me: Me; onBack: () => void; onChanged: () => void;
 }) {
   const api = useWsApi();
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
-  const [openStep, setOpenStep] = useState<string | null>(step ?? null);
+  /**
+   * Which workspace tab is showing. Null until the coach picks one.
+   *
+   * Null rather than "status" so the landing logic still applies: landOn
+   * already worked out the step worth opening — a report that just arrived,
+   * the plan that is missing — and that judgement is worth keeping, just
+   * expressed as a tab. The same `touched ? chosen : computed` shape the
+   * step model used.
+   */
+  const [wsTab, setWsTab] = useState<"status" | "report" | "plan" | "preview" | null>(null);
   const [sheet, setSheet] = useState<"messages" | "referral" | "orders" | "history" | "report" | null>(null);
-  const [touched, setTouched] = useState(!!step);
   const isDoctor = me.role === "doctor" || me.role === "admin";
 
   const load = useCallback(async () => {
@@ -871,7 +887,9 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
 
   const j = d.journey;
   const kt = d.patient.kennitala;
-  const steps = buildSteps({ d, isDoctor, api, record, reload: load, onChanged, onJump: (k) => { setTouched(true); setOpenStep(k); } });
+  /* onJump is how a step hands off to another — InterviewStep's "Klára
+     áætlun" calls onJump("plan"). With tabs that means moving the tab. */
+  const steps = buildSteps({ d, isDoctor, api, record, reload: load, onChanged, onJump: (k) => setWsTab(tabFor(k)) });
   // Open the step that needs attention; on a finished journey fall back to
   // what comes next, so the page is never just a wall of closed rows.
   const live = steps.filter((x) => !x.hidden);
@@ -887,9 +905,10 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
   // …until the interview is booked: from then on the nurse is here for the
   // interview (the report sits beside it) or for what comes after.
   const landOn = d.report && !j.interview_booked_for && !j.interview_done_at && !j.plan_published_at ? "results" : current?.key ?? (d.report ? "results" : null);
-  const shownOpen = touched ? openStep : landOn;
+  /** Which tab holds a step. One rule, so landing and jumping agree. */
+  const tabFor = (k: string | null | undefined): "status" | "report" | "plan" | "preview" =>
+    k === "results" ? "report" : k === "plan" ? "plan" : k === "live" ? "preview" : "status";
 
-  const showSignals = !!d.report && (shownOpen === "interview" || shownOpen === "plan" || shownOpen === "followup");
   // The next video appointment, so the call is one click from the top.
   const call = upcomingAppointments(j, null).find((x) => x.video) ?? null;
   // Payment as a chip on the status line rather than a drawer of its own.
@@ -927,8 +946,38 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
   const aiReferrals = d.ai_referrals ?? [];
   const openReferrals = (d.referrals ?? []).filter((r) => r.status === "requested").length;
 
-  const open = live.find((x) => x.key === shownOpen);
-  const jump = (k: string) => { setTouched(true); setOpenStep(k); };
+  /*
+   * A checkpoint click moves the tab that holds that step.
+   *
+   * This used to set openStep, which the single-panel layout read. With
+   * tabs nothing read it, so the strip would have looked clickable and done
+   * nothing — the quiet kind of regression a refactor leaves behind.
+   */
+  const jump = (k: string) => setWsTab(tabFor(k));
+
+  /*
+   * Four tabs, not nine steps.
+   *
+   * The rail was a wizard used as navigation: nine stops across ~1100px, so
+   * every label truncated ("Áætlunin hjá sk…", "Eins og skjólstæði…"), and
+   * inside it the plan builder ran its own five-step wizard — two sets of
+   * numbered steps on one screen. A health check does have an order, but a
+   * coach opening a client is not walking it; they are going to one of four
+   * places. Mads' spec, and it is the right shape.
+   *
+   * The step bodies are untouched and reused by key. The sequence survives
+   * where it is still true: as the checkpoint strip inside Staða, which is
+   * what answers "er heilsufarsskoðunin búin?".
+   */
+  const byKey = new Map(live.map((x) => [x.key, x]));
+  const TABS = [
+    { key: "status", label: "Staða" },
+    { key: "report", label: "Skýrsla" },
+    { key: "plan", label: "Aðgerðaáætlun" },
+    { key: "preview", label: "Forskoðun" },
+  ] as const;
+  type WsTab = typeof TABS[number]["key"];
+  const tab: WsTab = wsTab ?? tabFor(landOn);
 
   return (
     <div className="space-y-4">
@@ -988,7 +1037,16 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
         {j.plan_published_at && <div className="mt-3"><Adherence d={d} /></div>}
       </section>
 
-      <StatusStrip steps={checkpoints} onOpen={jump} />
+      {/* The four places a coach goes. */}
+      <div className={hcTabs.bar}>
+        {TABS.map((t) => (
+          <button key={t.key} type="button" onClick={() => setWsTab(t.key)}
+            aria-current={tab === t.key ? "page" : undefined}
+            className={hcTabs.tab(tab === t.key)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {/* Messages and referral used to sit in a column beside the panel, which
           left the plan builder two thirds of a screen to drag four pillars
@@ -1019,35 +1077,78 @@ function PatientView({ id, compose, step, me, onBack, onChanged }: {
           are out of range: that is the strip below. The whole report is one
           button away, in the same drawer the workstation already uses for
           messages and referrals. */}
-      <div className="grid gap-4">
-        <div>
-          {showSignals && d.report && (
-            <div className="mb-3">
-              <ReportSignals report={d.report.report} signals={d.report.signals}
-                onOpen={() => setSheet("report")} />
-            </div>
-          )}
-          {/* The interview notes are what the plan is built FROM, so they go
-              above it rather than inside a panel to one side of it. */}
-          {shownOpen === "plan" && (
-            <div className="mb-3">
-              <NotesPeek j={j} onBack={() => jump(j.followup_booked_for && j.interview_done_at ? "followup" : "interview")} />
-            </div>
-          )}
-          {open ? (
-            <section className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm sm:p-5">
+      {/* One tab's worth of work, with the whole width.
+          The step bodies are the same ones buildSteps already made; only
+          what is on screen at once has changed. */}
+      {(() => {
+        const panel = (k: string) => {
+          const st = byKey.get(k);
+          if (!st) return null;
+          return (
+            <section key={k} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">{open.icon}</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">{st.icon}</span>
                 <div className="min-w-0">
-                  <h2 className="truncate font-bold text-slate-900">{open.title}</h2>
-                  <p className="truncate text-xs text-slate-500">{open.status}</p>
+                  <h2 className="truncate font-bold text-slate-900">{st.title}</h2>
+                  <p className="truncate text-xs text-slate-500">{st.status}</p>
                 </div>
               </div>
-              {open.body}
+              {st.body}
             </section>
-          ) : null}
-        </div>
-      </div>
+          );
+        };
+
+        if (tab === "status") return (
+          <div className="space-y-4">
+            {/* Er heilsufarsskoðunin búin? Only the three tests, which is
+                what that question is about — putting the whole nine-item
+                strip back here would reinstate the rail we just removed. */}
+            <StatusStrip steps={checkpoints.slice(0, 3)} onOpen={jump} />
+
+            {/* Bókanir: mælingar and myndsamtöl, the same rows the client
+                books from the app. */}
+            {panel("bookings")}
+
+            {/* Skilaboð milli þjálfara og notanda — the two-way thread, not
+                the outbound SMS sheet, which is a different thing and stays
+                a button above. */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <h2 className="mb-3 font-bold text-slate-900">Samtal við skjólstæðing</h2>
+              <ClientThread api={api} journeyId={j.id} />
+            </section>
+
+            {/* The interview and the follow-up are events on the way, and
+                both of their actions — book, start, record — live here. */}
+            {panel("interview")}
+            {panel("followup")}
+          </div>
+        );
+
+        if (tab === "report") return (
+          <div className="space-y-4">
+            {d.report && (
+              <ReportSignals report={d.report.report} signals={d.report.signals}
+                onOpen={() => setSheet("report")} />
+            )}
+            {panel("results")}
+          </div>
+        );
+
+        if (tab === "plan") return (
+          <div className="space-y-4">
+            {d.report && (
+              <ReportSignals report={d.report.report} signals={d.report.signals}
+                onOpen={() => setSheet("report")} />
+            )}
+            {/* The interview notes are what the plan is built FROM, so they
+                go above it rather than in a panel beside it. */}
+            <NotesPeek j={j} onBack={() => setWsTab("status")} />
+            {panel("plan")}
+          </div>
+        );
+
+        return panel("live");
+      })()}
 
       {sheet === "report" && d.report && (
         <Sheet title="Skýrslan" onClose={() => setSheet(null)}>
