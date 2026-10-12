@@ -620,7 +620,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                             >⋮⋮</span>
                             <button type="button" onClick={() => setOpenItem(open ? null : m.uid)}
                               aria-expanded={open}
-                              className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                              className="flex min-w-0 flex-1 items-start gap-2 text-left">
+                              <span className="min-w-0 flex-1">
                               {/* Wraps rather than truncates.
                                   Collapsing the row to one line left about
                                   140px for the title in a 355px column, and
@@ -637,12 +638,24 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                                   A name has to be read exactly; the
                                   frequency is a hint whose full value is one
                                   click away in the editor. */}
-                              <span className="min-w-0 flex-1 font-semibold leading-tight text-[#0F172A]">{m.title}</span>
-                              {/* A note is the one thing worth knowing about a
-                                  closed row: it is written to the client. */}
-                              {m.note && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-label="Hefur athugasemd" />}
-                              {m.frequency && <span className="max-w-[38%] shrink truncate text-xs text-slate-500">{m.frequency}</span>}
-                              <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+                                <span className="flex items-center gap-1.5">
+                                  <span className="min-w-0 font-semibold leading-tight text-[#0F172A]">{m.title}</span>
+                                  {/* A note is the one thing worth knowing
+                                      about a closed row: it is written to
+                                      the client. */}
+                                  {m.note && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-label="Hefur athugasemd" />}
+                                </span>
+                                {/* Under the title, not beside it.
+                                    Beside it, the two competed for a 355px
+                                    column and "Styrktarþjálfun" — one word,
+                                    so it cannot wrap — overflowed into the
+                                    frequency and overlapped its dot. On its
+                                    own line the name always has the full row
+                                    and the frequency is still visible at a
+                                    glance. */}
+                                {m.frequency && <span className="block truncate text-xs text-slate-500">{m.frequency}</span>}
+                              </span>
+                              <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
                             </button>
                             <button onClick={() => removeItem(m.uid)} className="shrink-0 text-slate-400 hover:text-red-500" aria-label={`Fjarlægja ${m.title}`}>×</button>
                           </div>
