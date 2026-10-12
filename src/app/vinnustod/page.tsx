@@ -23,6 +23,7 @@ import {
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
+import CoachAsClient from "@/app/components/hc/CoachAsClient";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import WeekCalendar from "@/app/components/hc/WeekCalendar";
 import ClientsView from "@/app/components/hc/ClientsView";
@@ -1189,6 +1190,29 @@ function buildSteps({ d, isDoctor, api, record, reload, onChanged, onJump }: {
         ? `Birt skjólstæðingi ${day(j.plan_published_at)}`
         : d.plan?.status === "draft" ? "Drög til — á eftir að birta" : j.interview_done_at ? "Viðtali lokið — gerðu áætlunina" : "Gerð í eða eftir viðtalið",
       body: <PlanBuilder journeyId={j.id} api={api} readyProposal={d.ai_proposal} onPublished={() => { void reload(); onChanged(); }} seed={seedFromNotes(j.interview_notes)} />,
+    },
+    {
+      /*
+       * The plan as the client has it.
+       *
+       * PlanBuilder is for making the plan; this is for following it once it
+       * is published — what they have ticked, what order they keep it in,
+       * and what they can actually see of their report. It renders the
+       * client's own component, so the coach and the client are looking at
+       * one screen rather than two views of it that drift.
+       */
+      key: "live",
+      title: "Áætlunin hjá skjólstæðingi",
+      icon: <ClipboardList className="h-4 w-4" />,
+      hidden: !j.plan_published_at,
+      state: j.plan_published_at ? "current" : "upcoming",
+      /* No tick count here. last_tick_on is declared optional on this type
+         but the journey detail route does not return it, so reading it would
+         have printed "hefur ekki merkt neitt" for everybody, always —
+         typecheck-clean and false. The adherence is in the body, where it is
+         loaded. */
+      status: "Eins og skjólstæðingurinn sér hana",
+      body: <CoachAsClient api={api} journeyId={j.id} />,
     },
     {
       key: "followup",
