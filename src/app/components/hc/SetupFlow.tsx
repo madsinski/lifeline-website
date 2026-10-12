@@ -34,10 +34,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Bell, CalendarDays, Check, ChevronDown, PlayCircle, UserRound, Users } from "lucide-react";
-import CalendarConnect, { type CalendarApi } from "./CalendarConnect";
-import InstallGuide from "./InstallGuide";
-import NudgeSettings from "./NudgeSettings";
-import PartnerCard from "./PartnerCard";
 import SetupWalkthrough from "./SetupWalkthrough";
 import type { ProfileFormData } from "./ProfileForm";
 
@@ -79,28 +75,8 @@ export default function SetupFlow({ api, place = "onboarding" }: {
    */
   place?: "onboarding" | "settings";
 }) {
-  const [open, setOpen] = useState<Key | null>(null);
-  const [calOpen, setCalOpen] = useState(false);
   const [done, setDone] = useState<Record<Key, boolean>>({ coach: false, calendar: false, partner: false, nudge: false });
-  const [coaches, setCoaches] = useState<Worker[] | null>(null);
-  const [myCoach, setMyCoach] = useState<Worker | null>(null);
-  const [busy, setBusy] = useState(false);
   const [walk, setWalk] = useState(false);
-  /*
-   * iPhone, and not on the home screen yet.
-   *
-   * Read once on mount. Installing happens in another context — the user
-   * leaves, adds it, and comes back through the icon — so this does not
-   * need to be live, and a value that flips under somebody's finger would
-   * be worse than one that is a minute old.
-   */
-  const [iosNeedsInstall] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
-    const standalone = window.matchMedia?.("(display-mode: standalone)").matches
-      || (navigator as unknown as { standalone?: boolean }).standalone === true;
-    return ios && !standalone;
-  });
   /*
    * The participant's own details, for the walkthrough's profile step.
    *
@@ -112,17 +88,6 @@ export default function SetupFlow({ api, place = "onboarding" }: {
   /** Which product this journey is, so the rows can drop what does not apply. */
   const [entry, setEntry] = useState<string | null>(null);
 
-  const calendarApi: CalendarApi = {
-    call: api,
-    googleStatusUrl: "/api/hc/google",
-    startGoogle: async () => {
-      const r = await api("/api/hc/google/start", { method: "POST", body: "{}" });
-      const j = await r.json().catch(() => ({}));
-      if (r.ok && j.url) window.location.href = j.url;
-    },
-    icsTokenUrl: "/api/hc/calendar-token",
-    subscriptionName: "Lifeline heilsuferð",
-  };
 
   /*
    * What is already set up.
@@ -148,8 +113,6 @@ export default function SetupFlow({ api, place = "onboarding" }: {
      * reason.
      */
     setTimeout(() => {
-      setMyCoach(coach?.coach ?? null);
-      setCoaches(coach?.coaches ?? []);
       setEntry(typeof prof?.entry === "string" ? prof.entry : null);
       setProfile(prof?.profile
         ? { profile: { ...prof.profile, health_consent: !!prof.health_consent } }
@@ -165,12 +128,6 @@ export default function SetupFlow({ api, place = "onboarding" }: {
 
   useEffect(() => { void load(); }, [load]);
 
-  const pickCoach = async (id: string) => {
-    setBusy(true);
-    await api("/api/hc/coach", { method: "POST", body: JSON.stringify({ coach_id: id }) }).catch(() => null);
-    setBusy(false);
-    await load();
-  };
 
   /*
    * No coach row for somebody using the app on their own.
@@ -207,101 +164,44 @@ export default function SetupFlow({ api, place = "onboarding" }: {
           : "Ekkert af þessu er skylda og þú getur komið að því síðar í stillingum. Það er einfaldlega best að gera það núna."}
       </p>
 
-      {/* The way to actually walk it.
-          The card is right for fixing one thing; it is the wrong shape for
-          seeing what a new participant meets, because they do not meet a
-          summary — they meet one question at a time. */}
-      <button type="button" onClick={() => setWalk(true)}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3.5 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-        <PlayCircle className="h-4 w-4 text-hc-brand" aria-hidden />
-        {settings ? "Skoða skref fyrir skref" : "Leiða mig í gegnum það"}
-      </button>
+      {/* One layout, and it is the walk.
+          This card used to be the four things as expandable rows, each
+          opening its own panel inside the step inside the page — a card in
+          a card in a card, and a dropdown you had to scroll past to reach
+          the next one. The walkthrough is the same four things done
+          properly: one at a time, with somewhere to go next.
 
+          What stays here is the summary — which of them are done — because
+          that is the one thing a list is better at than a flow. */}
       <ul className="mt-4 overflow-hidden rounded-2xl ring-1 ring-slate-200">
         {rows.map((row) => {
           const Icon = row.icon;
-          const on = open === row.key;
           const ok = done[row.key];
           return (
-            <li key={row.key} className="border-b border-slate-100 last:border-b-0">
-              <button type="button" onClick={() => setOpen(on ? null : row.key)} aria-expanded={on}
-                className="flex w-full items-center gap-3 p-3 text-left transition hover:bg-slate-50">
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-slate-100 text-slate-500"}`}>
-                  {ok ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold leading-tight text-slate-900">{row.title}</span>
-                  <span className="block text-xs leading-snug text-slate-500">{row.why}</span>
-                </span>
-                <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${on ? "rotate-180" : ""}`} aria-hidden />
-              </button>
-
-              {on && (
-                <div className="border-t border-slate-100 bg-slate-50/60 p-3">
-                  {row.key === "coach" && (
-                    <CoachStep myCoach={myCoach} coaches={coaches} busy={busy} onPick={pickCoach} />
-                  )}
-                  {row.key === "calendar" && (
-                    <div>
-                      <p className="mb-2 text-sm text-slate-600">
-                        {done.calendar
-                          ? "Dagatalið er tengt. Tímar og myndsímtöl birtast þar sjálfkrafa."
-                          : "Tengdu Google-dagatalið þitt. Myndsímtöl fá hlekk á fundinn og staðsetning fylgir bókuðum tímum."}
-                      </p>
-                      <button type="button" onClick={() => setCalOpen(true)}
-                        className="rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
-                        {done.calendar ? "Skoða dagatalstengingu" : "Tengja dagatal"}
-                      </button>
-                    </div>
-                  )}
-                  {row.key === "partner" && <PartnerCard api={api} bare />}
-                  {row.key === "nudge" && (
-                    <div className="space-y-3">
-                      {/* Install first on iPhone, because there the order is not a
-                          preference. Safari exposes the Notification and Push APIs
-                          only to an installed app — in a tab they do not exist, so
-                          permission cannot even be asked for, and a subscription
-                          made in the tab would not serve the installed app anyway.
-                          Offering the reminder first therefore sent iPhone users at
-                          a switch that could not work, and told them why only after
-                          they had tried it.
-
-                          Android and desktop take notifications in the browser and
-                          carry them into the installed app, so there the reminder
-                          comes first and the install is the follow-up. */}
-                      {iosNeedsInstall ? (
-                        <>
-                          <InstallGuide bare defaultOpen />
-                          <div className="rounded-2xl bg-slate-50 p-3">
-                            <p className="text-xs text-slate-600">
-                              Þegar Lifeline er á heimaskjánum opnarðu appið þaðan og velur áminningu hér.
-                            </p>
-                            <div className="mt-2 opacity-60"><NudgeSettings api={api} /></div>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <NudgeSettings api={api} />
-                          <InstallGuide bare />
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+            <li key={row.key} className="flex items-center gap-3 border-b border-slate-100 p-3 last:border-b-0">
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-slate-100 text-slate-500"}`}>
+                {ok ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold leading-tight text-slate-900">{row.title}</span>
+                <span className="block text-xs leading-snug text-slate-500">{row.why}</span>
+              </span>
             </li>
           );
         })}
       </ul>
+
+      <button type="button" onClick={() => setWalk(true)}
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-hc-ink px-5 py-3 font-bold text-white transition hover:bg-slate-800">
+        <PlayCircle className="h-4 w-4" aria-hidden />
+        {count === 0 ? "Leiða mig í gegnum það" : all ? "Skoða skref fyrir skref" : "Halda áfram"}
+      </button>
 
       {walk && (
         <SetupWalkthrough api={api} onClose={() => { setWalk(false); void load(); }}
           data={profile ?? undefined} reload={load} entry={entry} />
       )}
 
-      <CalendarConnect api={calendarApi} open={calOpen}
-        onClose={() => { setCalOpen(false); void load(); }}
-        intro="Tímar hjá Lifeline birtast í dagatalinu þínu og myndsímtöl fá hlekk á fundinn." />
     </section>
   );
 }

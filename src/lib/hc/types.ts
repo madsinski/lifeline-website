@@ -13,22 +13,33 @@ export const PILLARS: Pillar[] = ["sleep", "exercise", "nutrition", "mental"];
  * brand colours fall below WCAG AA as text on their soft background (2.5–4.1:1),
  * the ink shades pass (4.8–7.3:1).
  */
+/*
+ * Pillar colours.
+ *
+ * `ring` is the border of an unticked checkbox, and all four used to sit
+ * between 1.47 and 1.67:1 against white — well under the 3.0 WCAG asks of a
+ * UI component's boundary. Mads noticed it on Næring first, which is the
+ * useful detail: at equal luminance green hides best, so matching the four
+ * by contrast ratio (which is a luminance measure) left the green looking
+ * like no colour at all even though it measured the same as the others.
+ *
+ * So they are matched by being *visible* instead: each ring is now the step
+ * of its own ramp that lands near 3:1, hue kept. An unticked box now reads
+ * as its pillar rather than as a grey suggestion of one.
+ *
+ *   sleep      1.67 → 3.46:1
+ *   exercise   1.50 → 3.15:1
+ *   nutrition  1.53 → 2.92:1
+ *   mental     1.47 → 2.97:1
+ *
+ * `color` is the filled state behind a white check and is unchanged: those
+ * were already 3.1–6.3:1, which clears the bar for a large bold glyph.
+ */
 export const PILLAR_META: Record<Pillar, { label: string; color: string; soft: string; ring: string; ink: string }> = {
-  sleep: { label: "Svefn", color: "#767194", soft: "#F1F0F6", ring: "#C9C6DA", ink: "#4F4A6E" },
-  exercise: { label: "Hreyfing", color: "#EA580C", soft: "#FFF4ED", ring: "#FBC9A6", ink: "#C2410C" },
-  /*
-   * ring was #C8E39A, measured at 1.41:1 against white — the faintest of
-   * the four, so an unticked Næring circle read as washed out beside a
-   * Svefn one at 1.67 or a Hreyfing one at 1.50. #BCDC85 is 1.53:1, which
-   * puts it mid-pack without changing the hue.
-   *
-   * All four of these are below the 3.0:1 WCAG asks of a UI component's
-   * boundary. Raising them all is a change to every checklist row in the
-   * app and wants a decision, not a quiet edit — this one only brings the
-   * odd one out into line.
-   */
-  nutrition: { label: "Næring", color: "#65A30D", soft: "#F4FAE9", ring: "#BCDC85", ink: "#3F6212" },
-  mental: { label: "Andleg líðan", color: "#0EA5E9", soft: "#EAF7FD", ring: "#A5DDF5", ink: "#0369A1" },
+  sleep: { label: "Svefn", color: "#767194", soft: "#F1F0F6", ring: "#8B86A8", ink: "#4F4A6E" },
+  exercise: { label: "Hreyfing", color: "#EA580C", soft: "#FFF4ED", ring: "#E2722A", ink: "#C2410C" },
+  nutrition: { label: "Næring", color: "#65A30D", soft: "#F4FAE9", ring: "#7FA32E", ink: "#3F6212" },
+  mental: { label: "Andleg líðan", color: "#0EA5E9", soft: "#EAF7FD", ring: "#38A0CD", ink: "#0369A1" },
 };
 
 export interface HcLocation {
