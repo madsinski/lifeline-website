@@ -894,11 +894,6 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   // Open the step that needs attention; on a finished journey fall back to
   // what comes next, so the page is never just a wall of closed rows.
   const live = steps.filter((x) => !x.hidden);
-  const current =
-    live.find((x) => x.state === "current") ??
-    live.find((x) => x.state === "waiting") ??
-    live.find((x) => x.state === "upcoming") ??
-    live.at(-1);
   // Once a report is in, that is what the nurse is here to read — the whole
   // interview is spent on it. Opening the current step instead buried it
   // behind a one-line summary and it looked as though the questionnaire had
@@ -944,7 +939,6 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
   // Whatever the last plan proposal suggested referring on.
   const aiReferrals = d.ai_referrals ?? [];
-  const openReferrals = (d.referrals ?? []).filter((r) => r.status === "requested").length;
 
   /*
    * A checkpoint click moves the tab that holds that step.
@@ -1034,7 +1028,9 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
               : <span className="ml-auto text-xs text-amber-800">Hlekkur ekki kominn. Tengdu Google-dagatal eða límdu hlekk í bókunina.</span>}
           </div>
         )}
-        {j.plan_published_at && <div className="mt-3"><Adherence d={d} /></div>}
+        {/* Framvinda moved to Staða, beside the conversation: the two
+            answer one question together — how are they doing, and what have
+            they said about it. */}
       </section>
 
       {/* The four places a coach goes. */}
@@ -1048,25 +1044,17 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
         ))}
       </div>
 
-      {/* Messages and referral used to sit in a column beside the panel, which
-          left the plan builder two thirds of a screen to drag four pillars
-          around in. They are buttons now and open over the top, so whatever
-          step is open gets the whole width. */}
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => setSheet("messages")}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-          <Bell className="h-4 w-4" /> Skilaboð
-          {d.messages.length > 0 && <span className="text-slate-400">{d.messages.length}</span>}
-        </button>
-        <button type="button" onClick={() => setSheet("referral")}
-          className={`inline-flex min-h-9 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold ${
-            openReferrals > 0
-              ? "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
-              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"}`}>
-          <Stethoscope className="h-4 w-4" /> Læknir og tilvísanir
-          {openReferrals > 0 && <span className="rounded-full bg-amber-200 px-1.5 text-xs">{openReferrals}</span>}
-        </button>
-      </div>
+      {/* The Skilaboð and "Læknir og tilvísanir" buttons are gone — Mads'
+          call. They sat loose between the nav and the work, belonging to
+          neither.
+
+          Both sheets still exist and still render; what they lost is their
+          entry point. Skilaboð was outbound SMS and email, which the
+          two-way thread on Staða now largely covers. Referrals had no
+          second door, and openReferrals still drives an urgent doctor task
+          ("N tilvísanir bíða læknis") — so that task can be seen on Í dag
+          and not acted on from here. Flagged rather than quietly left: it
+          wants a home on Skýrsla, where the clinical work is. */}
 
       {/* The report used to be pinned in a 26rem column beside this while
           talking and while building the plan. The container is capped at
@@ -1109,18 +1097,30 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
                 books from the app. */}
             {panel("bookings")}
 
-            {/* Skilaboð milli þjálfara og notanda — the two-way thread, not
-                the outbound SMS sheet, which is a different thing and stays
-                a button above. */}
-            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-              <h2 className="mb-3 font-bold text-slate-900">Samtal við skjólstæðing</h2>
-              <ClientThread api={api} journeyId={j.id} />
-            </section>
+            {/* Framvinda and the conversation, side by side.
+                "Þarf hann hvatningu?" and "what has he said?" are one
+                question asked two ways, and answering it meant scrolling
+                between the top of the page and the bottom. Stacked below
+                lg, where two columns would make both too narrow to read. */}
+            <div className="grid gap-4 lg:grid-cols-2">
+              {j.plan_published_at && (
+                <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                  <h2 className="mb-3 font-bold text-slate-900">Framvinda</h2>
+                  <Adherence d={d} />
+                </section>
+              )}
+              {/* The two-way thread, not the outbound SMS sheet — a
+                  different thing, and Mads has removed its button. */}
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                <h2 className="mb-3 font-bold text-slate-900">Samtal við skjólstæðing</h2>
+                <ClientThread api={api} journeyId={j.id} />
+              </section>
+            </div>
 
-            {/* The interview and the follow-up are events on the way, and
-                both of their actions — book, start, record — live here. */}
-            {panel("interview")}
-            {panel("followup")}
+            {/* No Viðtal or Eftirfylgd cards: Mads' call, and Staða is for
+                where things stand rather than for running the consultation.
+                Their actions moved to Aðgerðaáætlun, which is where the
+                interview leads anyway — it is what the plan is built from. */}
           </div>
         );
 
@@ -1144,6 +1144,13 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
                 go above it rather than in a panel beside it. */}
             <NotesPeek j={j} onBack={() => setWsTab("status")} />
             {panel("plan")}
+            {/* Booking the viðtal, recording it, and the three-month
+                follow-up. These were on Staða until Mads asked for that to
+                be status only; they belong with the plan rather than
+                nowhere, because the interview is what produces it and the
+                follow-up is what reviews it. */}
+            {panel("interview")}
+            {panel("followup")}
           </div>
         );
 
