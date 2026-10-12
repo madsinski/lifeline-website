@@ -233,6 +233,12 @@ function Heilsuferd() {
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+        {/* min-w-0, or the strip below stretches this column instead of
+            scrolling. A grid item's automatic minimum size is its content,
+            so twelve step chips made a 1190px track inside a 390px page and
+            body's overflow-x:auto turned that into a scrollable document —
+            the same class of bug as the email address, measured the same
+            way. */}
         {/* ── One step at a time ───────────────────────────────────
             This was all four phases listed at once, every step a row, and
             the open one unfolding in place. It read as a wall: eleven steps
@@ -247,7 +253,7 @@ function Heilsuferd() {
 
             It opens on the current step, which is the only one that is ever
             the answer to "what now". */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* The map. Compact, scrollable, every step reachable — somebody
               who wants to re-read what the interview involves should not
               have to walk back through four screens. */}
