@@ -1087,72 +1087,75 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
         };
 
         if (tab === "status") return (
-          <div className="space-y-4">
-            {/* Er heilsufarsskoðunin búin?
-                A tick list rather than a progress strip: three things, each
-                either done or not, which is a checklist and not a journey.
-                Horizontally they read as stages of something continuing;
-                stacked with ticks they answer the actual question at a
-                glance. Only the three tests — the nine-item strip is the
-                rail this page just lost. */}
-            <section className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card sm:p-5">
-              <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Heilsufarsskoðun</h2>
-              <ul className="space-y-1">
-                {checkpoints.slice(0, 3).map((c) => {
-                  const done = c.state === "done";
-                  return (
-                    <li key={c.label}>
-                      <button type="button" onClick={() => jump(c.key)}
-                        className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-slate-50">
-                        <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition ${
-                          done ? "border-transparent bg-emerald-600 text-white" : "border-slate-300 text-transparent"}`}>
-                          <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
-                        </span>
-                        <span className={`min-w-0 flex-1 text-sm font-semibold ${done ? "text-slate-500" : "text-slate-900"}`}>
-                          {c.label}
-                        </span>
-                        {c.detail && <span className="shrink-0 text-xs text-slate-500">{c.detail}</span>}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
+          /*
+           * The conversation owns a column; everything else stacks beside it.
+           *
+           * Framvinda and the thread were a two-column grid, which forced
+           * Framvinda to match the chat's height: 464px of card for 105px
+           * of content, about 350px of empty amber, and that on the one
+           * element the page deliberately makes loudest. A chat is the only
+           * thing here with indefinite length, so it gets the column and the
+           * status cards size to their own content.
+           */
+          <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
+            <div className="space-y-4">
+              {/* Heilsufarsskoðun, compressed when there is nothing to say.
+                  Three ticks, all done, all the same date was using 186px to
+                  report a settled fact. Done collapses to one line; anything
+                  outstanding keeps the list, because then it is a to-do. */}
+              {(() => {
+                const tests = checkpoints.slice(0, 3);
+                const left = tests.filter((c) => c.state !== "done");
+                if (left.length === 0) return (
+                  <section className="flex items-center gap-2 rounded-2xl border border-hc-hairline bg-white px-4 py-3">
+                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-emerald-600 text-white">
+                      <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+                    </span>
+                    <span className="text-sm font-semibold text-slate-900">Heilsufarsskoðun búin</span>
+                    <span className="text-sm text-slate-500">{tests[2]?.detail ?? ""}</span>
+                  </section>
+                );
+                return (
+                  <section className="rounded-2xl border border-hc-hairline bg-white p-4">
+                    <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Heilsufarsskoðun</h2>
+                    <ul>
+                      {tests.map((c) => {
+                        const done = c.state === "done";
+                        return (
+                          <li key={c.label}>
+                            <button type="button" onClick={() => jump(c.key)}
+                              className="flex w-full items-center gap-3 rounded-xl px-1 py-1.5 text-left transition hover:bg-slate-50">
+                              <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 ${
+                                done ? "border-transparent bg-emerald-600 text-white" : "border-slate-300 text-transparent"}`}>
+                                <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+                              </span>
+                              <span className={`min-w-0 flex-1 text-sm font-semibold ${done ? "text-slate-500" : "text-slate-900"}`}>{c.label}</span>
+                              {c.detail && <span className="shrink-0 text-xs text-slate-500">{c.detail}</span>}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                );
+              })()}
 
-            {/* Bókanir: mælingar and myndsamtöl, the same rows the client
-                books from the app. */}
-            {panel("bookings")}
+              {/* Framvinda, with no wrapper of its own.
+                  It had my "Framvinda" heading above the card's own
+                  "FRAMVINDA" kicker — the same word twice, in a box inside
+                  a box. The card already says what it is. */}
+              {j.plan_published_at && <Adherence d={d} />}
 
-            {/* Framvinda and the conversation, side by side.
-                "Þarf hann hvatningu?" and "what has he said?" are one
-                question asked two ways, and answering it meant scrolling
-                between the top of the page and the bottom. Stacked below
-                lg, where two columns would make both too narrow to read. */}
-            <div className="grid gap-4 lg:grid-cols-2">
-              {j.plan_published_at && (
-                /* The one card allowed to raise its voice.
-                   Adherence already decides whether this person needs a
-                   nudge; the card now shows that decision in its own weight
-                   instead of leaving it to a word inside. Everything else
-                   on Staða is hairline-and-flat, so this is where the eye
-                   lands. */
-                <section className="rounded-2xl border-2 border-hc-focus-ring bg-hc-focus-surface p-4 shadow-hc-raised sm:p-5">
-                  <h2 className="mb-3 font-bold text-hc-focus">Framvinda</h2>
-                  <Adherence d={d} />
-                </section>
-              )}
-              {/* The two-way thread, not the outbound SMS sheet — a
-                  different thing, and Mads has removed its button. */}
-              <section className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card sm:p-5">
-                <h2 className="mb-3 font-bold text-slate-900">Samtal við skjólstæðing</h2>
-                <ClientThread api={api} journeyId={j.id} />
-              </section>
+              {/* Bókanir with no outer panel either: "Bókanir / Myndsamtöl og
+                  mælingar" wrapped two sections that name themselves, so it
+                  was a third box saying nothing the contents did not. */}
+              <CoachBookings api={api} journeyId={j.id} />
             </div>
 
-            {/* No Viðtal or Eftirfylgd cards: Mads' call, and Staða is for
-                where things stand rather than for running the consultation.
-                Their actions moved to Aðgerðaáætlun, which is where the
-                interview leads anyway — it is what the plan is built from. */}
+            <section className="flex min-h-0 flex-col rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card">
+              <h2 className="mb-3 font-bold text-slate-900">Samtal við skjólstæðing</h2>
+              <ClientThread api={api} journeyId={j.id} />
+            </section>
           </div>
         );
 
