@@ -45,9 +45,34 @@ export function sanitizePlan(b: Record<string, unknown>): PlanDraft {
     .filter((g): g is PlanGoal => isPillar(g.pillar) && !!g.text)
     .slice(0, 8);
 
+  /*
+   * One library module, once.
+   *
+   * Mads' own plan has "Bæta inntöku af vökva" twice: two modules with the
+   * key naering-vokvi and different uids, the only duplicated key in
+   * nineteen. The add_key path guards against this and the AI-proposal path
+   * dedupes — but on pillar:title, not on key — so something reached the
+   * stored plan that neither covered. Rather than find which historical
+   * path it was, the guard goes at the boundary every write passes through:
+   * a plan cannot be SAVED with the same library key twice, whoever is
+   * saving it and however they got there.
+   *
+   * Keyless modules are the nurse's own free-typed actions and are left
+   * alone — two of those with the same wording is a judgement, not a bug.
+   * First occurrence wins, so the one already in the plan keeps its uid and
+   * its ticks.
+   */
+  const seenKeys = new Set<string>();
   const modules: PlanItem[] = (Array.isArray(b.modules) ? b.modules : [])
     .filter((m): m is Record<string, unknown> => !!m && typeof m === "object")
     .filter((m) => isPillar(m.pillar) && !!str(m.title, 200))
+    .filter((m) => {
+      const k = str(m.key, 100);
+      if (!k) return true;
+      if (seenKeys.has(k)) return false;
+      seenKeys.add(k);
+      return true;
+    })
     .slice(0, 40)
     .map((m, i) => ({
       uid: str(m.uid, 64) || `m${i}-${Date.now()}`,

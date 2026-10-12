@@ -15,14 +15,25 @@
 //
 // Auth: the signed-in client.
 //
-// ── Why this route exists at all, rather than the browser calling the
-//    edge function directly the way the app does ─────────────────────────
+// ── Why this route exists, rather than the browser calling the edge
+//    function directly the way the app does ──────────────────────────────
 //
-// parse-meal is deployed with verify_jwt = false. It does not check the
-// token the app sends it, so it answers anybody on the internet and spends
-// OpenAI credits doing it. That is worth fixing at the function, but until
-// then this route is the authenticated front door for the web: a caller has
-// to be a signed-in client, and the attempts are capped.
+// Two reasons, and I had the first one wrong at first.
+//
+// parse-meal runs with verify_jwt = false — deliberately, per its own
+// deploy comment — and verifies no token itself. I first wrote that this
+// left it open to anybody, which overstates it: the function has a CORS
+// allowlist and a 30-request-per-minute-per-IP limit of its own. It is
+// genuinely unauthenticated (a curl with no Authorization header gets an
+// answer) but not unguarded. Sending it through here adds the thing those
+// controls cannot give: the caller is a known signed-in client, and the
+// cap is per person rather than per IP.
+//
+// The second reason is the practical one. That CORS allowlist holds
+// "lifelinehealth.is" and not "www.lifelinehealth.is", and the apex
+// redirects to www — so a browser calling it straight from this site would
+// be refused by CORS. Calling it server-side from here sidesteps that
+// entirely.
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -66,7 +77,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        /* Sent even though the function does not verify it, so that the day
+        /* Sent even though the function does not verify it, so the day
            somebody turns verify_jwt on, this route keeps working. */
         Authorization: req.headers.get("authorization") ?? "",
       },
