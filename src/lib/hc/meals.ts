@@ -22,6 +22,25 @@ export const CORE_SLOTS: MealSlot[] = ["breakfast", "lunch", "snack", "dinner"];
 /** Slots that only appear once chosen. */
 export const OPTIONAL_SLOTS: MealSlot[] = ["snack2"];
 
+/**
+ * The meal category a slot draws on, and the slot it is judged as.
+ *
+ * snack2 is a second millimál — not a different kind of food. No meal is
+ * categorised "snack2", so filtering the library on the slot name found
+ * nothing at all and that picker was permanently empty: the sheet opened,
+ * offered its three filters and no meals, every time. The same mismatch
+ * quietly skipped snack2 in the scoring rules, so a second snack got
+ * neither thyngdarstjornun's 250 kcal cap nor the penalty that keeps a
+ * single egg out of a snack slot.
+ *
+ * One mapping rather than three special cases, so the next optional slot
+ * added gets all of it or none of it.
+ */
+export const SLOT_CATEGORY: Record<MealSlot, Exclude<MealSlot, "snack2">> = {
+  breakfast: "breakfast", lunch: "lunch", snack: "snack", dinner: "dinner",
+  snack2: "snack",
+};
+
 export const SLOT_IS: Record<MealSlot, string> = { breakfast: "Morgunmatur", lunch: "Hádegi", snack: "Millimál", dinner: "Kvöldmatur", snack2: "Millimál 2" };
 
 export interface Meal {
@@ -90,10 +109,13 @@ function score(m: Meal, r: Rule, slot: MealSlot, slotTarget?: number): number {
   for (const t of r.avoid) if (tags.includes(t)) s -= 6;
   if (r.nameBoost?.test(m.name)) s += 3;
   if (r.nameAvoid?.test(m.name)) s -= 5;
-  const max = r.maxKcal?.[slot];
+  // Through SLOT_CATEGORY, so a second millimál is judged as the millimál
+  // it is rather than falling through every rule keyed by slot name.
+  const asSlot = SLOT_CATEGORY[slot];
+  const max = r.maxKcal?.[asSlot];
   if (max && m.calories && m.calories > max) s -= 4;
   // A snack slot wants a real snack, not a single egg or half a tuna pouch.
-  if (slot === "snack" && m.calories != null && m.calories < 120) s -= 3;
+  if (asSlot === "snack" && m.calories != null && m.calories < 120) s -= 3;
   /**
    * Breakfast and lunch are the meals nobody cooks.
    *
@@ -146,7 +168,7 @@ export function mealsFor(all: Meal[], programKey: string | null | undefined, slo
   const cook = prefs ? COOKING_IS[prefs.cooking].tags : [];
   const seen = new Set<string>();
   return all
-    .filter((m) => m.category === slot)
+    .filter((m) => m.category === SLOT_CATEGORY[slot])
     .filter((m) => !(weekendOff && (m.dietary_tags ?? []).includes("weekday-only")))
     .filter((m) => !prefs || mealAllowed(m, prefs))
     .map((m) => (cook.length && (m.dietary_tags ?? []).some((t) => cook.includes(t)) ? { ...m, _cook: true } as Meal & { _cook?: boolean } : m))
