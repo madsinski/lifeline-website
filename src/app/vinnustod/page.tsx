@@ -42,7 +42,6 @@ import WsRequests from "@/app/components/hc/WsRequests";
 import Caseload from "@/app/components/hc/Caseload";
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
-import ReportSignals from "@/app/components/hc/ReportSignals";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
 import type { Grunnheilsa, Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
@@ -1178,16 +1177,13 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
                 steps down by its own header. */}
             {byKey.get("plan")?.body}
 
-            {/* Reference, under the work rather than over it.
-                The out-of-range values and the interview notes are what the
-                plan answers, so they need to be on this tab — but they are
-                things to look up while building, not things to read before
-                starting, and 178px of them sat between the coach and the
-                step bar. */}
-            {d.report && (
-              <ReportSignals report={d.report.report} signals={d.report.signals}
-                onOpen={() => setSheet("report")} />
-            )}
+            {/* No out-of-range strip here either — Mads removed it from
+                Skýrsla and now from here, so ReportSignals is off the
+                workspace entirely. The values are still on Skýrsla, in the
+                report itself, which is where the whole of them live.
+
+                The interview notes stay: they are what the plan is written
+                from, and nothing else on this tab shows them. */}
             <NotesPeek j={j} onBack={() => setWsTab("status")} />
           </div>
         );
@@ -1195,13 +1191,11 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
         return panel("live");
       })()}
 
-      {sheet === "report" && d.report && (
-        <Sheet title="Skýrslan" onClose={() => setSheet(null)}>
-          <div className="p-4">
-            <ReportView report={d.report.report} signals={d.report.signals} reference={d.report.reference} sex={d.report.sex} />
-          </div>
-        </Sheet>
-      )}
+      {/* The "Skýrslan" sheet is gone with its only door.
+          ReportSignals' "Sjá alla skýrsluna" was the one thing that opened
+          it, and the strip is off both tabs now. Nothing is lost: the whole
+          report is the Skýrsla tab, which is a better place for it than a
+          drawer over the top of something else. */}
 
       {sheet === "messages" && (
         <Sheet title="Skilaboð til skjólstæðings" onClose={() => setSheet(null)}>
