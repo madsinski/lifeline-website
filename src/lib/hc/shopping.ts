@@ -112,47 +112,69 @@ function foodKey(food: string): string {
     .trim();
 }
 
+/** One meal on the plan, with where it sits — the unit the list is built from. */
+export interface PlannedMeal {
+  meal: Meal;
+  dayIdx: number;
+  slot: MealSlot;
+}
+
 /**
- * The list for a set of days.
+ * Every meal on the plan, flattened, so a caller can filter before asking.
  *
- * `days` holds the chosen weekdays; each is the meal in every slot for that
- * day, which is exactly what dayFor returns.
+ * The list used to take whole days and add up all five slots. That answered
+ * "what do I buy for Tuesday" and nothing else — not "only breakfasts", and
+ * not "that one I am skipping". Filtering is the caller's to do; this is
+ * just the flattening, in slot order so the meals read down the day.
  */
-export function shoppingList(days: Record<MealSlot, Meal | null>[]): ShoppingLine[] {
+export function plannedMeals(week: Record<MealSlot, Meal | null>[]): PlannedMeal[] {
+  const out: PlannedMeal[] = [];
+  week.forEach((day, dayIdx) => {
+    for (const slot of SLOTS) {
+      const meal = day?.[slot];
+      if (meal) out.push({ meal, dayIdx, slot });
+    }
+  });
+  return out;
+}
+
+/** The key a caller uses to include or exclude one meal. */
+export const plannedKey = (p: PlannedMeal) => `${p.dayIdx}:${p.slot}`;
+
+/**
+ * The list for a chosen set of meals.
+ *
+ * Takes the meals rather than the days, so the caller decides what is in
+ * scope — which days, which slots, and which individual meals are ticked.
+ */
+export function shoppingList(picked: PlannedMeal[]): ShoppingLine[] {
   const merged = new Map<string, ShoppingLine>();
 
-  for (const day of days) {
-    for (const slot of SLOTS) {
-      const meal = day[slot];
-      if (!meal) continue;
-      const name = meal.name_is || meal.name;
-      /*
-       * Through mealText, which is the one place that knows ingredients_is
-       * is the Icelandic column and `ingredients` the English one. Reading
-       * meal.ingredients directly put "1/2 cup mixed berries" on an
-       * Icelandic shopping list — the English rows are where the cups and
-       * the ASCII fractions live, which is also why a SQL check that
-       * preferred Icelandic found none of them.
-       */
-      for (const raw of mealText(meal).ingredients) {
-        const { qty, unit, food } = parseLine(raw);
-        const key = qty == null ? `raw:${raw.toLowerCase().trim()}` : `${foodKey(food)}|${unit ?? ""}`;
-        const prev = merged.get(key);
-        if (prev) {
-          if (prev.qty != null && qty != null) prev.qty += qty;
-          if (!prev.from.includes(name)) prev.from.push(name);
-        } else {
-          merged.set(key, {
-            text: qty == null ? raw.trim() : food,
-            qty, unit, from: [name],
-          });
-        }
+  for (const { meal } of picked) {
+    const name = meal.name_is || meal.name;
+    /*
+     * Through mealText, which is the one place that knows ingredients_is is
+     * the Icelandic column and `ingredients` the English one. Reading
+     * meal.ingredients directly put "1/2 cup mixed berries" on an Icelandic
+     * shopping list — the English rows are where the cups and the ASCII
+     * fractions live, which is also why a SQL check that preferred
+     * Icelandic found none of them.
+     */
+    for (const raw of mealText(meal).ingredients) {
+      const { qty, unit, food } = parseLine(raw);
+      const key = qty == null ? `raw:${raw.toLowerCase().trim()}` : `${foodKey(food)}|${unit ?? ""}`;
+      const prev = merged.get(key);
+      if (prev) {
+        if (prev.qty != null && qty != null) prev.qty += qty;
+        if (!prev.from.includes(name)) prev.from.push(name);
+      } else {
+        merged.set(key, { text: qty == null ? raw.trim() : food, qty, unit, from: [name] });
       }
     }
   }
 
-  /* Quantified things first — they are what you count into a trolley —
-     then the standing items like salt and olive oil. */
+  /* Quantified things first — they are what you count into a trolley — then
+     the standing items like salt and olive oil. */
   return [...merged.values()].sort((a, b) => {
     if ((a.qty == null) !== (b.qty == null)) return a.qty == null ? 1 : -1;
     return a.text.localeCompare(b.text, "is");

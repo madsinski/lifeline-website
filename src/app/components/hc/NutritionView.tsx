@@ -353,10 +353,6 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-lime-100 px-3 py-1 text-sm font-semibold text-lime-900 ring-1 ring-lime-200 transition hover:bg-lime-200">
               <Sliders className="h-3.5 w-3.5" aria-hidden /> Prógrammið
             </button>
-            {/* Beside the plan's name, because the list is a property of the
-                week rather than of today — and it is derived, so it is
-                always current without anything to refresh. */}
-            {week && <ShoppingListButton onClick={() => setShopOpen(true)} />}
           </div>
         </div>
         {week && (
@@ -489,6 +485,17 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                   </div>
                 );
               })}
+            </div>
+
+            {/* Under the calendar rather than up beside the plan's name.
+                The list is the week's shopping, so it belongs after the week
+                — you read the seven days, then you go and buy them. Beside
+                the heading it was a third pill competing with "Prógrammið"
+                and "Skipta um næringaráætlun", none of which is the thing
+                you came to do. Full width because it is the one action in
+                this block. */}
+            <div className="mt-3">
+              <ShoppingListButton onClick={() => setShopOpen(true)} />
             </div>
           </div>
         )}
