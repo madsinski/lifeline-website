@@ -95,11 +95,27 @@ async function consentState(journeyId: string) {
       client_approved_at: string | null; self_consent_at: string | null;
     }>();
   if (!data) return { has_report: false } as const;
-  const onBehalf = data.source !== "self";
+  /*
+   * Three sources, not two.
+   *
+   * I first wrote this as `source !== "self"`, which lumped ordinary
+   * clinical imports in with on-behalf ones. The import route writes
+   * "staff_on_behalf" only when the client asked for it to be entered for
+   * them; a plain "staff" import is ordinary clinical work and needs no
+   * provenance confirmation, which is why that path stamps
+   * client_approved_at at insert. With the wrong test, the banner told the
+   * coach "confirmed by the client on 29 September" about a report nobody
+   * had ever been asked to confirm — a true statement about visibility and
+   * a false one about consent, which is the worst shape for this
+   * particular sentence.
+   */
+  const onBehalf = data.source === "staff_on_behalf";
   return {
     has_report: true,
-    /** Did staff enter this, or the client themselves? */
+    /** Did the client ask for this to be entered for them? */
     on_behalf: onBehalf,
+    /** "self" | "staff" | "staff_on_behalf", so the UI can say which. */
+    source: data.source ?? "staff",
     imported_at: data.created_at,
     /** The client's own confirmation, in their own session. */
     client_confirmed_at: data.client_approved_at ?? data.self_consent_at ?? null,

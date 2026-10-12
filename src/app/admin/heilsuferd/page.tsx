@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useStaffGuard } from "@/lib/useStaffGuard";
 import AdminTabs from "../components/AdminTabs";
+import DiscountsTab from "./DiscountsTab";
 import { adminJson } from "../hc-api";
 import { STAGE_LABELS } from "@/lib/hc/stages";
 import { formatIsk, type HcLocation, type HcPackage } from "@/lib/hc/types";
@@ -38,6 +39,7 @@ const TABS = [
   { key: "packages", label: "Pakkar" },
   { key: "locations", label: "Staðir" },
   { key: "workers", label: "Vinnustöð" },
+  { key: "discounts", label: "Afslættir" },
 ];
 const FUNNEL = ["account", "profile", "welcome", "package", "protocol", "tests", "report", "interview", "plan", "action", "completed"];
 
@@ -87,6 +89,7 @@ export default function HeilsuferdAdmin() {
             {tab === "packages" && <PackagesTab packages={data.packages} onSaved={load} />}
             {tab === "locations" && <LocationsTab locations={data.locations} onSaved={load} />}
             {tab === "workers" && <WorkersTab locations={data.locations} />}
+            {tab === "discounts" && <DiscountsTab />}
           </>
         )}
       </div>

@@ -36,6 +36,8 @@ type Api = (url: string, init?: RequestInit) => Promise<Response>;
 export interface ConsentState {
   has_report: boolean;
   on_behalf?: boolean;
+  /** "self" | "staff" | "staff_on_behalf" */
+  source?: string;
   imported_at?: string;
   client_confirmed_at?: string | null;
   confirmation_requested_at?: string | null;
@@ -86,12 +88,20 @@ const day = (s?: string | null) =>
 export function ConsentBanner({ consent }: { consent: ConsentState }) {
   if (!consent.has_report) return null;
 
-  // The client's own upload needs nobody's confirmation.
+  /* Neither their own upload nor an on-behalf entry needs a confirmation,
+     but they are different facts and the banner should not claim the wrong
+     one. Saying "confirmed by the client" about a report nobody asked them
+     to confirm would be false, even though the visibility is the same. */
   if (!consent.on_behalf) {
+    const own = consent.source === "self";
     return (
       <p className="flex items-start gap-2 rounded-2xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-        <span>Skýrslan er þeirra eigin — þau sjá hana í appinu.</span>
+        <span>
+          {own
+            ? "Skýrslan er þeirra eigin — þau sjá hana í appinu."
+            : "Skýrsla úr heilsufarsskoðuninni — þau sjá hana í appinu."}
+        </span>
       </p>
     );
   }
