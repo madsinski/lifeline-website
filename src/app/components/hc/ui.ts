@@ -58,8 +58,17 @@ export const hcTabs = {
    * line becomes two, which is visible and needs no gesture.
    */
   bar: "flex flex-wrap rounded-hc-element bg-hc-surface p-1 ring-1 ring-slate-200",
+  /*
+   * grow, but never shrink below the label.
+   *
+   * flex-1 is `flex: 1 1 0%`, so with wrapping enabled the buttons
+   * collapsed under their own text — measured 78px of button holding 113px
+   * of "Skjólstæðingar". grow + shrink-0 + basis-auto fills the row on a
+   * wide screen, keeps every label whole, and wraps to a second line when
+   * the words genuinely do not fit.
+   */
   tab: (active: boolean) =>
-    `min-w-0 flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${active ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`,
+    `shrink-0 grow basis-auto whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${active ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`,
 };
 
 /** Kicker above a heading ("NÆSTI TÍMI"). */
