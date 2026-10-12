@@ -16,6 +16,7 @@ import PlanView from "./PlanView";
 import TrainingControls from "./TrainingControls";
 import { DEFAULT_TRAINING, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
+import CoachAsClient from "./CoachAsClient";
 import DayExampleEditor from "./DayExampleEditor";
 import CoachMealWeek from "./CoachMealWeek";
 import AiProposalPanel, { type ProposedAction } from "./AiProposalPanel";
@@ -709,7 +710,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
 
       {/* Kept mounted behind `hidden` rather than unmounted: these editors hold
           unsaved local state, and stepping away and back should not lose it. */}
-      <div className={step === 2 ? "" : "hidden"}>
+      <div className={step === 2 ? "space-y-4" : "hidden"}>
         <ExerciseEditor
           value={draft.exercise}
           templates={lib.exercise}
@@ -717,8 +718,29 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           api={api}
           journeyId={journeyId}
         />
+        {/* What the prescription above actually produces.
+            The editor is the prescription — which template, the adaptive
+            settings, the session list as data. This is the week as the
+            client receives it, including any swaps they have made, which
+            the editor cannot show because they are theirs and not the
+            plan's.
+
+            Note the one real overlap on this step: ExerciseSessionsEditor
+            above and the session cards below can both change a session.
+            They are not the same act — one edits the prescription, the
+            other edits this client's copy of it — but it is the place on
+            this page where a coach could reasonably be confused, so the
+            heading says which is which. */}
+        {draft.exercise && (
+          <section className="rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+              Eins og skjólstæðingurinn sér það
+            </h3>
+            <CoachAsClient api={api} journeyId={journeyId} only="exercise" />
+          </section>
+        )}
       </div>
-      <div className={step === 3 ? "" : "hidden"}>
+      <div className={step === 3 ? "space-y-4" : "hidden"}>
         <NutritionEditor
           value={draft.nutrition}
           templates={lib.nutrition}
@@ -727,6 +749,20 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           journeyId={journeyId}
           weightKg={weightKg}
         />
+        {/* The meals the chosen programme produces.
+            This step was a template dropdown and a list of principles: the
+            coach picked "Næringin mín" and never saw a single meal it would
+            serve. The rules pick the meals, so the only way to know what
+            the rules mean is to look. Almost no overlap here — the editor
+            configures, this shows. */}
+        {draft.nutrition && (
+          <section className="rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+              Máltíðirnar sem þetta gefur
+            </h3>
+            <CoachAsClient api={api} journeyId={journeyId} only="nutrition" />
+          </section>
+        )}
       </div>
 
       {step === 4 && (

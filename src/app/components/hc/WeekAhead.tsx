@@ -127,40 +127,60 @@ export default function WeekAhead({ api, onOpenClient }: {
         </button>
       </div>
 
-      {/* Seven columns on a desk, a scrollable row of them on a phone —
-          never a sideways scroll of the whole page. */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-        {days.map((d) => (
-          <div key={d.date.toISOString()}
-            className={`min-h-[84px] rounded-xl p-2 ${
-              d.isToday ? "bg-hc-brand-surface ring-1 ring-hc-brand/30" : "bg-slate-50/70"}`}>
-            <p className={`mb-1.5 text-[11px] font-bold uppercase ${d.isToday ? "text-hc-brand-dark" : "text-slate-500"}`}>
-              {DAY_IS[(d.date.getDay() + 6) % 7]} {d.date.getDate()}
+      {/* Grouped by day, not laid out as a grid.
+          Seven columns across the left column of this page gives each day
+          143px, and after padding a chip has about 127px — twenty
+          characters at 11px, which is why every name came out as "Mads
+          Aa…". A day-grouped list gives each appointment the full 1048px:
+          the whole name, the kind spelled out, the length, and the join
+          link if there is one.
+
+          What it gives up is the shape of the week at a glance. With one to
+          three appointments in a week that shape was mostly empty cells
+          anyway, and reading the items is what a coach came to do. Days
+          with nothing are left out rather than drawn empty. */}
+      <div className="space-y-3">
+        {days.filter((d) => d.items.length > 0).map((d) => (
+          <div key={d.date.toISOString()}>
+            <p className={`mb-1 text-[11px] font-bold uppercase tracking-wide ${
+              d.isToday ? "text-hc-brand-dark" : "text-slate-500"}`}>
+              {DAY_IS[(d.date.getDay() + 6) % 7]} {d.date.getDate()}.
+              {d.isToday && " · í dag"}
             </p>
-            <div className="space-y-1">
+            <ul className="overflow-hidden rounded-xl ring-1 ring-hc-hairline">
               {d.items.map((e, i) => (
-                <button key={`${e.at}-${i}`} type="button"
-                  onClick={() => e.journey_id && onOpenClient(e.journey_id)}
-                  disabled={!e.journey_id}
-                  title={`${KIND_IS[e.kind] ?? e.kind} · ${e.client ?? ""}`}
-                  className={`block w-full rounded-lg border-l-2 bg-white px-1.5 py-1 text-left shadow-sm transition hover:shadow ${
-                    /* Done fades; a video call gets the brand edge so the one
-                       you have to be somewhere for stands out. */
-                    e.done ? "border-slate-200 opacity-60"
-                      : e.kind === "video" || e.kind === "interview" || e.kind === "followup"
-                        ? "border-hc-brand" : "border-slate-300"}`}>
-                  <span className="flex items-center gap-1">
-                    <span className="text-[11px] font-bold tabular-nums text-slate-900">
+                <li key={`${e.at}-${i}`} className="border-b border-hc-hairline last:border-b-0">
+                  <button type="button"
+                    onClick={() => e.journey_id && onOpenClient(e.journey_id)}
+                    disabled={!e.journey_id}
+                    className={`flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-slate-50 ${
+                      e.done ? "opacity-55" : ""}`}>
+                    {/* The time first and in tabular figures, so a column of
+                        them lines up and can be scanned down. */}
+                    <span className="w-12 shrink-0 text-sm font-bold tabular-nums text-slate-900">
                       {new Date(e.at).toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" })}
                     </span>
-                    {e.meeting_url && <Video className="h-3 w-3 shrink-0 text-hc-brand-dark" aria-hidden />}
-                  </span>
-                  <span className="block truncate text-[11px] leading-tight text-slate-600">
-                    {e.client ?? KIND_IS[e.kind] ?? e.kind}
-                  </span>
-                </button>
+                    <span className={`h-6 w-0.5 shrink-0 rounded-full ${
+                      e.kind === "video" || e.kind === "interview" || e.kind === "followup"
+                        ? "bg-hc-brand" : "bg-slate-300"}`} aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-slate-900">
+                        {e.client ?? "—"}
+                      </span>
+                      <span className="block truncate text-xs text-slate-500">
+                        {[KIND_IS[e.kind] ?? e.kind, e.minutes ? `${e.minutes} mín.` : null,
+                          e.done ? "lokið" : null].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    {e.meeting_url && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-hc-brand-surface px-2 py-1 text-[11px] font-bold text-hc-brand-dark">
+                        <Video className="h-3 w-3" aria-hidden /> Fundur
+                      </span>
+                    )}
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         ))}
       </div>

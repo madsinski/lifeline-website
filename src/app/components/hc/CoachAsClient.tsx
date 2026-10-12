@@ -129,12 +129,32 @@ export function ConsentBanner({ consent }: { consent: ConsentState }) {
   );
 }
 
-export default function CoachAsClient({ api, journeyId }: { api: Api; journeyId: string }) {
+export default function CoachAsClient({ api, journeyId, only }: {
+  api: Api;
+  journeyId: string;
+  /**
+   * Render one pillar instead of the tabbed set.
+   *
+   * The plan builder's Æfingar and Næring steps configure a programme and
+   * had no way to show what it produces — the coach picked a template and
+   * the meals or sessions it implied were only visible on another tab. With
+   * `only` the same loader serves both: the builder embeds one pillar
+   * beside its editor, and the workspace's Forskoðun keeps "Í dag", which
+   * is the one view nothing configures.
+   *
+   * Reusing this rather than a third implementation of the same screens —
+   * NutritionView and TrainingView already take everything as props, and
+   * the arithmetic that feeds them (adaptExercise, personalise, dayFor, the
+   * protein band) lives here once.
+   */
+  only?: CoachTab;
+}) {
   const [d, setD] = useState<Bundle | null>(null);
   const [planPart, setPlanPart] = useState<PlanPart | null>(null);
   const [t, setT] = useState<TrainingPart | null>(null);
   const [meals, setMeals] = useState<Meal[] | null>(null);
-  const [tab, setTab] = useState<CoachTab>("today");
+  const [tabState, setTab] = useState<CoachTab>("today");
+  const tab: CoachTab = only ?? tabState;
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -288,7 +308,9 @@ export default function CoachAsClient({ api, journeyId }: { api: Api; journeyId:
 
   return (
     <div className="space-y-3">
-      <ConsentBanner consent={d.consent} />
+      {/* Only standalone: inside a builder step this would repeat on every
+          pillar, and the builder already says changes reach the client. */}
+      {!only && <ConsentBanner consent={d.consent} />}
 
       {!plan ? (
         <EmptyState variant="waiting" title="Engin áætlun birt"
@@ -296,15 +318,17 @@ export default function CoachAsClient({ api, journeyId }: { api: Api; journeyId:
       ) : (
         <>
           {/* Said once, plainly: what happens here lands on their screen. */}
-          <p className="px-1 text-xs text-slate-500">
+          <p className={`px-1 text-xs text-slate-500 ${only ? "hidden" : ""}`}>
             Þetta er áætlunin eins og skjólstæðingurinn sér hana. Breytingar sem þú gerir hér
             birtast hjá þeim og eru skráðar á þig.
           </p>
 
           {/* The client's own three tabs, in their order. Only the ones their
               plan actually has: a plan with no training should not offer the
-              coach an Æfingar tab that opens on nothing. */}
-          <div className={hcTabs.bar}>
+              coach an Æfingar tab that opens on nothing.
+              Hidden when the caller asked for one pillar — then the page
+              around it is already the navigation. */}
+          <div className={`${hcTabs.bar} ${only ? "hidden" : ""}`}>
             {([["today", "Í dag"], ["exercise", "Æfingar"], ["nutrition", "Næring"]] as const)
               .filter(([k]) => k === "today" || (k === "exercise" ? !!exercise : !!plan.nutrition))
               .map(([k, label]) => (

@@ -560,7 +560,16 @@ function WaitingRow({ r, t, f, onOpen }: {
           </span>
         </span>
       </button>
-      <button type="button" onClick={() => onOpen(r.id, t.key === "nudge")} className={`${btnPrimary} min-h-9 px-3 text-xs`}>{t.cta}</button>
+      {/* Outlined, not solid.
+          Every row in this list carries the same action, so a filled brand
+          button on each one made a column of green slabs that competed with
+          the thing they were attached to — and with the tab bar, which is
+          now the same colour. The row's dot and its reason are what should
+          catch the eye; the action just has to be obviously clickable. */}
+      <button type="button" onClick={() => onOpen(r.id, t.key === "nudge")}
+        className="inline-flex min-h-9 shrink-0 items-center rounded-full border border-hc-brand/40 bg-white px-3 text-xs font-semibold text-hc-brand-dark transition hover:bg-hc-brand-surface">
+        {t.cta}
+      </button>
     </li>
   );
 }
@@ -951,7 +960,14 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
           </div>
         );
 
-        return panel("live");
+        /* Forskoðun keeps "Í dag" and nothing else.
+           Æfingar and Næring moved into the builder steps that configure
+           them, where seeing the result next to the setting is the point.
+           The daily checklist has no builder equivalent — nothing
+           configures it — so this is where it belongs. */
+        return byKey.get("live")
+          ? <CoachAsClient api={api} journeyId={j.id} only="today" />
+          : null;
       })()}
 
       {/* The "Skýrslan" sheet is gone with its only door.
