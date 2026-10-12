@@ -105,12 +105,30 @@ json.dump(plan, open("derived.json", "w"), ensure_ascii=False, indent=1)
 # ── Run notes, 2026-10-12 ────────────────────────────────────────────────
 #
 # Applied to all 40 meals that had no Icelandic ingredient lines. Every
-# non-retired meal (156) now has them, so the shopping list gets something
-# from a snack instead of nothing.
+# non-retired meal (156) now has them.
 #
-# These were never untranslated — my earlier note calling them that was
-# wrong. They are Icelandic already; they simply had no structured
-# ingredients, because the name was the whole recipe.
+# READ THIS BEFORE BELIEVING THE ABOVE MATTERS. All 40 are is_filler = true,
+# and is_filler is read in exactly two places — compose.ts:117 and
+# api/hc/library/route.ts:39 — both of which EXCLUDE it. Nothing reads
+# fillers positively. So these 40 can never be offered in the swap library,
+# never composed into a plan, and never reach a shopping list. The change is
+# harmless and makes the rows coherent if fillers are ever switched on, but
+# it fixes nothing a user can see today.
+#
+# The empty ingredients_is and the is_filler flag were the same fact: these
+# are macro-only gap entries, not recipes. I found the empty arrays by
+# querying cardinality(ingredients_is) = 0 without also checking is_filler,
+# and reported "40 untranslated meal ingredient lists" as a live gap. They
+# were never untranslated either — they are Icelandic already, with no
+# structured ingredients because the name was the whole recipe.
+#
+# The real state: the 116 meals the app actually serves all had Icelandic
+# ingredient lines before this ran, which is why the shopping list already
+# read cleanly.
+#
+# The open question is a product one, for Mads: retire these 40 outright, or
+# switch fillers on so a snack can be planned. Either is a decision; this
+# script is not.
 #
 # fibre_g is deliberately NOT recomputed from these lines. It is already set
 # for them from a better source, and 25% of all ingredient lines are
