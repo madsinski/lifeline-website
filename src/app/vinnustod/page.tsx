@@ -375,7 +375,10 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
     <div className={hcPage.staff}>
       <WsHeader name={me.name} role={me.role === "doctor" ? "læknir" : me.role === "admin" ? "stjórnandi" : "hjúkrunarfræðingur"} items={menu} />
 
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+      {/* max-w-6xl, not 5xl: the home screen is two columns now, and a
+          workstation on a laptop was leaving a third of the screen as
+          empty grey either side of a single column. */}
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         {rows === null ? <p className="py-10 text-center text-slate-500">Hleð…</p>
           : "patient" in view
             ? <PatientView key={view.patient} id={view.patient} compose={!!view.compose} step={view.step} me={me}
@@ -387,7 +390,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                       is waiting on an answer, and the only reason the
                       participants' Þjálfari page is a conversation rather
                       than an outbox. */}
-                  {([["today", "Í dag"], ["messages", "Skilaboð"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"], ["teaching", "Fræðsla og þjálfun"]] as const).map(([k, label]) => (
+                  {([["today", "Í dag"], ["messages", "Skilaboð"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"], ["teaching", "Fræðsla"]] as const).map(([k, label]) => (
                     <button key={k} type="button" onClick={() => setView({ home: k })}
                       aria-current={view.home === k ? "page" : undefined}
                       className={`relative ${hcTabs.tab(view.home === k)}`}>
@@ -473,34 +476,23 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
         <h1 className="text-2xl font-bold text-slate-900">{greet}, {me.name.split(" ")[0]}</h1>
       </div>
 
-      {/* 1. Who is waiting on you.
-             The screen used to open on the drop zone below, which is the
-             right first move for intake work and the wrong one for
-             coaching: a coach starting their day needs to know who needs
-             them, not to be handed a filing tray. The intake keeps its
-             place directly underneath, for the days that do start with a
-             report. */}
-      <Caseload api={api} onOpen={(journeyId) => onOpen(journeyId)} />
+      {/* ── The work, and the tools to do it with ──────────────────
+          On a laptop this was one column down the middle of a 1280px
+          screen with empty grey either side, and five cards of identical
+          weight stacked in it: the caseload, the drop zone, a search box,
+          the queue, a link. Nothing said which mattered.
 
-      {/* 2. The day often does start with a report landing on the desk. */}
-      <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} />
-
-      {/* 3. Or with looking someone up. */}
-      <div>
-        <label className="relative block">
-          <span className="sr-only">Leita að skjólstæðingi</span>
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita að skjólstæðingi — nafn eða sími"
-            className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-base shadow-sm outline-none focus:border-emerald-400" />
-        </label>
-        {search && (
-          <ul className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {found.length === 0 && <li className="p-4 text-sm text-slate-500">Enginn fannst.</li>}
-            {found.map(({ r, t, f }) => <SearchHit key={r.id} r={r} t={t} f={f} onOpen={onOpen} />)}
-          </ul>
-        )}
-      </div>
-
+          Two columns from lg up. The left is the work — who needs you,
+          what is waiting. The right is the tools you reach for, which are
+          real but are not why you opened the page: dropping a report in,
+          looking somebody up. Below lg it stacks in the same order, so a
+          phone still gets the work first. */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <div className="min-w-0 space-y-6">
+          {/* Who is waiting on you. The screen used to open on the drop
+              zone, which is the right first move for intake work and the
+              wrong one for coaching. */}
+          <Caseload api={api} onOpen={(journeyId) => onOpen(journeyId)} />
       {/* 3. What is booked today. */}
       {agenda.length > 0 && (
         <section>
@@ -536,8 +528,12 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
         <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
           Bíður þín {waiting.length > 0 && <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[11px] text-white">{waiting.length}</span>}
         </h2>
+        {/* Quiet is deliberate: an empty "bíður þín" is the most common
+            state of this panel, and 150px of centred card to say there is
+            nothing to do pushes the work below the fold on the days there
+            is some. */}
         {waiting.length === 0 ? (
-          <EmptyState variant="done" compact title="Ekkert bíður" body="Allt sem kallar á þig er afgreitt. Vel gert." />
+          <EmptyState variant="done" quiet title="Ekkert bíður" body="Allt sem kallar á þig er afgreitt." />
         ) : (
           <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
             {waiting.map(({ r, t, f }) => <WaitingRow key={r.id} r={r} t={t} f={f} onOpen={onOpen} onChanged={onChanged} />)}
@@ -555,8 +551,31 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
           <span className="flex-1" />
           <ChevronRight className={`h-5 w-5 text-slate-300 transition ${showAll ? "rotate-90" : ""}`} />
         </button>
-        {showAll && <div className="mt-3"><Clients rows={rows} me={me} isDoctor={isDoctor} onOpen={onOpen} /></div>}
-      </section>
+          {showAll && <div className="mt-3"><Clients rows={rows} me={me} isDoctor={isDoctor} onOpen={onOpen} /></div>}
+        </section>
+        </div>
+
+        {/* The tools. Real, and not why you opened the page — so they sit
+            beside the work on a wide screen and under it on a narrow one. */}
+        <aside className="min-w-0 space-y-4">
+          <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} />
+          <div>
+        <label className="relative block">
+          <span className="sr-only">Leita að skjólstæðingi</span>
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita að skjólstæðingi — nafn eða sími"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-base shadow-sm outline-none focus:border-emerald-400" />
+        </label>
+        {search && (
+          <ul className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            {found.length === 0 && <li className="p-4 text-sm text-slate-500">Enginn fannst.</li>}
+            {found.map(({ r, t, f }) => <SearchHit key={r.id} r={r} t={t} f={f} onOpen={onOpen} />)}
+          </ul>
+        )}
+          </div>
+
+        </aside>
+      </div>
     </div>
   );
 }

@@ -46,12 +46,20 @@ export const hcPage = {
 
 /** Segmented tabs (workstation nav, the participant's nav, plan tabs). */
 export const hcTabs = {
-  // No overflow-x-auto. It let the bar scroll sideways rather than fit,
-  // which hid the last tabs behind a drag nobody thinks to try. Items that
-  // do not fit belong under "Meira" instead.
-  bar: "flex rounded-hc-element bg-hc-surface p-1 ring-1 ring-slate-200",
+  /*
+   * No overflow-x-auto: it let the bar scroll sideways rather than fit,
+   * which hides the last tabs behind a drag nobody thinks to try.
+   *
+   * But not fitting is worse than scrolling. The workstation's five tabs
+   * run to 509px, so on any phone "Fræðsla og þjálfun" hung off the right
+   * edge and body's overflow-x:auto turned the whole page into a sideways
+   * scroll — measured at 430, 390 and 360. flex-wrap keeps the rule that
+   * nothing is hidden and drops the overflow: a bar that cannot fit on one
+   * line becomes two, which is visible and needs no gesture.
+   */
+  bar: "flex flex-wrap rounded-hc-element bg-hc-surface p-1 ring-1 ring-slate-200",
   tab: (active: boolean) =>
-    `flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${active ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`,
+    `min-w-0 flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${active ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`,
 };
 
 /** Kicker above a heading ("NÆSTI TÍMI"). */
