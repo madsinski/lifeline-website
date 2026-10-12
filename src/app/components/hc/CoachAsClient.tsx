@@ -14,11 +14,20 @@
 // this journey. The component does not know, which is the point — there is
 // no staff branch inside it to get wrong.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, ShieldCheck, ShieldQuestion } from "lucide-react";
 import MyActions from "./MyActions";
+import NutritionView from "./NutritionView";
+import TrainingView from "./TrainingView";
 import EmptyState from "./EmptyState";
+import { hcTabs } from "./ui";
+import { DEFAULT_TRAINING, adaptExercise, hardDays, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { DEFAULT_PERSONAL, personalise, type Personal } from "@/lib/hc/personalise";
+import { dayFor, type Meal } from "@/lib/hc/meals";
+import { proteinTarget } from "@/lib/hc/nutrition-log";
+import { DEFAULT_NUTRITION, type NutritionPrefs } from "@/lib/hc/nutrition";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
+import type { Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ActionPlan } from "@/lib/hc/types";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -40,7 +49,26 @@ interface Bundle {
   logs: ActionLog[];
   prefs: ActionPref[];
   consent: ConsentState;
+  /** The report, for the protein target and the planning lights. */
+  report?: {
+    report: { items: { slug?: string | null; key: string; title: string; value?: number | null }[] };
+    signals?: Record<string, ReportSignal | null>;
+    actionSignals?: Record<string, ReportSignal | null>;
+    sex?: "m" | "f" | null;
+  } | null;
 }
+
+/** What ?part=plan and ?part=training answer with. */
+interface PlanPart { plan: (ActionPlan & { start_date?: string | null }) | null }
+interface TrainingPart {
+  settings?: TrainingSettings;
+  personal?: Personal;
+  nutrition?: NutritionPrefs;
+  body?: { weight_kg: number | null; height_cm: number | null };
+  gym?: { name: string | null; url: string | null; info: string | null } | null;
+}
+
+type CoachTab = "today" | "exercise" | "nutrition";
 
 const day = (s?: string | null) =>
   s ? new Date(s).toLocaleDateString("is-IS", { day: "numeric", month: "long" }) : "";
@@ -93,36 +121,144 @@ export function ConsentBanner({ consent }: { consent: ConsentState }) {
 
 export default function CoachAsClient({ api, journeyId }: { api: Api; journeyId: string }) {
   const [d, setD] = useState<Bundle | null>(null);
+  const [planPart, setPlanPart] = useState<PlanPart | null>(null);
+  const [t, setT] = useState<TrainingPart | null>(null);
+  const [meals, setMeals] = useState<Meal[] | null>(null);
+  const [tab, setTab] = useState<CoachTab>("today");
   const [err, setErr] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const path = `/api/vinnustod/journeys/${journeyId}/as-client`;
 
   const load = useCallback(async () => {
-    const r = await api(path).catch(() => null);
-    const body = r?.ok ? await r.json().catch(() => null) : null;
+    /* The same three the client's own page loads, plus the meal library. */
+    const [a, pl, tr, lib] = await Promise.all([
+      api(path).catch(() => null),
+      api(`${path}?part=plan`).catch(() => null),
+      api(`${path}?part=training`).catch(() => null),
+      api("/api/hc/library?kind=meals").catch(() => null),
+    ]);
+    const body = a?.ok ? await a.json().catch(() => null) : null;
+    const plBody = pl?.ok ? await pl.json().catch(() => null) : null;
+    const trBody = tr?.ok ? await tr.json().catch(() => null) : null;
+    const libBody = lib?.ok ? await lib.json().catch(() => null) : null;
     /* Deferred out of the effect's own tick, the way Caseload does it — the
        React Compiler lint rejects a setState reached synchronously from an
        effect, and this is the shape the rest of these screens use. */
     setTimeout(() => {
-      if (!r?.ok || !body) { setErr(r?.status === 403 ? "forbidden" : "failed"); return; }
+      if (!a?.ok || !body) { setErr(a?.status === 403 ? "forbidden" : "failed"); return; }
       setD(body);
+      setPlanPart(plBody);
+      setT(trBody);
+      setMeals(libBody?.meals ?? null);
     }, 0);
   }, [api, path]);
 
   useEffect(() => { void load(); }, [load]);
 
+  const training = t?.settings ?? DEFAULT_TRAINING;
+  const personal = t?.personal ?? DEFAULT_PERSONAL;
+  const nutritionPrefs = t?.nutrition ?? DEFAULT_NUTRITION;
+  const plan = planPart?.plan ?? d?.plan ?? null;
+
+  /* Exactly the client page's derivation: the programme as written (adaptive
+     ones computed from the settings), then arranged their way. Same helpers,
+     so the coach cannot be looking at a differently-computed week. */
+  const baseExercise = plan?.exercise
+    ? (isAdaptive(plan.exercise.key) ? adaptExercise(plan.exercise, training, planPart?.plan?.start_date ?? null) : plan.exercise)
+    : null;
+  const exercise = baseExercise
+    ? personalise(baseExercise, personal, hardDays(training), training.days ?? [])
+    : null;
+
+  /* The planning light per domain, not the printed verdict — a domain with
+     flagged components is a need even when its composite reads "Gott". */
+  const signals = useMemo(() => {
+    const out: Record<string, ReportSignal | null> = {};
+    for (const item of d?.report?.report.items ?? []) {
+      if (item.slug) out[item.slug] = d?.report?.actionSignals?.[item.key] ?? d?.report?.signals?.[item.key] ?? null;
+    }
+    return out;
+  }, [d]);
+
   /*
-   * MyActions' own fetches, pointed at this journey.
+   * The measured body data from the report — the shape TrainingView wants
+   * for its weight suggestions.
    *
-   * Only /api/hc/actions is rewritten, because that is the one this view's
-   * component writes to. Anything else it asks for — the meal library, say —
-   * is the same for everybody and can go straight through. A rewrite that
-   * tried to be clever about every /api/hc/* path would silently send a
-   * coach's own plan reads to a client's journey.
+   * Kept separate from `weightKg` below on purpose, exactly as the client's
+   * own page keeps them apart: a plate suggestion should rest on a figure a
+   * nurse measured, while the protein target may fall back to one the
+   * person typed, because that whole track exists for people who never have
+   * the workup.
    */
-  const coachApi = useCallback<Api>((url, init) => (
-    url.startsWith("/api/hc/actions") ? api(path, init) : api(url, init)
-  ), [api, path]);
+  const body = useMemo(() => {
+    const val = (slug: string) => {
+      const row = (d?.report?.report.items ?? []).find((i) => i.slug === slug);
+      return row && Number.isFinite(Number(row.value)) ? Number(row.value) : null;
+    };
+    return { weightKg: val("thyngd"), bodyFatPct: val("fitumassi"), sex: d?.report?.sex ?? null };
+  }, [d]);
+  const weightKg = body.weightKg ?? t?.body?.weight_kg ?? null;
+
+  const todayMeals = useMemo(() => {
+    const key = plan?.nutrition?.key ?? null;
+    if (!meals || !key) return null;
+    const band = proteinTarget(weightKg);
+    const targetG = band ? Math.round((band.min + band.max) / 2) : null;
+    const wd = (new Date().getDay() + 6) % 7;
+    return dayFor(meals, key, personal.meal_picks ?? {}, nutritionPrefs, wd, targetG);
+  }, [meals, plan?.nutrition?.key, personal.meal_picks, nutritionPrefs, weightKg]);
+
+  /** Save the client's arrangement through the coach route. */
+  const savePersonal = useCallback(async (next: Personal, fields: (keyof Personal)[]) => {
+    setT((prev) => (prev ? { ...prev, personal: next } : prev));
+    setSaving(true);
+    const r = await api(`${path}?part=training`, {
+      method: "POST",
+      body: JSON.stringify(Object.fromEntries(fields.map((f) => [f, next[f]]))),
+    }).catch(() => null);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
+    setSaving(false);
+    /* The server's answer replaces the optimistic copy: it carries the
+       library snapshots a swap needs, which the browser cannot invent. */
+    if (j) setT((prev) => (prev ? { ...prev, ...j } : prev));
+  }, [api, path]);
+
+  /*
+   * The reused components' own fetches, pointed at this journey.
+   *
+   * Three client endpoints are mapped to the as-client route. Everything
+   * else under /api/hc/ is REFUSED rather than passed through, because
+   * pass-through is the dangerous default here: those paths mean "the
+   * signed-in user", and the signed-in user on this screen is the coach. A
+   * component reaching one would quietly render the coach's own journey,
+   * subscription or report inside a client's workspace, and look like it
+   * worked.
+   *
+   * Only paths that are the same for everybody are let through, and they
+   * are named. The meal library is the only one today.
+   *
+   * Matched on the path, not with startsWith: /api/hc/plan is a prefix of
+   * /api/hc/plan-library and /api/hc/plans, and a loose rule would have
+   * answered both of those with a single journey's plan.
+   */
+  const coachApi = useCallback<Api>((url, init) => {
+    const [bare] = url.split("?");
+    if (bare === "/api/hc/actions") return api(path, init);
+    if (bare === "/api/hc/plan") return api(`${path}?part=plan`, init);
+    if (bare === "/api/hc/training") return api(`${path}?part=training`, init);
+    if (bare === "/api/hc/library") return api(url, init);
+    if (bare.startsWith("/api/hc/")) {
+      /* Loud, local, and never a request. Reaching here means a reused
+         component has grown a call that has no coach equivalent yet; it
+         needs mapping on the as-client route, not letting through. */
+      return Promise.resolve(new Response(
+        JSON.stringify({ error: "not_mapped_for_coach", path: bare }),
+        { status: 501, headers: { "Content-Type": "application/json" } },
+      ));
+    }
+    return api(url, init);
+  }, [api, path]);
 
   if (err === "forbidden") {
     return <EmptyState variant="empty" title="Ekki í þínum umdæmum"
@@ -144,7 +280,7 @@ export default function CoachAsClient({ api, journeyId }: { api: Api; journeyId:
     <div className="space-y-3">
       <ConsentBanner consent={d.consent} />
 
-      {!d.plan ? (
+      {!plan ? (
         <EmptyState variant="waiting" title="Engin áætlun birt"
           body="Þegar áætlunin hefur verið birt sést hún hér eins og skjólstæðingurinn sér hana." />
       ) : (
@@ -154,8 +290,58 @@ export default function CoachAsClient({ api, journeyId }: { api: Api; journeyId:
             Þetta er áætlunin eins og skjólstæðingurinn sér hana. Breytingar sem þú gerir hér
             birtast hjá þeim og eru skráðar á þig.
           </p>
-          <MyActions api={coachApi} journeyId={d.journey_id} plan={d.plan}
-            logs={d.logs} prefs={d.prefs} onLogs={(logs) => setD((p) => (p ? { ...p, logs } : p))} />
+
+          {/* The client's own three tabs, in their order. Only the ones their
+              plan actually has: a plan with no training should not offer the
+              coach an Æfingar tab that opens on nothing. */}
+          <div className={hcTabs.bar}>
+            {([["today", "Í dag"], ["exercise", "Æfingar"], ["nutrition", "Næring"]] as const)
+              .filter(([k]) => k === "today" || (k === "exercise" ? !!exercise : !!plan.nutrition))
+              .map(([k, label]) => (
+                <button key={k} type="button" onClick={() => setTab(k)}
+                  aria-pressed={tab === k} className={hcTabs.tab(tab === k)}>
+                  {label}
+                </button>
+              ))}
+          </div>
+
+          {tab === "today" && (
+            <MyActions api={coachApi} journeyId={d.journey_id} plan={plan}
+              logs={d.logs} prefs={d.prefs} meals={todayMeals}
+              onLogs={(logs) => setD((x) => (x ? { ...x, logs } : x))} />
+          )}
+
+          {tab === "exercise" && exercise && (
+            <TrainingView api={coachApi} exercise={exercise} personal={personal}
+              planStart={planPart?.plan?.start_date ?? null}
+              training={training} body={body}
+              /* Their arrangement — days, HIIT split, swapped exercises —
+                 saved through the coach route and audited to the coach. */
+              onSave={(next) => void savePersonal(next, ["days", "hiit_split", "swaps", "drops", "extra"])} />
+          )}
+
+          {tab === "nutrition" && plan.nutrition && (
+            <NutritionView api={coachApi} nutrition={plan.nutrition}
+              picks={personal.meal_picks ?? {}} prefs={nutritionPrefs}
+              signals={signals} weightKg={weightKg} todayMeals={todayMeals}
+              favourites={personal.meal_favourites ?? []}
+              onFavourite={(mealId, on) => {
+                const cur = personal.meal_favourites ?? [];
+                const next = on ? [...new Set([...cur, mealId])] : cur.filter((x) => x !== mealId);
+                void savePersonal({ ...personal, meal_favourites: next }, ["meal_favourites"]);
+              }}
+              onPick={(slot, id) => {
+                const picks = { ...(personal.meal_picks ?? {}) };
+                if (id) picks[slot] = id; else delete picks[slot];
+                void savePersonal({ ...personal, meal_picks: picks }, ["meal_picks"]);
+              }} />
+          )}
+
+          {saving && (
+            <p className="flex items-center gap-2 px-1 text-xs text-slate-500">
+              <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> Vistar…
+            </p>
+          )}
         </>
       )}
     </div>

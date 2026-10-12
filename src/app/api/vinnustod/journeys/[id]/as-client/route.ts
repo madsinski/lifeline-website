@@ -1,10 +1,19 @@
 // The participant's own surfaces, for a coach, on a chosen journey.
 //
-// GET  → the bundle /api/hc/actions returns for a client, plus the consent
-//        state of their report, resolved for THIS journey under workstation
-//        auth instead of the signed-in client's session.
-// POST → the mutations that view makes: a reordered section, a tick, and the
-//        per-action adjustments.
+// Three parts, mirroring the three endpoints the client's own plan page
+// loads, so the coach screen can render the client's own components:
+//
+//   GET  (no part)        /api/hc/actions — plan, ticks, prefs, flags, report
+//                         plus the consent state of that report
+//   GET  ?part=plan       /api/hc/plan — the published plan, lectures,
+//                         appointments
+//   GET  ?part=training   /api/hc/training — settings, their own arrangement,
+//                         meal picks, gym
+//   POST (no part)        a reordered section, a tick, per-action adjustments
+//   POST ?part=training   the arrangement: days, swaps, meal picks, favourites
+//
+// All of it resolved for THIS journey under workstation auth, instead of the
+// signed-in client's session.
 //
 // Why a separate route rather than letting staff call /api/hc/actions.
 //
@@ -31,6 +40,11 @@ import { loadReport } from "@/lib/hc/report-store";
 import { sexOf } from "@/lib/hc/sex";
 import { hcAudit } from "@/lib/hc/server";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
+import { getClientProfile } from "@/lib/hc/server";
+import { loadPlanPrefs, saveTraining } from "@/lib/hc/training-server";
+import { upcomingAppointments } from "@/lib/hc/upcoming";
+import { withWhen } from "@/lib/hc/plan-when";
+import type { HcJourney } from "@/lib/hc/types";
 import type { KnowledgeEntry } from "@/lib/hc/knowledge";
 
 export const runtime = "nodejs";
@@ -106,6 +120,56 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const got = await visibleJourney(req, id);
   if ("error" in got) return got.error;
   const { journey } = got;
+  const part = req.nextUrl.searchParams.get("part");
+
+  /*
+   * The published plan, as /api/hc/plan answers it.
+   *
+   * Every client_id filter in that route becomes the journey's own client
+   * rather than the caller's — the caller is staff, and filtering by them
+   * would find nothing at all.
+   */
+  if (part === "plan") {
+    const { data: plan } = await supabaseAdmin
+      .from("hc_action_plans_decrypted").select("*")
+      .eq("journey_id", journey.id).eq("client_id", journey.client_id)
+      .eq("status", "published").maybeSingle();
+    const profile = await getClientProfile(journey.client_id);
+    const slugs: string[] = plan?.lecture_slugs ?? [];
+    const { data: lecs } = slugs.length
+      ? await supabaseAdmin.from("hc_lectures").select("slug, title, subtitle, kind, duration_min, pillar").in("slug", slugs).eq("published", true)
+      : { data: [] };
+    const lectures = slugs.map((x) => (lecs || []).find((l) => l.slug === x)).filter(Boolean);
+    const { data: done } = lectures.length
+      ? await supabaseAdmin.from("hc_lecture_progress").select("lecture_id, hc_lectures!inner(slug)").eq("client_id", journey.client_id)
+      : { data: [] };
+    const doneSlugs = new Set((done || []).map((x) => (x as unknown as { hc_lectures: { slug: string } }).hc_lectures.slug));
+    const { data: j } = await supabaseAdmin.from("hc_journeys").select("*").eq("id", journey.id).maybeSingle();
+    const { data: loc } = j?.location_id
+      ? await supabaseAdmin.from("hc_locations").select("*").eq("id", j.location_id).maybeSingle()
+      : { data: null };
+    return NextResponse.json({
+      plan: plan ? { ...plan, modules: await withWhen(plan.modules) } : plan,
+      client_name: profile?.full_name ?? null,
+      lectures: lectures.map((l) => ({ ...l, completed: doneSlugs.has(l!.slug) })),
+      appointments: j ? upcomingAppointments(j as HcJourney, loc) : [],
+      has_report: !!j?.report_generated_at,
+    });
+  }
+
+  /* Their settings and their own arrangement, as /api/hc/training answers it. */
+  if (part === "training") {
+    const prefs = await loadPlanPrefs(journey.id);
+    const { data: loc } = await supabaseAdmin
+      .from("hc_journeys").select("hc_locations(gym_name, gym_url, gym_info)")
+      .eq("id", journey.id).maybeSingle<{ hc_locations: { gym_name: string | null; gym_url: string | null; gym_info: string | null } | null }>();
+    return NextResponse.json({
+      ...prefs,
+      gym: loc?.hc_locations
+        ? { name: loc.hc_locations.gym_name, url: loc.hc_locations.gym_url, info: loc.hc_locations.gym_info }
+        : null,
+    });
+  }
 
   const since = lastDays(28)[0];
   const [{ data: plan }, { data: logs }, { data: prefs }, { data: results }, { data: entries }, { data: profile }, consent] =
@@ -166,6 +230,27 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
    */
   const clientId = journey.client_id;
   const who = actor.kind === "staff" ? `staff:${actor.staffId}` : `worker:${actor.worker.id}`;
+
+  /*
+   * The arrangement: training days, swaps, meal picks, favourites.
+   *
+   * saveTraining takes the client id and an "updated_by", so the coach is
+   * recorded as the author of the change without the row stopping being the
+   * client's. No calendar sync here, unlike the client's own route: that
+   * pushes to the CLIENT's Google calendar, and a coach tidying somebody's
+   * week should not rewrite their calendar as a side effect.
+   */
+  if (req.nextUrl.searchParams.get("part") === "training") {
+    try {
+      const out = await saveTraining(journey.id, clientId, body, who);
+      await hcAudit(who, "coach_training_settings", journey.id, {
+        keys: Object.keys(body ?? {}).slice(0, 12),
+      });
+      return NextResponse.json(out);
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    }
+  }
 
   if (Array.isArray(body.order)) {
     const uids = (body.order as unknown[]).map(String).filter(Boolean).slice(0, 200);
