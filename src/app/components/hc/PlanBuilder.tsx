@@ -11,7 +11,7 @@
 
 import PillarIcon from "./PillarIcon";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronDown, Loader2, Sparkles } from "lucide-react";
 import PlanView from "./PlanView";
 import TrainingControls from "./TrainingControls";
 import { DEFAULT_TRAINING, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
@@ -169,6 +169,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [filter, setFilter] = useState<Pillar | "all">("all");
   const [search, setSearch] = useState("");
+  /** Which action's editor is open. One at a time, so a column stays short. */
+  const [openItem, setOpenItem] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
   // The preview shows the adaptive programme with the participant's own settings.
   const [previewTraining, setPreviewTraining] = useState<TrainingSettings | null>(null);
@@ -291,6 +293,56 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
     draft && update({ modules: draft.modules.map((m) => (m.uid === u ? { ...m, ...patch } : m)) });
   const addCustom = (pillar: Pillar) =>
     draft && update({ modules: [...draft.modules, { uid: uid(), key: null, pillar, title: "Ný aðgerð", summary: "", details: null, frequency: null, note: null }] });
+
+  /*
+   * Dragging with a finger.
+   *
+   * The builder's drag is HTML5 draggable, which no touch browser fires at
+   * all — so on an iPad the handle did nothing and a plan could only be
+   * rearranged with a mouse. Rather than replace a working desktop
+   * interaction, this is a second path for pointer types that are not a
+   * mouse: it captures the pointer on the handle, tracks it, and on release
+   * asks the document what is under the finger and calls the same
+   * moveItem() the drop handler calls.
+   *
+   * Capture on the handle means every move event comes back to it, so no
+   * other row needs a listener and nothing competes for the gesture.
+   */
+  const [carry, setCarry] = useState<{ uid: string; x: number; y: number } | null>(null);
+
+  /** The pillar section and the row under a point, from the DOM. */
+  const targetAt = (x: number, y: number) => {
+    const el = document.elementFromPoint(x, y);
+    const section = el?.closest<HTMLElement>("[data-pillar]");
+    const pillar = section?.dataset.pillar as Pillar | undefined;
+    const row = el?.closest<HTMLElement>("[data-uid]");
+    return { pillar, beforeUid: row?.dataset.uid ?? null };
+  };
+
+  const carryStart = (uid: string) => (e: React.PointerEvent) => {
+    /* Mouse keeps the native drag, which already works and gives the
+       browser's own drag image. */
+    if (e.pointerType === "mouse") return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setCarry({ uid, x: e.clientX, y: e.clientY });
+  };
+
+  const carryMove = (e: React.PointerEvent) => {
+    if (!carry) return;
+    setCarry({ ...carry, x: e.clientX, y: e.clientY });
+    /* Reuse the same highlight the mouse drag sets, so both look alike. */
+    setDragOver(targetAt(e.clientX, e.clientY).pillar ?? null);
+  };
+
+  const carryEnd = (e: React.PointerEvent) => {
+    if (!carry) return;
+    const { pillar, beforeUid } = targetAt(e.clientX, e.clientY);
+    const uid = carry.uid;
+    setCarry(null);
+    setDragOver(null);
+    if (pillar && beforeUid !== uid) moveItem(uid, beforeUid, pillar);
+  };
 
   const onDrop = (e: React.DragEvent, pillar: Pillar, beforeUid: string | null) => {
     e.preventDefault();
@@ -510,6 +562,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                   className="rounded-2xl border-2 bg-white p-4 transition"
                   style={{ borderColor: dragOver === p ? meta.color : meta.ring }}
                   aria-label={meta.label}
+                  data-pillar={p}
                 >
                   <div className="mb-2 flex items-center gap-2">
                     <PillarIcon pillar={p} size="sm" />
@@ -527,34 +580,73 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                   {items.length === 0 && (
                     <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400">Dragðu aðgerðir hingað</p>
                   )}
-                  <div className="space-y-2">
-                    {items.map((m) => (
-                      <div
-                        key={m.uid}
-                        draggable
-                        onDragStart={(e) => e.dataTransfer.setData("text/plain", JSON.stringify({ t: "plan", k: m.uid }))}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => onDrop(e, p, m.uid)}
-                        className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
-                      >
-                        <div className="flex items-start gap-2">
-                          <span className="cursor-grab select-none pt-1 text-slate-300" aria-hidden>⋮⋮</span>
-                          <div className="flex-1 space-y-1">
-                            <input value={m.title} onChange={(e) => patchItem(m.uid, { title: e.target.value })} className="w-full rounded px-1 font-semibold text-[#0F172A] hover:bg-slate-50" aria-label="Heiti" />
-                            <input value={m.summary} onChange={(e) => patchItem(m.uid, { summary: e.target.value })} placeholder="Lýsing" className="w-full rounded px-1 text-sm text-slate-600 hover:bg-slate-50" aria-label="Lýsing" />
-                            <input value={m.frequency ?? ""} onChange={(e) => patchItem(m.uid, { frequency: e.target.value || null })} placeholder="Tíðni" className="w-40 rounded bg-slate-50 px-2 py-0.5 text-xs text-slate-600" aria-label="Tíðni" />
-                            <textarea
-                              value={m.note ?? ""}
-                              onChange={(e) => patchItem(m.uid, { note: e.target.value || null })}
-                              placeholder="Persónuleg athugasemd til skjólstæðings"
-                              rows={m.note ? 2 : 1}
-                              className="w-full rounded-lg bg-amber-50/70 px-2 py-1 text-sm text-amber-900 placeholder:text-amber-700/50"
-                            />
+                  {/* One line per action, opened only when being edited.
+                      Every item used to keep all four fields permanently
+                      expanded, about 140px each. Measured on a real plan
+                      that made the Næring column 1368px — taller than the
+                      viewport on its own — so a coach could see one pillar
+                      at a time rather than the four they came to work on.
+                      Collapsed, the same plan fits all four pillars in one
+                      screen; the editor is one click away and opens in
+                      place. */}
+                  <div className="space-y-1.5">
+                    {items.map((m) => {
+                      const open = openItem === m.uid;
+                      return (
+                        <div
+                          key={m.uid}
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData("text/plain", JSON.stringify({ t: "plan", k: m.uid }))}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => onDrop(e, p, m.uid)}
+                          data-uid={m.uid}
+                          className={`rounded-xl border bg-white shadow-sm transition ${
+                            carry?.uid === m.uid ? "opacity-50" : ""} ${open ? "border-slate-300" : "border-slate-200"}`}
+                        >
+                          <div className="flex items-center gap-2 p-2">
+                            {/* Both gestures live on this one element: the
+                                browser's native drag for a mouse, and a
+                                captured pointer drag for a finger or a pen. */}
+                            <span
+                              onPointerDown={carryStart(m.uid)}
+                              onPointerMove={carryMove}
+                              onPointerUp={carryEnd}
+                              onPointerCancel={() => { setCarry(null); setDragOver(null); }}
+                              role="button"
+                              tabIndex={-1}
+                              aria-label={`Færa ${m.title}`}
+                              className="cursor-grab select-none px-1 text-slate-300 active:cursor-grabbing"
+                              style={{ touchAction: "none" }}
+                            >⋮⋮</span>
+                            <button type="button" onClick={() => setOpenItem(open ? null : m.uid)}
+                              aria-expanded={open}
+                              className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                              <span className="min-w-0 flex-1 truncate font-semibold text-[#0F172A]">{m.title}</span>
+                              {/* A note is the one thing worth knowing about a
+                                  closed row: it is written to the client. */}
+                              {m.note && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-label="Hefur athugasemd" />}
+                              {m.frequency && <span className="shrink-0 text-xs text-slate-500">{m.frequency}</span>}
+                              <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+                            </button>
+                            <button onClick={() => removeItem(m.uid)} className="shrink-0 text-slate-400 hover:text-red-500" aria-label={`Fjarlægja ${m.title}`}>×</button>
                           </div>
-                          <button onClick={() => removeItem(m.uid)} className="text-slate-400 hover:text-red-500" aria-label={`Fjarlægja ${m.title}`}>×</button>
+                          {open && (
+                            <div className="space-y-1 border-t border-slate-100 p-2">
+                              <input value={m.title} onChange={(e) => patchItem(m.uid, { title: e.target.value })} className="w-full rounded px-1 font-semibold text-[#0F172A] hover:bg-slate-50" aria-label="Heiti" />
+                              <input value={m.summary} onChange={(e) => patchItem(m.uid, { summary: e.target.value })} placeholder="Lýsing" className="w-full rounded px-1 text-sm text-slate-600 hover:bg-slate-50" aria-label="Lýsing" />
+                              <input value={m.frequency ?? ""} onChange={(e) => patchItem(m.uid, { frequency: e.target.value || null })} placeholder="Tíðni" className="w-40 rounded bg-slate-50 px-2 py-0.5 text-xs text-slate-600" aria-label="Tíðni" />
+                              <textarea
+                                value={m.note ?? ""}
+                                onChange={(e) => patchItem(m.uid, { note: e.target.value || null })}
+                                placeholder="Persónuleg athugasemd til skjólstæðings"
+                                rows={m.note ? 2 : 1}
+                                className="w-full rounded-lg bg-amber-50/70 px-2 py-1 text-sm text-amber-900 placeholder:text-amber-700/50"
+                              />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               );
