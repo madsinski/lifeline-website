@@ -98,7 +98,9 @@ function Rating({ m }: { m: Rated }) {
  * nutrition programme and the closing note, all stacked. You could not see
  * what you were doing without scrolling past what you had already done.
  */
-const WIZARD_STEPS = ["Tillaga", "Aðgerðir", "Æfingar", "Næring", "Frágangur"] as const;
+/* "Fræðsla", not "Frágangur": the step is the lecture picker plus publish,
+   and what a coach is choosing there is what the client will be taught. */
+const WIZARD_STEPS = ["Tillaga", "Aðgerðir", "Æfingar", "Næring", "Fræðsla"] as const;
 
 function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) {
   return (
@@ -463,7 +465,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           work on. Mads' call to put the steps first and the rest away.
 
           Nothing is lost: Forskoða, Vista drög and Birta all appear again in
-          step 5, Frágangur, which is where finishing belongs. */}
+          step 5, Fræðsla, which is where finishing belongs. */}
       <WizardNav step={step} onGo={setStep} />
 
       {/* Status stays visible — it is information, not a control, and a
