@@ -88,7 +88,11 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
             </div>
             <div>
               <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-sky-700">
-                <Snowflake className="h-3.5 w-3.5" aria-hidden />Niðurlag
+                {/* "Niðurlag" is the standard term in Icelandic sports
+                    pedagogy — upphitun, aðalhluti, niðurlag — but its
+                    everyday sense is closer to "defeat", and this screen is
+                    read by people doing the session, not teaching it. */}
+                <Snowflake className="h-3.5 w-3.5" aria-hidden />Teygjur og slökun
               </p>
               <ul className="mt-1 space-y-0.5">
                 {g.cooldown.map((c, i) => (

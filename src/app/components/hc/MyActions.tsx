@@ -100,7 +100,8 @@ const WHEN_META: Record<WhenOfDay, { label: string; ink: string; soft: string; I
 import { isoDay, lastDays, weekDays, type ActionLog, type ActionPref } from "@/lib/hc/adherence";
 import { type PersonalExercise, type PSession } from "@/lib/hc/personalise";
 import { trainingOn } from "@/lib/hc/todays-training";
-import type { Activity, TrainingSettings } from "@/lib/hc/adaptive-program";
+import { BENEFIT_IS, COVERS_IS, INTENSITY_IS, type Activity, type TrainingSettings } from "@/lib/hc/adaptive-program";
+import { WEEKDAYS } from "@/lib/hc/personalise";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -183,6 +184,9 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const [prefs, setPrefs] = useState<ActionPref[]>(initialPrefs);
   const [showHidden, setShowHidden] = useState(false);
   const [sheet, setSheet] = useState<PlanItem | null>(null);
+  /* Their own commitment, opened. Separate state from `sheet` because an
+     Activity is not a PlanItem — different shape, different sleeve. */
+  const [actSheet, setActSheet] = useState<Activity | null>(null);
   /**
    * Which pillars are open. All of them to begin with: somebody arriving to
    * tick something off should see the things, not four closed drawers.
@@ -403,6 +407,56 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
           onClose={() => setSheet(null)} />
       )}
 
+      {actSheet && (
+        <Sheet title={actSheet.name} onClose={() => setActSheet(null)}>
+          <div className="space-y-3 p-3">
+            <dl className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
+              {([
+                ["Dagur", WEEKDAYS[actSheet.day] ?? null],
+                ["Tími", actSheet.at ? `kl. ${actSheet.at}` : null],
+                ["Lengd", actSheet.minutes ? `${actSheet.minutes} mín.` : null],
+                ["Ákefð", INTENSITY_IS[actSheet.intensity] ?? null],
+              ] as const).filter(([, v]) => !!v).map(([k, v]) => (
+                <div key={k} className="flex items-baseline justify-between gap-3 border-b border-slate-100 p-3 last:border-b-0">
+                  <dt className="text-sm text-slate-500">{k}</dt>
+                  <dd className="text-sm font-semibold text-slate-900">{v}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {/* Why it is in the week — what it replaces, or what it is good
+                for when it replaces nothing. This is the part a prescribed
+                session gets from its exercise list and an activity had
+                nowhere to say. */}
+            {(actSheet.covers.length > 0 || (actSheet.benefits ?? []).length > 0) && (
+              <div className="rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                  {actSheet.covers.length ? "Kemur í staðinn fyrir" : "Gott fyrir"}
+                </p>
+                <p className="mt-1 text-sm text-slate-700">
+                  {actSheet.covers.length
+                    ? actSheet.covers.map((c) => COVERS_IS[c]).join(" · ")
+                    : (actSheet.benefits ?? []).map((x) => BENEFIT_IS[x]).join(" · ")}
+                </p>
+                {actSheet.covers.length > 0 && (actSheet.partial ?? []).length > 0 && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Að hluta: {(actSheet.partial ?? []).map((c) => COVERS_IS[c]).join(" · ")}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Changing it belongs on Æfingar, where the week is. */}
+            {links?.exercise && (
+              <button type="button" onClick={() => { links.exercise?.(); setActSheet(null); }}
+                className="w-full rounded-2xl bg-hc-ink px-4 py-3 text-sm font-bold text-white">
+                Opna Æfingar
+              </button>
+            )}
+          </div>
+        </Sheet>
+      )}
+
       {err && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-800">{err}</p>}
 
       {/* An instruction line stood here explaining the circle and the week
@@ -507,8 +561,22 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                         {s.minutes ? ` · ${s.minutes} mín.` : ""}
                       </span>
                     </span>
-                    {/* Only a prescribed session has an exercise list to
-                        open; their own commitment is a thing they go and do. */}
+                    {/* Their own commitment opens its own sleeve.
+                        It used to open nothing at all — the reasoning was
+                        that a prescribed session has an exercise list and a
+                        thing like innanhússfótbolti does not, so there was
+                        nothing to show. But the row still has a time, a
+                        length, an intensity and a reason it is in the week,
+                        and it was the one row in the list that did not
+                        answer a tap. */}
+                    {s.activity && (
+                      <button type="button" onClick={() => setActSheet(s.activity!)}
+                        aria-label={`Opna ${s.title}`}
+                        className="-mr-1 flex h-10 w-8 shrink-0 items-center justify-center text-slate-400 hover:text-slate-600">
+                        <ChevronRight className="h-5 w-5" aria-hidden />
+                      </button>
+                    )}
+                    {/* A prescribed session also opens its exercise list. */}
                     {links?.exercise && s.session && (
                       <button type="button" onClick={links.exercise}
                         className="shrink-0 self-center text-sm font-semibold" style={{ color: PILLAR_META.exercise.ink }}>
@@ -569,7 +637,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                   onHide={() => setPref(e.uid, { hidden: true })} />
                 ) : (
                   <MealLogger key={e.uid} day={meals!} part="list" only={e.slot}
-                    flush tone={{ color: PILLAR_META.nutrition.color, ring: PILLAR_META.nutrition.ring }}
+                    flush tone={{ color: PILLAR_META.nutrition.color, ring: PILLAR_META.nutrition.ring, soft: PILLAR_META.nutrition.soft }}
                     onOpenMeal={setRecipe} onLogged={satisfyFromMeals}
                     drag={reorder.handlers(e.uid, ids)} lifted={reorder.dragging === e.uid}
                     carryY={reorder.dragging === e.uid ? reorder.offset : 0}

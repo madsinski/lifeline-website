@@ -73,7 +73,7 @@ const CROSSFIT: ModalityGuide = {
     "Mjaðma- og brjóstbaksliðkun fyrir hnébeygju og lyftur",
     "Léttar útgáfur af hreyfingum dagsins áður en álag er aukið",
   ],
-  cooldown: ["Rólegt niðurlag", "Liðkun á öxlum og mjöðmum"],
+  cooldown: ["Róleg slökun", "Liðkun á öxlum og mjöðmum"],
   evidence:
     "Tíðni meiðsla mælist um 3,5 á hverjar 1.000 æfingaklukkustundir og telst lág miðað við hópíþróttir. Flestar rannsóknir eru afturskyggnar, og yfirlitsgreinar raða öxl og baki ekki eins.",
   sources: [
@@ -96,7 +96,7 @@ const STRENGTH: ModalityGuide = {
     "1–2 léttar sett af aðalæfingu dagsins, 4–8 endurtekningar",
     "Liðkun á þeim liðum sem æfingin hleður mest",
   ],
-  cooldown: ["Rólegt niðurlag", "Léttar teygjur á því sem var unnið"],
+  cooldown: ["Róleg slökun", "Léttar teygjur á því sem var unnið"],
   evidence:
     "Tíðni er lág — um 1,0–4,4 meiðsli á 1.000 æfingaklukkustundir, lægri en í hópíþróttum. ATH: gögn um að upphitun fyrirbyggi meiðsli í lyftingum eru takmörkuð. Upphitun er studd fyrir frammistöðu; forvarnaráhrifin eru óviss.",
   sources: [
@@ -115,7 +115,7 @@ const RUNNING: ModalityGuide = {
     { area: "Sköflungur", note: "Beinhimnubólga (medial tibial stress syndrome) um 8–9%." },
   ],
   warmup: ["5–10 mín rólegt skokk", "Liðkun á mjöðmum og ökklum", "Stigvaxandi hraði síðustu mínúturnar"],
-  cooldown: ["Rólegt niðurlag", "Teygjur á kálfum, aftanlæri og mjaðmabeygjum"],
+  cooldown: ["Róleg slökun", "Teygjur á kálfum, aftanlæri og mjaðmabeygjum"],
   evidence:
     "Um 46% áhugahlaupara meiðast á ári og 70–80% meiðsla eru álagsmeiðsli. Fyrri meiðsli eru sterkasti þekkti áhættuþátturinn — tvöfalda líkur á nýjum.",
   sources: [

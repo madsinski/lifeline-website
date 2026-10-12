@@ -61,7 +61,15 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
    */
   flush?: boolean;
   /** The pillar colour for a ticked row, so Næring reads as Næring. */
-  tone?: { color: string; ring: string };
+  /**
+   * The pillar's colours, for a row that has to match the habits beside it.
+   *
+   * `soft` is the row's own tint. It was missing, so meal rows rendered on
+   * whatever was behind them — white — while every habit row carried its
+   * pillar's pale wash. In a list where colour means "still to do", the
+   * meals looked done before anybody touched them.
+   */
+  tone?: { color: string; ring: string; soft?: string };
   /**
    * Open this meal's detail.
    *
@@ -194,6 +202,11 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                         touchAction: drag ? "none" : undefined,
                         userSelect: drag ? "none" : undefined,
                         WebkitUserSelect: drag ? "none" : undefined,
+                        /* The pillar's tint until it is ticked, exactly as
+                           ActionRow does it: colour means "still to do", and
+                           a ticked row drains to white. Lifted is opaque so
+                           it reads as held above the list. */
+                        background: lifted ? "#FFFFFF" : done ? "#FFFFFF" : tone?.soft ?? "#F4FAE9",
                       }}>
                       <div className="flex items-start gap-3">
                         <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
