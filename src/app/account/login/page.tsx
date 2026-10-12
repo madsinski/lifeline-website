@@ -263,7 +263,10 @@ function AccountLoginContent() {
           if (insertErr?.code === '23505') {
             const { data: old } = await supabase.from("clients_decrypted").select('id').eq('email', email).single();
             if (old && old.id !== signUpData.user.id) {
-              await supabase.from('subscriptions').delete().eq('client_id', old.id);
+              // No need to clear subscriptions: the FK is
+              // ON DELETE CASCADE, so removing the old client row takes
+              // them with it. This line could not work anyway now that the
+              // table has no client write policy.
               await supabase.from("clients_decrypted").delete().eq('id', old.id);
               await supabase.from("clients_decrypted").insert({
                 id: signUpData.user.id,
@@ -271,13 +274,19 @@ function AccountLoginContent() {
               });
             }
           }
-          await supabase.from('subscriptions').insert({
-            client_id: signUpData.user.id,
-            tier: 'free-trial',
-            status: 'active',
-            current_period_start: now,
-            current_period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-          });
+          /*
+           * The trial is created server side now.
+           *
+           * This inserted a free-trial row from the browser with the anon
+           * key — which is also how anyone could have inserted themselves a
+           * premium one, so the table's write policies are gone
+           * (supabase/migration-subscriptions-rls.sql) and this would now
+           * fail silently inside the catch below.
+           *
+           * ensureTrial() in src/lib/hc/subscription.ts does it on first
+           * sight of the journey instead: 14 days, server side, and it
+           * covers everybody who signed up before any of this.
+           */
         } catch {}
       }
       setInfo(

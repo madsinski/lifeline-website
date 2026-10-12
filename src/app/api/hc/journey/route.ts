@@ -13,6 +13,7 @@ import {
   currentJourney, getClientProfile, getOrCreateJourney, isProfileComplete, patchJourney, requireUser,
 } from "@/lib/hc/server";
 import { journeySteps } from "@/lib/hc/stages";
+import { appAccess } from "@/lib/hc/subscription";
 import type { HcJourney } from "@/lib/hc/types";
 
 export const runtime = "nodejs";
@@ -64,7 +65,18 @@ export async function GET(req: NextRequest) {
     for (const u of data || []) unionNames[u.id] = u.name;
   }
 
+  /*
+   * Whether the app is open to them, and for how long.
+   *
+   * Served with the journey because every surface that needs it already
+   * loads this, and because the rule is not something a client can work out
+   * for itself — it depends on a paid order, a published plan and a
+   * subscription row the browser can no longer read in full.
+   */
+  const access = await appAccess(user.id);
+
   return NextResponse.json({
+    access,
     journey,
     steps: journeySteps(journey, complete),
     profile: {
