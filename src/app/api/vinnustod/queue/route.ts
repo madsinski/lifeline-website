@@ -77,7 +77,18 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     journeys: (journeys || []).map((j) => ({
       ...j,
-      client_name: names[j.client_id]?.full_name ?? "—",
+      /*
+       * A journey whose client row is gone is a fault, not a nameless
+       * person, and the coach's queue should say which.
+       *
+       * This rendered as "—" and looked like a display bug. It is not:
+       * victor@lifelinehealth.is has an auth user, a journey and a
+       * published plan but no row in `clients` at all, so there is nothing
+       * to show and nothing a coach can do with the row. Labelling it means
+       * somebody can actually fix it instead of scrolling past a dash.
+       */
+      client_name: names[j.client_id]?.full_name ?? "Vantar skjólstæðingsgögn",
+      client_missing: !names[j.client_id],
       client_phone: names[j.client_id]?.phone ?? null,
       client_dob: names[j.client_id]?.date_of_birth ?? null,
       plan_status: planStatus[j.id] ?? null,

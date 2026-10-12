@@ -60,6 +60,8 @@ import { MESSAGE_TEMPLATES, smsSize, type MessageTemplateKey } from "@/lib/hc/me
 interface Me { id: string; name: string; email: string; organization: string; role: "nurse" | "doctor" | "admin"; has_pin: boolean }
 interface Row {
   id: string; client_name: string; client_phone: string | null; client_dob: string | null; stage: string; entry: string;
+  /** The journey's client row is missing — a data fault, not a nameless person. */
+  client_missing?: boolean;
   paid_at: string | null; protocol_activated_at: string | null;
   blood_test_booked_for: string | null; blood_test_done_at: string | null; blood_results_at: string | null;
   measurements_booked_for: string | null; measurements_done_at: string | null;
@@ -1442,10 +1444,18 @@ function Adherence({ d }: { d: Detail }) {
         {a.lastDoneOn ? `Síðast merkt ${day(a.lastDoneOn)}` : "Ekkert merkt enn"}
         {hidden.length ? ` · ${hidden.length} lagt til hliðar` : ""}
       </p>
-      {/* What the client wrote and what they set aside: the follow-up's agenda. */}
-      {(notes.length > 0 || hidden.length > 0) && (
+      {/* What the client WROTE, and only that.
+          This also listed every set-aside action, one line each, which made
+          it the largest and warmest block on the page — seven repetitions of
+          "Lagt til hliðar:" above everything a coach might act on, and the
+          count is already in the line above. Measured at 1512px it owned the
+          top third of the screen to say what a single number says.
+          Which actions were set aside is a plan question, so it belongs in
+          the plan step, next to the actions themselves. A note is different:
+          it is the client's own words, there are rarely many, and it is the
+          follow-up's agenda. */}
+      {notes.length > 0 && (
         <ul className="w-full space-y-1 border-t border-current/10 pt-2 text-sm">
-          {hidden.map((p) => <li key={`h-${p.action_uid}`}>Lagt til hliðar: <strong>{titleOf(p.action_uid)}</strong></li>)}
           {notes.map((p) => <li key={`n-${p.action_uid}`}><strong>{titleOf(p.action_uid)}:</strong> „{p.note}“</li>)}
         </ul>
       )}
