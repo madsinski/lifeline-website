@@ -214,7 +214,15 @@ export function sanitizePersonal(b: Record<string, unknown>): { program_key: str
       // "dinner" is the old shape — one pick for every day. "2:dinner" is
       // the new one, a pick for Wednesday alone. Both are accepted: a choice
       // made before the week existed still applies, and is not thrown away.
-      const ok = /^([0-6]:)?(breakfast|lunch|snack|dinner)$/.test(k);
+      //
+      // snack2 has to be in this list. It was not, and the regex ended at
+      // "snack", so "3:snack2" failed it and every second-millimál pick was
+      // dropped here without a word — while meals.ts:12 says of that slot
+      // "the pick *is* the state". The feature could not persist at all: the
+      // picker opened, the meal was chosen, the save returned 200 and
+      // nothing came back. Kept in slot order rather than alphabetical so
+      // the next slot added is noticed.
+      const ok = /^([0-6]:)?(breakfast|lunch|snack|snack2|dinner)$/.test(k);
       if (ok && typeof v === "string" && /^[0-9a-f-]{36}$/.test(v)) meal_picks[k] = v;
     }
   }
