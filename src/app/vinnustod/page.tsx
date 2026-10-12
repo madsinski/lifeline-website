@@ -36,7 +36,7 @@ import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/Knowled
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
 import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
 import { type FlowStep } from "@/app/components/hc/Flow";
-import StatusStrip, { type Checkpoint } from "@/app/components/hc/StatusStrip";
+import { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import WsRequests from "@/app/components/hc/WsRequests";
 import Caseload from "@/app/components/hc/Caseload";
@@ -1088,10 +1088,36 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
         if (tab === "status") return (
           <div className="space-y-4">
-            {/* Er heilsufarsskoðunin búin? Only the three tests, which is
-                what that question is about — putting the whole nine-item
-                strip back here would reinstate the rail we just removed. */}
-            <StatusStrip steps={checkpoints.slice(0, 3)} onOpen={jump} />
+            {/* Er heilsufarsskoðunin búin?
+                A tick list rather than a progress strip: three things, each
+                either done or not, which is a checklist and not a journey.
+                Horizontally they read as stages of something continuing;
+                stacked with ticks they answer the actual question at a
+                glance. Only the three tests — the nine-item strip is the
+                rail this page just lost. */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Heilsufarsskoðun</h2>
+              <ul className="space-y-1">
+                {checkpoints.slice(0, 3).map((c) => {
+                  const done = c.state === "done";
+                  return (
+                    <li key={c.label}>
+                      <button type="button" onClick={() => jump(c.key)}
+                        className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-slate-50">
+                        <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition ${
+                          done ? "border-transparent bg-emerald-600 text-white" : "border-slate-300 text-transparent"}`}>
+                          <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+                        </span>
+                        <span className={`min-w-0 flex-1 text-sm font-semibold ${done ? "text-slate-500" : "text-slate-900"}`}>
+                          {c.label}
+                        </span>
+                        {c.detail && <span className="shrink-0 text-xs text-slate-500">{c.detail}</span>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
 
             {/* Bókanir: mælingar and myndsamtöl, the same rows the client
                 books from the app. */}
