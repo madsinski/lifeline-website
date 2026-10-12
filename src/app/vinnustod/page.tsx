@@ -558,7 +558,7 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
         {/* The tools. Real, and not why you opened the page — so they sit
             beside the work on a wide screen and under it on a narrow one. */}
         <aside className="min-w-0 space-y-4">
-          <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} />
+          <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} narrow />
           <div>
         <label className="relative block">
           <span className="sr-only">Leita að skjólstæðingi</span>
