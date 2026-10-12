@@ -57,7 +57,7 @@ export const hcTabs = {
    * nothing is hidden and drops the overflow: a bar that cannot fit on one
    * line becomes two, which is visible and needs no gesture.
    */
-  bar: "flex flex-wrap rounded-hc-element bg-hc-surface p-1 ring-1 ring-slate-200",
+  bar: "flex flex-wrap rounded-hc-element bg-hc-surface p-1 ring-1 ring-hc-hairline",
   /*
    * grow, but never shrink below the label.
    *
@@ -67,8 +67,25 @@ export const hcTabs = {
    * wide screen, keeps every label whole, and wraps to a second line when
    * the words genuinely do not fit.
    */
+  /*
+   * The active tab is the brand, not a black slab.
+   *
+   * bg-hc-ink is #0F172A — a near-black pill on white, which Mads called
+   * lifeless twice and he is right: it is the heaviest mark on the page and
+   * it says nothing about whose product this is. Emerald does both jobs.
+   *
+   * hc-brand-dark rather than hc-brand: white on #10B981 measures about
+   * 2.5:1 and fails AA at this size, while on #047857 it is 5.55:1. The
+   * inviting version that is also readable is the deeper one.
+   *
+   * Inactive tabs warm on hover toward the brand surface instead of grey,
+   * so the whole control reads as one family.
+   */
   tab: (active: boolean) =>
-    `shrink-0 grow basis-auto whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${active ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`,
+    `shrink-0 grow basis-auto whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+      active
+        ? "bg-hc-brand-dark text-white shadow-hc-card"
+        : "text-slate-600 hover:bg-hc-brand-surface hover:text-hc-brand-dark"}`,
 };
 
 /** Kicker above a heading ("NÆSTI TÍMI"). */
