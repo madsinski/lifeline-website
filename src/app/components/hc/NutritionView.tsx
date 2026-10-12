@@ -16,6 +16,7 @@ import { ALLERGEN_OPTIONS, DIET_OPTIONS, EMPHASIS_IS, emphasisFor, type Nutritio
 import type { Signal } from "@/lib/hc/grunnheilsa";
 import { FIBRE_TARGET, proteinTarget } from "@/lib/hc/nutrition-log";
 import MealLogger from "./MealLogger";
+import ShoppingList, { ShoppingListButton } from "./ShoppingList";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -165,6 +166,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   const [wInput, setWInput] = useState("");
   /** How the swap library is being looked at. */
   const [libFilter, setLibFilter] = useState<"all" | "fav" | "protein">("all");
+  const [shopOpen, setShopOpen] = useState(false);
   /** The sliding week. Its scroll position is its own, not React's. */
   const stripRef = useRef<HTMLDivElement | null>(null);
   /*
@@ -351,6 +353,10 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
               className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-lime-100 px-3 py-1 text-sm font-semibold text-lime-900 ring-1 ring-lime-200 transition hover:bg-lime-200">
               <Sliders className="h-3.5 w-3.5" aria-hidden /> Prógrammið
             </button>
+            {/* Beside the plan's name, because the list is a property of the
+                week rather than of today — and it is derived, so it is
+                always current without anything to refresh. */}
+            {week && <ShoppingListButton onClick={() => setShopOpen(true)} />}
           </div>
         </div>
         {week && (
@@ -794,6 +800,10 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           })()}
         </Sheet>
       )}
+      {shopOpen && week && (
+        <ShoppingList week={week} todayIdx={todayIdx} onClose={() => setShopOpen(false)} />
+      )}
+
       {recipe && <Recipe m={recipe} onClose={() => setRecipe(null)} />}
       {(nutrition.description || nutrition.goal || nutrition.principles.length > 0) && (
         <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
