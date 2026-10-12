@@ -78,8 +78,12 @@ export async function GET(req: NextRequest) {
     supabaseAdmin.from("clients_decrypted").select("id, full_name, phone").in("id", ids),
     // Ticks for everybody at once, then counted per person below: one query
     // beats one per client on a caseload of any size.
+    /* done_on, not date. hc_action_logs calls the column done_on — I wrote
+       `date` and shipped it, which meant the query errored and every client
+       showed nought days active. Caught by running the same question in
+       SQL rather than trusting the endpoint's shape. */
     supabaseAdmin.from("hc_action_logs")
-      .select("client_id, date").in("client_id", ids).gte("date", isoDaysAgo(LONG)),
+      .select("client_id, done_on").in("client_id", ids).gte("done_on", isoDaysAgo(LONG)),
     supabaseAdmin.from("hc_chat_decrypted")
       .select("journey_id, author_kind, body, created_at, read_by_coach_at")
       .in("journey_id", (journeys ?? []).map((j) => j.id as string))
@@ -93,7 +97,7 @@ export async function GET(req: NextRequest) {
   for (const l of logs.data ?? []) {
     const k = l.client_id as string;
     if (!daysByClient.has(k)) daysByClient.set(k, new Set());
-    daysByClient.get(k)!.add(l.date as string);
+    daysByClient.get(k)!.add(l.done_on as string);
   }
 
   const shortCut = isoDaysAgo(SHORT);
