@@ -18,7 +18,7 @@ import { chime } from "@/lib/hc/chime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Bell, CalendarClock, Check, ChevronRight, ClipboardList, CreditCard, Droplet, ExternalLink, Video,
-  FileCheck2, Mail, MessageSquare, Phone, Ruler, Search, Send, Stethoscope, Users,
+  Mail, MessageSquare, Phone, Ruler, Send, Stethoscope,
 } from "lucide-react";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
@@ -27,8 +27,8 @@ import CoachAsClient from "@/app/components/hc/CoachAsClient";
 import CoachBookings from "@/app/components/hc/CoachBookings";
 import ClientThread from "@/app/components/hc/ClientThread";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
-import WeekCalendar from "@/app/components/hc/WeekCalendar";
 import ClientsView from "@/app/components/hc/ClientsView";
+import WeekAhead from "@/app/components/hc/WeekAhead";
 import CoachInbox from "@/app/components/hc/CoachInbox";
 import TeachingLibrary from "@/app/components/hc/TeachingLibrary";
 import { hcBtn, hcPage, hcTabs } from "@/app/components/hc/ui";
@@ -39,7 +39,6 @@ import { type FlowStep } from "@/app/components/hc/Flow";
 import { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
 import WsRequests from "@/app/components/hc/WsRequests";
-import Caseload from "@/app/components/hc/Caseload";
 import ReportIntake from "@/app/components/hc/ReportIntake";
 import ReportView from "@/app/components/hc/ReportView";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
@@ -394,7 +393,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                       is waiting on an answer, and the only reason the
                       participants' Þjálfari page is a conversation rather
                       than an outbox. */}
-                  {([["today", "Í dag"], ["messages", "Skilaboð"], ["calendar", "Dagatal"], ["clients", "Skjólstæðingar"], ["teaching", "Fræðsla"]] as const).map(([k, label]) => (
+                  {([["today", "Yfirlit"], ["teaching", "Fræðsla"]] as const).map(([k, label]) => (
                     <button key={k} type="button" onClick={() => setView({ home: k })}
                       aria-current={view.home === k ? "page" : undefined}
                       className={`relative ${hcTabs.tab(view.home === k)}`}>
@@ -403,7 +402,8 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                           noticed from across a room, and carries the count
                           because "three people waiting" is a different
                           morning from "one". */}
-                      {k === "messages" && coachUnread > 0 && (
+                      {/* The badge follows the inbox onto Yfirlit. */}
+                      {k === "today" && coachUnread > 0 && (
                         <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center">
                           <span className="absolute inset-0 animate-hc-ping rounded-full bg-red-500/40 motion-reduce:hidden" aria-hidden />
                           <span className="relative grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
@@ -414,12 +414,13 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                     </button>
                   ))}
                 </nav>
-                {view.home === "today" && <Home rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} />}
-                {view.home === "calendar" && (
-                  <WeekCalendar api={api} onOpenClient={(id) => open(id)} onConnect={() => setShowCal(true)} />
+                {/* Two surfaces, not five. Skilaboð, Dagatal and
+                    Skjólstæðingar all moved inside Home, each with one
+                    home; Fræðsla stays its own because it is a library you
+                    consult, not part of a day's work. */}
+                {view.home !== "teaching" && (
+                  <Home rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} onRead={reloadUnread} />
                 )}
-                {view.home === "messages" && <CoachInbox api={api} onRead={reloadUnread} />}
-                {view.home === "clients" && <ClientsView api={api} onOpenClient={(id) => open(id)} />}
                 {view.home === "teaching" && <TeachingLibrary api={api} />}
               </div>
             )}
@@ -435,10 +436,35 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
 
 // ── Heim: skýrsla inn, leit, dagurinn, það sem bíður ───────────────────────
 
-function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, compose?: boolean, step?: string) => void; onChanged: () => void }) {
+/*
+ * One page, and each function with exactly one home.
+ *
+ * This was five tabs and three of them overlapped: the client roster and
+ * its search existed here AND as the whole Skjólstæðingar tab; unanswered
+ * messages were surfaced by Caseload AND listed by CoachInbox, which reads
+ * the same hc_chat rows; today's bookings were computed here from `rows`
+ * and drawn again by the calendar.
+ *
+ * So: the queue is `waiting` below, Beiðnir is WsRequests, the week is
+ * WeekAhead, the roster is ClientsView, messages are CoachInbox, intake is
+ * ReportIntake. Caseload and the local agenda are no longer mounted.
+ *
+ * NOTE, a real loss and not a tidy-up: the roster that used to live here
+ * had stage filters (Heilsufarsskoðun · Skýrsla · Viðtal · Áætlun · Í
+ * aðgerð) and sorts (mest aðkallandi · næsti tími · beðið lengst · nafn).
+ * ClientsView has a search and an Allir/Hópar switch and neither of those.
+ * With three clients it will not show; at fifty it will. Those components
+ * are still in this file, unmounted, so porting the filters is a smaller
+ * job than rebuilding them.
+ */
+function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
+  rows: Row[]; me: Me; isDoctor: boolean;
+  onOpen: (id: string, compose?: boolean, step?: string) => void;
+  onChanged: () => void;
+  /** Clears the tab's unread badge without waiting for the next poll. */
+  onRead: () => void;
+}) {
   const api = useWsApi();
-  const [q, setQ] = useState("");
-  const [showAll, setShowAll] = useState(false);
   const hour = new Date().getHours();
   const greet = hour < 11 ? "Góðan daginn" : hour < 18 ? "Góðan dag" : "Gott kvöld";
 
@@ -447,17 +473,6 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
     [rows, isDoctor],
   );
 
-  // Today's bookings, in the order they happen.
-  const agenda = useMemo(() => {
-    const out: { id: string; at: string; what: string; icon: React.ReactNode; row: Row; link?: string | null }[] = [];
-    for (const r of rows) {
-      if (isToday(r.interview_booked_for) && !r.interview_done_at) out.push({ id: r.id, at: r.interview_booked_for!, what: `Viðtal${r.interview_mode === "video" ? " (myndsímtal)" : ""}`, icon: <MessageSquare className="h-4 w-4" />, row: r, link: r.interview_mode === "video" ? r.meeting_url : null });
-      if (isToday(r.followup_booked_for) && !r.followup_done_at) out.push({ id: r.id, at: r.followup_booked_for!, what: `Eftirfylgd${r.followup_mode === "video" ? " (myndsímtal)" : ""}`, icon: <CalendarClock className="h-4 w-4" />, row: r, link: r.followup_mode === "video" ? r.followup_meeting_url : null });
-      if (isToday(r.measurements_booked_for) && !r.measurements_done_at) out.push({ id: r.id, at: r.measurements_booked_for!, what: "Mælingar", icon: <Ruler className="h-4 w-4" />, row: r });
-      if (isToday(r.blood_test_booked_for) && !r.blood_test_done_at) out.push({ id: r.id, at: r.blood_test_booked_for!, what: "Blóðprufa", icon: <Droplet className="h-4 w-4" />, row: r });
-    }
-    return out.sort((a, b) => a.at.localeCompare(b.at));
-  }, [rows]);
 
   // What is waiting on this nurse, most pressing first. One list, no groups.
   const waiting = useMemo(
@@ -465,13 +480,6 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
     [enriched],
   );
 
-  const search = q.trim().toLowerCase();
-  const found = useMemo(() => {
-    if (!search) return [];
-    return enriched
-      .filter((x) => cleanName(x.r.client_name).toLowerCase().includes(search) || (x.r.client_phone || "").replace(/\s/g, "").includes(search.replace(/\s/g, "")))
-      .slice(0, 8);
-  }, [enriched, search]);
 
   return (
     <div className="space-y-6">
@@ -491,115 +499,50 @@ function Home({ rows, me, isDoctor, onOpen, onChanged }: { rows: Row[]; me: Me; 
           real but are not why you opened the page: dropping a report in,
           looking somebody up. Below lg it stacks in the same order, so a
           phone still gets the work first. */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      {/* The work on the left, the things you reach for on the right.
+          Stacks in this order below lg, so a phone gets the queue first. */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="min-w-0 space-y-6">
-          {/* Who is waiting on you. The screen used to open on the drop
-              zone, which is the right first move for intake work and the
-              wrong one for coaching. */}
-          <Caseload api={api} onOpen={(journeyId) => onOpen(journeyId)} />
-      {/* 3. What is booked today. */}
-      {agenda.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Í dag</h2>
-          <ol className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {agenda.map((a, i) => (
-              <li key={`${a.id}-${i}`} className="flex items-center">
-                <button type="button" onClick={() => onOpen(a.id)} className="flex min-w-0 flex-1 items-center gap-4 px-4 py-3 text-left hover:bg-slate-50">
-                  <span className="w-12 text-lg font-bold tabular-nums text-slate-900">{time(a.at)}</span>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">{a.icon}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-slate-900">{cleanName(a.row.client_name)} {isTest(a.row.client_name) && <TestBadge />}</span>
-                    <span className="block text-sm text-slate-500">{a.what}{age(a.row.client_dob) ? ` · ${age(a.row.client_dob)}` : ""}</span>
-                  </span>
-                  <ChevronRight className="h-5 w-5 text-slate-300" />
-                </button>
-                {a.link && (
-                  <a href={a.link} target="_blank" rel="noreferrer" className={`${btnPrimary} mr-3 min-h-9 shrink-0 px-3`} aria-label={`Hefja myndsímtal við ${cleanName(a.row.client_name)}`}>
-                    <Video className="h-4 w-4" /> <span className="hidden sm:inline">Hefja</span>
-                  </a>
-                )}
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
+          {/* What the journeys themselves say needs doing. Not the same
+              list as WsRequests below, which is what participants have
+              ASKED for — two different questions that both look like a
+              queue, and I nearly collapsed them into one by mistake. */}
+          <section>
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+              Bíður þín {waiting.length > 0 && <span className="rounded-full bg-hc-brand-dark px-2 py-0.5 text-[11px] text-white">{waiting.length}</span>}
+            </h2>
+            {/* Quiet is deliberate: an empty "bíður þín" is this panel's
+                most common state, and 150px of centred card to say there is
+                nothing to do pushes the work below the fold on the days
+                there is some. */}
+            {waiting.length === 0 ? (
+              <EmptyState variant="done" quiet title="Ekkert bíður" body="Allt sem kallar á þig er afgreitt." />
+            ) : (
+              <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-hc-hairline bg-white">
+                {waiting.map(({ r, t, f }) => <WaitingRow key={r.id} r={r} t={t} f={f} onOpen={onOpen} onChanged={onChanged} />)}
+              </ul>
+            )}
+          </section>
 
-      {/* 3b. What people have asked for themselves. */}
-      <WsRequests api={api} onOpen={onOpen} />
+          <WsRequests api={api} onOpen={onOpen} />
 
-      {/* 4. Everything that needs a decision from you. */}
-      <section>
-        <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
-          Bíður þín {waiting.length > 0 && <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[11px] text-white">{waiting.length}</span>}
-        </h2>
-        {/* Quiet is deliberate: an empty "bíður þín" is the most common
-            state of this panel, and 150px of centred card to say there is
-            nothing to do pushes the work below the fold on the days there
-            is some. */}
-        {waiting.length === 0 ? (
-          <EmptyState variant="done" quiet title="Ekkert bíður" body="Allt sem kallar á þig er afgreitt." />
-        ) : (
-          <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {waiting.map(({ r, t, f }) => <WaitingRow key={r.id} r={r} t={t} f={f} onOpen={onOpen} onChanged={onChanged} />)}
-          </ul>
-        )}
-      </section>
+          {/* The week, in place of the old 15-minute grid. */}
+          <WeekAhead api={api} onOpenClient={(id) => onOpen(id)} />
 
-      {/* 5. The whole list, only when asked for. */}
-      <section>
-        <button type="button" onClick={() => setShowAll(!showAll)} aria-expanded={showAll}
-          className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50">
-          <Users className="h-4 w-4 text-slate-400" />
-          <span className="font-semibold text-slate-700">Allir skjólstæðingar</span>
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{rows.length}</span>
-          <span className="flex-1" />
-          <ChevronRight className={`h-5 w-5 text-slate-300 transition ${showAll ? "rotate-90" : ""}`} />
-        </button>
-          {showAll && <div className="mt-3"><Clients rows={rows} me={me} isDoctor={isDoctor} onOpen={onOpen} /></div>}
-        </section>
+          {/* The roster and its search, once. */}
+          <ClientsView api={api} onOpenClient={(id) => onOpen(id)} />
         </div>
 
-        {/* The tools. Real, and not why you opened the page — so they sit
-            beside the work on a wide screen and under it on a narrow one. */}
-        <aside className="min-w-0 space-y-4">
+        <aside className="min-w-0 space-y-6">
+          {/* Messages, once: Caseload used to surface unanswered ones too. */}
+          <CoachInbox api={api} onRead={onRead} />
           <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} narrow />
-          <div>
-        <label className="relative block">
-          <span className="sr-only">Leita að skjólstæðingi</span>
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita að skjólstæðingi — nafn eða sími"
-            className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-base shadow-sm outline-none focus:border-emerald-400" />
-        </label>
-        {search && (
-          <ul className="mt-2 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            {found.length === 0 && <li className="p-4 text-sm text-slate-500">Enginn fannst.</li>}
-            {found.map(({ r, t, f }) => <SearchHit key={r.id} r={r} t={t} f={f} onOpen={onOpen} />)}
-          </ul>
-        )}
-          </div>
-
         </aside>
       </div>
     </div>
   );
 }
 
-/** A search result: name, what is next, one tap in. */
-function SearchHit({ r, t, f, onOpen }: { r: Row; t: Task; f: RowFlags; onOpen: (id: string) => void }) {
-  return (
-    <li>
-      <button type="button" onClick={() => onOpen(r.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50">
-        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TONE_DOT[t.tone]}`} aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold text-slate-900">{cleanName(r.client_name)} {isTest(r.client_name) && <TestBadge />}</span>
-          <span className="block truncate text-sm text-slate-500">{t.label}</span>
-        </span>
-        {f.nextAt && <span className="hidden text-xs text-slate-500 sm:block">{isToday(f.nextAt) ? `${f.nextWhat} kl. ${time(f.nextAt)}` : `${f.nextWhat} ${day(f.nextAt)}`}</span>}
-        <ChevronRight className="h-5 w-5 text-slate-300" />
-      </button>
-    </li>
-  );
-}
 
 /** One thing waiting on the nurse: who, what, and the single next action. */
 function WaitingRow({ r, t, f, onOpen }: {
@@ -629,15 +572,6 @@ function TestBadge() {
 
 // ── Skjólstæðingar ──────────────────────────────────────────────────────────
 
-const STAGE_FILTERS: { key: string; label: string }[] = [
-  { key: "all", label: "Allir" }, { key: "tests", label: "Heilsufarsskoðun" }, { key: "report", label: "Skýrsla" },
-  { key: "interview", label: "Viðtal" }, { key: "plan", label: "Áætlun" }, { key: "action", label: "Í aðgerð" },
-];
-const STAGE_TEXT: Record<string, string> = {
-  account: "Nýr", profile: "Nýr", welcome: "Nýr", package: "Greiðsla", protocol: "Gátt",
-  tests: "Heilsufarsskoðun", report: "Skýrsla", interview: "Viðtal", plan: "Áætlun", action: "Í aðgerð", completed: "Lokið",
-};
-
 /** Urgency + waiting time, computed from the queue row (no extra queries). */
 type RowFlags = { rank: number; waitingDays: number; reportLate: boolean; interviewToday: boolean; nextAt: string | null; nextWhat: string };
 function rowFlags(r: Row, t: Task): RowFlags {
@@ -655,182 +589,8 @@ function rowFlags(r: Row, t: Task): RowFlags {
 }
 
 const TONE_DOT: Record<Task["tone"], string> = { urgent: "bg-red-500", normal: "bg-amber-400", waiting: "bg-slate-300" };
-const SORTS = [
-  { key: "urgent", label: "Mest aðkallandi" },
-  { key: "next", label: "Næsti tími" },
-  { key: "waiting", label: "Beðið lengst" },
-  { key: "name", label: "Nafn" },
-] as const;
 
-function Clients({ rows, me, isDoctor, onOpen }: { rows: Row[]; me: Me; isDoctor: boolean; onOpen: (id: string, compose?: boolean, step?: string) => void }) {
-  const [q, setQ] = useState("");
-  const [stage, setStage] = useState("all");
-  const [mine, setMine] = useState(false);
-  const [hideTest, setHideTest] = useState(false);
-  const [sort, setSort] = useState<(typeof SORTS)[number]["key"]>("urgent");
-  const [open, setOpenRow] = useState<string | null>(null);
 
-  const list = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    const enriched = rows.map((r) => { const t = nextTask(r, isDoctor); return { r, t, f: rowFlags(r, t) }; });
-    const filtered = enriched
-      .filter((x) => stage === "all" || x.r.stage === stage)
-      .filter((x) => !mine || x.r.interviewer_id === me.id)
-      .filter((x) => !hideTest || !isTest(x.r.client_name))
-      .filter((x) => !s || cleanName(x.r.client_name).toLowerCase().includes(s) || (x.r.client_phone || "").replace(/\s/g, "").includes(s.replace(/\s/g, "")));
-    const byName = (a: typeof filtered[number], b: typeof filtered[number]) =>
-      cleanName(a.r.client_name).localeCompare(cleanName(b.r.client_name), "is");
-    return filtered.sort((a, b) => {
-      if (sort === "name") return byName(a, b);
-      if (sort === "waiting") return b.f.waitingDays - a.f.waitingDays || byName(a, b);
-      if (sort === "next") {
-        if (a.f.nextAt && b.f.nextAt) return a.f.nextAt.localeCompare(b.f.nextAt);
-        if (a.f.nextAt) return -1;
-        if (b.f.nextAt) return 1;
-        return byName(a, b);
-      }
-      return a.f.rank - b.f.rank || b.f.waitingDays - a.f.waitingDays || byName(a, b);
-    });
-  }, [rows, q, stage, mine, hideTest, sort, isDoctor, me.id]);
-
-  const counts = useMemo(() => {
-    let urgent = 0, today = 0;
-    for (const r of rows) {
-      const f = rowFlags(r, nextTask(r, isDoctor));
-      if (f.rank === 0) urgent++;
-      if (isToday(f.nextAt)) today++;
-    }
-    return { urgent, today, total: rows.length };
-  }, [rows, isDoctor]);
-
-  const toggle = (on: boolean) =>
-    `${btn} min-h-9 ${on ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Skjólstæðingar</h1>
-        <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
-          <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700">{counts.urgent} aðkallandi</span>
-          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-800">{counts.today} í dag</span>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{counts.total} alls</span>
-        </div>
-        <span className="flex-1" />
-        <label className="relative w-full sm:w-72">
-          <span className="sr-only">Leita</span>
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nafn eða sími…" className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm" />
-        </label>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Sía eftir stöðu">
-        {STAGE_FILTERS.map((f) => {
-          const n = f.key === "all" ? rows.length : rows.filter((r) => r.stage === f.key).length;
-          return (
-            <button key={f.key} type="button" aria-pressed={stage === f.key} onClick={() => setStage(f.key)}
-              className={`${btn} min-h-9 ${stage === f.key ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}>
-              {f.label} <span className="text-xs opacity-70">{n}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" aria-pressed={mine} onClick={() => setMine(!mine)} className={toggle(mine)}>Mín viðtöl</button>
-        <button type="button" aria-pressed={hideTest} onClick={() => setHideTest(!hideTest)} className={toggle(hideTest)}>Fela prufugögn</button>
-        <span className="flex-1" />
-        <label className="flex items-center gap-2 text-sm text-slate-500">
-          Raða
-          <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="rounded-xl border border-slate-300 px-2 py-1.5 text-sm font-semibold text-slate-800">
-            {SORTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-          </select>
-        </label>
-      </div>
-
-      <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        {list.length === 0 && <li className="p-6 text-center text-sm text-slate-500">Enginn fannst.</li>}
-        {list.map(({ r, t, f }) => (
-          <ClientRow key={r.id} r={r} t={t} f={f} expanded={open === r.id}
-            onToggle={() => setOpenRow(open === r.id ? null : r.id)} onOpen={onOpen} />
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** One client: the line a nurse scans, and the detail underneath it. */
-function ClientRow({ r, t, f, expanded, onToggle, onOpen }: {
-  r: Row; t: Task; f: RowFlags; expanded: boolean; onToggle: () => void; onOpen: (id: string, compose?: boolean, step?: string) => void;
-}) {
-  const name = cleanName(r.client_name);
-  const planChip = r.plan_published_at ? { text: "Áætlun birt", cls: "bg-emerald-50 text-emerald-700" }
-    : r.plan_status === "draft" ? { text: "Áætlun í drögum", cls: "bg-amber-50 text-amber-800" } : null;
-  return (
-    <li className={expanded ? "bg-slate-50/60" : ""}>
-      <div className="flex w-full items-center gap-3 px-3 py-3 sm:px-4">
-        <button type="button" onClick={onToggle} aria-expanded={expanded} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 font-bold text-emerald-800">
-            {name.split(" ").map((p) => p[0]).slice(0, 2).join("")}
-            <span className={`absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full ring-2 ring-white ${TONE_DOT[t.tone]}`} aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-center gap-x-2 font-semibold text-slate-900">
-              {name}
-              {isTest(r.client_name) && <TestBadge />}
-              {age(r.client_dob) && <span className="text-xs font-normal text-slate-400">{age(r.client_dob)}</span>}
-            </span>
-            <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
-              <span className={f.reportLate ? "font-semibold text-red-600" : ""}>{t.label}</span>
-              {f.reportLate && <span className="rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-bold text-red-700">Tímamörk liðin</span>}
-              {r.doctor_review_requested_at && !r.doctor_reviewed_at && (
-                <span className="rounded bg-purple-100 px-1.5 py-0.5 text-[11px] font-bold text-purple-700">Bíður læknis</span>
-              )}
-              {r.referral_to_heilsugaesla && <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[11px] font-bold text-blue-700">Tilvísun</span>}
-            </span>
-          </span>
-          <span className="hidden text-right text-xs sm:block">
-            {f.nextAt ? (
-              <span className={`block font-semibold ${isToday(f.nextAt) ? "text-emerald-700" : "text-slate-600"}`}>
-                {f.nextWhat} {isToday(f.nextAt) ? `kl. ${time(f.nextAt)}` : day(f.nextAt)}
-              </span>
-            ) : <span className="block text-slate-400">Ekkert bókað</span>}
-            <span className="block text-slate-400">{f.waitingDays === 0 ? "Uppfært í dag" : `${f.waitingDays} d. síðan`}</span>
-          </span>
-          <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 sm:inline">{STAGE_TEXT[r.stage] ?? r.stage}</span>
-          <ChevronRight className={`h-5 w-5 shrink-0 text-slate-300 transition ${expanded ? "rotate-90" : ""}`} />
-        </button>
-        <button type="button" onClick={() => onOpen(r.id, t.key === "nudge")} className={`${btnPrimary} hidden min-h-9 px-3 text-xs sm:inline-flex`}>{t.cta}</button>
-      </div>
-
-      {expanded && (
-        <div className="space-y-4 border-t border-slate-200 bg-white px-4 py-4">
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => onOpen(r.id)} className={`${btnDark} min-h-9 px-3 text-xs`}>Opna skjólstæðing</button>
-            <button type="button" onClick={() => onOpen(r.id, false, "interview")} className={`${btnSecondary} min-h-9 px-3 text-xs`}><ClipboardList className="h-4 w-4" /> Viðtal</button>
-            <button type="button" onClick={() => onOpen(r.id, false, "plan")} className={`${btnSecondary} min-h-9 px-3 text-xs`}><FileCheck2 className="h-4 w-4" /> Áætlun</button>
-            <button type="button" onClick={() => onOpen(r.id, true)} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Bell className="h-4 w-4" /> Skilaboð</button>
-            {r.client_phone && <a href={`tel:${r.client_phone}`} className={`${btnSecondary} min-h-9 px-3 text-xs`}><Phone className="h-4 w-4" /> {r.client_phone}</a>}
-            {planChip && <span className={`ml-auto self-center rounded-full px-2.5 py-1 text-xs font-semibold ${planChip.cls}`}>{planChip.text}</span>}
-          </div>
-
-          <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              ["Blóðprufa", r.blood_test_done_at || r.blood_results_at ? `Komin ${day(r.blood_test_done_at ?? r.blood_results_at)}` : r.blood_test_booked_for ? `Bókuð ${dayTime(r.blood_test_booked_for)}` : "Ekki bókuð"],
-              ["Mælingar", r.measurements_done_at ? `Komnar ${day(r.measurements_done_at)}` : r.measurements_booked_for ? `Bókaðar ${dayTime(r.measurements_booked_for)}` : "Ekki bókaðar"],
-              ["Viðtal", r.interview_done_at ? `Lokið ${day(r.interview_done_at)}` : r.interview_booked_for ? `${dayTime(r.interview_booked_for)}${r.interview_mode === "video" ? " (mynd)" : ""}` : "Ekki bókað"],
-              ["Eftirfylgd", r.followup_done_at ? `Lokið ${day(r.followup_done_at)}` : r.followup_booked_for ? dayTime(r.followup_booked_for) : "Ekki bókuð"],
-            ].map(([k, v]) => (
-              <div key={k}>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">{k}</dt>
-                <dd className="text-slate-800">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      )}
-    </li>
-  );
-}
 
 // ── Client page ─────────────────────────────────────────────────────────────
 
