@@ -849,15 +849,16 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState("");
   /**
-   * Which workspace tab is showing. Null until the coach picks one.
+   * Which workspace tab is showing. Staða, always, until the coach moves.
    *
-   * Null rather than "status" so the landing logic still applies: landOn
-   * already worked out the step worth opening — a report that just arrived,
-   * the plan that is missing — and that judgement is worth keeping, just
-   * expressed as a tab. The same `touched ? chosen : computed` shape the
-   * step model used.
+   * I first wired this to landOn, which works out the step worth opening —
+   * a report that just arrived, a plan that is missing. Clever, and wrong:
+   * on a journey already in action it landed on Forskoðun, and Mads asked
+   * for a status dashboard as the main view. Opening a client should put
+   * the same screen in front of you every time, so you learn where things
+   * are; the queue on Í dag is what says which client is urgent and why.
    */
-  const [wsTab, setWsTab] = useState<"status" | "report" | "plan" | "preview" | null>(null);
+  const [wsTab, setWsTab] = useState<"status" | "report" | "plan" | "preview">("status");
   const [sheet, setSheet] = useState<"messages" | "referral" | "orders" | "history" | "report" | null>(null);
   const isDoctor = me.role === "doctor" || me.role === "admin";
 
@@ -904,7 +905,6 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   // never imported.
   // …until the interview is booked: from then on the nurse is here for the
   // interview (the report sits beside it) or for what comes after.
-  const landOn = d.report && !j.interview_booked_for && !j.interview_done_at && !j.plan_published_at ? "results" : current?.key ?? (d.report ? "results" : null);
   /** Which tab holds a step. One rule, so landing and jumping agree. */
   const tabFor = (k: string | null | undefined): "status" | "report" | "plan" | "preview" =>
     k === "results" ? "report" : k === "plan" ? "plan" : k === "live" ? "preview" : "status";
@@ -977,7 +977,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
     { key: "preview", label: "Forskoðun" },
   ] as const;
   type WsTab = typeof TABS[number]["key"];
-  const tab: WsTab = wsTab ?? tabFor(landOn);
+  const tab: WsTab = wsTab;
 
   return (
     <div className="space-y-4">
