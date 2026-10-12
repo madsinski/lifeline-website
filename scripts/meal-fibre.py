@@ -62,6 +62,35 @@ FIBRE_PER_100G = {
     "pita": 2.7, "wrap": 3.0, "granola": 8.0, "muesli": 7.6,
     "flour": 2.7, "wholemeal flour": 10.7, "breadcrumbs": 4.5,
     "crispbread": 16.0, "rice cakes": 1.5, "flatbread": 3.0,
+    # Brewed drinks: known zeros. Coffee carries no meaningful dietary
+    # fibre, and leaving it unrecognised sent every coffee entry to NULL on
+    # coverage alone.
+    "black coffee": 0.0, "coffee": 0.0, "brewed black coffee": 0.0,
+    "freshly brewed black coffee": 0.0, "cold brew": 0.0, "espresso": 0.0,
+    "americano": 0.0,
+    # Icelandic names that appear inside an otherwise English list, because
+    # the curated list names Icelandic products as they are sold here.
+    # kotasæla is cottage cheese, a dairy zero; rófur is swede.
+    "kotasæla": 0.0, "rófur": 2.3, "rofur": 2.3,
+    # Yogurt and cucumber, so near enough nothing.
+    "tzatziki": 0.6,
+    # Nixtamalised corn flour.
+    "masa harina": 6.0,
+    # Fish, shellfish and dried fish: known zeros, named as the curated list
+    # names them. harðfiskur and rækjur are sold under those names here.
+    "arctic char": 0.0, "arctic char fillets": 0.0, "char": 0.0,
+    "harðfiskur": 0.0, "hardfiskur": 0.0,
+    "rækjur": 0.0, "raekjur": 0.0, "shrimp": 0.0, "prawns": 0.0,
+    # Whey is a protein isolate — no fibre.
+    "whey": 0.0, "whey shake": 0.0, "whey protein": 0.0,
+    # Icelandic barley, cooked. Dry bygg is far higher; the list measures it
+    # cooked, which is where the water has gone in.
+    "barley": 3.8, "bygg": 3.8, "pearl barley": 3.8, "cooked barley": 3.8,
+    "cooked icelandic barley": 3.8,
+    # Mixed roasted root vegetables, and sourdough by another name.
+    "roasted roots": 2.5, "roots": 2.5, "root vegetables": 2.5,
+    "day-old sourdough": 2.9,
+    "dried cranberries": 5.7, "cranberries": 3.6,
     # Pulses
     "lentils": 7.9, "red lentils": 7.9, "green lentils": 7.9,
     "chickpeas": 7.6, "black beans": 8.7, "kidney beans": 7.4,
