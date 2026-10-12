@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import SettingsCard from "@/app/components/hc/SettingsCard";
-import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey } from "@/lib/hc/stages";
+import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey, STEP_SHORT } from "@/lib/hc/stages";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import ReportApproval from "@/app/components/hc/ReportApproval";
@@ -90,7 +90,6 @@ function Heilsuferd() {
   const [data, setData] = useState<JourneyData | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<StepKey | null>(null);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [noJourney, setNoJourney] = useState(false);
 
   const load = useCallback(async (fresh = false): Promise<JourneyData | null> => {
@@ -234,76 +233,87 @@ function Heilsuferd() {
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
-        {/* The journey as a timeline in four phases. The open step unfolds in
-            place, so reading about a step and doing it happen in one spot. */}
-        <div className="space-y-5">
-          {PHASES.map((ph) => {
-            const steps = ph.keys.map((k) => data.steps.find((x) => x.key === k)).filter((x): x is JourneyStep => !!x);
-            if (!steps.length) return null;
-            const required = steps.filter((x) => !x.optional);
-            const phaseDone = required.length > 0 && required.every((x) => x.state === "done");
-            const folded = phaseDone && !steps.some((x) => x.key === shownStep?.key) && !expanded.has(ph.title);
-            if (folded) {
+        {/* ── One step at a time ───────────────────────────────────
+            This was all four phases listed at once, every step a row, and
+            the open one unfolding in place. It read as a wall: eleven steps
+            with their blurbs, most of them either long done or months away,
+            and the one thing you could actually do somewhere in the middle.
+
+            A health check is a sequence with real waiting in it — which is
+            the whole reason this page exists — so the page shows where you
+            are and gives you a way to look around, rather than everything
+            at once. The strip across the top is the map; the card below is
+            the step.
+
+            It opens on the current step, which is the only one that is ever
+            the answer to "what now". */}
+        <div className="space-y-4">
+          {/* The map. Compact, scrollable, every step reachable — somebody
+              who wants to re-read what the interview involves should not
+              have to walk back through four screens. */}
+          <div className="flex gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {data.steps.map((st) => {
+              const on = st.key === shownStep?.key;
               return (
-                <button key={ph.title} type="button" onClick={() => setExpanded((e) => new Set(e).add(ph.title))}
-                  className={`${hcCard.base} flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50`}>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-hc-brand text-white"><CheckIcon /></span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-hc-ink">{ph.title}</span>
-                    <span className="block text-xs text-hc-ink-2">{steps.length} {steps.length === 1 ? "skrefi lokið" : "skrefum lokið"}</span>
-                  </span>
-                  <span className="text-xs font-semibold text-hc-brand-dark">Sýna</span>
+                <button key={st.key} type="button" onClick={() => setOpen(st.key)}
+                  aria-pressed={on}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                    on ? "bg-hc-ink text-white"
+                      : st.state === "done" ? "bg-hc-brand/10 text-hc-brand-dark ring-1 ring-hc-brand/30"
+                      : "bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50"}`}>
+                  {st.state === "done" && !on && <CheckIcon />}
+                  {STEP_SHORT[st.key]}
                 </button>
               );
-            }
+            })}
+          </div>
+
+          {shownStep && (() => {
+            const idx = data.steps.findIndex((x) => x.key === shownStep.key);
+            const prev = idx > 0 ? data.steps[idx - 1] : null;
+            const nextStep = idx < data.steps.length - 1 ? data.steps[idx + 1] : null;
+            const phase = PHASES.find((ph) => ph.keys.includes(shownStep.key));
             return (
-              <section key={ph.title} aria-label={ph.title}>
-                <p className={`${hcKicker} mb-2 flex items-center gap-2 ${phaseDone ? "text-hc-brand-dark" : "text-slate-500"}`}>
-                  {phaseDone && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-hc-brand text-white"><CheckIcon /></span>}
-                  {ph.title}
-                </p>
-                <ol className={`${hcCard.base} divide-y divide-slate-100 overflow-hidden`}>
-                  {steps.map((st) => {
-                    const isOpen = shownStep?.key === st.key;
-                    const waiting = ours && st.key === current?.key;
-                    const n = data.steps.indexOf(st) + 1;
-                    return (
-                      <li key={st.key} id={`step-${st.key}`} className="scroll-mt-24">
-                        <button type="button" onClick={() => setOpen(isOpen ? null : st.key)} aria-expanded={isOpen}
-                          className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition ${isOpen ? "bg-hc-brand-surface/60" : "hover:bg-slate-50"}`}>
-                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                            st.state === "done" ? "bg-hc-brand text-white"
-                              : waiting ? "bg-amber-100 text-amber-800"
-                              : st.state === "current" ? "bg-hc-ink text-white ring-4 ring-slate-900/10"
-                              : "bg-slate-100 text-slate-400"}`}>
-                            {st.state === "done" ? <CheckIcon /> : waiting ? "…" : n}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={`block font-semibold ${st.state === "upcoming" || st.state === "optional" ? "text-slate-500" : "text-hc-ink"}`}>{st.title}</span>
-                            <span className="block truncate text-xs text-hc-ink-2">
-                              {st.state === "done" ? `Lokið${st.doneAt ? ` ${fmtDate(st.doneAt)}` : ""}`
-                                : waiting ? (OURS_TEXT[st.key] ?? "Hjá okkur")
-                                : st.state === "current" ? "Næsta skref"
-                                : st.optional ? "Valfrjálst" : "Síðar"}
-                            </span>
-                          </span>
-                          <svg className={`h-5 w-5 shrink-0 text-slate-400 transition ${isOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" /></svg>
-                        </button>
-                        {isOpen && (
-                          <div className="border-t border-slate-100 bg-hc-surface px-4 pb-5 pt-3">
-                            <p className="text-sm text-hc-ink-2">{st.blurb}</p>
-                            <div className="mt-3">
-                              <StepBody step={st} data={data} reload={async () => { await load(true); }} advance={advance} healthOrder={healthOrder ?? null} />
-                            </div>
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ol>
+              <section className={`${hcCard.base} p-5 sm:p-6`}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <p className={`${hcKicker} text-slate-500`}>
+                    {phase?.title}{" · "}Skref {idx + 1} af {data.steps.length}
+                  </p>
+                  {shownStep.state === "done" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-hc-brand/10 px-2.5 py-0.5 text-xs font-bold text-hc-brand-dark">
+                      <CheckIcon /> Lokið
+                    </span>
+                  )}
+                  {shownStep.optional && shownStep.state !== "done" && (
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">Valfrjálst</span>
+                  )}
+                </div>
+                <h2 className="mt-1 text-xl font-bold text-hc-ink sm:text-2xl">{shownStep.title}</h2>
+                <p className="mt-1 text-sm text-hc-ink-2">{shownStep.blurb}</p>
+
+                <div className="mt-4">
+                  <StepBody step={shownStep} data={data} reload={async () => { await load(true); }} advance={advance} healthOrder={healthOrder ?? null} />
+                </div>
+
+                {/* Back and next by name rather than by arrow: knowing what
+                    comes next is most of the value of a next button here. */}
+                <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                  {prev ? (
+                    <button type="button" onClick={() => setOpen(prev.key)}
+                      className="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-800">
+                      ← <span className="truncate">{STEP_SHORT[prev.key]}</span>
+                    </button>
+                  ) : <span />}
+                  {nextStep ? (
+                    <button type="button" onClick={() => setOpen(nextStep.key)}
+                      className="inline-flex min-w-0 items-center gap-1 rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
+                      <span className="truncate">{STEP_SHORT[nextStep.key]}</span> →
+                    </button>
+                  ) : <span />}
+                </div>
               </section>
             );
-          })}
+          })()}
         </div>
 
         {/* Side */}
