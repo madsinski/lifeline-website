@@ -100,10 +100,10 @@ function Sketch({ platform }: { platform: Platform }) {
       <div className="overflow-hidden rounded-2xl border border-hc-hairline bg-slate-100 p-3">
         {/* The bit of browser chrome you press first. */}
         <div className="mb-2 flex items-center gap-2 rounded-xl bg-white px-2.5 py-2 shadow-sm">
-          <span className="truncate text-[11px] text-slate-400">lifelinehealth.is</span>
+          <span className="truncate text-[11px] text-slate-500">lifelinehealth.is</span>
           <span className="flex-1" />
           <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-bold ${
-            r.chrome === "bar" ? "bg-hc-brand text-white ring-2 ring-hc-brand/30" : "bg-slate-100 text-slate-500"}`} aria-hidden>
+            r.chrome === "bar" ? "bg-hc-brand text-white ring-2 ring-hc-brand/30" : "bg-slate-100 text-slate-600"}`} aria-hidden>
             {r.chrome === "share" ? "⇪" : r.chrome === "menu" ? "⋮" : "⤓"}
           </span>
         </div>
@@ -131,7 +131,7 @@ function Sketch({ platform }: { platform: Platform }) {
           <p className="rounded-xl bg-white px-2.5 py-2 text-[11px] font-bold text-hc-brand-dark shadow-sm">{r.target}</p>
         )}
       </div>
-      <figcaption className="mt-1.5 text-[11px] text-slate-400">
+      <figcaption className="mt-1.5 text-[11px] text-slate-500">
         Einfölduð mynd — hnappurinn getur heitið örlítið annað eftir útgáfu.
       </figcaption>
     </figure>
@@ -167,18 +167,18 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
       : "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-hairline print:hidden"}>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
         className="flex w-full items-center gap-3 p-4 text-left">
-        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${installed ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-slate-100 text-slate-500"}`}>
+        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${installed ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-slate-100 text-slate-600"}`}>
           {installed ? <Check className="h-5 w-5" aria-hidden /> : <MonitorDown className="h-5 w-5" aria-hidden />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold text-hc-ink">Lifeline sem app</span>
-          <span className="block text-sm text-slate-500">
+          <span className="block text-sm text-slate-600">
             {installed
               ? "Uppsett á þessu tæki — tilkynningar virka."
               : "Settu Lifeline á heimaskjáinn til að fá tilkynningar"}
           </span>
         </span>
-        <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+        <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
 
       {open && (

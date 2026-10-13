@@ -75,13 +75,13 @@ export default function ActivityEditor({ activities, onChange }: {
                         {WEEKDAYS_SHORT[r.day]}{r.at ? ` ${r.at}` : ""}
                       </span>
                     ))}
-                    <span className="text-[11px] text-slate-500">{INTENSITY_IS[a.intensity]}</span>
+                    <span className="text-[11px] text-slate-600">{INTENSITY_IS[a.intensity]}</span>
                   </span>
                   <CoverChips covers={a.covers} partial={a.partial} benefits={a.benefits} className="mt-1" />
                 </span>
                 <button type="button" aria-label={`Fjarlægja ${a.name}`}
                   onClick={() => onChange(activities.filter((x) => x.name !== a.name))}
-                  className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  className="rounded-lg p-1 text-slate-500 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
               </li>
             );
           })}
@@ -97,7 +97,7 @@ export default function ActivityEditor({ activities, onChange }: {
           {/* 1 ─ which sport */}
           <div className="flex items-start justify-between gap-2">
             <p className="font-semibold text-slate-900">{picked ?? "Hvað gerirðu?"}</p>
-            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-lg p-1 text-slate-400 hover:bg-slate-200"><X className="h-4 w-4" /></button>
+            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-lg p-1 text-slate-500 hover:bg-slate-200"><X className="h-4 w-4" /></button>
           </div>
 
           {!picked && (
@@ -151,10 +151,10 @@ export default function ActivityEditor({ activities, onChange }: {
                 </div>
               </div>
               <label className="flex w-fit items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-hc-hairline">
-                <Clock className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                <Clock className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
                 <input type="time" value={at} onChange={(e) => setAt(e.target.value)} aria-label="Klukkan"
                   className="bg-transparent text-sm outline-none" />
-                <span className="text-xs text-slate-500">valfrjálst</span>
+                <span className="text-xs text-slate-600">valfrjálst</span>
               </label>
               <div className="flex gap-2">
                 <button type="button" onClick={add} disabled={days.length === 0} className={hcBtn.primary}>

@@ -418,7 +418,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 ["Ákefð", INTENSITY_IS[actSheet.intensity] ?? null],
               ] as const).filter(([, v]) => !!v).map(([k, v]) => (
                 <div key={k} className="flex items-baseline justify-between gap-3 border-b border-slate-100 p-3 last:border-b-0">
-                  <dt className="text-sm text-slate-500">{k}</dt>
+                  <dt className="text-sm text-slate-600">{k}</dt>
                   <dd className="text-sm font-semibold text-slate-900">{v}</dd>
                 </div>
               ))}
@@ -430,7 +430,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 nowhere to say. */}
             {(actSheet.covers.length > 0 || (actSheet.benefits ?? []).length > 0) && (
               <div className="rounded-2xl bg-white p-3 ring-1 ring-hc-hairline">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
                   {actSheet.covers.length ? "Kemur í staðinn fyrir" : "Gott fyrir"}
                 </p>
                 <p className="mt-1 text-sm text-slate-700">
@@ -439,7 +439,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                     : (actSheet.benefits ?? []).map((x) => BENEFIT_IS[x]).join(" · ")}
                 </p>
                 {actSheet.covers.length > 0 && (actSheet.partial ?? []).length > 0 && (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-slate-600">
                     Að hluta: {(actSheet.partial ?? []).map((c) => COVERS_IS[c]).join(" · ")}
                   </p>
                 )}
@@ -502,14 +502,14 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                  is meaning, and it gets the colour. */
               className="w-full bg-slate-50 px-4 py-2.5 text-left">
               <span className="flex items-center gap-2">
-                <meta.Icon className="h-5 w-5 shrink-0 text-slate-500" aria-hidden />
+                <meta.Icon className="h-5 w-5 shrink-0 text-slate-600" aria-hidden />
                 <span className="font-bold text-slate-800">{meta.label}</span>
                 <span className="ml-auto text-xs font-semibold tabular-nums text-slate-600">
                   {dayDone}/{dayOf} í dag
                 </span>
-                <ChevronRight className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-90" : ""}`} aria-hidden />
+                <ChevronRight className={`h-4 w-4 shrink-0 text-slate-500 transition ${open ? "rotate-90" : ""}`} aria-hidden />
               </span>
-              <span className="mt-1 flex items-center gap-3 pl-7 text-[11px] text-slate-500">
+              <span className="mt-1 flex items-center gap-3 pl-7 text-[11px] text-slate-600">
                 <span className="flex items-center gap-1">
                   {/* Seven marks: the week at a glance, no legend needed. */}
                   {week.map((d) => {
@@ -552,10 +552,10 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                       <Check className={`h-5 w-5 ${done ? "text-white" : "text-transparent"}`} strokeWidth={3} aria-hidden />
                     </button>
                     <span className="min-w-0 flex-1">
-                      <span className={`block font-semibold ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                      <span className={`block font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
                         {s.title}
                       </span>
-                      <span className="mt-1.5 block text-sm text-slate-500">
+                      <span className="mt-1.5 block text-sm text-slate-600">
                         Æfing dagsins
                         {s.at ? ` · kl. ${s.at}` : ""}
                         {s.minutes ? ` · ${s.minutes} mín.` : ""}
@@ -572,7 +572,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                     {s.activity && (
                       <button type="button" onClick={() => setActSheet(s.activity!)}
                         aria-label={`Opna ${s.title}`}
-                        className="-mr-1 flex h-10 w-8 shrink-0 items-center justify-center text-slate-400 hover:text-slate-600">
+                        className="-mr-1 flex h-10 w-8 shrink-0 items-center justify-center text-slate-500 hover:text-slate-600">
                         <ChevronRight className="h-5 w-5" aria-hidden />
                       </button>
                     )}
@@ -588,7 +588,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               })}
               {/* A rest day says so, instead of showing a habit that is not on. */}
               {p === "midday" && programmeOwnsTraining && todaysSessions.length === 0 && (
-                <li className="px-4 py-3 text-sm text-slate-500">Engin æfing á dagskrá í dag — hvíldardagur.</li>
+                <li className="px-4 py-3 text-sm text-slate-600">Engin æfing á dagskrá í dag — hvíldardagur.</li>
               )}
               {/* Each row wears its own pillar, which is how Svefn and
                   Næring stay legible once the headings are hours. */}
@@ -658,7 +658,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 <li className="border-t border-slate-100 px-4 py-2.5">
                   <button type="button" onClick={() => setAdding(p)}
                     aria-label={`Bæta við aðgerð — ${meta.label}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-500 transition hover:border-slate-400 hover:text-slate-700">
+                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-700">
                     {/* Just "Bæta við". "Bæta við í morgunn" does not
                         decline — it would want "að morgni", "um daginn",
                         "um kvöldið" — and the button sits inside the
@@ -690,7 +690,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       )}
 
       {live.length === 0 && (
-        <p className="rounded-2xl bg-white p-6 text-center text-slate-500 shadow-sm">
+        <p className="rounded-2xl bg-white p-6 text-center text-slate-600 shadow-sm">
           Engar virkar aðgerðir. Þú getur tekið aðgerð aftur í notkun hér fyrir neðan.
         </p>
       )}
@@ -699,7 +699,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <button type="button" onClick={() => setShowHidden(!showHidden)} aria-expanded={showHidden}
             className="flex w-full items-center gap-2 text-left text-sm font-semibold text-slate-600">
-            <EyeOff className="h-4 w-4" /> Lagt til hliðar ({put.length}) <span className="ml-auto text-slate-400">{showHidden ? "▴" : "▾"}</span>
+            <EyeOff className="h-4 w-4" /> Lagt til hliðar ({put.length}) <span className="ml-auto text-slate-500">{showHidden ? "▴" : "▾"}</span>
           </button>
           {showHidden && (
             <ul className="mt-2 space-y-1.5">
@@ -717,7 +717,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         </div>
       )}
 
-      <p className="px-1 text-xs text-slate-500">
+      <p className="px-1 text-xs text-slate-600">
         Hjúkrunarfræðingurinn þinn sér hvernig gengur og hvað þú leggur til hliðar. Það sem þú merkir hér er ekki sjúkraskrá.
       </p>
     </section>
@@ -817,15 +817,15 @@ function ActionRow({ a, meta, today, doneOn, onToggle, onOpen, onHide, drag, lif
         </button>
         <div className="min-w-0 flex-1">
           <button type="button" onClick={onOpen} className="flex w-full items-start gap-2 text-left">
-            <span className={`min-w-0 flex-1 font-semibold ${done ? "text-slate-400 line-through" : "text-slate-900"}`}>{a.title}</span>
+            <span className={`min-w-0 flex-1 font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>{a.title}</span>
             {/* The one thing besides the title that earns a place on the
                 row: a time is what you check the row against. */}
             {atTime && (
-              <span className={`shrink-0 text-sm font-semibold tabular-nums ${done ? "text-slate-300" : "text-slate-500"}`}>
+              <span className={`shrink-0 text-sm font-semibold tabular-nums ${done ? "text-slate-300" : "text-slate-600"}`}>
                 {atTime}
               </span>
             )}
-            <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+            <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" aria-hidden />
           </button>
 
           {/* Nothing else on the row.
@@ -888,7 +888,7 @@ function AddPicker({ api, when, inPlan, onAdd }: {
 
   if (!fits.length) {
     return (
-      <p className="p-4 text-sm text-slate-500">
+      <p className="p-4 text-sm text-slate-600">
         Ekkert fleira í safninu passar við þennan tíma dags. Þú getur búið til þína eigin aðgerð í áætluninni.
       </p>
     );

@@ -54,7 +54,7 @@ export default function MealPicker({ api, category, onPick, onClose }: {
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold text-hc-ink">Máltíðasafn</h2>
-              <p className="text-xs text-slate-500">Sama safn og í /admin/content. Raðað eftir próteini.</p>
+              <p className="text-xs text-slate-600">Sama safn og í /admin/content. Raðað eftir próteini.</p>
             </div>
             <button type="button" onClick={onClose} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white">Loka</button>
           </div>
@@ -72,8 +72,8 @@ export default function MealPicker({ api, category, onPick, onClose }: {
       }>
 
         <div className="flex-1 bg-slate-50 p-4 sm:p-5">
-          {rows === null && <p className="text-sm text-slate-500">Hleð…</p>}
-          {rows?.length === 0 && <p className="text-sm text-slate-500">Ekkert fannst.</p>}
+          {rows === null && <p className="text-sm text-slate-600">Hleð…</p>}
+          {rows?.length === 0 && <p className="text-sm text-slate-600">Ekkert fannst.</p>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {rows?.map((m) => (
               <button key={m.id} type="button" onClick={() => { onPick(m); onClose(); }}
@@ -86,7 +86,7 @@ export default function MealPicker({ api, category, onPick, onClose }: {
                 </span>
                 <span className="flex flex-1 flex-col p-2.5">
                   <span className="text-sm font-semibold leading-tight text-slate-900">{m.name}</span>
-                  <span className="mt-0.5 text-[11px] text-slate-500">
+                  <span className="mt-0.5 text-[11px] text-slate-600">
                     {[m.category && CATEGORY_IS[m.category], m.prep_time_min ? `${m.prep_time_min} mín` : null].filter(Boolean).join(" · ")}
                   </span>
                   <span className="flex-1" />

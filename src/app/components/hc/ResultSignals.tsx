@@ -50,14 +50,14 @@ export default function ResultSignals({ flagged }: { flagged: FlaggedValue[] }) 
           <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5">
             <span className={`h-2.5 w-2.5 rounded-full ${g.dot}`} aria-hidden />
             <p className="font-bold text-slate-900">{g.title}</p>
-            <span className="text-xs text-slate-500">{g.hint}</span>
+            <span className="text-xs text-slate-600">{g.hint}</span>
           </div>
           <ul className="divide-y divide-slate-100">
             {g.items.map((f) => (
               <li key={f.slug} className="flex items-center gap-3 px-4 py-2.5">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-slate-900">{f.title}</span>
-                  {f.band && <span className="block text-xs text-slate-500">{f.band}</span>}
+                  {f.band && <span className="block text-xs text-slate-600">{f.band}</span>}
                 </span>
                 <span className="rounded-lg bg-slate-50 px-3 py-1 text-sm font-bold tabular-nums text-slate-800 ring-1 ring-hc-hairline">
                   {String(f.value).replace(".", ",")}{f.unit ? ` ${f.unit}` : ""}
@@ -68,7 +68,7 @@ export default function ResultSignals({ flagged }: { flagged: FlaggedValue[] }) 
         </div>
       ))}
 
-      <p className="px-1 text-xs leading-relaxed text-slate-500">
+      <p className="px-1 text-xs leading-relaxed text-slate-600">
         Mælingar eru ekki greining. Ef eitthvað er utan viðmiða fer læknir yfir það með þér — hafðu samband við
         <span style={{ color: PILLAR_META.mental.color }}> hjúkrunarfræðinginn þinn</span> ef þú vilt ræða niðurstöðurnar.
       </p>

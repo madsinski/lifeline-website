@@ -132,7 +132,7 @@ export function UpcomingSoon({ items, onDismiss }: {
 export function UpcomingList({ items, onNavigate }: { items: Upcoming[]; onNavigate?: (href: string) => boolean }) {
   if (!items.length) {
     return (
-      <p className="rounded-hc-card bg-hc-surface px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
+      <p className="rounded-hc-card bg-hc-surface px-4 py-6 text-center text-sm text-slate-600 ring-1 ring-hc-hairline">
         Ekkert bókað eins og er.
       </p>
     );
@@ -188,7 +188,7 @@ function Row({ x, urgent = false, onNavigate }: {
         </span>
         {/* A place, but never a URL: the link is the button beside it. */}
         {x.location && !video && (
-          <span className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+          <span className="mt-0.5 flex items-center gap-1 text-xs text-slate-600">
             <MapPin className="h-3 w-3 shrink-0" aria-hidden />{x.location}
           </span>
         )}

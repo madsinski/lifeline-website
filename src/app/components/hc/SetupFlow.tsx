@@ -154,7 +154,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
               : "Fjögur atriði, ein mínúta hvert"}
           </h3>
         </div>
-        <p className="text-sm font-semibold tabular-nums text-slate-500">{count}/{rows.length}</p>
+        <p className="text-sm font-semibold tabular-nums text-slate-600">{count}/{rows.length}</p>
       </div>
       <p className="mt-1.5 text-sm text-slate-600">
         {settings
@@ -179,12 +179,12 @@ export default function SetupFlow({ api, place = "onboarding" }: {
           const ok = done[row.key];
           return (
             <li key={row.key} className="flex items-center gap-3 border-b border-slate-100 p-3 last:border-b-0">
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-slate-100 text-slate-500"}`}>
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-slate-100 text-slate-600"}`}>
                 {ok ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold leading-tight text-slate-900">{row.title}</span>
-                <span className="block text-xs leading-snug text-slate-500">{row.why}</span>
+                <span className="block text-xs leading-snug text-slate-600">{row.why}</span>
               </span>
             </li>
           );
@@ -291,7 +291,7 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-semibold leading-tight text-slate-900">{c.name ?? "Þjálfari"}</span>
-                    {c.role && <span className="block text-xs text-slate-500">{ROLE_IS[c.role] ?? c.role}</span>}
+                    {c.role && <span className="block text-xs text-slate-600">{ROLE_IS[c.role] ?? c.role}</span>}
                   </span>
                 </button>
                 {on && (
@@ -301,7 +301,7 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
                   <button type="button" onClick={() => setBioOpen(openBio ? null : c.id)}
                     aria-expanded={openBio}
                     aria-label={`Um ${c.name ?? "þjálfarann"}`}
-                    className="shrink-0 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+                    className="shrink-0 rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
                     <ChevronDown className={`h-4 w-4 transition ${openBio ? "rotate-180" : ""}`} aria-hidden />
                   </button>
                 )}
@@ -309,7 +309,7 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
 
               {openBio && c.bio && (
                 <div className="border-t border-slate-100 bg-white/70 px-3 py-2.5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Um þjálfarann</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Um þjálfarann</p>
                   <p className="mt-1 text-sm leading-relaxed text-slate-600">{c.bio}</p>
                 </div>
               )}

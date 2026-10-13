@@ -54,7 +54,7 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
           <Archive className="h-5 w-5 text-slate-600" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <p className={`${hcKicker} text-slate-500`}>Geymsla</p>
+          <p className={`${hcKicker} text-slate-600`}>Geymsla</p>
           <p className="mt-0.5 font-semibold text-hc-ink">
             Viltu halda skýrslunni þinni{r.reportDate ? ` frá ${r.reportDate}` : ""}?
           </p>
@@ -62,7 +62,7 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
             Við geymum heilsugögn ekki lengur en þörf er á. Ekkert hefur verið gert við þessa
             skýrslu í nokkurn tíma og því spyrjum við frekar en að ákveða fyrir þig.
           </p>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-slate-600">
             Frumritið er áfram í sjúklingagáttinni. Þótt þú takir hana út hér geturðu sótt hana
             aftur hvenær sem er — þú tapar engu.
             {r.state === "reminded" && " Við spurðum fyrir mánuði."}

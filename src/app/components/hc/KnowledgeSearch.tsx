@@ -66,35 +66,35 @@ export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" 
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 p-0 sm:p-6" role="dialog" aria-modal="true" aria-label="Fletta upp" onClick={onClose}>
       <div className="flex h-full w-full max-w-3xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[86vh] sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 border-b border-slate-100 p-3 sm:p-4">
-          <Search className="ml-1 h-5 w-5 shrink-0 text-slate-400" />
+          <Search className="ml-1 h-5 w-5 shrink-0 text-slate-500" />
           <input
             ref={inputRef} value={q}
             onChange={(e) => { setQ(e.target.value); setPicked(null); }}
             placeholder="Leita — t.d. „insúlín 18“, „vöðvamassi“, „koffín“"
             aria-label="Leita í uppflettiriti"
-            className="min-w-0 flex-1 border-0 py-2 text-base outline-none placeholder:text-slate-400"
+            className="min-w-0 flex-1 border-0 py-2 text-base outline-none placeholder:text-slate-500"
           />
           <div className="hidden items-center gap-1 sm:flex" role="group" aria-label="Kyn fyrir viðmið">
             {([["", "Bæði"], ["m", "Karl"], ["f", "Kona"]] as const).map(([k, l]) => (
               <button key={l} type="button" aria-pressed={sex === (k || null)} onClick={() => setSex((k || null) as Sex)}
-                className={`rounded-lg px-2 py-1 text-xs font-semibold ${sex === (k || null) ? "bg-hc-ink text-white" : "text-slate-500 hover:bg-slate-100"}`}>
+                className={`rounded-lg px-2 py-1 text-xs font-semibold ${sex === (k || null) ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-100"}`}>
                 {l}
               </button>
             ))}
           </div>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 sm:grid-cols-[240px_1fr]">
           <ul className="max-h-48 overflow-y-auto border-b border-slate-100 sm:max-h-none sm:border-b-0 sm:border-r">
-            {entries === null && <li className="p-4 text-sm text-slate-500">Hleð…</li>}
-            {entries !== null && results.length === 0 && <li className="p-4 text-sm text-slate-500">Ekkert fannst.</li>}
+            {entries === null && <li className="p-4 text-sm text-slate-600">Hleð…</li>}
+            {entries !== null && results.length === 0 && <li className="p-4 text-sm text-slate-600">Ekkert fannst.</li>}
             {results.slice(0, 40).map((e) => (
               <li key={e.slug}>
                 <button type="button" onClick={() => setPicked(e.slug)}
                   className={`w-full px-4 py-2.5 text-left hover:bg-slate-50 ${current?.slug === e.slug ? "bg-emerald-50" : ""}`}>
                   <span className="block text-sm font-semibold text-slate-900">{e.title}</span>
-                  <span className="block text-xs text-slate-500">{CATEGORY_IS[e.category]}</span>
+                  <span className="block text-xs text-slate-600">{CATEGORY_IS[e.category]}</span>
                 </button>
               </li>
             ))}
@@ -102,7 +102,7 @@ export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" 
 
           <div className="min-h-0 overflow-y-auto p-4 sm:p-5">
             {current ? <Entry e={current} value={value} sex={sex} /> : (
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-slate-600">
                 <p className="font-semibold text-slate-700">Uppflettirit Lifeline</p>
                 <p className="mt-1">Sláðu inn heiti á mælingu, gildi eða efni — t.d. „hba1c“, „insúlín 18“, „svefnlengd“ eða „tilvísun“.</p>
               </div>
@@ -122,7 +122,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
     <article className="space-y-4">
       <header>
         <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{CATEGORY_IS[e.category]}</p>
-        <h2 className="text-xl font-bold text-slate-900">{e.title}{e.unit ? <span className="ml-2 text-sm font-medium text-slate-400">{e.unit}</span> : null}</h2>
+        <h2 className="text-xl font-bold text-slate-900">{e.title}{e.unit ? <span className="ml-2 text-sm font-medium text-slate-500">{e.unit}</span> : null}</h2>
         <p className="mt-1 text-slate-700">{e.summary}</p>
       </header>
 
@@ -176,7 +176,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
       )}
 
       {e.sources.length > 0 && (
-        <footer className="border-t border-slate-100 pt-3 text-xs text-slate-400">
+        <footer className="border-t border-slate-100 pt-3 text-xs text-slate-500">
           Heimildir: {e.sources.join(" · ")}
         </footer>
       )}

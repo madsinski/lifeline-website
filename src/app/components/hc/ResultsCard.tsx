@@ -232,15 +232,15 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             <button type="button" onClick={() => pick(true)}
               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm hover:border-emerald-400">
               <span className="block font-semibold text-slate-900">Skjólstæðingurinn bað mig um að setja hana inn</span>
-              <span className="block text-xs text-slate-500">Skráð á þig og sýnt skjólstæðingnum í hans aðgangi.</span>
+              <span className="block text-xs text-slate-600">Skráð á þig og sýnt skjólstæðingnum í hans aðgangi.</span>
             </button>
             <button type="button" onClick={() => pick(false)}
               className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-left text-sm hover:border-emerald-400">
               <span className="block font-semibold text-slate-900">Ég les hana fyrir viðtalið</span>
-              <span className="block text-xs text-slate-500">Hluti af þjónustunni — engin beiðni skráð.</span>
+              <span className="block text-xs text-slate-600">Hluti af þjónustunni — engin beiðni skráð.</span>
             </button>
           </div>
-          <button type="button" onClick={() => setAsking(false)} className="mt-2 text-xs font-semibold text-slate-500 hover:text-slate-800">Hætta við</button>
+          <button type="button" onClick={() => setAsking(false)} className="mt-2 text-xs font-semibold text-slate-600 hover:text-slate-800">Hætta við</button>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
@@ -268,7 +268,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                 when the file is chosen instead, and this only reports back
                 what was answered. */}
             {onBehalf !== null && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-1.5 text-xs text-slate-600">
                 {onBehalf ? "Skráð: að beiðni skjólstæðings" : "Skráð: lesið fyrir viðtalið"}
               </span>
             )}
@@ -278,7 +278,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             </button>
           </>
         )}
-        <span className="text-xs text-slate-500">{msg}</span>
+        <span className="text-xs text-slate-600">{msg}</span>
       </div>
 
       {needsConsent && (
@@ -302,9 +302,9 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             <p className="font-semibold text-slate-900">Úr skýrslunni{foundDate ? ` · ${foundDate}` : ""}</p>
             <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-hc-hairline">{found.length} gildi fundust</span>
             <span className="flex-1" />
-            <button type="button" onClick={() => setFound(null)} className="text-sm font-semibold text-slate-500 hover:underline">Hætta við</button>
+            <button type="button" onClick={() => setFound(null)} className="text-sm font-semibold text-slate-600 hover:underline">Hætta við</button>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">Farðu yfir gildin áður en þau eru vistuð. Skráin sjálf er hvergi geymd.</p>
+          <p className="mt-0.5 text-xs text-slate-600">Farðu yfir gildin áður en þau eru vistuð. Skráin sjálf er hvergi geymd.</p>
 
           <ul className="mt-2 divide-y divide-slate-200 rounded-xl bg-white">
             {found.map((v, i) => {
@@ -316,7 +316,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                     aria-label={`Vista ${entry?.title ?? v.label}`} className="h-4 w-4 accent-emerald-600" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-slate-900">{entry?.title ?? v.label}</span>
-                    <span className="block text-xs text-slate-500">
+                    <span className="block text-xs text-slate-600">
                       {[!entry ? "ekki í uppflettiriti" : null,
                         v.converted_from ? `umreiknað úr ${v.converted_from}` : null,
                         v.confidence !== "high" ? `öryggi: ${v.confidence === "medium" ? "miðlungs" : "lágt"}` : null,
@@ -345,7 +345,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
       )}
 
       {recorded.length === 0 && !editing && !found && (
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-slate-600">
           Engin gildi skráð. Skráðu lykilgildin úr blóðprufunni og mælingunni — þau eru þá við höndina í viðtalinu og merkt við viðmið Lifeline.
         </p>
       )}
@@ -360,7 +360,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
               <li key={e.slug} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-hc-hairline">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-slate-900">{e.title}</span>
-                  <span className="block text-xs text-slate-500">
+                  <span className="block text-xs text-slate-600">
                     {unknown
                       ? "Kynjaskipt viðmið — kyn vantar í skrá"
                       : b ? `${b.label.replace(/\s*\((karlar|konur)\)$/i, "")} · ${bandRangeText(b, e.unit)}` : "utan skilgreindra bila"}
@@ -370,7 +370,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                   {String(v).replace(".", ",")}{e.unit ? ` ${e.unit}` : ""}
                 </span>
                 <button type="button" onClick={() => setLookup(`${e.title} ${v}`)} title={`Fletta upp ${e.title}`}
-                  aria-label={`Fletta upp ${e.title}`} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+                  aria-label={`Fletta upp ${e.title}`} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
                   <BookOpen className="h-4 w-4" />
                 </button>
               </li>
@@ -381,7 +381,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
 
       {!editing && !reportShown && extras.length > 0 && (
         <div className="mt-3">
-          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Önnur gildi úr skýrslunni</p>
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Önnur gildi úr skýrslunni</p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {extras.map((r) => (
               <li key={r.marker} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-hc-hairline">
@@ -392,7 +392,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
               </li>
             ))}
           </ul>
-          <p className="mt-1 text-[11px] text-slate-400">Ekki í uppflettiritinu — engin viðmið reiknuð. Bættu við færslu í /admin/knowledge ef þetta á að flaggast.</p>
+          <p className="mt-1 text-[11px] text-slate-500">Ekki í uppflettiritinu — engin viðmið reiknuð. Bættu við færslu í /admin/knowledge ef þetta á að flaggast.</p>
         </div>
       )}
 
@@ -408,7 +408,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             if (!group.length) return null;
             return (
               <div key={cat}>
-                <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">{CATEGORY_IS[cat]}</p>
+                <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{CATEGORY_IS[cat]}</p>
                 <ul className="grid gap-1.5 sm:grid-cols-2">
                   {group.map((e) => {
                     const raw = draft[e.slug] ?? (byMarker.get(e.slug) ? String(byMarker.get(e.slug)!.value) : "");
@@ -420,7 +420,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                       <li key={e.slug} className="flex items-center gap-2">
                         <label className="min-w-0 flex-1 text-sm text-slate-700" htmlFor={`res-${e.slug}`}>
                           <span className="block truncate font-medium">{e.title}</span>
-                          <span className="block text-[11px] text-slate-400">
+                          <span className="block text-[11px] text-slate-500">
                             {unknown ? "Kjörsvið er kynjaskipt" : `Kjörsvið ${ranges}${e.unit ? ` ${e.unit}` : ""}`}
                           </span>
                         </label>
@@ -430,7 +430,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                           placeholder="—"
                           className={`w-24 rounded-lg border px-2 py-1.5 text-right text-sm tabular-nums ${b && b.tone !== "good" ? "border-amber-300 bg-amber-50" : "border-slate-300"}`}
                         />
-                        <span className="w-20 shrink-0 text-[11px] text-slate-500">{b ? TONE_IS[b.tone] : unknown && v != null ? "kyn vantar" : ""}</span>
+                        <span className="w-20 shrink-0 text-[11px] text-slate-600">{b ? TONE_IS[b.tone] : unknown && v != null ? "kyn vantar" : ""}</span>
                       </li>
                     );
                   })}
@@ -446,7 +446,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             </button>
             <button type="button" onClick={() => { setDraft({}); setEditing(false); setMsg(""); }}
               className="min-h-10 rounded-xl px-3 text-sm font-semibold text-slate-600 hover:bg-slate-100">Hætta við</button>
-            <span className="text-xs text-slate-500">Skráð gildi sjást aðeins í vinnustöðinni og stjórnborði — sjúkraskráin er í Medalia.</span>
+            <span className="text-xs text-slate-600">Skráð gildi sjást aðeins í vinnustöðinni og stjórnborði — sjúkraskráin er í Medalia.</span>
           </div>
         </div>
       )}

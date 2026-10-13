@@ -60,8 +60,8 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
   if (rows.length === 0) {
     return (
       <section className="rounded-2xl border border-hc-hairline bg-white p-4">
-        <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">Breytingar á áætlun</h3>
-        <p className="mt-1 text-sm text-slate-500">Engar breytingar skráðar.</p>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-slate-600">Breytingar á áætlun</h3>
+        <p className="mt-1 text-sm text-slate-600">Engar breytingar skráðar.</p>
       </section>
     );
   }
@@ -70,7 +70,7 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
 
   return (
     <section className="rounded-2xl border border-hc-hairline bg-white p-4">
-      <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+      <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-600">
         Breytingar á áætlun
       </h3>
       <ol className="space-y-3">
@@ -83,7 +83,7 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
                   their own plan, slate is us. */}
               <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${mine ? "bg-slate-400" : "bg-amber-400"}`} aria-hidden />
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-600">
                   <span className={`font-semibold ${mine ? "text-slate-700" : "text-amber-800"}`}>
                     {mine ? (c.by ?? "Starfsmaður") : "Skjólstæðingurinn"}
                   </span>
@@ -107,8 +107,8 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
                     ))}
                     {c.edited.map((e, i) => (
                       <li key={`e${i}`} className="flex items-start gap-1.5">
-                        <PenLine className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
-                        <span className="min-w-0">{e.title} <span className="text-slate-500">— {e.what}</span></span>
+                        <PenLine className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="min-w-0">{e.title} <span className="text-slate-600">— {e.what}</span></span>
                       </li>
                     ))}
                   </ul>

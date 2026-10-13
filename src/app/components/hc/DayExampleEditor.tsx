@@ -66,7 +66,7 @@ export default function DayExampleEditor({ value, onChange, api }: {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
               {d.meal_id
                 ? <span className="font-semibold text-lime-700">✓ Úr safni{d.protein != null ? ` · ${d.protein} g prótein` : ""}{d.kcal != null ? ` · ${d.kcal} kcal` : ""}</span>
-                : <span className="text-slate-400">Frjáls texti</span>}
+                : <span className="text-slate-500">Frjáls texti</span>}
               <button type="button" onClick={() => setPicking(i)} className="font-semibold text-lime-700 hover:underline">
                 {d.meal_id ? "Skipta um máltíð" : "Velja úr safni"}
               </button>

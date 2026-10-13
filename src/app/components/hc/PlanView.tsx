@@ -169,14 +169,14 @@ function Overview({ plan, byPillar }: { plan: ActionPlan; byPillar: (p: Pillar) 
             <div key={p} className="break-inside-avoid rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: meta.ring }}>
               <div className="flex items-center justify-between">
                 <PillarBadge pillar={p} />
-                <span className="text-xs text-slate-400">{items.length} {items.length === 1 ? "aðgerð" : "aðgerðir"}</span>
+                <span className="text-xs text-slate-500">{items.length} {items.length === 1 ? "aðgerð" : "aðgerðir"}</span>
               </div>
               {goal && <p className="mt-3 text-[15px] font-semibold leading-snug text-hc-ink">{goal.text}</p>}
               <ul className="mt-3 space-y-2">
                 {items.map((m) => (
                   <li key={m.uid} className="flex items-start gap-2 text-sm text-slate-700">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
-                    <span><span className="font-medium">{m.title}</span>{m.frequency ? <span className="text-slate-500"> · {m.frequency}</span> : null}</span>
+                    <span><span className="font-medium">{m.title}</span>{m.frequency ? <span className="text-slate-600"> · {m.frequency}</span> : null}</span>
                   </li>
                 ))}
               </ul>
@@ -212,7 +212,7 @@ function ModuleCard({ m }: { m: PlanItem }) {
     <details className="group rounded-2xl border border-slate-100 bg-white p-4 shadow-sm open:ring-1 open:ring-hc-hairline">
       <summary className="flex cursor-pointer list-none items-start gap-2 [&::-webkit-details-marker]:hidden">
         <div className="flex-1">{body}</div>
-        <span className="mt-1 text-slate-400 transition group-open:rotate-180" aria-hidden>▾</span>
+        <span className="mt-1 text-slate-500 transition group-open:rotate-180" aria-hidden>▾</span>
       </summary>
       <div className="mt-3 space-y-3 pl-4 text-sm leading-relaxed text-slate-700">
         {m.details && <p>{m.details}</p>}
@@ -310,7 +310,7 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
 
       {!!e.principles?.length && (
         <section>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Af hverju þetta virkar</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-600">Af hverju þetta virkar</h3>
           <ol className="mt-2 grid gap-2 sm:grid-cols-2">
             {e.principles.map((p, i) => (
               <li key={i} className="flex gap-3 rounded-2xl border border-orange-100 bg-white p-3 shadow-sm">
@@ -324,7 +324,7 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
 
       {!!e.progression?.length && (
         <section>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">{currentStage !== null ? "Stigin" : "Næstu 12 vikur"}</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-600">{currentStage !== null ? "Stigin" : "Næstu 12 vikur"}</h3>
           <ol className={`mt-2 grid gap-2 ${e.progression.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
             {e.progression.map((p, i) => (
               <li key={i} className={`relative rounded-2xl bg-white p-4 shadow-sm ring-1 ${currentStage === i ? "ring-2 ring-orange-500" : "ring-orange-100"}`}>
@@ -356,14 +356,14 @@ function SessionCard({ s, n }: { s: ExerciseSession; n: number }) {
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-600 font-bold text-white">{n}</span>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{s.day}</p>
-          <p className="font-semibold text-hc-ink">{s.title}{s.focus ? <span className="font-normal text-slate-500"> · {s.focus}</span> : null}</p>
+          <p className="font-semibold text-hc-ink">{s.title}{s.focus ? <span className="font-normal text-slate-600"> · {s.focus}</span> : null}</p>
         </div>
         {s.minutes ? <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">{s.minutes} mín.</span> : null}
       </div>
       <div className="divide-y divide-slate-100">
         {blocks.map((b) => (
           <div key={b.key} className="px-4 py-3">
-            {blocks.length > 1 && <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">{BLOCK_IS[b.key]}</p>}
+            {blocks.length > 1 && <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">{BLOCK_IS[b.key]}</p>}
             <ul className={b.key === "main" ? "space-y-3" : "flex flex-wrap gap-2"}>
               {b.items.map((it, j) => b.key === "main"
                 ? <ExerciseRow key={j} it={it} />
@@ -374,7 +374,7 @@ function SessionCard({ s, n }: { s: ExerciseSession; n: number }) {
                       ? <img src={it.image} alt="" className="h-7 w-7 rounded-full object-cover" />
                       : <span className="h-7 w-7 rounded-full bg-orange-100" />}
                     <span className="font-medium text-slate-800">{it.name}</span>
-                    {it.prescription && <span className="text-slate-500">{it.prescription}</span>}
+                    {it.prescription && <span className="text-slate-600">{it.prescription}</span>}
                   </li>
                 ))}
             </ul>
@@ -407,7 +407,7 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
               {it.muscles.slice(0, 3).map((m) => <span key={m} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{muscleIs(m)}</span>)}
             </p>
           )}
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-600">
             {it.rest ? `Hvíld ${it.rest}` : ""}
             {it.rest && it.equipment ? " · " : ""}
             {it.equipment ? EQUIPMENT_IS[it.equipment] ?? it.equipment : ""}
@@ -452,7 +452,7 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
       )}
       {n.day_example.length > 0 && (
         <div className="mt-6 break-inside-avoid">
-          <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">Dæmi um dag</h3>
+          <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-600">Dæmi um dag</h3>
           <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
             {n.day_example.map((d, i) => (
               <div key={i} className="flex break-inside-avoid items-center gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-white p-2 shadow-sm">
@@ -466,7 +466,7 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
                   <p className="text-xs font-bold uppercase tracking-wide text-lime-700">{d.meal}</p>
                   <p className="font-semibold leading-tight text-slate-900">{d.example}</p>
                   {(d.protein != null || d.kcal != null) && (
-                    <p className="mt-0.5 text-xs text-slate-500">
+                    <p className="mt-0.5 text-xs text-slate-600">
                       {[d.protein != null ? `${d.protein} g prótein` : null, d.kcal != null ? `${d.kcal} kcal` : null].filter(Boolean).join(" · ")}
                     </p>
                   )}
@@ -519,7 +519,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
         <div className="text-right">
           <p className="text-[14pt] font-bold text-slate-900">{clientName || ""}</p>
           {by && <p className="text-[8.5pt] text-slate-600">Unnin af {by}</p>}
-          <p className="text-[8.5pt] text-slate-500">{start ? `${start}` : ""}{review ? ` – endurmat ${review}` : ""}</p>
+          <p className="text-[8.5pt] text-slate-600">{start ? `${start}` : ""}{review ? ` – endurmat ${review}` : ""}</p>
         </div>
       </header>
 
@@ -539,19 +539,19 @@ function PrintPage({ plan, clientName, author, byPillar }: {
             <div key={p} className="overflow-hidden rounded-lg border px-3 py-2.5" style={{ borderColor: meta.ring, borderTopWidth: 4, borderTopColor: meta.color }}>
               <p className="text-[10.5pt] font-bold" style={{ color: meta.ink }}>{meta.label}</p>
               {goal && <p className="mt-0.5 text-[9pt] font-semibold text-slate-900">{clip(goal.text, 140)}</p>}
-              {items.length === 0 && <p className="mt-1 text-[8.5pt] text-slate-400">Engar aðgerðir.</p>}
+              {items.length === 0 && <p className="mt-1 text-[8.5pt] text-slate-500">Engar aðgerðir.</p>}
               <ul className="mt-1.5 space-y-1.5">
                 {items.map((m) => (
                   <li key={m.uid} className="flex gap-2">
                     <span className="mt-[3px] inline-block h-3 w-3 shrink-0 rounded-sm border-[1.5px]" style={{ borderColor: meta.color }} />
                     <span className="min-w-0">
                       <span className="font-semibold text-slate-900">{clip(m.title, 60)}</span>
-                      {m.frequency && <span className="text-slate-500"> · {m.frequency}</span>}
+                      {m.frequency && <span className="text-slate-600"> · {m.frequency}</span>}
                       {m.note && !dense && <span className="block text-[8pt] italic text-slate-600">{clip(m.note, 110)}</span>}
                     </span>
                   </li>
                 ))}
-                {more > 0 && <li className="text-[8pt] text-slate-400">+ {more} til viðbótar á aðganginum</li>}
+                {more > 0 && <li className="text-[8pt] text-slate-500">+ {more} til viðbótar á aðganginum</li>}
               </ul>
             </div>
           );
@@ -571,7 +571,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
                       <td className="py-1 text-slate-700">
                         <span className="font-semibold">{clip(s.title, 40)}</span>
                         {s.items.length ? (
-                          <span className={`block text-[8pt] text-slate-500 ${dense ? "line-clamp-1" : ""}`}>
+                          <span className={`block text-[8pt] text-slate-600 ${dense ? "line-clamp-1" : ""}`}>
                             {clip(s.items.slice(0, 5).map((it) => (it.prescription ? `${it.name} ${it.prescription}` : it.name)).join(" · "), dense ? 90 : 150)}
                           </span>
                         ) : null}
@@ -601,7 +601,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
       )}
 
       </div>
-      <footer className="mt-3 flex shrink-0 justify-between border-t border-hc-hairline pt-1.5 text-[7.5pt] text-slate-400">
+      <footer className="mt-3 flex shrink-0 justify-between border-t border-hc-hairline pt-1.5 text-[7.5pt] text-slate-500">
         <span>Lifeline Health ehf. · lifelinehealth.is</span>
         <span>Ítarleg útgáfa, æfingar og fræðsla á aðganginum þínum</span>
       </footer>

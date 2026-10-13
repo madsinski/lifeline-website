@@ -96,20 +96,20 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
 
   if (!programKey) {
     return (
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-600">
         Veldu næringarsniðmát til að sjá vikuna sem þátttakandinn fær.
       </p>
     );
   }
-  if (!week) return <p className="flex items-center gap-1.5 text-xs text-slate-500"><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Hleð vikunni…</p>;
+  if (!week) return <p className="flex items-center gap-1.5 text-xs text-slate-600"><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Hleð vikunni…</p>;
 
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <p className="text-sm font-semibold text-slate-700">Vikan sem þátttakandinn sér</p>
-        {band && <p className="text-xs text-slate-500">Próteinmarkmið {band.min}–{band.max} g á dag</p>}
+        {band && <p className="text-xs text-slate-600">Próteinmarkmið {band.min}–{band.max} g á dag</p>}
       </div>
-      <p className="mb-2 mt-0.5 text-xs text-slate-500">
+      <p className="mb-2 mt-0.5 text-xs text-slate-600">
         Breyting hér er sama valið og þátttakandinn gerir sjálfur í appinu — ekki dagbók um það sem var borðað.
       </p>
 
@@ -119,13 +119,13 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
           const low = band && protein < band.min;
           return (
             <li key={i} className="flex items-center gap-2 border-b border-slate-100 px-2 py-1.5 last:border-b-0">
-              <span className="w-9 shrink-0 text-[11px] font-bold uppercase text-slate-400">{WEEKDAYS_SHORT[i]}</span>
+              <span className="w-9 shrink-0 text-[11px] font-bold uppercase text-slate-500">{WEEKDAYS_SHORT[i]}</span>
               <span className="min-w-0 flex-1 truncate text-sm text-slate-700">
                 {d.dinner ? mealName(d.dinner) : "—"}
               </span>
               {/* Flagged, not corrected: a day under the band may be the
                   right call for a reason the coach knows and this does not. */}
-              <span className={`shrink-0 text-xs font-semibold tabular-nums ${low ? "text-amber-700" : "text-slate-500"}`}>
+              <span className={`shrink-0 text-xs font-semibold tabular-nums ${low ? "text-amber-700" : "text-slate-600"}`}>
                 {protein} g
               </span>
               <button type="button" onClick={() => setOpen({ day: i, slot: "dinner" })}
@@ -141,16 +141,16 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
       {open && meals && picks && (
         <div className="mt-2 rounded-xl border border-hc-hairline bg-slate-50 p-2">
           <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
               {SLOT_IS[open.slot]} · {WEEKDAYS[open.day].toLowerCase()}
             </p>
-            <button type="button" onClick={() => setOpen(null)} className="text-xs font-semibold text-slate-500 hover:text-slate-800">Loka</button>
+            <button type="button" onClick={() => setOpen(null)} className="text-xs font-semibold text-slate-600 hover:text-slate-800">Loka</button>
           </div>
           {(() => {
             const current = dayFor(meals, programKey, picks, prefs, open.day, targetG)?.[open.slot] ?? null;
             const alts = alternativesFor(current, meals, programKey, open.slot, prefs, targetG, open.day);
             const list = [...alts.near, ...alts.rest].slice(0, 12);
-            if (!list.length) return <p className="text-xs text-slate-500">Engar aðrar máltíðir passa við skilyrðin.</p>;
+            if (!list.length) return <p className="text-xs text-slate-600">Engar aðrar máltíðir passa við skilyrðin.</p>;
             return (
               <ul className="grid gap-1 sm:grid-cols-2">
                 {list.map((m, idx) => (
@@ -158,7 +158,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
                     <button type="button" disabled={busy} onClick={() => void setPick(open.day, open.slot, m.id)}
                       className="flex w-full items-center justify-between gap-2 rounded-lg border border-hc-hairline bg-white px-2 py-1.5 text-left text-xs transition hover:border-lime-400 disabled:opacity-50">
                       <span className="min-w-0 truncate font-semibold text-slate-800">{mealName(m)}</span>
-                      <span className="shrink-0 tabular-nums text-slate-500">
+                      <span className="shrink-0 tabular-nums text-slate-600">
                         {idx < alts.near.length ? "≈ " : ""}{m.protein ?? 0} g
                       </span>
                     </button>
@@ -169,7 +169,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
           })()}
           {picks[pickKey(open.day, open.slot)] && (
             <button type="button" disabled={busy} onClick={() => void setPick(open.day, open.slot, null)}
-              className="mt-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-800 disabled:opacity-50">
+              className="mt-1.5 text-[11px] font-semibold text-slate-600 hover:text-slate-800 disabled:opacity-50">
               Til baka í tillögu áætlunarinnar
             </button>
           )}

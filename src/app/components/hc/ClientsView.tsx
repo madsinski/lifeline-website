@@ -68,7 +68,7 @@ export default function ClientsView({ api, onOpenClient }: {
         <div className="flex rounded-lg bg-slate-100 p-0.5">
           {(["all", "groups"] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTab(t)}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`}>
               {t === "all" ? <Users className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
               {t === "all" ? `Allir${rows ? ` · ${rows.length}` : ""}` : `Hópar${groups ? ` · ${groups.length}` : ""}`}
             </button>
@@ -84,13 +84,13 @@ export default function ClientsView({ api, onOpenClient }: {
       </div>
 
       <label className="flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4">
-        <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+        <Search className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
         <input value={q} onChange={(e) => setQ(e.target.value)}
           placeholder={tab === "all" ? "Leita að skjólstæðingi — nafn eða sími" : "Leita að hópi eða starfsmanni"}
           className="min-h-11 w-full bg-transparent text-sm outline-none" />
       </label>
 
-      {rows === null && <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Hleð…</p>}
+      {rows === null && <p className="flex items-center gap-2 text-sm text-slate-600"><Loader2 className="h-4 w-4 animate-spin" /> Hleð…</p>}
 
       {tab === "all" && rows !== null && (
         <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-hc-hairline bg-white">
@@ -100,7 +100,7 @@ export default function ClientsView({ api, onOpenClient }: {
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-slate-900">{r.client_name}</span>
-                  <span className="block text-xs text-slate-500">{r.client_phone ?? "—"}</span>
+                  <span className="block text-xs text-slate-600">{r.client_phone ?? "—"}</span>
                 </span>
                 {r.stage && (
                   <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
@@ -110,7 +110,7 @@ export default function ClientsView({ api, onOpenClient }: {
               </button>
             </li>
           ))}
-          {!people.length && <li className="px-4 py-3 text-sm text-slate-500">Enginn fannst.</li>}
+          {!people.length && <li className="px-4 py-3 text-sm text-slate-600">Enginn fannst.</li>}
         </ul>
       )}
 
@@ -121,24 +121,24 @@ export default function ClientsView({ api, onOpenClient }: {
               <button type="button" onClick={() => setOpen(open === g.id ? null : g.id)}
                 aria-expanded={open === g.id}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
                   <Building2 className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-bold text-slate-900">{g.name}</span>
-                  <span className="block truncate text-xs text-slate-500">
+                  <span className="block truncate text-xs text-slate-600">
                     {[g.members.length ? `${g.members.length} starfsmenn` : "engir starfsmenn skráðir", g.contact, g.phone].filter(Boolean).join(" · ")}
                   </span>
                 </span>
                 {g.status === "draft" && (
                   <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200">óútfyllt</span>
                 )}
-                <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open === g.id ? "rotate-180" : ""}`} />
+                <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition ${open === g.id ? "rotate-180" : ""}`} />
               </button>
               {open === g.id && (
                 <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3">
                   {g.members.length === 0 ? (
-                    <p className="text-sm text-slate-500">Engir starfsmenn tengdir þessum hópi enn þá.</p>
+                    <p className="text-sm text-slate-600">Engir starfsmenn tengdir þessum hópi enn þá.</p>
                   ) : (
                     <ul className="grid gap-1 sm:grid-cols-2">
                       {g.members.map((m) => {
@@ -148,21 +148,21 @@ export default function ClientsView({ api, onOpenClient }: {
                             <button type="button" disabled={!j} onClick={() => j && onOpenClient(j)}
                               className="w-full truncate rounded-lg bg-white px-2.5 py-1.5 text-left text-sm text-slate-800 ring-1 ring-hc-hairline enabled:hover:bg-emerald-50 disabled:opacity-60">
                               {m.full_name ?? "—"}
-                              {!j && <span className="ml-1 text-xs text-slate-400">(engin heilsuferð)</span>}
+                              {!j && <span className="ml-1 text-xs text-slate-500">(engin heilsuferð)</span>}
                             </button>
                           </li>
                         );
                       })}
                     </ul>
                   )}
-                  <p className="mt-2 text-[11px] text-slate-500">
+                  <p className="mt-2 text-[11px] text-slate-600">
                     Samningar, verð og umferðir eru í <span className="font-semibold">/admin/business</span>.
                   </p>
                 </div>
               )}
             </li>
           ))}
-          {!shownGroups.length && <li className="rounded-2xl border border-hc-hairline bg-white px-4 py-3 text-sm text-slate-500">Enginn hópur fannst.</li>}
+          {!shownGroups.length && <li className="rounded-2xl border border-hc-hairline bg-white px-4 py-3 text-sm text-slate-600">Enginn hópur fannst.</li>}
         </ul>
       )}
 
@@ -197,7 +197,7 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
     <Sheet title="Nýr hópur" onClose={onClose} max="max-w-md">
       <div className="p-4 pt-0">
         <p className="font-bold text-slate-900">Nýr hópur</p>
-        <p className="mt-0.5 text-sm text-slate-500">
+        <p className="mt-0.5 text-sm text-slate-600">
           Vinnustaður eða félag. Samningar og verð eru fyllt út í /admin/business á eftir.
         </p>
         <div className="mt-3 grid gap-2">

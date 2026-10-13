@@ -149,7 +149,7 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
         <div className="flex rounded-lg bg-slate-100 p-0.5">
           {(["mine", "all"] as const).map((s) => (
             <button key={s} type="button" onClick={() => setScope(s)}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${scope === s ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${scope === s ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`}>
               {s === "mine" ? "Mínar" : "Allar"}
             </button>
           ))}
@@ -158,7 +158,7 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
           className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
           <Link2 className="h-3.5 w-3.5" /> Tengja við dagatal
         </button>
-        {loading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
+        {loading && <Loader2 className="h-4 w-4 animate-spin text-slate-500" />}
       </div>
 
       {/* Legend: three kinds, nothing else. */}
@@ -169,7 +169,7 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
             {APPT_IS[k].label} · {APPT_MINUTES[k]} mín.
           </span>
         ))}
-        <span className="text-xs text-slate-400">Dragðu tíma á annan stað til að færa hann.</span>
+        <span className="text-xs text-slate-500">Dragðu tíma á annan stað til að færa hann.</span>
       </div>
 
       {msg && <p role="status" className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{msg}</p>}
@@ -193,7 +193,7 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
           {SLOTS.map((slot) => (
             <div key={slot} className="grid border-b border-slate-100 last:border-0"
               style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, 1fr)` }}>
-              <span className="border-r border-slate-100 px-1 py-1 text-right text-[10px] text-slate-400">{slot.endsWith("00") ? slot : ""}</span>
+              <span className="border-r border-slate-100 px-1 py-1 text-right text-[10px] text-slate-500">{slot.endsWith("00") ? slot : ""}</span>
               {days.map((d) => {
                 const here = at(d, slot);
                 return (
@@ -288,7 +288,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
       header={
         <div className="px-4 pb-1">
           <p className="font-bold text-slate-900">Bóka tíma</p>
-          <p className="mt-0.5 text-sm text-slate-500">{when}</p>
+          <p className="mt-0.5 text-sm text-slate-600">{when}</p>
         </div>
       }>
       <div className="p-4 pt-2">
@@ -317,7 +317,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
         <label className="mt-3 block">
           <span className="text-xs font-semibold text-slate-600">Skjólstæðingur</span>
           <span className="mt-1 flex items-center gap-2 rounded-xl border border-slate-300 px-3">
-            <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+            <Search className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
             <input value={q} onChange={(e) => setQ(e.target.value)} autoFocus placeholder="Nafn eða sími"
               className="min-h-10 w-full bg-transparent text-sm outline-none" />
           </span>
@@ -329,11 +329,11 @@ function BookDialog({ api, at, onClose, onBooked }: {
               <button type="button" disabled={busy} onClick={() => book(c)}
                 className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300 disabled:opacity-50">
                 <span className="truncate font-semibold text-slate-900">{c.name ?? "—"}</span>
-                <span className="shrink-0 text-xs text-slate-500">Bóka</span>
+                <span className="shrink-0 text-xs text-slate-600">Bóka</span>
               </button>
             </li>
           ))}
-          {q.trim().length >= 2 && !hits.length && <li className="px-1 text-sm text-slate-500">Enginn fannst.</li>}
+          {q.trim().length >= 2 && !hits.length && <li className="px-1 text-sm text-slate-600">Enginn fannst.</li>}
         </ul>
 
         {msg && <p className="mt-2 text-sm text-red-700">{msg}</p>}

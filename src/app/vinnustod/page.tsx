@@ -305,10 +305,10 @@ export function WorkstationApp({ mode }: { mode: "worker" | "staff" }) {
   }, [api]);
   useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
-  if (me === undefined) return <div className="p-10 text-center text-slate-500">Hleð…</div>;
+  if (me === undefined) return <div className="p-10 text-center text-slate-600">Hleð…</div>;
   if (me === null) {
     return mode === "worker" ? <Login onDone={load} /> : (
-      <div className="p-10 text-center text-slate-500">
+      <div className="p-10 text-center text-slate-600">
         Vinnustöðin er opin starfsfólki Lifeline með tveggja þátta staðfestingu.
       </div>
     );
@@ -400,7 +400,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
           workstation on a laptop was leaving a third of the screen as
           empty grey either side of a single column. */}
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        {rows === null ? <p className="py-10 text-center text-slate-500">Hleð…</p>
+        {rows === null ? <p className="py-10 text-center text-slate-600">Hleð…</p>
           : "patient" in view
             ? <PatientView key={view.patient} id={view.patient} compose={!!view.compose} me={me}
                 onBack={() => (window.history.length > 1 ? window.history.back() : setView({ home: "today" }))} onChanged={load} />
@@ -512,7 +512,7 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-slate-500">{longDate(new Date())}</p>
+        <p className="text-sm text-slate-600">{longDate(new Date())}</p>
         <h1 className="text-2xl font-bold text-slate-900">{greet}, {me.name.split(" ")[0]}</h1>
       </div>
 
@@ -536,7 +536,7 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
               ASKED for — two different questions that both look like a
               queue, and I nearly collapsed them into one by mistake. */}
           <section>
-            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
               Bíður þín {waiting.length > 0 && <span className="rounded-full bg-hc-brand-dark px-2 py-0.5 text-[11px] text-white">{waiting.length}</span>}
             </h2>
             {/* Quiet is deliberate: an empty "bíður þín" is this panel's
@@ -582,9 +582,9 @@ function WaitingRow({ r, t, f, onOpen }: {
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TONE_DOT[t.tone]}`} aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block font-semibold text-slate-900">{cleanName(r.client_name)} {isTest(r.client_name) && <TestBadge />}</span>
-          <span className="block text-sm text-slate-500">
+          <span className="block text-sm text-slate-600">
             <span className={f.reportLate ? "font-semibold text-red-600" : ""}>{t.label}</span>
-            {f.waitingDays > 2 && <span className="text-slate-400"> · {f.waitingDays} d.</span>}
+            {f.waitingDays > 2 && <span className="text-slate-500"> · {f.waitingDays} d.</span>}
           </span>
         </span>
       </button>
@@ -680,7 +680,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
     </button>
   );
   if (err) return <div className="space-y-4">{backBtn}<p className="rounded-2xl bg-white p-6 text-slate-600">{err}</p></div>;
-  if (!d) return <div className="space-y-4">{backBtn}<p className="p-6 text-slate-500">Hleð…</p></div>;
+  if (!d) return <div className="space-y-4">{backBtn}<p className="p-6 text-slate-600">Hleð…</p></div>;
 
   const j = d.journey;
   const kt = d.patient.kennitala;
@@ -782,7 +782,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
           </span>
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-xl font-bold text-slate-900">{cleanName(d.patient.full_name)}</h1>
-            <p className="truncate text-sm text-slate-500">
+            <p className="truncate text-sm text-slate-600">
               {[kt ? `${kt.slice(0, 6)}-${kt.slice(6)}` : null, age(d.patient.date_of_birth), d.location?.name].filter(Boolean).join(" · ")}
               {isTest(d.patient.full_name) && <> <TestBadge /></>}
             </p>
@@ -790,12 +790,12 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-slate-600">
           {d.patient.phone && (
-            <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+            <span className="inline-flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-slate-500" aria-hidden />
               <a href={`tel:${d.patient.phone}`} className="hover:underline">{d.patient.phone}</a>
             </span>
           )}
           {d.patient.email && (
-            <span className="inline-flex min-w-0 items-center gap-1.5"><Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+            <span className="inline-flex min-w-0 items-center gap-1.5"><Mail className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
               <a href={`mailto:${d.patient.email}`} className="truncate hover:underline">{d.patient.email}</a>
             </span>
           )}
@@ -804,10 +804,10 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
               where they had nothing to do with the steps around them. */}
           <button type="button" onClick={() => setSheet("orders")}
             className="inline-flex items-center gap-1.5 rounded-lg px-1.5 py-0.5 hover:bg-slate-100">
-            <CreditCard className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+            <CreditCard className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
             <span className={paid ? "text-emerald-800" : "font-semibold text-amber-800"}>{paid ? "Greitt" : "Ógreitt"}</span>
             {code && (
-              <span className="text-slate-500">
+              <span className="text-slate-600">
                 · kóði {code.activation_redeemed_at ? "virkjaður" : code.activation_code}
               </span>
             )}
@@ -875,7 +875,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hc-ink text-white">{st.icon}</span>
                 <div className="min-w-0">
                   <h2 className="truncate font-bold text-slate-900">{st.title}</h2>
-                  <p className="truncate text-xs text-slate-500">{st.status}</p>
+                  <p className="truncate text-xs text-slate-600">{st.status}</p>
                 </div>
               </div>
               {st.body}
@@ -909,12 +909,12 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
                       <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
                     </span>
                     <span className="text-sm font-semibold text-slate-900">Heilsufarsskoðun búin</span>
-                    <span className="text-sm text-slate-500">{tests[2]?.detail ?? ""}</span>
+                    <span className="text-sm text-slate-600">{tests[2]?.detail ?? ""}</span>
                   </section>
                 );
                 return (
                   <section className="rounded-2xl border border-hc-hairline bg-white p-4">
-                    <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Heilsufarsskoðun</h2>
+                    <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">Heilsufarsskoðun</h2>
                     <ul>
                       {tests.map((c) => {
                         const done = c.state === "done";
@@ -926,8 +926,8 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
                                 done ? "border-transparent bg-emerald-600 text-white" : "border-slate-300 text-transparent"}`}>
                                 <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
                               </span>
-                              <span className={`min-w-0 flex-1 text-sm font-semibold ${done ? "text-slate-500" : "text-slate-900"}`}>{c.label}</span>
-                              {c.detail && <span className="shrink-0 text-xs text-slate-500">{c.detail}</span>}
+                              <span className={`min-w-0 flex-1 text-sm font-semibold ${done ? "text-slate-600" : "text-slate-900"}`}>{c.label}</span>
+                              {c.detail && <span className="shrink-0 text-xs text-slate-600">{c.detail}</span>}
                             </button>
                           </li>
                         );
@@ -1046,7 +1046,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
       {/* Out of the way, but one click from anywhere. */}
       <div className="flex flex-wrap gap-4 px-1 pt-1 text-xs">
-        <button type="button" onClick={() => setSheet("history")} className="font-semibold text-slate-400 hover:text-slate-700 hover:underline">
+        <button type="button" onClick={() => setSheet("history")} className="font-semibold text-slate-500 hover:text-slate-700 hover:underline">
           Saga ({d.audit.length})
         </button>
       </div>
@@ -1079,7 +1079,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
           <h2 className="font-bold text-slate-900">{title}</h2>
           <span className="flex-1" />
           <button type="button" onClick={onClose} aria-label="Loka"
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">✕</button>
+            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700">✕</button>
         </div>
         {children}
       </div>
@@ -1229,7 +1229,7 @@ function ResultsStep({ d, api, isDoctor, record, reload }: {
         <>
           <ReportView report={d.report.report} signals={d.report.signals}
             reference={d.report.reference} sex={d.report.sex} />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Umferðarljósin eru viðmið Lifeline — þau sömu og í appinu. Skýrslan frá Medalia notar eigin orðalag og mörk, og þar sem
             þeim ber ekki saman birtist orðalag hennar við gildið.
           </p>
@@ -1277,7 +1277,7 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
       </div>
     );
   }
-  if (!j.blood_results_at && !j.report_imported_at) return <p className="text-sm text-slate-500">Skýrslan er staðfest þegar blóðprufusvörin eru komin.</p>;
+  if (!j.blood_results_at && !j.report_imported_at) return <p className="text-sm text-slate-600">Skýrslan er staðfest þegar blóðprufusvörin eru komin.</p>;
   return (
     <div className="space-y-2">
       {isDoctor ? (
@@ -1349,11 +1349,11 @@ function Orders({ d, record }: { d: Detail; record: (p: Record<string, unknown>)
   return (
     <div className="space-y-2">
       <ul className="space-y-1.5 text-sm">
-        {d.orders.length === 0 && <li className="text-slate-500">Engar greiðslur skráðar.</li>}
+        {d.orders.length === 0 && <li className="text-slate-600">Engar greiðslur skráðar.</li>}
         {d.orders.map((o) => (
           <li key={o.id} className="flex justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2">
             <span>{o.kind === "health_check" ? "Heilsufarsskoðun" : o.kind === "followup_3m" ? "Eftirfylgd" : o.kind === "reevaluation" ? "Endurmat" : "Aukaviðtal"} · {o.payment_route === "company" ? "fyrirtæki" : o.payment_route === "union" ? "stéttarfélag" : "sjálf(ur)"}</span>
-            <span className="font-mono text-xs text-slate-500">{o.activation_code}{o.activation_redeemed_at ? " ✓" : ""}</span>
+            <span className="font-mono text-xs text-slate-600">{o.activation_code}{o.activation_redeemed_at ? " ✓" : ""}</span>
           </li>
         ))}
       </ul>
@@ -1515,7 +1515,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
           <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sniðmát</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Sniðmát</p>
                 <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Sniðmát">
                   {MESSAGE_TEMPLATES.map((t) => (
                     <button key={t.key} type="button" role="radio" aria-checked={tpl === t.key} onClick={() => pick(t.key)}
@@ -1542,7 +1542,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
               <label className="block text-sm"><span className="font-medium text-slate-700">Texti</span>
                 <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
               {sms && (
-                <p className={`text-xs ${size.segments > 3 ? "text-amber-700" : "text-slate-500"}`}>
+                <p className={`text-xs ${size.segments > 3 ? "text-amber-700" : "text-slate-600"}`}>
                   SMS: {size.chars} stafir · {size.segments} {size.segments === 1 ? "hluti" : "hlutar"}{size.encoding === "UCS-2" ? " (íslenskir stafir: 70 í hluta)" : ""}. Vefslóðir geta verið síaðar hjá símafyrirtækjum.
                 </p>
               )}
@@ -1555,9 +1555,9 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Send skilaboð</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Send skilaboð</p>
               <ul className="mt-2 max-h-80 space-y-2 overflow-y-auto">
-                {d.messages.length === 0 && <li className="text-sm text-slate-400">Engin skilaboð enn.</li>}
+                {d.messages.length === 0 && <li className="text-sm text-slate-500">Engin skilaboð enn.</li>}
                 {d.messages.map((m) => (
                   <li key={m.id} className="rounded-xl bg-slate-50 p-2.5 text-xs">
                     <p className="flex items-center gap-1.5 font-semibold text-slate-700">
@@ -1568,7 +1568,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
                       </span>
                     </p>
                     <p className="mt-1 line-clamp-3 whitespace-pre-line text-slate-600">{m.body}</p>
-                    <p className="mt-1 text-slate-400">{m.sent_by}</p>
+                    <p className="mt-1 text-slate-500">{m.sent_by}</p>
                   </li>
                 ))}
               </ul>
@@ -1602,7 +1602,7 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
       <div className="flex flex-wrap items-center gap-2">
         <p className="min-w-0 flex-1 text-sm">
           <span className="font-semibold text-slate-800">{label}</span><br />
-          <span className="text-slate-500">{done ? `Lokið ${dayTime(done)}` : at ? `${dayTime(at)}${mode === "video" ? " · myndsímtal" : ""}` : disabled ? disabledText : "Ekki bókað"}</span>
+          <span className="text-slate-600">{done ? `Lokið ${dayTime(done)}` : at ? `${dayTime(at)}${mode === "video" ? " · myndsímtal" : ""}` : disabled ? disabledText : "Ekki bókað"}</span>
           {!done && at && mode === "video" && (
             <>
               <br />
@@ -1647,7 +1647,7 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
                   created there, then written back here and on to the client.
                   That needs Google connected, so the manual route stays for
                   when it is not — or when the meeting is on Teams or Zoom. */}
-              <p className="mt-1.5 text-[11px] leading-snug text-slate-500">
+              <p className="mt-1.5 text-[11px] leading-snug text-slate-600">
                 Skildu þetta eftir tómt og Google Meet-hlekkur verður búinn til sjálfkrafa þegar tíminn fer í dagatalið.
                 Límdu hér að ofan ef þú vilt nota Teams, Zoom eða tiltekinn fund.
               </p>
@@ -1674,7 +1674,7 @@ function NotesPeek({ j, onBack }: { j: Journey; onBack: () => void }) {
   return (
     <section className="mb-3 rounded-xl bg-slate-50 p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Úr viðtalinu</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Úr viðtalinu</p>
         <button type="button" onClick={onBack} className="text-xs font-semibold text-emerald-700 hover:underline">← Aftur í viðtalið</button>
       </div>
       {rows.length ? (
@@ -1686,7 +1686,7 @@ function NotesPeek({ j, onBack }: { j: Journey; onBack: () => void }) {
             </div>
           ))}
         </dl>
-      ) : <p className="mt-1 text-sm text-slate-500">Engir minnispunktar enn.</p>}
+      ) : <p className="mt-1 text-sm text-slate-600">Engir minnispunktar enn.</p>}
     </section>
   );
 }
@@ -1772,14 +1772,14 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
   };
 
   if (!j.report_generated_at && !j.report_imported_at) {
-    return <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">Viðtalið opnast þegar skýrslan er komin inn.</p>;
+    return <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-600">Viðtalið opnast þegar skýrslan er komin inn.</p>;
   }
 
   return (
     <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
       {/* Stepper */}
       <nav aria-label="Skref viðtals" className="lg:sticky lg:top-20 lg:self-start">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{isFollowup ? "Eftirfylgdarviðtal" : "Viðtal"}</p>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">{isFollowup ? "Eftirfylgdarviðtal" : "Viðtal"}</p>
         <ol className="flex gap-2 overflow-x-auto lg:flex-col">
           {STEPS.map((s, i) => (
             <li key={s}>
@@ -1799,7 +1799,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
         {step === 0 && (
           <section className="rounded-2xl border border-hc-hairline bg-white p-5">
             <h3 className="text-lg font-bold text-slate-900">Undirbúningur</h3>
-            <p className="mb-4 text-sm text-slate-500">Um 10 mínútur fyrir viðtalið.</p>
+            <p className="mb-4 text-sm text-slate-600">Um 10 mínútur fyrir viðtalið.</p>
             <ul className="space-y-2">
               {prep.map((p, i) => (
                 <li key={i}>
@@ -1824,9 +1824,9 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Samtal</h3>
-                <p className="text-sm text-slate-500">Byrjaðu á því sem skjólstæðingurinn vill breyta. Punktarnir vistast sjálfkrafa og fylgja í áætlunina.</p>
+                <p className="text-sm text-slate-600">Byrjaðu á því sem skjólstæðingurinn vill breyta. Punktarnir vistast sjálfkrafa og fylgja í áætlunina.</p>
               </div>
-              <span className={`text-xs font-semibold ${saved === "error" ? "text-red-600" : "text-slate-400"}`} role="status">
+              <span className={`text-xs font-semibold ${saved === "error" ? "text-red-600" : "text-slate-500"}`} role="status">
                 {saved === "saving" ? "Vistar…" : saved === "saved" ? "✓ Vistað" : saved === "error" ? "Vistun mistókst" : ""}
               </span>
             </div>
@@ -1834,7 +1834,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
               {TOPICS.map((t) => (
                 <div key={t.key} className="rounded-xl border border-hc-hairline p-3" style={{ borderLeftWidth: 4, borderLeftColor: t.color }}>
                   <label htmlFor={`note-${t.key}`} className="font-semibold text-slate-900">{t.title}</label>
-                  <p className="mt-0.5 text-xs text-slate-500">{((isFollowup ? FOLLOWUP_PROMPTS[t.key] : null) ?? t.prompts).join(" · ")}</p>
+                  <p className="mt-0.5 text-xs text-slate-600">{((isFollowup ? FOLLOWUP_PROMPTS[t.key] : null) ?? t.prompts).join(" · ")}</p>
                   <textarea id={`note-${t.key}`} value={notes[t.key] ?? ""} onChange={(e) => setNote_(t.key, e.target.value)} rows={3}
                     className="mt-2 w-full rounded-lg border border-hc-control px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" />
                 </div>
@@ -1850,7 +1850,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
         {step === 2 && (
           <section className="rounded-2xl border border-hc-hairline bg-white p-5">
             <h3 className="text-lg font-bold text-slate-900">Mat</h3>
-            <p className="mb-4 text-sm text-slate-500">Er eitthvað í niðurstöðum eða samtalinu sem gæti kallað á læknismeðferð?</p>
+            <p className="mb-4 text-sm text-slate-600">Er eitthvað í niðurstöðum eða samtalinu sem gæti kallað á læknismeðferð?</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                 <p className="font-semibold text-emerald-900">Nei, lífsstílsáætlun nægir</p>
@@ -1866,14 +1866,14 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
               <Referrals api={api} journeyId={j.id} referrals={d.referrals ?? []} suggestions={d.ai_referrals ?? []}
                 isDoctor={isDoctor} onChanged={() => onChanged?.()} />
             </div>
-            <p className="mt-3 text-xs text-slate-500">Lífsstílsáætlunin heldur áfram þótt vísað sé á Heilsugæsluna.</p>
+            <p className="mt-3 text-xs text-slate-600">Lífsstílsáætlunin heldur áfram þótt vísað sé á Heilsugæsluna.</p>
           </section>
         )}
 
         {step === 3 && (
           <section className="rounded-2xl border border-hc-hairline bg-white p-5">
             <h3 className="text-lg font-bold text-slate-900">Aðgerðaáætlun</h3>
-            <p className="mt-1 text-sm text-slate-500">Veldu sniðmát sem passar, dragðu inn 2–4 aðgerðir á stoð í mesta lagi og skrifaðu persónulegar athugasemdir. Punktar úr samtalinu fylgja sem samantekt.</p>
+            <p className="mt-1 text-sm text-slate-600">Veldu sniðmát sem passar, dragðu inn 2–4 aðgerðir á stoð í mesta lagi og skrifaðu persónulegar athugasemdir. Punktar úr samtalinu fylgja sem samantekt.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {d.plan && <span className={`rounded-full px-3 py-1 text-xs font-bold ${d.plan.status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{d.plan.status === "published" ? `Birt ${day(d.plan.published_at)}` : "Drög til"}</span>}
             </div>
@@ -1909,7 +1909,7 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
       <h3 className="text-lg font-bold text-slate-900">Ljúka</h3>
       <ol className="mt-4 space-y-3">
         <li className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-3">
-          <span className={`flex h-7 w-7 items-center justify-center rounded-full ${(isFollowup ? j.followup_done_at : interviewDone) ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"}`}>
+          <span className={`flex h-7 w-7 items-center justify-center rounded-full ${(isFollowup ? j.followup_done_at : interviewDone) ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-600"}`}>
             {(isFollowup ? j.followup_done_at : interviewDone) ? <Check className="h-4 w-4" /> : 1}
           </span>
           <span className="flex-1 text-sm font-semibold text-slate-800">{isFollowup ? "Merkja eftirfylgd lokið" : "Merkja viðtali lokið"}</span>
@@ -1918,14 +1918,14 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
           )}
         </li>
         <li className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-3">
-          <span className={`flex h-7 w-7 items-center justify-center rounded-full ${planPublished ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"}`}>{planPublished ? <Check className="h-4 w-4" /> : 2}</span>
+          <span className={`flex h-7 w-7 items-center justify-center rounded-full ${planPublished ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-600"}`}>{planPublished ? <Check className="h-4 w-4" /> : 2}</span>
           <span className="flex-1 text-sm font-semibold text-slate-800">Aðgerðaáætlun birt skjólstæðingi</span>
           {!planPublished && <span className="text-xs text-amber-700">Ekki birt enn</span>}
         </li>
         {!isFollowup && (
           <li className="flex flex-wrap items-end gap-3 rounded-xl border border-hc-hairline p-3">
-            <span className={`flex h-7 w-7 items-center justify-center rounded-full ${j.followup_booked_for ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"}`}>{j.followup_booked_for ? <Check className="h-4 w-4" /> : 3}</span>
-            <label className="flex-1 text-sm font-semibold text-slate-800">Bóka eftirfylgd eftir 3 mánuði <span className="font-normal text-slate-500">(ráðlögð, valfrjáls)</span>
+            <span className={`flex h-7 w-7 items-center justify-center rounded-full ${j.followup_booked_for ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-600"}`}>{j.followup_booked_for ? <Check className="h-4 w-4" /> : 3}</span>
+            <label className="flex-1 text-sm font-semibold text-slate-800">Bóka eftirfylgd eftir 3 mánuði <span className="font-normal text-slate-600">(ráðlögð, valfrjáls)</span>
               <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 block rounded-lg border border-slate-300 px-2 py-1.5 text-sm font-normal" />
             </label>
             <button type="button" disabled={busy || !when || !interviewDone} onClick={() => run({ event: "followup_booked", at: new Date(when).toISOString() }, "Eftirfylgd bókuð og sett í dagatal.")} className={btnSecondary}>
@@ -1934,8 +1934,8 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
           </li>
         )}
       </ol>
-      {!interviewDone && !isFollowup && <p className="mt-2 text-xs text-slate-500">Eftirfylgd er hægt að bóka þegar viðtali er merkt lokið.</p>}
-      <p className="mt-3 text-xs text-slate-500">Skjólstæðingurinn fær tölvupóst þegar áætlunin er birt. Eftirfylgd er greidd sérstaklega á aðgangi hans.</p>
+      {!interviewDone && !isFollowup && <p className="mt-2 text-xs text-slate-600">Eftirfylgd er hægt að bóka þegar viðtali er merkt lokið.</p>}
+      <p className="mt-3 text-xs text-slate-600">Skjólstæðingurinn fær tölvupóst þegar áætlunin er birt. Eftirfylgd er greidd sérstaklega á aðgangi hans.</p>
     </section>
   );
 }
@@ -1961,10 +1961,10 @@ function History({ audit }: { audit: Detail["audit"] }) {
           <li key={i} className="relative">
             <span className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
             <p className="text-sm font-semibold text-slate-800">{actionText(a.action)}</p>
-            <p className="text-xs text-slate-500">{dayTime(a.at)} · {a.actor}{a.note ? ` · ${a.note}` : ""}</p>
+            <p className="text-xs text-slate-600">{dayTime(a.at)} · {a.actor}{a.note ? ` · ${a.note}` : ""}</p>
           </li>
         ))}
-        {audit.length === 0 && <li className="text-sm text-slate-500">Engin saga enn.</li>}
+        {audit.length === 0 && <li className="text-sm text-slate-600">Engin saga enn.</li>}
       </ol>
     </section>
   );
@@ -2014,7 +2014,7 @@ function Login({ onDone }: { onDone: () => void }) {
             <p className="text-center text-sm text-slate-600">Hæ {trusted.name.split(" ")[0]}, sláðu inn PIN</p>
             <div className="mt-5"><PinPad value={pin} onChange={setPin} onComplete={loginPin} disabled={busy} error={!!error} /></div>
             {error && <p role="alert" className="mt-4 text-center text-sm text-red-600">{error}</p>}
-            <button onClick={() => setUsePassword(true)} className="mt-5 block w-full text-center text-sm text-slate-500">Nota lykilorð</button>
+            <button onClick={() => setUsePassword(true)} className="mt-5 block w-full text-center text-sm text-slate-600">Nota lykilorð</button>
           </div>
         ) : (
           <form onSubmit={loginPw} className="mt-6 space-y-3">

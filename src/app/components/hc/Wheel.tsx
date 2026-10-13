@@ -87,7 +87,7 @@ export default function Wheel({ label, value, onChange, step, min, max, unit, co
 
   return (
     <div>
-      <p className={`mb-1 font-semibold uppercase tracking-wide text-slate-500 ${compact ? "text-[10px]" : "text-xs"}`}>{label}</p>
+      <p className={`mb-1 font-semibold uppercase tracking-wide text-slate-600 ${compact ? "text-[10px]" : "text-xs"}`}>{label}</p>
 
       <div className="relative" style={{ height: ROW * 3 }}>
         {/* The selected row, marked out so the centre reads as the value. */}

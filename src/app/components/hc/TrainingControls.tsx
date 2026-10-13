@@ -53,15 +53,15 @@ export default function TrainingControls({ settings, planStart, onChange, saving
         </div>
         <dl className="mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hvar</dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Hvar</dt>
             <dd className="text-slate-900">{settings.places.map((pl) => PLACE_IS[pl].label).join(" + ")}</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Dagar</dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Dagar</dt>
             <dd className="text-slate-900">{settings.days.map((d) => WEEKDAYS_SHORT[d]).join(", ")}</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Þol</dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-600">Þol</dt>
             <dd className="text-slate-900">{CARDIO_IS[settings.cardio].label}</dd>
           </div>
         </dl>
@@ -76,7 +76,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
               <button key={k} type="button" disabled={!edit || saving} onClick={() => set({ level: k })} aria-pressed={settings.level === k}
                 className={`rounded-xl px-3 py-2 text-left text-sm transition ${settings.level === k ? "bg-orange-500 text-white" : "bg-slate-50 text-slate-700 hover:bg-orange-50"} disabled:cursor-default`}>
                 <span className="block font-semibold">{label}</span>
-                <span className={`block text-xs ${settings.level === k ? "text-white/85" : "text-slate-500"}`}>{hint}</span>
+                <span className={`block text-xs ${settings.level === k ? "text-white/85" : "text-slate-600"}`}>{hint}</span>
               </button>
             ))}
           </div>
@@ -90,12 +90,12 @@ export default function TrainingControls({ settings, planStart, onChange, saving
               className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-2xl font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-40">−</button>
             <div className="text-center">
               <p className="text-2xl font-bold text-slate-900">{settings.load > 0 ? `+${settings.load}` : settings.load}</p>
-              <p className="text-xs text-slate-500">{LOAD_IS[settings.load]}</p>
+              <p className="text-xs text-slate-600">{LOAD_IS[settings.load]}</p>
             </div>
             <button type="button" disabled={!edit || saving || settings.load >= 2} onClick={() => set({ load: settings.load + 1 })} aria-label="Auka álag"
               className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-500 text-2xl font-bold text-white hover:bg-orange-600 disabled:opacity-40">+</button>
           </div>
-          <p className="mt-2 text-xs text-slate-500">Breytir fjölda setta, hversu nálægt þrotum er farið og fjölda HIIT-lota.</p>
+          <p className="mt-2 text-xs text-slate-600">Breytir fjölda setta, hversu nálægt þrotum er farið og fjölda HIIT-lota.</p>
         </div>
 
         {/* Injuries */}
@@ -112,7 +112,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
               );
             })}
           </div>
-          <p className="mt-2 text-xs text-slate-500">Æfingum sem reyna á svæðið er skipt út fyrir mildari útgáfu.</p>
+          <p className="mt-2 text-xs text-slate-600">Æfingum sem reyna á svæðið er skipt út fyrir mildari útgáfu.</p>
         </div>
       </div>
 
@@ -122,7 +122,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
           <p className="mt-1.5 text-xs">Verkur sem eykst við æfingu er merki um að stoppa. Ræddu við hjúkrunarfræðinginn eða sjúkraþjálfara ef hann hverfur ekki.</p>
         </div>
       )}
-      {saving && <p className="text-xs text-slate-400">Vista…</p>}
+      {saving && <p className="text-xs text-slate-500">Vista…</p>}
     </section>
   );
 }

@@ -48,16 +48,16 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
     <div className={headless ? "" : "border-t border-slate-100"}>
       {!headless && <button type="button" onClick={() => setOpen(!openLocal)} aria-expanded={open}
         className="flex w-full items-center gap-2 px-4 py-2.5 text-left">
-        <Sparkles className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+        <Sparkles className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block text-xs font-semibold text-slate-700">
             {g.tag} · {g.trains}
           </span>
-          <span className="block truncate text-[11px] text-slate-500">
+          <span className="block truncate text-[11px] text-slate-600">
             Mest á: {g.loads.join(", ")}
           </span>
         </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>}
 
       {open && (
@@ -107,7 +107,7 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
             {g.evidence}
           </p>
 
-          <p className="text-[10px] leading-snug text-slate-400">
+          <p className="text-[10px] leading-snug text-slate-500">
             Tölurnar lýsa hópum í rannsóknunum hér að neðan, ekki þér. Þetta er fræðsla, ekki
             sjúkdómsgreining eða meðferð — ræddu við þjálfarann eða lækni ef eitthvað er viðvarandi.
             {" "}

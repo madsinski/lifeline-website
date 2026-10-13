@@ -126,17 +126,17 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           {b.kind === "video" ? <Video className="h-4 w-4" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
         </span>
         <div className="min-w-0 flex-1">
-          <p className={`font-semibold ${dim ? "text-slate-400" : "text-slate-900"}`}>
+          <p className={`font-semibold ${dim ? "text-slate-500" : "text-slate-900"}`}>
             {bookingLabel(b.kind, b.items)}
           </p>
           {/* The date leads, and today and tomorrow are named, because the
               question a coach is holding is "is that soon?" — which
               "miðvikudagur, 14. október" makes you work out. */}
           <p className="text-sm">
-            <span className={`font-semibold ${dim ? "text-slate-400" : "text-slate-900"}`}>
+            <span className={`font-semibold ${dim ? "text-slate-500" : "text-slate-900"}`}>
               {whenLabel(b.starts_at, asOf).lead}
             </span>
-            <span className="text-slate-500"> · {whenLabel(b.starts_at, asOf).rest}
+            <span className="text-slate-600"> · {whenLabel(b.starts_at, asOf).rest}
               {b.minutes ? ` · ${b.minutes} mín.` : ""}</span>
           </p>
           {b.note && <p className="mt-1 text-sm text-slate-600">{b.note}</p>}
@@ -151,7 +151,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
         {!dim && (
           <button type="button" onClick={() => void patch(b.id, { cancel: true })}
             disabled={busy === b.id} aria-label={`Afboða ${bookingLabel(b.kind, b.items)}`}
-            className="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-slate-50 hover:text-rose-600 disabled:opacity-50">
+            className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-50 hover:text-rose-600 disabled:opacity-50">
             {busy === b.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <X className="h-4 w-4" aria-hidden />}
           </button>
         )}
@@ -203,7 +203,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           {/* The length comes from the shared table, not from this page —
               and saying it here means the coach sees the same number the
               diary will block out. */}
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             {adding === "measurement" && items.length === 0
               ? "Veldu mælingar til að sjá lengdina."
               : `${bookingMinutes(adding, items)} mínútur í dagbókinni.`}
@@ -254,14 +254,14 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
         </div>
 
         {mine.soon.length === 0 && mine.past.length === 0 && !open && (
-          <p className="px-1 pb-1 text-sm text-slate-500">
+          <p className="px-1 pb-1 text-sm text-slate-600">
             {kind === "video" ? "Ekkert myndsímtal bókað." : "Engin mæling bókuð."}
           </p>
         )}
         {mine.soon.length > 0 && <ul className="overflow-hidden rounded-xl ring-1 ring-hc-hairline">{mine.soon.map((b) => row(b, false))}</ul>}
         {mine.past.length > 0 && (
           <>
-            <p className="mt-2 px-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">Liðið</p>
+            <p className="mt-2 px-1 text-[11px] font-bold uppercase tracking-wide text-slate-600">Liðið</p>
             <ul className="mt-1 overflow-hidden rounded-xl ring-1 ring-hc-hairline">{mine.past.map((b) => row(b, true))}</ul>
           </>
         )}

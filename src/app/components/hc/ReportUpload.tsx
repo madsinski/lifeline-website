@@ -93,7 +93,7 @@ export default function ReportUpload({ api, onDone, compact, heading, blurb }: {
         {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileUp className="h-4 w-4" aria-hidden />}
         {busy ? "Les skýrsluna…" : "Velja PDF og hlaða upp"}
       </button>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-slate-600">
         Kennitalan á skýrslunni þarf að vera þín. Þú getur afturkallað samþykkið með því að eyða skýrslunni í Aðgangi.
       </p>
       {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm ${msg.ok ? "text-emerald-700" : "text-red-700"}`}>{msg.text}</p>}

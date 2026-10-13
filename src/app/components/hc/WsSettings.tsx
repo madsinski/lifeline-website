@@ -46,34 +46,34 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
   return (
     <div className="space-y-4">
       <section className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card">
-        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Þú</h2>
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-600">Þú</h2>
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
           {([["Nafn", me.name], ["Netfang", me.email],
              ["Starfsstöð", me.organization || "—"], ["Hlutverk", roleIs]] as const).map(([k, v]) => (
             <div key={k} className="min-w-0">
-              <dt className="text-xs text-slate-500">{k}</dt>
+              <dt className="text-xs text-slate-600">{k}</dt>
               <dd className="truncate text-sm font-semibold text-slate-900">{v}</dd>
             </div>
           ))}
         </dl>
         {/* Said rather than left to be discovered: a coach who wants their
             name changed should know who changes it. */}
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-slate-600">
           Hafðu samband við stjórnanda til að breyta nafni, netfangi eða hlutverki.
         </p>
       </section>
 
       <section className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card">
-        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Tilkynningar</h2>
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-600">Tilkynningar</h2>
         <button type="button" onClick={toggleSound}
           className="flex w-full items-center gap-3 rounded-xl border border-hc-hairline p-3 text-left transition hover:bg-slate-50">
           <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
-            sound ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-slate-100 text-slate-400"}`}>
+            sound ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-slate-100 text-slate-500"}`}>
             {sound ? <Bell className="h-4 w-4" aria-hidden /> : <BellOff className="h-4 w-4" aria-hidden />}
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-slate-900">Hljóð við ný skilaboð</span>
-            <span className="block text-xs text-slate-500">
+            <span className="block text-xs text-slate-600">
               {sound ? "Stutt hljóð þegar skilaboð eða beiðni berst." : "Slökkt — rauði punkturinn blikkar áfram."}
             </span>
           </span>
@@ -86,7 +86,7 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
       </section>
 
       <section className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card">
-        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Aðgangur og dagatal</h2>
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-600">Aðgangur og dagatal</h2>
         <div className="space-y-2">
           <Row icon={<Calendar className="h-4 w-4" aria-hidden />} title="Dagatal"
             detail="Tengdu Google dagatal eða sæktu áskriftarslóð svo bókanir birtist hjá þér."
@@ -118,13 +118,13 @@ function Row({ icon, title, detail, cta, onClick, done }: {
 }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-hc-hairline p-3">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500">{icon}</span>
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
           {title}
           {done && <Check className="h-3.5 w-3.5 text-hc-brand-dark" aria-hidden />}
         </span>
-        <span className="block text-xs text-slate-500">{detail}</span>
+        <span className="block text-xs text-slate-600">{detail}</span>
       </span>
       <button type="button" onClick={onClick}
         className="shrink-0 rounded-full border border-hc-brand/40 bg-white px-3 py-1.5 text-xs font-semibold text-hc-brand-dark transition hover:bg-hc-brand-surface">

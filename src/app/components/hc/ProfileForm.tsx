@@ -141,7 +141,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
         {saved && <span className="text-sm text-emerald-700">Vistað</span>}
       </div>
       {track === "care" && (
-        <p className="text-xs text-slate-500">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir sjálf(ur).</p>
+        <p className="text-xs text-slate-600">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir sjálf(ur).</p>
       )}
       <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
         Ábending: Í stillingum hér til hliðar getur þú sett upp <strong>PIN</strong> fyrir fljótlegri innskráningu og tengt ferðina við <strong>Google eða Apple dagatal</strong>.

@@ -78,10 +78,10 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
       header={
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Í stað „{sessionTitle}“</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Í stað „{sessionTitle}“</p>
             <p className="font-bold text-slate-900">Hvað gerðirðu í staðinn?</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
       }>
 
@@ -112,7 +112,7 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
           {/* The honest answer is sometimes none of the above. */}
           <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-hc-hairline">
             <p className="text-sm font-semibold text-slate-800">Eitthvað allt annað</p>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-slate-600">
               Göngutúr, jóga, sund með börnunum — það telst með. Hreyfing sem þú gerðir er betri en æfing sem þú slepptir.
             </p>
             <div className="mt-2 flex gap-2">

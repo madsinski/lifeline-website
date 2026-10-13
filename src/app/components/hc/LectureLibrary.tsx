@@ -75,7 +75,7 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
     <Sheet title="Allt safnið" onClose={onClose} canvas>
       <div className="space-y-3 p-3 sm:p-4">
         <label className="flex items-center gap-2 rounded-hc-element bg-white px-3 ring-1 ring-hc-hairline focus-within:ring-hc-brand">
-          <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+          <Search className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)}
             placeholder="Leita í fræðslunni…" aria-label="Leita í fræðslunni"
             className="min-h-11 min-w-0 flex-1 bg-transparent text-sm outline-none" />
@@ -89,13 +89,13 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
         )}
 
         {failed && (
-          <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
+          <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-600 ring-1 ring-hc-hairline">
             Náði ekki í safnið. Athugaðu netsambandið.
           </p>
         )}
 
         {all !== null && shown.length === 0 && (
-          <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
+          <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-600 ring-1 ring-hc-hairline">
             {q.trim() ? `Ekkert fannst fyrir „${q.trim()}“.` : "Safnið er tómt."}
           </p>
         )}
@@ -120,10 +120,10 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
                         ? <CheckCircle2 className="h-6 w-6 shrink-0 text-hc-brand-dark" aria-label="Lokið" />
                         : <span className="h-6 w-6 shrink-0 rounded-full border-2 border-hc-hairline" aria-hidden />}
                       <span className="min-w-0 flex-1">
-                        <span className={`block font-semibold ${l.completed ? "text-slate-400" : "text-hc-ink"}`}>
+                        <span className={`block font-semibold ${l.completed ? "text-slate-500" : "text-hc-ink"}`}>
                           {l.title}
                         </span>
-                        {l.subtitle && <span className="mt-0.5 block truncate text-sm text-slate-500">{l.subtitle}</span>}
+                        {l.subtitle && <span className="mt-0.5 block truncate text-sm text-slate-600">{l.subtitle}</span>}
                       </span>
                       {/* Says which ones the plan asked for, so the
                           catalogue does not read as a competing list. */}
@@ -133,7 +133,7 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
                         </span>
                       )}
                       {l.duration_min ? (
-                        <span className="shrink-0 text-sm tabular-nums text-slate-400">{l.duration_min} mín.</span>
+                        <span className="shrink-0 text-sm tabular-nums text-slate-500">{l.duration_min} mín.</span>
                       ) : null}
                     </Link>
                   </li>

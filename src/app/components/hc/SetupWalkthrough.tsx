@@ -182,7 +182,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
                 Loka
               </button>
               <button type="button" onClick={() => setI(steps.length - 1)}
-                className="inline-flex items-center gap-1 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-800">
+                className="inline-flex items-center gap-1 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800">
                 <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
               </button>
             </div>
@@ -259,7 +259,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
         {!last && (
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
             <button type="button" disabled={i === 0} onClick={() => setI((n) => Math.max(0, n - 1))}
-              className="inline-flex items-center gap-1 text-sm font-semibold text-slate-500 disabled:opacity-40">
+              className="inline-flex items-center gap-1 text-sm font-semibold text-slate-600 disabled:opacity-40">
               <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
             </button>
             {/* "Sleppa" and "Næsta" do the same thing on purpose. Nothing

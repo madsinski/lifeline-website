@@ -140,11 +140,11 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
       header={
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{heading ? "Bæta við" : "Skipta út"}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-600">{heading ? "Bæta við" : "Skipta út"}</p>
             <p className="truncate font-bold text-slate-900">{heading ?? title}</p>
-            {!!muscles.length && <p className="mt-0.5 truncate text-xs text-slate-500">{muscles.map(muscleIs).join(", ")}</p>}
+            {!!muscles.length && <p className="mt-0.5 truncate text-xs text-slate-600">{muscles.map(muscleIs).join(", ")}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
       }>
 
@@ -162,7 +162,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
               <button key={w.key} type="button" onClick={() => setWhy(w.key)}
                 className="w-full rounded-2xl bg-white p-3.5 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-orange-400">
                 <span className="block font-semibold text-slate-900">{w.label}</span>
-                <span className="mt-0.5 block text-xs text-slate-500">{w.hint}</span>
+                <span className="mt-0.5 block text-xs text-slate-600">{w.hint}</span>
               </button>
             ))}
           </div>
@@ -205,15 +205,15 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
               </p>
               {showAll && (
                 <label className="mt-2 flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                  <Search className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                  <Search className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
                   <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita í safninu"
                     className="w-full bg-transparent text-sm outline-none" />
                 </label>
               )}
             </div>
             <ul className="divide-y divide-slate-100">
-              {all === null && <li className="p-4 text-sm text-slate-500">Hleð æfingum…</li>}
-              {all !== null && suggestions.length === 0 && <li className="p-4 text-sm text-slate-500">Engin æfing fannst.</li>}
+              {all === null && <li className="p-4 text-sm text-slate-600">Hleð æfingum…</li>}
+              {all !== null && suggestions.length === 0 && <li className="p-4 text-sm text-slate-600">Engin æfing fannst.</li>}
               {suggestions.map((e) => (
                 <li key={e.id}>
                   <button type="button" onClick={() => onPick(e)} className="flex w-full items-center gap-3 p-3 text-left hover:bg-orange-50">
@@ -223,7 +223,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
                       : <span className="h-12 w-12 shrink-0 rounded-lg bg-slate-100" />}
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold text-slate-900">{e.name_is || e.name}</span>
-                      <span className="block truncate text-xs text-slate-500">
+                      <span className="block truncate text-xs text-slate-600">
                         {[(e.primary_muscles ?? []).slice(0, 2).map(muscleIs).join(", "), e.equipment ? EQUIPMENT_IS[e.equipment] ?? e.equipment : null].filter(Boolean).join(" · ")}
                       </span>
                     </span>

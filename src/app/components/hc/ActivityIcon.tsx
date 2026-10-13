@@ -72,7 +72,7 @@ export function CoverChips({ covers, partial, benefits, className = "" }: {
           ))}
         </span>
       )
-      : <span className={`text-[11px] text-slate-500 ${className}`}>Kemur ekki í stað neins</span>;
+      : <span className={`text-[11px] text-slate-600 ${className}`}>Kemur ekki í stað neins</span>;
   }
   return (
     <span className={`flex flex-wrap gap-1 ${className}`}>

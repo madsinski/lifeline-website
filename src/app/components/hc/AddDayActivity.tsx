@@ -39,11 +39,11 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
       header={
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{WEEKDAYS[weekday]}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-600">{WEEKDAYS[weekday]}</p>
             <p className="font-bold text-slate-900">Hvað gerirðu á þessum degi?</p>
-            <p className="mt-0.5 text-xs text-slate-500">Áætlunin hættir þá að setja inn það sem þú ert nú þegar að gera.</p>
+            <p className="mt-0.5 text-xs text-slate-600">Áætlunin hættir þá að setja inn það sem þú ert nú þegar að gera.</p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
       }>
 
@@ -52,7 +52,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
           <div className="space-y-4 p-4">
             <div>
               <p className="font-bold text-hc-ink">{lift.name}</p>
-              <p className="text-xs text-slate-500">Hvað ætlarðu að taka?</p>
+              <p className="text-xs text-slate-600">Hvað ætlarðu að taka?</p>
             </div>
 
             <div className="grid gap-1.5 sm:grid-cols-2">
@@ -61,7 +61,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
                   className={`rounded-xl p-3 text-left ring-1 transition ${
                     focus === f ? "bg-hc-brand/10 ring-2 ring-hc-brand" : "bg-white ring-hc-hairline hover:ring-slate-300"}`}>
                   <span className="block font-semibold text-hc-ink">{STRENGTH_FOCUS_IS[f].label}</span>
-                  <span className="block text-[11px] text-slate-500">{STRENGTH_FOCUS_IS[f].blurb}</span>
+                  <span className="block text-[11px] text-slate-600">{STRENGTH_FOCUS_IS[f].blurb}</span>
                 </button>
               ))}
             </div>
@@ -69,7 +69,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
             {/* Asked here because it changes what the programme may give
                 this person, and nobody goes looking in settings for it. */}
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Eitthvað sem þarf að fara varlega með?</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Eitthvað sem þarf að fara varlega með?</p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {REGIONS.map((r) => {
                   const on = injuries.includes(r);
@@ -83,7 +83,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
                   );
                 })}
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">
+              <p className="mt-1 text-[11px] text-slate-600">
                 Þetta fer í stillingarnar þínar og hefur áhrif á allar æfingar, ekki bara þessa.
               </p>
             </div>
@@ -107,10 +107,10 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
         ) : (
         <div className="space-y-3 p-4">
           <label className="flex w-fit items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
-            <Clock className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+            <Clock className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
             <input type="time" value={at} onChange={(e) => setAt(e.target.value)} aria-label="Klukkan (valfrjálst)"
               className="bg-transparent text-sm outline-none" />
-            <span className="text-xs text-slate-500">valfrjálst</span>
+            <span className="text-xs text-slate-600">valfrjálst</span>
           </label>
 
           <div className="flex flex-wrap gap-1.5">
@@ -137,7 +137,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
                 <span className="min-w-0 flex-1">
                 <span className="block font-semibold text-hc-ink">{x.name}</span>
                 <CoverChips covers={x.covers} partial={x.partial} benefits={x.benefits} className="mt-1" />
-                {x.why && <span className="mt-1 block text-[11px] leading-snug text-slate-500">{x.why}</span>}
+                {x.why && <span className="mt-1 block text-[11px] leading-snug text-slate-600">{x.why}</span>}
                 </span>
               </button>
             ))}

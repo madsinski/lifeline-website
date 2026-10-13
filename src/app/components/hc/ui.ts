@@ -7,9 +7,16 @@ const base = "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-h
 
 export const hcBtn = {
   base,
-  primary: `${base} bg-hc-brand text-white hover:bg-hc-brand-dark`,
+  /* brand-dark, not brand. White on #10B981 measures 2.54:1, which misses
+     even the 3:1 floor that large text gets — so every primary button in
+     the workstation was failing, the most-clicked thing on the page. On
+     #047857 it is 5.48:1. The hover goes darker still rather than lighter,
+     so the state change never costs contrast. */
+  primary: `${base} bg-hc-brand-dark text-white hover:bg-emerald-800`,
   dark: `${base} bg-hc-ink text-white hover:bg-slate-700`,
-  secondary: `${base} border border-slate-300 bg-hc-surface text-slate-700 hover:bg-slate-50`,
+  /* hc-control, not slate-300: a button's edge identifies the control,
+     so 1.4.11 asks 3:1 and slate-300 gives 1.48. */
+  secondary: `${base} border border-hc-control bg-hc-surface text-slate-700 hover:bg-slate-50`,
   ghost: `${base} text-slate-600 hover:bg-slate-100`,
 };
 
@@ -29,7 +36,7 @@ export const hcBtn = {
  */
 export const hcCard = {
   /** The default. Quiet, but visibly an edge. */
-  base: "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-slate-200",
+  base: "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-hairline",
   /** One step up, for the card on a screen that should be read first. */
   raised: "rounded-hc-card bg-hc-surface shadow-hc-raised ring-1 ring-slate-200",
   /** Hero block: dark emerald gradient. The only card that shouts. */

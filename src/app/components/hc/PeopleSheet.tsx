@@ -121,7 +121,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                 face={<Face src={partner.avatar ?? null} />}
                 training={partner.training ?? null} />
             : (
-              <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
+              <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-600 ring-1 ring-hc-hairline">
                 Þú ert ekki með ábyrgðarfélaga. Veldu einn í appinu — það er auðveldara að halda áfram þegar einhver sér það.
               </p>
             )}
@@ -129,7 +129,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
           {/* A partner without an account cannot receive one — the button
               used to appear anyway and fail on a foreign key. */}
           {partner && !partner.canNudge && (
-            <p className="rounded-hc-card bg-white px-4 py-4 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
+            <p className="rounded-hc-card bg-white px-4 py-4 text-center text-sm text-slate-600 ring-1 ring-hc-hairline">
               {/* No "búin(n)" and no pronoun: the sentence works for
                   anybody without picking a gender for them. */}
               {partner.name.split(" ")[0]} hefur ekki stofnað aðgang enn þá, svo ekki er hægt að senda hvatningu.
@@ -159,7 +159,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                     <Hand className="h-4 w-4" aria-hidden />
                     Ýta við {partner.name.split(" ")[0]}
                   </button>
-                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Eða með orðum</p>
+                  <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Eða með orðum</p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {NUDGE_KINDS.map((k) => (
                       <button key={k.key} type="button" disabled={sending} onClick={() => void nudge(k.key)}
@@ -205,7 +205,7 @@ function PersonCard({ name, face, stats, today, of, training, highlight = false 
           <p className="min-w-0 truncate text-lg font-bold text-hc-ink">{name}</p>
         </div>
         {today !== undefined && of !== undefined && (
-          <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-500">{today}/{of} í dag</p>
+          <p className="shrink-0 text-sm font-semibold tabular-nums text-slate-600">{today}/{of} í dag</p>
         )}
       </div>
 
@@ -215,7 +215,7 @@ function PersonCard({ name, face, stats, today, of, training, highlight = false 
               count and a bar is a thing you see. */}
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-3xl font-bold tabular-nums text-hc-ink">{stats.days14}</span>
-            <span className="text-sm text-slate-500">af 14 dögum með virkni</span>
+            <span className="text-sm text-slate-600">af 14 dögum með virkni</span>
           </div>
           <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
             <div className="h-full rounded-full bg-hc-brand transition-all" style={{ width: `${Math.round((stats.days14 / 14) * 100)}%` }} aria-hidden />
@@ -223,17 +223,17 @@ function PersonCard({ name, face, stats, today, of, training, highlight = false 
           <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
             <div className="flex items-center gap-1.5">
               <Flame className="h-4 w-4 text-amber-500" aria-hidden />
-              <dt className="text-slate-500">Röð</dt>
+              <dt className="text-slate-600">Röð</dt>
               <dd className="font-bold tabular-nums text-hc-ink">{stats.streak}</dd>
             </div>
             <div className="flex items-center gap-1.5">
-              <dt className="text-slate-500">Síðustu 28</dt>
+              <dt className="text-slate-600">Síðustu 28</dt>
               <dd className="font-bold tabular-nums text-hc-ink">{stats.percent28}%</dd>
             </div>
           </dl>
         </>
       ) : (
-        <p className="mt-2 text-sm text-slate-500">Engar tölur enn.</p>
+        <p className="mt-2 text-sm text-slate-600">Engar tölur enn.</p>
       )}
 
       {/* What they are actually doing — the part that makes a partner an
@@ -241,15 +241,15 @@ function PersonCard({ name, face, stats, today, of, training, highlight = false 
       {training && (
         <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3">
           <p className="flex items-center gap-2 text-sm">
-            <Dumbbell className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
-            <span className="text-slate-500">Í dag:</span>
+            <Dumbbell className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+            <span className="text-slate-600">Í dag:</span>
             <span className="min-w-0 flex-1 font-semibold text-hc-ink">
               {training.today.length ? training.today.join(" + ") : "hvíld"}
             </span>
           </p>
           <p className="flex items-center gap-2 text-sm">
             <span className="w-4 shrink-0" aria-hidden />
-            <span className="text-slate-500">Á morgun:</span>
+            <span className="text-slate-600">Á morgun:</span>
             <span className="min-w-0 flex-1 text-slate-700">
               {training.tomorrow.length ? training.tomorrow.join(" + ") : "hvíld"}
             </span>
@@ -293,7 +293,7 @@ function Face({ src, size = 40 }: { src: string | null; size?: number }) {
       style={box} className="shrink-0 rounded-full object-cover ring-1 ring-hc-hairline" />;
   }
   return (
-    <span style={box} className="grid shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400 ring-1 ring-hc-hairline">
+    <span style={box} className="grid shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500 ring-1 ring-hc-hairline">
       <UserRound style={{ width: size * 0.55, height: size * 0.55 }} aria-hidden />
     </span>
   );

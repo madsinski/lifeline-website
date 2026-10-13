@@ -57,7 +57,7 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">{si + 1}</span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-slate-900">{s.day || "Dagur"} · {s.title || "Æfing"}</span>
-                <span className="block text-xs text-slate-500">{s.items.length} æfingar{s.minutes ? ` · ${s.minutes} mín.` : ""}{s.focus ? ` · ${s.focus}` : ""}</span>
+                <span className="block text-xs text-slate-600">{s.items.length} æfingar{s.minutes ? ` · ${s.minutes} mín.` : ""}{s.focus ? ` · ${s.focus}` : ""}</span>
               </span>
               <span className="flex -space-x-2">
                 {s.items.filter((it) => it.image).slice(0, 4).map((it, i) => (
@@ -65,7 +65,7 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
                   <img key={i} src={it.image!} alt="" className="h-8 w-8 rounded-full border-2 border-white object-cover" />
                 ))}
               </span>
-              <span className="text-slate-400">{open ? "▴" : "▾"}</span>
+              <span className="text-slate-500">{open ? "▴" : "▾"}</span>
             </button>
 
             {open && (
@@ -101,12 +101,12 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                           {it.exercise_id
                             ? <span className="font-semibold text-emerald-700">✓ Úr safni{it.video ? " · myndband" : ""}</span>
-                            : <span className="text-slate-400">Frjáls lína</span>}
+                            : <span className="text-slate-500">Frjáls lína</span>}
                           <button type="button" onClick={() => setPicker({ si, replace: ii })} className="font-semibold text-orange-700 hover:underline">
                             {it.exercise_id ? "Skipta um æfingu" : "Tengja við safn"}
                           </button>
-                          <button type="button" onClick={() => move(si, ii, -1)} disabled={ii === 0} className="text-slate-500 disabled:opacity-30" aria-label="Færa upp">↑</button>
-                          <button type="button" onClick={() => move(si, ii, 1)} disabled={ii === s.items.length - 1} className="text-slate-500 disabled:opacity-30" aria-label="Færa niður">↓</button>
+                          <button type="button" onClick={() => move(si, ii, -1)} disabled={ii === 0} className="text-slate-600 disabled:opacity-30" aria-label="Færa upp">↑</button>
+                          <button type="button" onClick={() => move(si, ii, 1)} disabled={ii === s.items.length - 1} className="text-slate-600 disabled:opacity-30" aria-label="Færa niður">↓</button>
                           <button type="button" onClick={() => setItems(si, s.items.filter((_, j) => j !== ii))} className="text-red-600 hover:underline">Fjarlægja</button>
                         </div>
                       </div>

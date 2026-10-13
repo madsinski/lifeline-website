@@ -104,7 +104,7 @@ export default function WeekAhead({ api, onOpenClient }: {
   return (
     <section className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Vikan</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-600">Vikan</h2>
         <span className="text-sm font-semibold text-slate-900">{range}</span>
         <span className="flex-1" />
         {/* Mine or everyone's: a partner site shares a diary, so "whose" is
@@ -112,7 +112,7 @@ export default function WeekAhead({ api, onOpenClient }: {
         <button type="button" onClick={() => { setMine((v) => !v); setEvents(null); }}
           aria-pressed={mine}
           className={`rounded-full px-3 py-1 text-xs font-bold transition ${
-            mine ? "bg-hc-brand-surface text-hc-brand-dark" : "text-slate-500 hover:bg-slate-50"}`}>
+            mine ? "bg-hc-brand-surface text-hc-brand-dark" : "text-slate-600 hover:bg-slate-50"}`}>
           {mine ? "Mínar" : "Allar"}
         </button>
         <button type="button" onClick={() => shift(-1)} aria-label="Fyrri vika" className={`${hcBtn.ghost} h-8 w-8 p-0`}>
@@ -143,7 +143,7 @@ export default function WeekAhead({ api, onOpenClient }: {
         {days.filter((d) => d.items.length > 0).map((d) => (
           <div key={d.date.toISOString()}>
             <p className={`mb-1 text-[11px] font-bold uppercase tracking-wide ${
-              d.isToday ? "text-hc-brand-dark" : "text-slate-500"}`}>
+              d.isToday ? "text-hc-brand-dark" : "text-slate-600"}`}>
               {DAY_IS[(d.date.getDay() + 6) % 7]} {d.date.getDate()}.
               {d.isToday && " · í dag"}
             </p>
@@ -167,7 +167,7 @@ export default function WeekAhead({ api, onOpenClient }: {
                       <span className="block truncate text-sm font-semibold text-slate-900">
                         {e.client ?? "—"}
                       </span>
-                      <span className="block truncate text-xs text-slate-500">
+                      <span className="block truncate text-xs text-slate-600">
                         {[KIND_IS[e.kind] ?? e.kind, e.minutes ? `${e.minutes} mín.` : null,
                           e.done ? "lokið" : null].filter(Boolean).join(" · ")}
                       </span>
@@ -186,7 +186,7 @@ export default function WeekAhead({ api, onOpenClient }: {
       </div>
 
       {events !== null && events.length === 0 && (
-        <p className="mt-3 text-sm text-slate-500">Ekkert bókað þessa viku.</p>
+        <p className="mt-3 text-sm text-slate-600">Ekkert bókað þessa viku.</p>
       )}
     </section>
   );

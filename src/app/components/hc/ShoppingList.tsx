@@ -85,7 +85,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
 
   const chip = (on: boolean, extra = "") =>
     `rounded-full px-2.5 py-1.5 text-xs font-bold transition ${
-      on ? `bg-lime-700 text-white ${extra}` : "bg-white text-slate-500 ring-1 ring-hc-hairline"}`;
+      on ? `bg-lime-700 text-white ${extra}` : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`;
 
   return (
     <Sheet title="Innkaupalisti" onClose={onClose} canvas>
@@ -111,7 +111,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
 
         {/* Slots. Separated from the days by a label, because two rows of
             chips with nothing between them read as one broken row. */}
-        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-500">Máltíðir dagsins</p>
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-600">Máltíðir dagsins</p>
         <div className="mt-1 flex flex-wrap gap-1.5">
           <button type="button"
             onClick={() => setCats(allCats ? new Set<SlotCat>(["breakfast"]) : new Set(SLOT_CATS))}
@@ -129,7 +129,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
         </div>
 
         {inScope.length === 0 ? (
-          <p className="mt-3 rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-hc-hairline">
+          <p className="mt-3 rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-hc-hairline">
             Engin máltíð valin. Veldu dag og máltíð til að sjá hvað þarf að kaupa.
           </p>
         ) : (
@@ -142,8 +142,8 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
               <span className="min-w-0 flex-1 text-sm font-semibold text-slate-900">
                 {picked.length} af {inScope.length} máltíðum
               </span>
-              <span className="shrink-0 text-xs font-semibold text-slate-500">Velja</span>
-              <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition ${mealsOpen ? "rotate-180" : ""}`} aria-hidden />
+              <span className="shrink-0 text-xs font-semibold text-slate-600">Velja</span>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-slate-600 transition ${mealsOpen ? "rotate-180" : ""}`} aria-hidden />
             </button>
 
             {mealsOpen && (
@@ -160,10 +160,10 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
                           <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className={`block truncate text-sm font-semibold ${on ? "text-slate-900" : "text-slate-400"}`}>
+                          <span className={`block truncate text-sm font-semibold ${on ? "text-slate-900" : "text-slate-500"}`}>
                             {mealName(p.meal)}
                           </span>
-                          <span className="block text-[11px] text-slate-500">
+                          <span className="block text-[11px] text-slate-600">
                             {WEEKDAYS[p.dayIdx]} · {SLOT_IS[p.slot]}
                           </span>
                         </span>
@@ -175,7 +175,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             )}
 
             <div className="mt-3 flex items-baseline justify-between gap-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
                 {lines.length} {lines.length === 1 ? "lína" : "línur"}
                 {ticked.size > 0 ? ` · ${ticked.size} í körfunni` : ""}
               </p>
@@ -187,7 +187,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             </div>
 
             {lines.length === 0 ? (
-              <p className="mt-2 rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-hc-hairline">
+              <p className="mt-2 rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-hc-hairline">
                 Engin máltíð valin af þeim sem eru í boði.
               </p>
             ) : (
@@ -208,12 +208,12 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
                           <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className={`block font-semibold ${on ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                          <span className={`block font-semibold ${on ? "text-slate-500 line-through" : "text-slate-900"}`}>
                             {formatQty(l.qty, l.unit)} {l.text}
                           </span>
                           {/* Which meals wanted it, so a surprising amount can
                               be traced without opening every recipe. */}
-                          <span className="block truncate text-xs text-slate-500">úr {l.from.join(", ")}</span>
+                          <span className="block truncate text-xs text-slate-600">úr {l.from.join(", ")}</span>
                         </span>
                       </button>
                     </li>
@@ -223,7 +223,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             )}
 
             {/* The honest caveats, once, at the foot. */}
-            <p className="mt-2 px-1 text-xs text-slate-500">
+            <p className="mt-2 px-1 text-xs text-slate-600">
               Magn er eins og það stendur í uppskriftunum — uppskrift fyrir tvo gefur tvo skammta.
               Sumt er ekki talið í magni, eins og salt og olía, og stendur þá eins og það er skrifað.
             </p>

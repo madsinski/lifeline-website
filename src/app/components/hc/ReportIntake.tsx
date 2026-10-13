@@ -121,7 +121,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           </span>
           <div className={narrow ? "min-w-0" : "min-w-0 flex-1"}>
             <p className="font-bold text-slate-900">{busy ? "Les skýrsluna…" : "Dragðu heilsufarsskýrslu hingað"}</p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-600">
               PDF frá Medalia, blóðprufusvar eða myndir af þeim. Við finnum skjólstæðinginn — eða stofnum hann — og opnum vinnusvæðið hans.
             </p>
           </div>
@@ -141,7 +141,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-bold text-slate-900">
               {result.identity.name || "Nafn fannst ekki í skýrslunni"}
-              {result.identity.kennitala_last4 && <span className="ml-2 font-normal text-slate-500">···{result.identity.kennitala_last4}</span>}
+              {result.identity.kennitala_last4 && <span className="ml-2 font-normal text-slate-600">···{result.identity.kennitala_last4}</span>}
             </p>
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
               {result.values.length} gildi{result.report?.date_iso ? ` · ${result.report.date_iso}` : ""}
@@ -151,7 +151,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
               {METHOD_BADGE[result.method ?? "local"].label}
             </span>
             <span className="flex-1" />
-            <button type="button" onClick={() => setResult(null)} className="text-sm font-semibold text-slate-500 hover:underline">Hætta við</button>
+            <button type="button" onClick={() => setResult(null)} className="text-sm font-semibold text-slate-600 hover:underline">Hætta við</button>
           </div>
 
           {result.method === "needs-consent" && (
@@ -176,7 +176,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           {/* Who is this? */}
           {result.matches.length > 0 && !creating && (
             <div>
-              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Er þetta sami skjólstæðingur?</p>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Er þetta sami skjólstæðingur?</p>
               <ul className="space-y-1.5">
                 {result.matches.map((m) => (
                   <li key={m.client_id} className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-2.5">
@@ -185,7 +185,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
                         {m.full_name}
                         {m.confident && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">kennitala stemmir</span>}
                       </span>
-                      <span className="block text-xs text-slate-500">
+                      <span className="block text-xs text-slate-600">
                         {[m.email, m.kennitala_last4 ? `···${m.kennitala_last4}` : null, m.journey_id ? "á heilsuferð í gangi" : "engin heilsuferð"].filter(Boolean).join(" · ")}
                       </span>
                     </span>
@@ -204,7 +204,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
 
           {creating && (
             <div>
-              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Nýr skjólstæðingur</p>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Nýr skjólstæðingur</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 <label className="text-sm">
                   <span className="text-slate-600">Nafn</span>
@@ -227,7 +227,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
                     inputMode="tel" className="mt-0.5 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
                 </label>
               </div>
-              <p className="mt-1 text-xs text-slate-500">Skjólstæðingurinn fær boð í tölvupósti og kemst þá inn á aðganginn sinn.</p>
+              <p className="mt-1 text-xs text-slate-600">Skjólstæðingurinn fær boð í tölvupósti og kemst þá inn á aðganginn sinn.</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button type="button" onClick={() => commit(null)} disabled={busy || !form.full_name.trim() || !form.email.trim()}
                   className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-hc-brand px-4 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
@@ -243,7 +243,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           {/* The values we are about to keep */}
           {result.values.length > 0 && (
           <div>
-            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Gildi úr skýrslunni</p>
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Gildi úr skýrslunni</p>
             <ul className="grid gap-1 sm:grid-cols-2">
               {result.values.map((v, i) => (
                 <li key={`${v.code}-${i}`} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm ring-1 ring-hc-hairline">

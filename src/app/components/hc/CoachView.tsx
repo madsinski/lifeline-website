@@ -245,7 +245,7 @@ export default function CoachView({ api, startOn, focusNewest = false }: {
           <button key={t.key} type="button" onClick={() => setTab(t.key)}
             aria-current={tab === t.key ? "page" : undefined}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold transition ${
-              tab === t.key ? "bg-hc-brand text-white shadow-sm" : "text-slate-500 hover:bg-slate-50"}`}>
+              tab === t.key ? "bg-hc-brand text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>
             <span className="relative">
               <t.Icon className="h-4 w-4" aria-hidden />
               {t.key === "talk" && data.unread > 0 && (
@@ -389,7 +389,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-5">
             {(c?.bio || !!c?.specialties?.length) && (
               <button type="button" onClick={() => setAbout(!about)} aria-expanded={about}
-                className="flex items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-800">
+                className="flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-800">
                 Um {first}
                 <ChevronDown className={`h-4 w-4 transition ${about ? "rotate-180" : ""}`} aria-hidden />
               </button>
@@ -419,10 +419,10 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
                 {w.photo_url
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={w.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-hc-hairline" />
-                  : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400"><UserRound className="h-5 w-5" aria-hidden /></span>}
+                  : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><UserRound className="h-5 w-5" aria-hidden /></span>}
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-hc-ink">{w.name}</p>
-                  <p className="truncate text-sm text-slate-500">
+                  <p className="truncate text-sm text-slate-600">
                     {[w.role ? ROLE_IS[w.role] ?? w.role : null, w.credentials].filter(Boolean).join(" · ")}
                   </p>
                 </div>
@@ -459,7 +459,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
             </button>
           )}
           {data.thread.length === 0 && (
-            <p className="py-6 text-center text-sm text-slate-500">
+            <p className="py-6 text-center text-sm text-slate-600">
               Skrifaðu {first} hvað sem er. Svarið kemur hingað.
             </p>
           )}
@@ -478,7 +478,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
                   </p>
                 )}
                 <p className="whitespace-pre-wrap leading-snug">{m.body}</p>
-                <p className={`mt-1 text-[10px] ${m.author_kind === "client" ? "text-white/70" : "text-slate-400"}`}>{when(m.created_at)}</p>
+                <p className={`mt-1 text-[10px] ${m.author_kind === "client" ? "text-white/70" : "text-slate-500"}`}>{when(m.created_at)}</p>
               </div>
             </div>
           ))}
@@ -528,7 +528,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
           <div className="mx-auto flex max-w-4xl items-end gap-2 border-t border-hc-hairline bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
             <button type="button" onClick={() => setPrompts(true)}
               aria-label="Tilbúin skilaboð"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-500 ring-1 ring-hc-hairline transition hover:bg-slate-50 hover:text-hc-brand-dark">
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-600 ring-1 ring-hc-hairline transition hover:bg-slate-50 hover:text-hc-brand-dark">
               <MessageSquarePlus className="h-5 w-5" aria-hidden />
             </button>
             <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
@@ -558,13 +558,13 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
                 <button type="button"
                   onClick={() => { setPrompts(false); start(x.text); }}
                   className="w-full px-4 py-3.5 text-left transition hover:bg-slate-50">
-                  <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">{x.label}</span>
+                  <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">{x.label}</span>
                   <span className="mt-0.5 block text-sm leading-snug text-hc-ink">{x.text}</span>
                 </button>
               </li>
             ))}
           </ul>
-          <p className="px-4 py-3 text-xs text-slate-500">
+          <p className="px-4 py-3 text-xs text-slate-600">
             Skilaboðin fara í reitinn — þú getur breytt þeim áður en þú sendir.
           </p>
         </Sheet>
@@ -613,7 +613,7 @@ function Book({ data, busy, onPost }: {
           thing you want in the middle of a conversation. */}
   {data.bookings.length > 0 && (
           <section className={`${hcCard.base} divide-y divide-slate-100`}>
-            <p className="px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Bókað</p>
+            <p className="px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bókað</p>
             {/* The whole row opens. Cancel used to be the only thing you
                 could do to a booking, and it sat on the row as a small x —
                 the one irreversible action, one mis-tap away, with no way
@@ -658,9 +658,9 @@ function Book({ data, busy, onPost }: {
                 <span key={i} className={`h-2.5 w-2.5 rounded-full ${i < left ? "bg-hc-brand" : "bg-slate-200"}`} aria-hidden />
               ))}
               <span className="ml-1 text-sm font-bold tabular-nums text-slate-700">{left}/{allowance}</span>
-              <span className="text-xs text-slate-500">í mánuðinum</span>
+              <span className="text-xs text-slate-600">í mánuðinum</span>
             </span>
-            {left <= 0 && <span className="text-xs font-semibold text-slate-500">Búin — næsti mánuður opnast 1.</span>}
+            {left <= 0 && <span className="text-xs font-semibold text-slate-600">Búin — næsti mánuður opnast 1.</span>}
           </button>
 
           <button type="button" onClick={() => setChoice("measurement")}
@@ -668,7 +668,7 @@ function Book({ data, busy, onPost }: {
             <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark"><Activity className="h-5 w-5" aria-hidden /></span>
             <span className="mt-1 font-bold text-hc-ink">Mælingar</span>
             <span className="text-sm text-slate-600">Veldu eina eða fleiri — tíminn leggst saman.</span>
-            <span className="mt-2 text-xs text-slate-500">{MEASURES.map((m) => m.label).join(" · ")}</span>
+            <span className="mt-2 text-xs text-slate-600">{MEASURES.map((m) => m.label).join(" · ")}</span>
           </button>
         </div>
       )}
@@ -678,7 +678,7 @@ function Book({ data, busy, onPost }: {
           <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 sm:px-5">
             <p className="min-w-0 flex-1 font-bold text-hc-ink">{choice === "video" ? "Myndsímtal" : "Hvað á að mæla?"}</p>
             <button type="button" onClick={() => { setChoice(null); setPicked([]); }}
-              aria-label="Til baka" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"><X className="h-4 w-4" aria-hidden /></button>
+              aria-label="Til baka" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" aria-hidden /></button>
           </div>
 
           {choice === "measurement" && (
@@ -694,12 +694,12 @@ function Book({ data, busy, onPost }: {
                         on ? "border-hc-brand bg-hc-brand text-white" : "border-slate-300"}`}>
                         {on && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />}
                       </span>
-                      <m.Icon className={`h-5 w-5 shrink-0 ${on ? "text-hc-brand-dark" : "text-slate-400"}`} aria-hidden />
+                      <m.Icon className={`h-5 w-5 shrink-0 ${on ? "text-hc-brand-dark" : "text-slate-500"}`} aria-hidden />
                       <span className="min-w-0 flex-1">
                         <span className="block font-semibold text-hc-ink">{m.label}</span>
-                        <span className="block text-sm text-slate-500">{m.hint}</span>
+                        <span className="block text-sm text-slate-600">{m.hint}</span>
                       </span>
-                      <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-500">{m.minutes} mín.</span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-600">{m.minutes} mín.</span>
                     </button>
                   </li>
                 );
@@ -717,7 +717,7 @@ function Book({ data, busy, onPost }: {
             </>
           )}
           {choice === "measurement" && minutes === 0 && (
-            <p className="px-4 py-4 text-sm text-slate-500 sm:px-5">Veldu það sem þú vilt láta mæla og þá birtast tímarnir.</p>
+            <p className="px-4 py-4 text-sm text-slate-600 sm:px-5">Veldu það sem þú vilt láta mæla og þá birtast tímarnir.</p>
           )}
         </section>
       )}
@@ -767,7 +767,7 @@ function Slots({ minutes, busy, onBook }: {
   return (
     <div className="space-y-3 px-4 py-3.5 sm:px-5">
       <div>
-        <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Dagur</p>
+        <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">Dagur</p>
         {/* Wider cards and a hidden scrollbar. The strip is a horizontal
             list on a surface that already scrolls vertically, and a visible
             bar under it reads as a second thing to drag. The fade on the
@@ -790,7 +790,7 @@ function Slots({ minutes, busy, onBook }: {
 
       {day && (
         <div>
-          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Klukkan</p>
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">Klukkan</p>
           <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
             {slots.map((t) => (
               <button key={t.toISOString()} type="button" disabled={busy}
@@ -800,7 +800,7 @@ function Slots({ minutes, busy, onBook }: {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-slate-600">
             Þjálfarinn staðfestir tímann. Þú fær skilaboð ef hann þarf að færa hann.
           </p>
         </div>
@@ -871,7 +871,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
           <section className="rounded-hc-card bg-slate-50 p-3.5 ring-1 ring-hc-hairline">
             {(place?.site || place?.address) && (
               <>
-                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
                   <MapPin className="h-3.5 w-3.5" aria-hidden /> Hvar
                 </p>
                 {place?.site && <p className="mt-1 text-sm font-semibold text-hc-ink">{place.site}</p>}
@@ -881,7 +881,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
             {place?.info && <p className="mt-2 text-sm text-slate-600">{place.info}</p>}
             {prep.length > 0 && (
               <>
-                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-500">Gott að vita</p>
+                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-600">Gott að vita</p>
                 <ul className="mt-1 space-y-1">
                   {prep.map((line) => (
                     <li key={line} className="flex gap-1.5 text-sm text-slate-600">
@@ -899,10 +899,10 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
             and the rules are the ones that applied the first time. */}
         {moving ? (
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Nýr tími</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">Nýr tími</p>
             <Slots minutes={booking.minutes} busy={busy} onBook={move} />
             <button type="button" onClick={() => setMoving(false)}
-              className="mt-2 w-full text-center text-xs font-semibold text-slate-500 hover:text-slate-800 hover:underline">
+              className="mt-2 w-full text-center text-xs font-semibold text-slate-600 hover:text-slate-800 hover:underline">
               Hætta við að færa
             </button>
           </div>
@@ -939,7 +939,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
           </div>
         ) : (
           <button type="button" onClick={() => setConfirming(true)}
-            className="w-full text-center text-xs font-semibold text-slate-500 underline-offset-2 hover:text-rose-700 hover:underline">
+            className="w-full text-center text-xs font-semibold text-slate-600 underline-offset-2 hover:text-rose-700 hover:underline">
             Afbóka tímann
           </button>
         )}

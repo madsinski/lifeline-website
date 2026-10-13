@@ -145,7 +145,7 @@ export default function BookVideo({ api, journey, onBooked }: {
           </button>
         ))}
       </div>
-      <p className="mt-1 text-[11px] text-slate-500">{KIND_IS[kind].blurb} · {KIND_IS[kind].minutes} mín.</p>
+      <p className="mt-1 text-[11px] text-slate-600">{KIND_IS[kind].blurb} · {KIND_IS[kind].minutes} mín.</p>
 
       {/* Already booked */}
       {booked && !done && (
@@ -158,7 +158,7 @@ export default function BookVideo({ api, journey, onBooked }: {
         </p>
       )}
       {done && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-600">
           <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden /> Lokið {dayLabel(new Date(done))}.
         </p>
       )}
@@ -197,7 +197,7 @@ export default function BookVideo({ api, journey, onBooked }: {
                 on ? "bg-hc-ink text-white" : "bg-white ring-1 ring-hc-hairline hover:bg-slate-100"}`}>
               <span className="block text-[10px] leading-tight opacity-70">{WEEKDAYS_IS[d.getDay()]}</span>
               <span className="block text-sm font-bold leading-tight">{d.getDate()}</span>
-              <span className={`block text-[9px] leading-tight ${on ? "opacity-70" : free ? "text-emerald-700" : "text-slate-400"}`}>
+              <span className={`block text-[9px] leading-tight ${on ? "opacity-70" : free ? "text-emerald-700" : "text-slate-500"}`}>
                 {free ? `${free} laus` : "fullt"}
               </span>
             </button>
@@ -224,9 +224,9 @@ export default function BookVideo({ api, journey, onBooked }: {
         </ul>
       )}
 
-      {saving && <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Bóka…</p>}
+      {saving && <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-600"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Bóka…</p>}
       {msg && <p role="status" className="mt-2 text-xs text-emerald-800">{msg}</p>}
-      <p className="mt-2 text-[11px] leading-snug text-slate-400">
+      <p className="mt-2 text-[11px] leading-snug text-slate-500">
         Bókunin fer í dagatalið sjálfkrafa — í Google innan sekúndna, og í Apple eða Outlook um áskriftarslóðina.
       </p>
     </div>

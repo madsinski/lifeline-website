@@ -27,7 +27,7 @@ const DOT: Record<Checkpoint["state"], string> = {
   done: "bg-emerald-500 text-white",
   current: "bg-hc-ink text-white ring-4 ring-slate-900/10",
   waiting: "bg-amber-100 text-amber-800",
-  upcoming: "bg-slate-100 text-slate-400",
+  upcoming: "bg-slate-100 text-slate-500",
 };
 const LINE: Record<Checkpoint["state"], string> = {
   done: "bg-emerald-300",
@@ -39,7 +39,7 @@ const TEXT: Record<Checkpoint["state"], string> = {
   done: "text-slate-700",
   current: "font-bold text-slate-900",
   waiting: "text-amber-800",
-  upcoming: "text-slate-400",
+  upcoming: "text-slate-500",
 };
 
 export default function StatusStrip({ steps, onOpen, mobile = "scroll" }: {
@@ -77,7 +77,7 @@ export default function StatusStrip({ steps, onOpen, mobile = "scroll" }: {
                 </span>
                 <span className={`w-full truncate text-[11px] leading-tight ${TEXT[s.state]}`}>{s.label}</span>
                 {/* One line only: a wrapped status turns the strip into a wall. */}
-                {s.detail && <span className="hidden w-full truncate text-[10px] leading-tight text-slate-400 lg:block">{s.detail}</span>}
+                {s.detail && <span className="hidden w-full truncate text-[10px] leading-tight text-slate-500 lg:block">{s.detail}</span>}
               </button>
               {i < steps.length - 1 && (
                 <span className={`mt-3.5 h-0.5 w-4 shrink-0 rounded lg:w-6 ${LINE[steps[i + 1].state === "done" ? "done" : s.state]}`} aria-hidden />
@@ -106,7 +106,7 @@ function VerticalSteps({ steps, onOpen }: { steps: Checkpoint[]; onOpen?: (key: 
         <button type="button" onClick={() => setAll(true)} className="flex w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left text-sm text-slate-600">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white"><Check className="h-3.5 w-3.5" /></span>
           <span className="flex-1">{done} {done === 1 ? "skrefi lokið" : "skrefum lokið"}</span>
-          <ChevronDown className="h-4 w-4 text-slate-400" aria-hidden />
+          <ChevronDown className="h-4 w-4 text-slate-500" aria-hidden />
         </button>
       )}
       <ol>
@@ -122,7 +122,7 @@ function VerticalSteps({ steps, onOpen }: { steps: Checkpoint[]; onOpen?: (key: 
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className={`block truncate text-sm ${TEXT[s.state]}`}>{s.label}</span>
-                  {s.detail && <span className="block truncate text-xs text-slate-400">{s.detail}</span>}
+                  {s.detail && <span className="block truncate text-xs text-slate-500">{s.detail}</span>}
                 </span>
               </button>
             </li>
@@ -133,7 +133,7 @@ function VerticalSteps({ steps, onOpen }: { steps: Checkpoint[]; onOpen?: (key: 
         <button type="button" onClick={() => setAll(true)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-hc-brand-dark">Sýna öll skref ({steps.length})</button>
       )}
       {all && (
-        <button type="button" onClick={() => setAll(false)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-slate-500">Fela</button>
+        <button type="button" onClick={() => setAll(false)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-slate-600">Fela</button>
       )}
     </section>
   );

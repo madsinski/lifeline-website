@@ -76,7 +76,7 @@ export default function ClientThread({ api, journeyId, onRead }: {
   return (
     <div className="space-y-2">
       {msgs.length === 0 ? (
-        <p className="rounded-2xl bg-white p-3 text-sm text-slate-500 ring-1 ring-hc-hairline">
+        <p className="rounded-2xl bg-white p-3 text-sm text-slate-600 ring-1 ring-hc-hairline">
           Ekkert samtal enn. Það sem þú skrifar hér birtist í appinu hjá skjólstæðingnum.
         </p>
       ) : (
@@ -92,7 +92,7 @@ export default function ClientThread({ api, journeyId, onRead }: {
                   m.kind === "nudge" ? "bg-amber-50 text-amber-900 ring-1 ring-amber-200"
                     : mine ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-900"}`}>
                   {m.body}
-                  <span className={`mt-1 block text-[10px] ${mine && m.kind !== "nudge" ? "text-white/60" : "text-slate-500"}`}>
+                  <span className={`mt-1 block text-[10px] ${mine && m.kind !== "nudge" ? "text-white/60" : "text-slate-600"}`}>
                     {m.kind === "nudge" ? "Hvatning · " : ""}{when(m.created_at)}
                   </span>
                 </div>

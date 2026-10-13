@@ -79,7 +79,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-1.5">
             <span className={`flex h-6 items-center gap-1.5 rounded-full px-2.5 ${
-              i === step ? "bg-hc-ink text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-500"}`}>
+              i === step ? "bg-hc-ink text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>
               {i < step ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}{label}
             </span>
             {i < STEPS.length - 1 && <span className="h-px w-3 bg-slate-200" aria-hidden />}
@@ -158,14 +158,14 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
                   className={`relative min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
                     on ? "bg-hc-ink text-white" : wanted ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
                   <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span><span className="hidden sm:inline">{w}</span>
-                  {busy && <span className={`ml-1.5 text-xs font-normal ${on ? "text-white/70" : "text-slate-500"}`}>•</span>}
+                  {busy && <span className={`ml-1.5 text-xs font-normal ${on ? "text-white/70" : "text-slate-600"}`}>•</span>}
                 </button>
               );
             })}
           </div>
           <p className={`text-sm ${s.days.length >= 2 ? "text-hc-ink-2" : "text-amber-800"}`}>
             {s.days.length >= 2 ? `${s.days.length} dagar valdir.` : "Veldu að minnsta kosti tvo daga."}
-            {(s.activities ?? []).length > 0 && <span className="text-slate-500"> Punktur merkir dag sem þú ert þegar á ferðinni.</span>}
+            {(s.activities ?? []).length > 0 && <span className="text-slate-600"> Punktur merkir dag sem þú ert þegar á ferðinni.</span>}
           </p>
 
           {/* What the week is short of, and where it would sit. The setup
@@ -220,7 +220,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
           </div>
 
           <div>
-            <p className={`${hcKicker} mb-2 text-slate-500`}>Þol og hjarta</p>
+            <p className={`${hcKicker} mb-2 text-slate-600`}>Þol og hjarta</p>
             <div className="space-y-2">
               {(["full", "easy", "limited"] as CardioLimit[]).map((c) => (
                 <button key={c} type="button" onClick={() => set({ cardio: c })} aria-pressed={s.cardio === c} className={card(s.cardio === c)}>
@@ -232,7 +232,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
           </div>
 
           <div>
-            <p className={`${hcKicker} mb-2 text-slate-500`}>Stoðkerfi</p>
+            <p className={`${hcKicker} mb-2 text-slate-600`}>Stoðkerfi</p>
             <p className="mb-2 text-sm text-hc-ink-2">Veldu það sem er viðkvæmt. Hver æfing sem reynir á það skiptist út fyrir mildari útgáfu.</p>
             <div className="flex flex-wrap gap-2">
               {REGIONS.map((r) => (
@@ -242,7 +242,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
                   {REGION_IS[r].label}
                 </button>
               ))}
-              {s.injuries.length === 0 && <span className="self-center text-sm text-slate-500">Ekkert valið — ekkert skipt út.</span>}
+              {s.injuries.length === 0 && <span className="self-center text-sm text-slate-600">Ekkert valið — ekkert skipt út.</span>}
             </div>
           </div>
         </div>
@@ -337,7 +337,7 @@ function WeekPreview({ s, planStart }: { s: TrainingSettings; planStart: string 
       {!hiit.on && hiit.why && (
         <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">{hiit.why}</p>
       )}
-      <p className="text-xs text-slate-500">Þú getur fært æfingarnar á aðra daga og skipt út einstökum æfingum eftir á.</p>
+      <p className="text-xs text-slate-600">Þú getur fært æfingarnar á aðra daga og skipt út einstökum æfingum eftir á.</p>
     </div>
   );
 }

@@ -35,7 +35,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
     })();
   }, [api]);
 
-  if (lectures === null) return <p className="py-10 text-center text-slate-500">Hleð…</p>;
+  if (lectures === null) return <p className="py-10 text-center text-slate-600">Hleð…</p>;
 
   const lecture = open?.kind === "lecture" ? lectures.find((l) => l.slug === open.slug) : null;
   const program = open?.kind === "program" ? programs.find((p) => p.key === open.key) : null;
@@ -60,7 +60,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
             <div className="w-full max-w-5xl"><SlideDeck slides={lecture.slides} pillar={lecture.pillar} /></div>
           </div>
         )}
-        {lecture.kind !== "slides" && <p className="text-sm text-slate-500">Forskoðun er aðeins fyrir glærur. Skjólstæðingar sjá fræðsluna í heilsuferðinni.</p>}
+        {lecture.kind !== "slides" && <p className="text-sm text-slate-600">Forskoðun er aðeins fyrir glærur. Skjólstæðingar sjá fræðsluna í heilsuferðinni.</p>}
       </div>
     );
   }
@@ -82,8 +82,8 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Fyrirlestrar og fræðsla</h2>
-        <p className="mt-0.5 text-sm text-slate-500">Hengdu fræðslu við áætlun í síðasta skrefi áætlunarinnar. Glærur má sýna á skjá fyrir hóp.</p>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-600">Fyrirlestrar og fræðsla</h2>
+        <p className="mt-0.5 text-sm text-slate-600">Hengdu fræðslu við áætlun í síðasta skrefi áætlunarinnar. Glærur má sýna á skjá fyrir hóp.</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {lectures.map((l) => (
             <button key={l.slug} type="button" onClick={() => setOpen({ kind: "lecture", slug: l.slug })}
@@ -100,8 +100,8 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
       </section>
 
       <section>
-        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Æfingaáætlanir</h2>
-        <p className="mt-0.5 text-sm text-slate-500">Veldu áætlun í skrefinu Hreyfing. „HIIT og styrkur“ lagar sig að stigi, álagi og meiðslum.</p>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-600">Æfingaáætlanir</h2>
+        <p className="mt-0.5 text-sm text-slate-600">Veldu áætlun í skrefinu Hreyfing. „HIIT og styrkur“ lagar sig að stigi, álagi og meiðslum.</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {programs.map((p) => (
             <button key={p.key} type="button" onClick={() => setOpen({ kind: "program", key: p.key })}

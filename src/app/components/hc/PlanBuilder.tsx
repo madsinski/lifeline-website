@@ -78,7 +78,7 @@ function Rating({ m }: { m: Rated }) {
       <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${band.className}`} title={band.label}>
         {String(score).replace(".", ",")}
       </span>
-      <span className="text-[11px] text-slate-500">
+      <span className="text-[11px] text-slate-600">
         áhrif {m.effect} · auðvelt {m.ease}
       </span>
       {grade && (
@@ -86,7 +86,7 @@ function Rating({ m }: { m: Rated }) {
           {grade.label}
         </span>
       )}
-      {time && <span className="text-[11px] text-slate-400">{time}</span>}
+      {time && <span className="text-[11px] text-slate-500">{time}</span>}
     </div>
   );
 }
@@ -111,7 +111,7 @@ function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) 
           className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
             step === i ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`}>
           <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
-            step === i ? "bg-white/20" : i < step ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}`}>
+            step === i ? "bg-white/20" : i < step ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
             {i < step ? "✓" : i + 1}
           </span>
           {label}
@@ -130,7 +130,7 @@ function WizardFooter({ step, onGo }: { step: number; onGo: (n: number) => void 
         className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">
         Til baka
       </button>
-      <span className="flex-1 text-center text-xs text-slate-400">Skref {step + 1} af {WIZARD_STEPS.length}</span>
+      <span className="flex-1 text-center text-xs text-slate-500">Skref {step + 1} af {WIZARD_STEPS.length}</span>
       {/* The button says where it goes. "Næsta" makes you guess; "Næsta:
           Æfingar" does not, and that is the whole job of this control. */}
       {next ? (
@@ -139,7 +139,7 @@ function WizardFooter({ step, onGo }: { step: number; onGo: (n: number) => void 
           Næsta: {next} <ArrowRight className="h-4 w-4" />
         </button>
       ) : (
-        <span className="px-4 py-2 text-xs text-slate-400">Síðasta skrefið</span>
+        <span className="px-4 py-2 text-xs text-slate-500">Síðasta skrefið</span>
       )}
     </div>
   );
@@ -429,7 +429,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   }, [preview, printAfter]);
 
   if (!draft || !lib) {
-    return <div className="rounded-2xl border border-hc-hairline bg-white p-8 text-center text-sm text-slate-500">{msg?.text ?? "Hleð áætlun…"}</div>;
+    return <div className="rounded-2xl border border-hc-hairline bg-white p-8 text-center text-sm text-slate-600">{msg?.text ?? "Hleð áætlun…"}</div>;
   }
 
   if (preview) {
@@ -476,7 +476,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
         <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
           {status === "published" ? (dirty ? "Birt · óvistaðar breytingar" : "Birt") : dirty ? "Óvistað" : status === "draft" ? "Drög" : "Ný"}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm text-slate-500">{clientName || "Skjólstæðingur"}</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-slate-600">{clientName || "Skjólstæðingur"}</span>
         <button type="button" onClick={() => setTools((v) => !v)} aria-expanded={tools}
           className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100">
           Sniðmát og útgáfa {tools ? "▴" : "▾"}
@@ -519,7 +519,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           aria-label="Aðgerðasafn"
         >
           <p className="text-sm font-bold text-hc-ink">Aðgerðasafn</p>
-          <p className="mb-3 text-xs text-slate-500">Dragðu aðgerð inn í áætlunina, eða úr henni hingað til að fjarlægja.</p>
+          <p className="mb-3 text-xs text-slate-600">Dragðu aðgerð inn í áætlunina, eða úr henni hingað til að fjarlægja.</p>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Leita…" className="mb-2 w-full rounded-lg border border-hc-control px-3 py-1.5 text-sm" />
           <div className="mb-3 flex flex-wrap gap-1">
             {(["all", ...PILLARS] as const).map((p) => (
@@ -591,7 +591,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                     <PillarIcon pillar={p} size="sm" />
                     <h3 className="font-bold text-hc-ink">{meta.label}</h3>
                     <span className="flex-1" />
-                    <button onClick={() => addCustom(p)} className="text-xs font-semibold text-slate-500 hover:text-slate-800">+ Eigin aðgerð</button>
+                    <button onClick={() => addCustom(p)} className="text-xs font-semibold text-slate-600 hover:text-slate-800">+ Eigin aðgerð</button>
                   </div>
                   <input
                     value={goalFor(p)}
@@ -601,7 +601,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                     style={{ background: meta.soft }}
                   />
                   {items.length === 0 && (
-                    <p className="rounded-xl border border-dashed border-hc-hairline p-4 text-center text-xs text-slate-400">Dragðu aðgerðir hingað</p>
+                    <p className="rounded-xl border border-dashed border-hc-hairline p-4 text-center text-xs text-slate-500">Dragðu aðgerðir hingað</p>
                   )}
                   {/* One line per action, opened only when being edited.
                       Every item used to keep all four fields permanently
@@ -676,11 +676,11 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                                     own line the name always has the full row
                                     and the frequency is still visible at a
                                     glance. */}
-                                {m.frequency && <span className="block truncate text-xs text-slate-500">{m.frequency}</span>}
+                                {m.frequency && <span className="block truncate text-xs text-slate-600">{m.frequency}</span>}
                               </span>
-                              <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+                              <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`} aria-hidden />
                             </button>
-                            <button onClick={() => removeItem(m.uid)} className="shrink-0 text-slate-400 hover:text-red-500" aria-label={`Fjarlægja ${m.title}`}>×</button>
+                            <button onClick={() => removeItem(m.uid)} className="shrink-0 text-slate-500 hover:text-red-500" aria-label={`Fjarlægja ${m.title}`}>×</button>
                           </div>
                           {open && (
                             <div className="space-y-1 border-t border-slate-100 p-2">
@@ -733,7 +733,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
             heading says which is which. */}
         {draft.exercise && (
           <section className="rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">
               Eins og skjólstæðingurinn sér það
             </h3>
             <CoachAsClient api={api} journeyId={journeyId} only="exercise" />
@@ -757,7 +757,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
             configures, this shows. */}
         {draft.nutrition && (
           <section className="rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">
               Máltíðirnar sem þetta gefur
             </h3>
             <CoachAsClient api={api} journeyId={journeyId} only="nutrition" />
@@ -770,7 +770,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           {!!lib.lectures?.length && (
             <div className="rounded-2xl border border-hc-hairline bg-white p-4 text-sm">
               <p className="font-semibold text-slate-700">Fræðsla</p>
-              <p className="text-xs text-slate-500">Birtist undir „Fræðsla“ í áætlun skjólstæðings.</p>
+              <p className="text-xs text-slate-600">Birtist undir „Fræðsla“ í áætlun skjólstæðings.</p>
               <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
                 {lib.lectures.map((l) => {
                   const on = draft.lecture_slugs.includes(l.slug);
@@ -780,7 +780,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                         onChange={(e) => update({ lecture_slugs: e.target.checked ? [...draft.lecture_slugs, l.slug] : draft.lecture_slugs.filter((x) => x !== l.slug) })} />
                       <span>
                         <span className="block font-medium text-slate-800">{l.title}</span>
-                        {l.subtitle && <span className="block text-xs text-slate-500">{l.subtitle}</span>}
+                        {l.subtitle && <span className="block text-xs text-slate-600">{l.subtitle}</span>}
                       </span>
                     </label>
                   );
@@ -857,7 +857,7 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {busy ? "Set saman…" : "Láta AI setja saman"}
         </button>
-        {disabled && <span className="text-xs text-slate-500">Veldu sniðmát fyrst.</span>}
+        {disabled && <span className="text-xs text-slate-600">Veldu sniðmát fyrst.</span>}
         {msg && <span className="text-xs text-emerald-800">{msg}</span>}
       </div>
       {open && !disabled && (
@@ -890,7 +890,7 @@ function AdaptiveSettings({ api, journeyId }: { api: Api; journeyId: string }) {
       setS(r.ok && j.settings ? j.settings : DEFAULT_TRAINING);
     })();
   }, [api, journeyId]);
-  if (!s) return <p className="text-sm text-slate-400">Hleð stillingum…</p>;
+  if (!s) return <p className="text-sm text-slate-500">Hleð stillingum…</p>;
   const change = async (next: TrainingSettings) => {
     const prev = s;
     setS(next); setSaving(true); setErr(null);
@@ -944,7 +944,7 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
       )}
       {value && !isAdaptive(value.key) && (
         <div className="mt-3 space-y-3">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Æfingar úr æfingasafninu fylgja með mynd, myndbandi og leiðbeiningum. Skiptu um æfingu ef eitthvað hentar ekki, t.d. vegna verkja eða búnaðar.
           </p>
           <ComposeButton api={api} journeyId={journeyId} kind="exercise" templateKey={value.key ?? null}
@@ -953,7 +953,7 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
           {!!value.principles?.length && (
             <details className="rounded-xl border border-slate-100 p-3 text-sm">
               <summary className="cursor-pointer font-semibold text-slate-700">Meginreglur og stigvaxandi álag</summary>
-              <label className="mt-2 block text-xs text-slate-500">Meginreglur (ein lína á reglu)
+              <label className="mt-2 block text-xs text-slate-600">Meginreglur (ein lína á reglu)
                 <textarea value={value.principles.join("\n")} rows={4}
                   onChange={(e) => edit({ principles: e.target.value.split("\n") })}
                   className="mt-1 w-full rounded-lg border border-hc-control px-2 py-1.5 text-sm text-slate-800" />
@@ -997,14 +997,14 @@ function NutritionEditor({ value, templates, onChange, api, journeyId, weightKg 
               <input value={p} aria-label="Meginregla"
                 onChange={(e) => onChange({ ...value, principles: value.principles.map((x, j) => (j === i ? e.target.value : x)) })}
                 className="flex-1 rounded-lg border border-hc-control px-2 py-1 text-sm" />
-              <button aria-label="Fjarlægja" className="px-1 text-slate-400 hover:text-red-500"
+              <button aria-label="Fjarlægja" className="px-1 text-slate-500 hover:text-red-500"
                 onClick={() => onChange({ ...value, principles: value.principles.filter((_, j) => j !== i) })}>×</button>
             </div>
           ))}
           <button className="text-xs font-semibold text-lime-700" onClick={() => onChange({ ...value, principles: [...value.principles, ""] })}>+ Bæta við reglu</button>
           <div className="mt-3 rounded-xl border border-slate-100 p-3">
             <p className="text-sm font-semibold text-slate-700">Dæmi um dag</p>
-            <p className="mb-2 mt-0.5 text-xs text-slate-500">Veldu máltíðir úr safninu til að fá mynd og næringargildi með í áætlunina.</p>
+            <p className="mb-2 mt-0.5 text-xs text-slate-600">Veldu máltíðir úr safninu til að fá mynd og næringargildi með í áætlunina.</p>
             <ComposeButton api={api} journeyId={journeyId} kind="nutrition" templateKey={value.key ?? null}
               onDone={(r) => r.day_example && onChange({ ...value, day_example: r.day_example })} />
             <DayExampleEditor api={api} value={value.day_example ?? []} onChange={(day_example) => onChange({ ...value, day_example })} />

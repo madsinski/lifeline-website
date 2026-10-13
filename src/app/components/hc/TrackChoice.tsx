@@ -142,7 +142,7 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
                     On the app option that is "no kennitala", which is true
                     and is the difference the audit turned up; on the check it
                     is where the thing actually happens. */}
-                <span className="mt-1 block text-xs text-slate-400">{o.foot}</span>
+                <span className="mt-1 block text-xs text-slate-500">{o.foot}</span>
               </span>
             </button>
           );

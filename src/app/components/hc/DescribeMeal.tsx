@@ -156,7 +156,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
         <input type="number" inputMode="numeric" min={0} value={macros?.[k] ?? 0}
           onChange={(e) => setMacros((m) => (m ? { ...m, [k]: Math.max(0, Number(e.target.value) || 0) } : m))}
           className="w-full py-2 text-slate-900 outline-none" />
-        <span className="shrink-0 text-xs text-slate-500">{unit}</span>
+        <span className="shrink-0 text-xs text-slate-600">{unit}</span>
       </span>
     </label>
   );
@@ -182,7 +182,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
           </button>
         )}
       </div>
-      {listening && <p className="text-xs text-slate-500">Hlusta… talaðu máltíðina og ýttu svo á stopp.</p>}
+      {listening && <p className="text-xs text-slate-600">Hlusta… talaðu máltíðina og ýttu svo á stopp.</p>}
 
       {!macros ? (
         <button type="button" onClick={() => void estimate()}
@@ -203,7 +203,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
           </div>
           {/* Said plainly, every time, because it is the whole caveat: a
               sentence read by a model is not a weighed plate. */}
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             Þetta er áætlun út frá textanum, ekki mæling. Breyttu tölunum ef þú veit betur.
           </p>
           <button type="button" onClick={() => void save()} disabled={busy === "save"}

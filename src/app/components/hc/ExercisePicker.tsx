@@ -66,7 +66,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold text-hc-ink">{mode === "replace" ? "Skipta um æfingu" : "Æfingasafn"}</h2>
-              <p className="text-xs text-slate-500">Sama safn og í /admin/content. Mest fyrir minnst: stórar hreyfingar sem nota marga vöðvahópa.</p>
+              <p className="text-xs text-slate-600">Sama safn og í /admin/content. Mest fyrir minnst: stórar hreyfingar sem nota marga vöðvahópa.</p>
             </div>
             <button type="button" onClick={onClose} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
               {mode === "add" && added.length ? `Klárt (${added.length})` : "Loka"}
@@ -95,8 +95,8 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
         }>
 
         <div className="flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 sm:p-5">
-          {rows === null && <p className="text-sm text-slate-500">Hleð…</p>}
-          {rows?.length === 0 && <p className="text-sm text-slate-500">Ekkert fannst. Prófaðu enskt heiti eða slökktu á „Mest fyrir minnst“.</p>}
+          {rows === null && <p className="text-sm text-slate-600">Hleð…</p>}
+          {rows?.length === 0 && <p className="text-sm text-slate-600">Ekkert fannst. Prófaðu enskt heiti eða slökktu á „Mest fyrir minnst“.</p>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {rows?.map((ex) => {
               const isAdded = added.includes(ex.id);
@@ -114,10 +114,10 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
                   </button>
                   <div className="flex flex-1 flex-col p-2.5">
                     <p className="text-sm font-semibold leading-tight text-slate-900">{ex.name_is || ex.name}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">
+                    <p className="mt-0.5 text-[11px] text-slate-600">
                       {[ex.category && CATEGORY_IS[ex.category], ex.equipment && EQUIPMENT_IS[ex.equipment]].filter(Boolean).join(" · ")}
                     </p>
-                    <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">{(ex.primary_muscles ?? []).map(muscleIs).join(", ")}</p>
+                    <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">{(ex.primary_muscles ?? []).map(muscleIs).join(", ")}</p>
                     <span className="flex-1" />
                     <button type="button" onClick={() => pick(ex)}
                       className={`mt-2 rounded-lg px-2 py-1.5 text-xs font-semibold ${isAdded ? "bg-emerald-50 text-emerald-700" : "bg-orange-600 text-white hover:bg-orange-700"}`}>
@@ -140,13 +140,13 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-lg font-bold text-hc-ink">{open.name_is || open.name}</h3>
-              <button type="button" onClick={() => setOpen(null)} className="text-slate-400 hover:text-slate-700" aria-label="Loka">✕</button>
+              <button type="button" onClick={() => setOpen(null)} className="text-slate-500 hover:text-slate-700" aria-label="Loka">✕</button>
             </div>
             {open.video_url
               ? <video src={open.video_url} poster={open.illustration_url ?? undefined} controls playsInline className="mt-3 w-full rounded-2xl bg-black" />
               // eslint-disable-next-line @next/next/no-img-element
               : open.illustration_url ? <img src={open.illustration_url} alt="" className="mt-3 w-full rounded-2xl" /> : null}
-            <p className="mt-3 text-xs text-slate-500">{(open.primary_muscles ?? []).concat(open.secondary_muscles ?? []).map(muscleIs).join(" · ")}</p>
+            <p className="mt-3 text-xs text-slate-600">{(open.primary_muscles ?? []).concat(open.secondary_muscles ?? []).map(muscleIs).join(" · ")}</p>
             {!!(open.instructions_is?.length ? open.instructions_is : open.instructions)?.length && (
               <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-slate-700">
                 {(open.instructions_is?.length ? open.instructions_is : open.instructions ?? []).map((s, i) => <li key={i}>{s}</li>)}

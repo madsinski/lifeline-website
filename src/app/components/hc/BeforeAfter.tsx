@@ -26,24 +26,24 @@ export default function BeforeAfter({ c }: { c: Comparison }) {
       <ul className="divide-y divide-slate-100">
         {c.rows.map((r) => {
           const Icon = r.better === true ? (r.after > r.before ? ArrowUpRight : ArrowDownRight) : r.better === false ? (r.after > r.before ? ArrowUpRight : ArrowDownRight) : Minus;
-          const tone = r.better === true ? "text-emerald-700 bg-emerald-50" : r.better === false ? "text-red-700 bg-red-50" : "text-slate-500 bg-slate-100";
+          const tone = r.better === true ? "text-emerald-700 bg-emerald-50" : r.better === false ? "text-red-700 bg-red-50" : "text-slate-600 bg-slate-100";
           return (
             <li key={r.marker} className="flex items-center gap-3 px-4 py-3">
               <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tone}`}><Icon className="h-4 w-4" aria-hidden /></span>
               <span className="min-w-0 flex-1 font-medium text-slate-800">{r.title}</span>
-              <span className="flex items-center gap-1.5 text-sm tabular-nums text-slate-500">
+              <span className="flex items-center gap-1.5 text-sm tabular-nums text-slate-600">
                 {r.signalBefore && <span className={`h-2 w-2 rounded-full ${DOT[r.signalBefore]}`} aria-hidden />}{num(r.before)}
               </span>
               <span className="text-slate-300" aria-hidden>→</span>
               <span className="flex items-center gap-1.5 text-sm font-bold tabular-nums text-slate-900">
                 {r.signalAfter && <span className={`h-2 w-2 rounded-full ${DOT[r.signalAfter]}`} aria-hidden />}{num(r.after)}
-                {r.unit && <span className="font-normal text-slate-400">{r.unit}</span>}
+                {r.unit && <span className="font-normal text-slate-500">{r.unit}</span>}
               </span>
             </li>
           );
         })}
       </ul>
-      <p className="px-4 pb-4 pt-2 text-xs text-slate-500">Litirnir sýna hvar gildið lenti miðað við viðmið Lifeline. Læknir og hjúkrunarfræðingur fara yfir breytingarnar með þér.</p>
+      <p className="px-4 pb-4 pt-2 text-xs text-slate-600">Litirnir sýna hvar gildið lenti miðað við viðmið Lifeline. Læknir og hjúkrunarfræðingur fara yfir breytingarnar með þér.</p>
     </section>
   );
 }

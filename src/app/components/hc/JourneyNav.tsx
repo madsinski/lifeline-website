@@ -165,7 +165,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
            from, and choosing anything at all is done with it. */
         onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
         className={mobile
-          ? `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${on ? "text-hc-brand-dark" : "text-slate-500"}`
+          ? `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${on ? "text-hc-brand-dark" : "text-slate-600"}`
           : `${hcTabs.tab(on)} flex items-center justify-center gap-2`}>
         <span className="relative">
           <i.Icon className={mobile ? "h-6 w-6" : "h-4 w-4"} strokeWidth={on && mobile ? 2.4 : 2} aria-hidden />
@@ -237,7 +237,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
             {spill.length > 0 && (
               <div className="relative flex flex-1">
                 <button type="button" onClick={() => setMore(!more)} aria-expanded={more}
-                  className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${spillActive ? "text-hc-brand-dark" : "text-slate-500"}`}>
+                  className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${spillActive ? "text-hc-brand-dark" : "text-slate-600"}`}>
                   <span className="relative">
                     <MoreHorizontal className="h-6 w-6" aria-hidden />
                     {spillUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${count} ný`} />}

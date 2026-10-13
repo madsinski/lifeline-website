@@ -198,7 +198,7 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
           <div className="flex shrink-0 items-center gap-3 bg-inherit px-4 py-3">
             <p className="min-w-0 flex-1 truncate text-lg font-bold text-hc-ink">{title}</p>
             <button type="button" onClick={close} aria-label="Loka"
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+              className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
               <X className="h-5 w-5" aria-hidden />
             </button>
           </div>

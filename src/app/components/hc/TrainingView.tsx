@@ -197,7 +197,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
             doing to reach the one you were. */}
         <section className="space-y-3">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+            <h3 className="text-sm font-bold uppercase tracking-wide text-slate-600">
               {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
             </h3>
             {pickedDay !== null && pickedDay !== todayIdx && (
@@ -245,7 +245,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           {daySessions.length === 0 && dayActivities.length === 0 && (
             <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-hc-hairline">
               <p className="font-semibold text-slate-800">Hvíldardagur</p>
-              <p className="mt-1 text-sm text-slate-500">Ekkert á dagskrá {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}.</p>
+              <p className="mt-1 text-sm text-slate-600">Ekkert á dagskrá {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}.</p>
               {onAddDay && (
                 <button type="button" onClick={() => setAddDay(shownDay)} className={`${hcBtn.secondary} mx-auto mt-3`}>
                   Setja eitthvað á þennan dag
@@ -323,7 +323,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                 <div key={d} data-drop={`day:${i}`}
                   className={`relative flex items-center gap-2 border-b border-slate-100 px-1 py-1.5 transition last:border-b-0 sm:min-h-[92px] sm:flex-col sm:items-stretch sm:gap-1 sm:rounded-xl sm:border sm:p-1 ${
                     over ? "bg-orange-50 sm:border-orange-400" : i === todayIdx ? "bg-orange-50/60 sm:border-orange-300" : "sm:border-hc-hairline sm:bg-white"}`}>
-                  <p className={`w-9 shrink-0 text-[11px] font-bold uppercase sm:w-auto sm:text-center ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>
+                  <p className={`w-9 shrink-0 text-[11px] font-bold uppercase sm:w-auto sm:text-center ${i === todayIdx ? "text-orange-800" : "text-slate-500"}`}>
                     {d}
                   </p>
                   {/* The chips sit in a row beside the label on a phone and
@@ -478,7 +478,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                     </button>
                   )}
                   {here.length === 0 && mine.length === 0 && (
-                    <p className="flex min-h-9 items-center text-[11px] text-slate-400 sm:mt-auto sm:min-h-0 sm:justify-center sm:pb-1">Hvíld</p>
+                    <p className="flex min-h-9 items-center text-[11px] text-slate-500 sm:mt-auto sm:min-h-0 sm:justify-center sm:pb-1">Hvíld</p>
                   )}
                   </div>
                 </div>
@@ -490,7 +490,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               already shows what the week holds, day by day, with the colour
               and the name — counting the same sessions again underneath
               said nothing new. */}
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs text-slate-600">
             Ýttu á dag til að sjá hann. Dragðu æfingu á annan dag til að færa hana.
           </p>
 
@@ -669,9 +669,9 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
       <span className="min-w-0 flex-1">
         <span className={`block text-xs font-bold uppercase tracking-wide ${t.ink}`}>{eyebrow}</span>
         <span className="block font-semibold leading-snug text-hc-ink">{title}</span>
-        {meta && <span className="mt-0.5 block text-xs text-slate-500">{meta}</span>}
+        {meta && <span className="mt-0.5 block text-xs text-slate-600">{meta}</span>}
       </span>
-      {headerToggles && <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${headerOpen ? "rotate-180" : ""}`} aria-hidden />}
+      {headerToggles && <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition ${headerOpen ? "rotate-180" : ""}`} aria-hidden />}
     </>
   );
   return (
@@ -739,7 +739,7 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
       modality={s.modality}
       tile={<Dumbbell className="h-5 w-5" aria-hidden />}
       eyebrow={`${s.day}${today ? " · í dag" : ""}`}
-      title={<>{s.title}{s.focus ? <span className="font-normal text-slate-500"> · {s.focus}</span> : null}</>}
+      title={<>{s.title}{s.focus ? <span className="font-normal text-slate-600"> · {s.focus}</span> : null}</>}
       minutes={s.minutes}
       today={today}
       open={open}
@@ -778,13 +778,13 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             {onInstead && !done && (
               <button type="button" onClick={onInstead}
-                className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
+                className="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-slate-800 hover:underline">
                 Gera annað
               </button>
             )}
             {onRemove && (
               <button type="button" onClick={onRemove}
-                className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-red-700 hover:underline">
+                className="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-red-700 hover:underline">
                 Taka daginn af
               </button>
             )}
@@ -829,7 +829,7 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
         <div className="divide-y divide-slate-100">
           {blocks.map((b) => (
             <div key={b.key} className="px-3 py-3 sm:px-4">
-              {blocks.length > 1 && <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">{BLOCK_IS[b.key]}</p>}
+              {blocks.length > 1 && <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">{BLOCK_IS[b.key]}</p>}
               <ul className="space-y-2">
                 {b.items.map((it, j) => <ExerciseRow key={it.slot ?? j} it={it} over={!!it.slot && dragOver === `slot:${it.slot}`}
                   choosing={!!it.slot && swapFor === it.slot} onSwap={onSwap} onUnswap={onUnswap}
@@ -849,7 +849,7 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
                   )}
                   {dropped.length > 0 && onUndrop && (
                     <button type="button" onClick={() => dropped.forEach((d) => onUndrop(d))}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 hover:underline">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:underline">
                       <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Sækja aftur {dropped.length} sem þú tókst út
                     </button>
                   )}
@@ -892,7 +892,7 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
               {it.muscles.slice(0, 3).map((mm) => <span key={mm} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{muscleIs(mm)}</span>)}
             </p>
           )}
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-slate-600">
             {[it.rest ? `Hvíld ${it.rest}` : null, it.equipment ? EQUIPMENT_IS[it.equipment] ?? it.equipment : null].filter(Boolean).join(" · ")}
           </p>
           {it.note && <p className="mt-1 text-sm text-slate-700">{it.note}</p>}
@@ -911,12 +911,12 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
             )}
             {onDrop && (
               <button type="button" onClick={onDrop} aria-label={`Taka ${it.name} út úr æfingunni`}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 text-slate-500 transition hover:bg-red-50 hover:text-red-700">
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 text-slate-600 transition hover:bg-red-50 hover:text-red-700">
                 <X className="h-3.5 w-3.5" aria-hidden /> Taka út
               </button>
             )}
             {it.swapped && it.slot && onSwap && (
-              <button type="button" onClick={() => onUnswap(it.slot!)} className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-900">
+              <button type="button" onClick={() => onUnswap(it.slot!)} className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900">
                 <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Upprunaleg
               </button>
             )}
@@ -1009,19 +1009,19 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                     <span className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-0.5">
                       {onBuild && a.focus && (
                         <button type="button" onClick={() => onBuild(a)}
-                          className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
+                          className="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-slate-800 hover:underline">
                           Sjá æfingar
                         </button>
                       )}
                       {onRun && a.focus && onComplete && (
                         <button type="button" onClick={() => onComplete(a)}
-                          className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
+                          className="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-slate-800 hover:underline">
                           Ég gerði þetta
                         </button>
                       )}
                       {onRemove && (
                         <button type="button" onClick={() => onRemove(a.id)}
-                          className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-red-700 hover:underline">
+                          className="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-red-700 hover:underline">
                           Taka af
                         </button>
                       )}
@@ -1035,7 +1035,7 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                   <div className="flex w-full items-center justify-between gap-2 rounded-2xl bg-slate-50 px-3 py-2">
                     <span className="text-xs font-semibold text-slate-600">
                       Álag
-                      <span className="ml-1.5 font-normal text-slate-500">{LOAD_IS[a.load ?? 0] ?? "eins og venjulega"}</span>
+                      <span className="ml-1.5 font-normal text-slate-600">{LOAD_IS[a.load ?? 0] ?? "eins og venjulega"}</span>
                     </span>
                     <span className="flex items-center gap-1">
                       <button type="button" aria-label="Minnka álag" disabled={(a.load ?? 0) <= -2}

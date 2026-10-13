@@ -94,9 +94,9 @@ export default function Caseload({ api, onOpen }: {
     return (
       <section className="rounded-2xl bg-white p-4 ring-1 ring-hc-hairline">
         <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-          <Users className="h-4 w-4 text-slate-400" aria-hidden /> Mínir skjólstæðingar
+          <Users className="h-4 w-4 text-slate-500" aria-hidden /> Mínir skjólstæðingar
         </p>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-slate-600">
           Enginn er skráður á þig. Þú birtist hér þegar þjálfari er valinn í heilsuferð einhvers.
         </p>
       </section>
@@ -109,8 +109,8 @@ export default function Caseload({ api, onOpen }: {
     <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-hc-hairline">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-slate-100 p-4">
         <p className="flex items-center gap-2 font-semibold text-slate-900">
-          <Users className="h-4 w-4 text-slate-400" aria-hidden /> Mínir skjólstæðingar
-          <span className="font-normal text-slate-500">{clients.length}</span>
+          <Users className="h-4 w-4 text-slate-500" aria-hidden /> Mínir skjólstæðingar
+          <span className="font-normal text-slate-600">{clients.length}</span>
         </p>
         {waiting > 0 && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-900 ring-1 ring-rose-200">
@@ -143,11 +143,11 @@ export default function Caseload({ api, onOpen }: {
                   {/* The last thing they said, because that is usually the
                       reason to open somebody. */}
                   {c.last_message ? (
-                    <span className={`mt-1 block truncate text-sm ${c.needs_reply ? "font-semibold text-rose-900" : "text-slate-500"}`}>
+                    <span className={`mt-1 block truncate text-sm ${c.needs_reply ? "font-semibold text-rose-900" : "text-slate-600"}`}>
                       {c.last_message.fromClient ? "" : "Þú: "}{c.last_message.body}
                     </span>
                   ) : (
-                    <span className="mt-1 block text-sm text-slate-400">Engin skilaboð</span>
+                    <span className="mt-1 block text-sm text-slate-500">Engin skilaboð</span>
                   )}
                 </span>
 
@@ -155,7 +155,7 @@ export default function Caseload({ api, onOpen }: {
                   <span className={`block rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ${tone.cls}`}>
                     {tone.label}
                   </span>
-                  <span className="mt-1 block text-[11px] tabular-nums text-slate-500">
+                  <span className="mt-1 block text-[11px] tabular-nums text-slate-600">
                     {c.days_7}/{window_.short} dagar · {c.days_28}/{window_.long}
                   </span>
                 </span>

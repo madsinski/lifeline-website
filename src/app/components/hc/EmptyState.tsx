@@ -10,7 +10,7 @@ type Variant = "waiting" | "empty" | "done";
 
 const LOOK: Record<Variant, { Icon: LucideIcon; disc: string; icon: string }> = {
   waiting: { Icon: Clock, disc: "bg-amber-50", icon: "text-amber-600" },
-  empty: { Icon: Inbox, disc: "bg-slate-100", icon: "text-slate-500" },
+  empty: { Icon: Inbox, disc: "bg-slate-100", icon: "text-slate-600" },
   done: { Icon: CheckCircle2, disc: "bg-hc-brand-surface", icon: "text-hc-brand-dark" },
 };
 

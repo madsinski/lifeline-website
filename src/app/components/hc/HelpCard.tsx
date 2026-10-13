@@ -112,7 +112,7 @@ export default function HelpCard({ api }: { api: Api }) {
         <div className="mt-3 space-y-3 rounded-2xl border border-hc-hairline p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="font-semibold text-hc-ink">{REQUEST_IS[kind].label}</p>
-            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
               <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
@@ -126,7 +126,7 @@ export default function HelpCard({ api }: { api: Api }) {
                     onClick={() => setPicked(on ? picked.filter((x) => x !== m.key) : [...picked, m.key])}
                     className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-emerald-500 bg-emerald-50 font-semibold text-emerald-900" : "border-hc-hairline bg-white hover:border-slate-300"}`}>
                     {m.label}
-                    <span className="block text-xs font-normal text-slate-500">{m.hint}</span>
+                    <span className="block text-xs font-normal text-slate-600">{m.hint}</span>
                   </button>
                 );
               })}
@@ -172,7 +172,7 @@ export default function HelpCard({ api }: { api: Api }) {
 
       {open.length > 0 && (
         <div className="mt-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Í vinnslu</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Í vinnslu</p>
           <ul className="mt-1.5 space-y-2">
             {open.map((r) => (
               <li key={r.id} className={`rounded-xl px-3 py-2 text-sm ring-1 ${REQUEST_IS[r.kind].cls}`}>
@@ -200,12 +200,12 @@ export default function HelpCard({ api }: { api: Api }) {
               <li key={r.id} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-semibold text-slate-800">{requestSummary(r.kind, r.detail)}</span>
-                  <span className="text-xs text-slate-500">{STATUS_IS[r.status]} · {fmt(r.created_at)}</span>
+                  <span className="text-xs text-slate-600">{STATUS_IS[r.status]} · {fmt(r.created_at)}</span>
                 </div>
                 {r.body && <p className="mt-0.5 text-slate-600">{r.body}</p>}
                 {r.reply && (
                   <p className="mt-1.5 rounded-lg bg-white p-2 text-slate-800 ring-1 ring-hc-hairline">
-                    <span className="block text-xs font-semibold text-slate-500">
+                    <span className="block text-xs font-semibold text-slate-600">
                       Svar{r.replied_by ? ` frá ${r.replied_by}` : ""}
                     </span>
                     {r.reply}

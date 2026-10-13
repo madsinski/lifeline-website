@@ -88,10 +88,10 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                     setOpen(isOpen ? null : key);
                   }}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50">
-                  <Icon className="h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+                  <Icon className="h-5 w-5 shrink-0 text-slate-500" aria-hidden />
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-hc-ink">{label}</span>
-                    <span className="block text-xs text-slate-500">{blurb}</span>
+                    <span className="block text-xs text-slate-600">{blurb}</span>
                   </span>
                   <ChevronRight className={`h-4 w-4 shrink-0 text-slate-300 transition ${isOpen ? "rotate-90" : ""}`} aria-hidden />
                 </button>
@@ -112,7 +112,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-bold text-hc-ink">{EMPHASIS_IS[e].label}</span>
-                            <span className="block text-xs text-slate-500">{EMPHASIS_IS[e].blurb}</span>
+                            <span className="block text-xs text-slate-600">{EMPHASIS_IS[e].blurb}</span>
                             {/* The numbers, because "meiri styrkur" is a
                                 direction and this is the actual week. */}
                             <span className="mt-1.5 flex flex-wrap gap-1">
@@ -126,7 +126,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                         </button>
                       );
                     })}
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-[11px] text-slate-600">
                       Áherslan breytir því hvað áætlunin setur inn þegar eitthvað vantar í vikuna. Það sem þú gerir sjálf(ur) telur áfram með.
                     </p>
                   </div>
@@ -135,23 +135,23 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                 {isOpen && key === "load" && (
                   <div className="space-y-4 px-4 pb-4">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Álag</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Álag</p>
                       <div className="mt-1.5 flex items-center gap-3">
                         <button type="button" aria-label="Minnka álag" disabled={settings.load <= -2}
                           onClick={() => set({ load: Math.max(-2, settings.load - 1) })}
                           className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-lg font-bold text-slate-700 disabled:opacity-30">−</button>
                         <span className="min-w-0 flex-1 text-center">
                           <span className="block text-sm font-bold text-hc-ink">{LOAD_IS[settings.load] ?? "Venjulegt"}</span>
-                          <span className="block text-xs text-slate-500">{settings.load > 0 ? `+${settings.load}` : settings.load}</span>
+                          <span className="block text-xs text-slate-600">{settings.load > 0 ? `+${settings.load}` : settings.load}</span>
                         </span>
                         <button type="button" aria-label="Auka álag" disabled={settings.load >= 2}
                           onClick={() => set({ load: Math.min(2, settings.load + 1) })}
                           className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-lg font-bold text-slate-700 disabled:opacity-30">+</button>
                       </div>
-                      <p className="mt-1 text-[11px] text-slate-500">Gildir um allar æfingar. Stakar æfingar má stilla á þeim sjálfum.</p>
+                      <p className="mt-1 text-[11px] text-slate-600">Gildir um allar æfingar. Stakar æfingar má stilla á þeim sjálfum.</p>
                     </div>
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Geta</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Geta</p>
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {LEVELS.map((lv) => (
                           <button key={lv.key} type="button" aria-pressed={settings.level === lv.key}
@@ -180,7 +180,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                         );
                       })}
                     </div>
-                    <p className="mt-2 text-[11px] text-slate-500">
+                    <p className="mt-2 text-[11px] text-slate-600">
                       Áætlunin sneiðir hjá æfingum sem hlaða það sem þú merkir hér.
                     </p>
                   </div>
@@ -189,13 +189,13 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                 {isOpen && key === "place" && (
                   <div className="space-y-3 px-4 pb-4">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Hvar</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Hvar</p>
                       <p className="mt-0.5 text-sm text-hc-ink">
                         {settings.places.map((pl) => PLACE_IS[pl].label).join(" + ") || "Ekki valið"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Þolþjálfun</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Þolþjálfun</p>
                       <p className="mt-0.5 text-sm text-hc-ink">{CARDIO_IS[settings.cardio].label}</p>
                     </div>
                     {onOpenWeek && (
@@ -219,7 +219,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
   if (inline) {
     return (
       <section className="overflow-hidden rounded-hc-card bg-white shadow-hc-card ring-1 ring-hc-hairline">
-        <p className="px-4 pb-1 pt-3.5 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Breytingar</p>
+        <p className="px-4 pb-1 pt-3.5 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Breytingar</p>
         {body}
       </section>
     );
@@ -231,10 +231,10 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
         <div className="flex items-start gap-3 border-b border-slate-100 p-4">
           <div className="min-w-0 flex-1">
             <p className="font-bold text-hc-ink">Breytingar</p>
-            <p className="text-xs text-slate-500">Allt sem hægt er að stilla á æfingavikunni.</p>
+            <p className="text-xs text-slate-600">Allt sem hægt er að stilla á æfingavikunni.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Loka"
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
         </div>
       }>
       {body}
@@ -247,10 +247,10 @@ export function ChangesButton({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
       className={`${hcCard.base} flex w-full items-center gap-3 px-4 py-3 text-left transition hover:ring-slate-300`}>
-      <Dumbbell className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+      <Dumbbell className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-hc-ink">Breytingar</span>
-        <span className="block text-xs text-slate-500">Dagar, álag, meiðsli, staðir, prógramm</span>
+        <span className="block text-xs text-slate-600">Dagar, álag, meiðsli, staðir, prógramm</span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
     </button>

@@ -123,7 +123,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
         <div className="min-w-0 flex-1">
           {/* The step above already says "Ábyrgðarfélagi"; saying it twice
               is how the nesting looked like a mistake. */}
-          {!bare && <p className={`${hcKicker} text-slate-500`}>Félagi</p>}
+          {!bare && <p className={`${hcKicker} text-slate-600`}>Félagi</p>}
 
           {d.partner ? (
             <>
@@ -150,20 +150,20 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
               about a relationship that has not started. */}
           {!pick && (
             <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
-              <span className="text-xs font-semibold text-slate-500">Þú</span>
+              <span className="text-xs font-semibold text-slate-600">Þú</span>
               <Fortnight days={d.me.days} of={d.me.of} tone="me" />
               <span className="text-sm text-hc-ink-2">{d.me.days} af {d.me.of} dögum</span>
             </div>
           )}
 
           {!pick && d.watchedBy.length > 0 && (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-slate-600">
               {d.watchedBy.join(", ")} {d.watchedBy.length === 1 ? "fylgist" : "fylgjast"} með þér.
             </p>
           )}
 
           {/* Simpler, and the same promise: one number, nothing else. */}
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-slate-600">
             Hann sér ekki skýrsluna þína, mælingar eða hvað þú valdir að gera.
           </p>
 

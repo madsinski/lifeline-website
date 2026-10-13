@@ -41,10 +41,10 @@ export function ProgramList({ rows, current, onPick, tone }: { rows: ProgramRow[
               {on && <span className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-white ${badge}`}><Check className="h-4 w-4" /></span>}
               <span className="block pr-7 font-semibold text-slate-900">{r.name}</span>
               {r.goal && <span className="mt-0.5 block text-sm text-slate-600">{r.goal}</span>}
-              <span className="mt-1 block text-xs text-slate-500">
+              <span className="mt-1 block text-xs text-slate-600">
                 {[r.days_per_week && r.key !== "hiit-styrkur" ? `${r.days_per_week} dagar` : r.key === "hiit-styrkur" ? "3 dagar, aðlagast þér" : null, r.session_minutes ? `um ${r.session_minutes} mín.` : null, r.level ? LEVEL[r.level] ?? r.level : null].filter(Boolean).join(" · ")}
               </span>
-              {r.description && <span className="mt-1 line-clamp-2 block text-xs text-slate-500">{r.description}</span>}
+              {r.description && <span className="mt-1 line-clamp-2 block text-xs text-slate-600">{r.description}</span>}
             </button>
           </li>
         );
@@ -64,9 +64,9 @@ export default function ProgramPicker({ api, kind, current, onPick, onClose }: {
     <Sheet title={kind === "exercise" ? "Veldu æfingaáætlun" : "Veldu næringaráætlun"}
       onClose={onClose} max="max-w-3xl" canvas>
       <div className="p-4">
-        {!programs && <p className="text-sm text-slate-500">Hleð…</p>}
+        {!programs && <p className="text-sm text-slate-600">Hleð…</p>}
         <ProgramList rows={rows} current={current} onPick={(k) => { onPick(k); onClose(); }} tone={kind} />
-        {kind === "exercise" && <p className="mt-3 text-xs text-slate-500">Ný áætlun byrjar á upphaflegu dögunum og æfingunum; þú getur svo raðað henni að þér.</p>}
+        {kind === "exercise" && <p className="mt-3 text-xs text-slate-600">Ný áætlun byrjar á upphaflegu dögunum og æfingunum; þú getur svo raðað henni að þér.</p>}
       </div>
     </Sheet>
   );

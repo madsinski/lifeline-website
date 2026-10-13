@@ -61,7 +61,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
 
   return (
     <section>
-      <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+      <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
         {/* Red and pulsing, like the tab badge, because these are people
             waiting on a reply — the same thing an unread message is. A
             count in neutral ink said "there are some" where this has to say
@@ -86,7 +86,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
                 {requestSummary(r.kind, r.detail)}
               </span>
               <span className="font-semibold text-slate-900">{r.name ?? "—"}</span>
-              <span className="text-xs text-slate-500">beið í {waited(r.created_at)} · {STATUS_IS[r.status]}</span>
+              <span className="text-xs text-slate-600">beið í {waited(r.created_at)} · {STATUS_IS[r.status]}</span>
               {onOpen && (
                 <button type="button" onClick={() => onOpen(r.journey_id)}
                   className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900">
@@ -112,7 +112,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
                     Svara, held áfram
                   </button>
                   <button type="button" onClick={() => { setOpenId(null); setReply(""); }}
-                    className="min-h-9 px-2 text-sm text-slate-500">Hætta við</button>
+                    className="min-h-9 px-2 text-sm text-slate-600">Hætta við</button>
                 </div>
               </div>
             ) : (

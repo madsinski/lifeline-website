@@ -120,7 +120,7 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
             <span key={i} className={`h-1.5 flex-1 rounded-full ${i < idx ? "bg-emerald-400" : i === idx ? "bg-hc-ink" : "bg-slate-200"}`} />
           ))}
         </div>
-        <p className="mt-1.5 text-xs font-semibold text-slate-500">{idx + 1} af {items.length}</p>
+        <p className="mt-1.5 text-xs font-semibold text-slate-600">{idx + 1} af {items.length}</p>
       </div>
 
       {/* The panel scrolls, not the page, so moving on has to reset it:
@@ -133,7 +133,7 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
       <div className="flex items-center gap-2 border-t border-slate-100 p-3">
         <button type="button" onClick={() => go(Math.max(0, idx - 1))} disabled={idx === 0}
           className={`${hcBtn.ghost} disabled:opacity-30`}><ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri</button>
-        <button type="button" onClick={finish} className="text-xs font-semibold text-slate-500 hover:text-slate-800">Ljúka hér</button>
+        <button type="button" onClick={finish} className="text-xs font-semibold text-slate-600 hover:text-slate-800">Ljúka hér</button>
         <span className="flex-1" />
         {idx < items.length - 1
           ? <button type="button" onClick={() => go(idx + 1)} className={hcBtn.primary}>Næsta <ChevronRight className="h-4 w-4" aria-hidden /></button>
@@ -409,13 +409,13 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
               Met: {pr.weight} kg{pr.reps ? ` × ${pr.reps}` : ""}
             </p>
           )}
-          <p className="text-xs text-slate-500">{today.length} af {target} í dag</p>
+          <p className="text-xs text-slate-600">{today.length} af {target} í dag</p>
           {speechAvailable() && (
             <button type="button"
               onClick={() => { const v = !voice; setVoice(v); setVoiceEnabled(v); if (!v) stopSpeaking(); }}
               aria-pressed={voice}
               title={voice ? "Raddleiðbeiningar í hvíld: á" : "Raddleiðbeiningar í hvíld: af"}
-              className={`rounded-lg p-1 ${voice ? "text-orange-700" : "text-slate-400"}`}>
+              className={`rounded-lg p-1 ${voice ? "text-orange-700" : "text-slate-500"}`}>
               {voice ? <Volume2 className="h-4 w-4" aria-hidden /> : <VolumeX className="h-4 w-4" aria-hidden />}
               <span className="sr-only">Raddleiðbeiningar</span>
             </button>
@@ -427,7 +427,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
           set by set — rather than averaged, because the shape of the session
           is what you are repeating. */}
       {prev && prev.sets.length > 0 && (
-        <p className="-mt-1 flex flex-wrap items-baseline gap-x-2 text-xs text-slate-500">
+        <p className="-mt-1 flex flex-wrap items-baseline gap-x-2 text-xs text-slate-600">
           <span className="font-semibold text-slate-600">Síðast {shortDate(prev.date)}:</span>
           <span className="tabular-nums">
             {prev.sets.slice(0, 5).map((r, i) => (
@@ -493,7 +493,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
           {/* Set it before the set, not only while the clock is running —
               otherwise the only way to change it is to be resting already. */}
           {prescribedRest > 0 && (
-            <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
               <span>Hvíld</span>
               <button type="button" onClick={() => changeRest(restSec - 15)} aria-label="Stytta hvíld um 15 sekúndur"
                 className="h-7 w-7 rounded-lg font-bold text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-100">−</button>
@@ -512,7 +512,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
       )}
 
       {suggested && !fromHistory && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-slate-600">
           Tillaga {BASIS_IS[suggested.basis]}. Stilltu hana þar til síðustu endurtekningarnar eru erfiðar.
         </p>
       )}
@@ -528,7 +528,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
               {s.id && (
                 <button type="button" onClick={() => void removeSet(s.id!)} disabled={removing === s.id}
                   aria-label={`Eyða setti ${i + 1}`}
-                  className="grid h-5 w-5 place-items-center rounded text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
+                  className="grid h-5 w-5 place-items-center rounded text-slate-500 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
                   <X className="h-3 w-3" aria-hidden />
                 </button>
               )}

@@ -178,7 +178,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
     onDone();
   };
 
-  if (!d) return <p className="text-slate-500">{msg || "Hleð…"}</p>;
+  if (!d) return <p className="text-slate-600">{msg || "Hleð…"}</p>;
   if (d.staff_drafting) {
     return (
       <div className={`${hcCard.base} p-6`}>
@@ -225,7 +225,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         className={`${hcCard.base} flex items-start gap-3 p-4 text-left transition hover:ring-2 hover:ring-hc-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand`}>
         {isPillar(f)
           ? <PillarIcon pillar={f} />
-          : <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+          : <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
               {f === "lectures" ? <BookOpen className="h-5 w-5" aria-hidden />
                 : f === "exercise-program" ? <Dumbbell className="h-5 w-5" aria-hidden />
                 : <Utensils className="h-5 w-5" aria-hidden />}
@@ -245,7 +245,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
           {extra}
           <span className="mt-1 block text-xs text-hc-ink-2">{sub}</span>
         </span>
-        <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+        <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-slate-500" aria-hidden />
       </button>
     );
     return (
@@ -260,7 +260,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         </section>
 
         <section>
-          <p className={`${hcKicker} mb-2 text-slate-500`}>Flokkarnir</p>
+          <p className={`${hcKicker} mb-2 text-slate-600`}>Flokkarnir</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {order.map((pl) => {
               const n = rows.filter((r) => r.pillar === pl).length;
@@ -269,13 +269,13 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                 [n > 0 ? `${n} ${n === 1 ? "aðgerð" : "aðgerðir"} í áætluninni` : "Engin aðgerð enn", ...(pr && pr.reasons.length > 0 ? [pr.reasons.join(" · ")] : [])].join(" · "),
                 pr?.signal
                   ? <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${SIGNAL_CLS[pr.signal]}`}>{SIGNAL_IS[pr.signal]}</span>
-                  : d.has_report ? <span className="mt-1 block text-xs text-slate-500">Ekkert mælt</span> : null);
+                  : d.has_report ? <span className="mt-1 block text-xs text-slate-600">Ekkert mælt</span> : null);
             })}
           </div>
         </section>
 
         <section>
-          <p className={`${hcKicker} mb-2 text-slate-500`}>Annað í áætluninni</p>
+          <p className={`${hcKicker} mb-2 text-slate-600`}>Annað í áætluninni</p>
           <div className="grid gap-2 sm:grid-cols-3">
             {chooser("exercise-program", programs?.exercise.find((r) => r.key === exKey)?.name ?? "Engin valin")}
             {chooser("nutrition-program", programs?.nutrition.find((r) => r.key === nuKey)?.name ?? "Engin valin")}
@@ -348,8 +348,8 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
       {pillar && (
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
           <section>
-            <p className={`${hcKicker} mb-2 text-slate-500`}>Aðgerðirnar mínar í {PILLAR_DATIVE[pillar]} ({mine.length})</p>
-            {mine.length === 0 && <p className={`${hcCard.base} p-6 text-center text-sm text-slate-500`}>Engin aðgerð í þessum flokki enn. Bættu við úr safninu.</p>}
+            <p className={`${hcKicker} mb-2 text-slate-600`}>Aðgerðirnar mínar í {PILLAR_DATIVE[pillar]} ({mine.length})</p>
+            {mine.length === 0 && <p className={`${hcCard.base} p-6 text-center text-sm text-slate-600`}>Engin aðgerð í þessum flokki enn. Bættu við úr safninu.</p>}
             <ol className="space-y-2">
               {mine.map(({ r, i }, pos) => (
                 <li key={r.tmp} className={`${hcCard.base} flex gap-2 p-3`}>
@@ -363,9 +363,9 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                       className="mt-2 w-full rounded-lg border border-hc-control bg-slate-50 px-2 py-1.5 text-sm focus:border-hc-brand focus:bg-white focus:outline-none" />
                   </div>
                   <div className="flex shrink-0 flex-col gap-1">
-                    <button type="button" aria-label="Færa upp" disabled={pos === 0} onClick={() => { mark(focus); nudge(pos, -1); }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
-                    <button type="button" aria-label="Færa niður" disabled={pos === mine.length - 1} onClick={() => { mark(focus); nudge(pos, 1); }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
-                    <button type="button" aria-label={`Taka út: ${r.title}`} onClick={() => { mark(focus); setRows((rs) => rs.filter((_, k) => k !== i)); }} className="rounded-lg p-1 text-slate-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                    <button type="button" aria-label="Færa upp" disabled={pos === 0} onClick={() => { mark(focus); nudge(pos, -1); }} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
+                    <button type="button" aria-label="Færa niður" disabled={pos === mine.length - 1} onClick={() => { mark(focus); nudge(pos, 1); }} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
+                    <button type="button" aria-label={`Taka út: ${r.title}`} onClick={() => { mark(focus); setRows((rs) => rs.filter((_, k) => k !== i)); }} className="rounded-lg p-1 text-slate-500 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 </li>
               ))}
@@ -389,13 +389,13 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
             )}
 
             <div className="mt-6">
-              <p className={`${hcKicker} mb-2 text-slate-500`}>Markmiðin mín í {PILLAR_DATIVE[pillar]}</p>
+              <p className={`${hcKicker} mb-2 text-slate-600`}>Markmiðin mín í {PILLAR_DATIVE[pillar]}</p>
               <div className="space-y-2">
                 {goals.map((g, i) => (g.pillar === pillar ? (
                   <div key={i} className={`${hcCard.base} flex items-center gap-2 p-2`}>
                     <input value={g.text} maxLength={160} onChange={(e) => { mark(focus); setGoals((gs) => gs.map((x, k) => (k === i ? { ...x, text: e.target.value } : x))); }}
                       placeholder="t.d. „Sofa 7 tíma flestar nætur“" className="min-w-0 flex-1 rounded-lg border border-hc-control px-2 py-1.5 text-sm" />
-                    <button type="button" aria-label="Eyða markmiði" onClick={() => { mark(focus); setGoals((gs) => gs.filter((_, k) => k !== i)); }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-4 w-4" /></button>
+                    <button type="button" aria-label="Eyða markmiði" onClick={() => { mark(focus); setGoals((gs) => gs.filter((_, k) => k !== i)); }} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button>
                   </div>
                 ) : null))}
               </div>
@@ -409,7 +409,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
             <div className={`${hcCard.base} overflow-hidden`}>
               <div className="border-b border-slate-100 p-3">
                 <p className="font-semibold text-hc-ink">Bæta við úr safninu</p>
-                <p className="text-xs text-slate-500">{PILLAR_META[pillar].label} · {d.has_report ? "það sem hentar þér best efst" : "besta gagnið fyrir tímann fyrst"}</p>
+                <p className="text-xs text-slate-600">{PILLAR_META[pillar].label} · {d.has_report ? "það sem hentar þér best efst" : "besta gagnið fyrir tímann fyrst"}</p>
               </div>
               <ul className="max-h-[70vh] divide-y divide-slate-100 overflow-y-auto">
                 {libModules.map(({ m, f }, i) => {
@@ -451,8 +451,8 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
       {focus === "exercise-program" && programs && (
         <section>
           <div className="mb-2 flex items-baseline justify-between">
-            <p className={`${hcKicker} text-slate-500`}>Veldu æfingaáætlun</p>
-            {exKey && <button type="button" onClick={() => { mark(focus); setExKey(null); }} className="text-xs font-semibold text-slate-500 hover:text-slate-800">Engin</button>}
+            <p className={`${hcKicker} text-slate-600`}>Veldu æfingaáætlun</p>
+            {exKey && <button type="button" onClick={() => { mark(focus); setExKey(null); }} className="text-xs font-semibold text-slate-600 hover:text-slate-800">Engin</button>}
           </div>
           <ProgramList rows={programs.exercise} current={exKey} onPick={(k) => { mark("exercise-program"); setExKey(k); }} tone="exercise" />
         </section>
@@ -461,8 +461,8 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
       {focus === "nutrition-program" && programs && (
         <section>
           <div className="mb-2 flex items-baseline justify-between">
-            <p className={`${hcKicker} text-slate-500`}>Veldu næringaráætlun</p>
-            {nuKey && <button type="button" onClick={() => { mark(focus); setNuKey(null); }} className="text-xs font-semibold text-slate-500 hover:text-slate-800">Engin</button>}
+            <p className={`${hcKicker} text-slate-600`}>Veldu næringaráætlun</p>
+            {nuKey && <button type="button" onClick={() => { mark(focus); setNuKey(null); }} className="text-xs font-semibold text-slate-600 hover:text-slate-800">Engin</button>}
           </div>
           <ProgramList rows={programs.nutrition} current={nuKey} onPick={(k) => { mark("nutrition-program"); setNuKey(k); }} tone="nutrition" />
         </section>
@@ -470,9 +470,9 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
 
       {focus === "lectures" && (
         <section>
-          <p className={`${hcKicker} mb-2 text-slate-500`}>Fræðsla í áætluninni</p>
+          <p className={`${hcKicker} mb-2 text-slate-600`}>Fræðsla í áætluninni</p>
           {d.lectures.length === 0
-            ? <p className={`${hcCard.base} p-6 text-center text-sm text-slate-500`}>Engin fræðsla í boði enn.</p>
+            ? <p className={`${hcCard.base} p-6 text-center text-sm text-slate-600`}>Engin fræðsla í boði enn.</p>
             : (
               <div className="grid gap-2 sm:grid-cols-2">
                 {d.lectures.map((l) => {
@@ -481,8 +481,8 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                     <label key={l.slug} className={`${hcCard.base} flex cursor-pointer items-start gap-2 p-3 ${on ? "ring-2 ring-hc-brand" : ""}`}>
                       <input type="checkbox" checked={on} onChange={() => { mark("lectures"); setLectures((ls) => (on ? ls.filter((x) => x !== l.slug) : [...ls, l.slug])); }} className="mt-1 h-4 w-4 accent-emerald-600" />
                       <span className="min-w-0">
-                        <span className="flex items-center gap-1.5 text-sm font-semibold text-hc-ink"><BookOpen className="h-3.5 w-3.5 text-slate-400" aria-hidden />{l.title}</span>
-                        <span className="block text-xs text-slate-500">{l.pillar && l.pillar in PILLAR_META ? PILLAR_META[l.pillar as Pillar].label : "Almennt"}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}</span>
+                        <span className="flex items-center gap-1.5 text-sm font-semibold text-hc-ink"><BookOpen className="h-3.5 w-3.5 text-slate-500" aria-hidden />{l.title}</span>
+                        <span className="block text-xs text-slate-600">{l.pillar && l.pillar in PILLAR_META ? PILLAR_META[l.pillar as Pillar].label : "Almennt"}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}</span>
                       </span>
                     </label>
                   );

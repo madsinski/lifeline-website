@@ -55,7 +55,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
             <p className="font-bold text-slate-900">{a.title}</p>
             {a.frequency && <p className="text-xs text-slate-600">{a.frequency}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-500 hover:bg-white/60"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-600 hover:bg-white/60"><X className="h-5 w-5" /></button>
         </div>
       }>
 
@@ -74,7 +74,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
           {onTime && (
             <div className="flex flex-wrap items-center gap-2 rounded-hc-element bg-slate-50 p-3 ring-1 ring-hc-hairline">
               <label className="flex items-center gap-2 text-sm font-semibold text-hc-ink">
-                <Clock className="h-4 w-4 text-slate-500" aria-hidden />
+                <Clock className="h-4 w-4 text-slate-600" aria-hidden />
                 Tími
                 <input type="time" value={atTime ?? ""} onChange={(e) => onTime(e.target.value || null)}
                   aria-label={`Tími fyrir ${a.title}`}
@@ -83,11 +83,11 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
               {atTime
                 ? (
                   <button type="button" onClick={() => onTime(null)}
-                    className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline">
+                    className="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-slate-800 hover:underline">
                     Hreinsa
                   </button>
                 )
-                : <span className="text-xs text-slate-500">Valfrjálst</span>}
+                : <span className="text-xs text-slate-600">Valfrjálst</span>}
             </div>
           )}
 
@@ -97,11 +97,11 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
           {week && today && doneOn && onToggle && (
             <div className="rounded-hc-element bg-slate-50 p-3 ring-1 ring-hc-hairline">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vikan</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Vikan</p>
                 <p className="text-sm text-slate-600">
                   {a.frequency || "Daglega"}
                   {target < 7 && (
-                    <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-slate-400"}>
+                    <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-slate-500"}>
                       {" "}· {thisWeek} af {target}
                     </span>
                   )}
@@ -121,7 +121,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
                       aria-label={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : ""}: ${future ? "ekki komið" : on ? "búið" : "ekki búið"}`}
                       title={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : future ? " (framundan)" : ""}`}
                       className={`grid h-9 flex-1 place-items-center rounded-lg text-xs font-bold transition disabled:opacity-30 ${
-                        on ? "text-white" : "bg-white text-slate-400 ring-1 ring-hc-hairline"} ${d === today && !on ? "ring-2 ring-slate-400" : ""}`}
+                        on ? "text-white" : "bg-white text-slate-500 ring-1 ring-hc-hairline"} ${d === today && !on ? "ring-2 ring-slate-400" : ""}`}
                       style={on ? { background: meta.color } : undefined}>
                       {WEEKDAY_SHORT[wd]}
                     </button>
@@ -155,7 +155,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
           )}
 
           <label className="block">
-            <span className="text-xs font-semibold text-slate-500">Athugasemd til þjálfara</span>
+            <span className="text-xs font-semibold text-slate-600">Athugasemd til þjálfara</span>
             <textarea value={v} onChange={(e) => setV(e.target.value)} rows={2} maxLength={300}
               onBlur={() => v.trim() !== note && onNote(v.trim())}
               placeholder="T.d. hvað gekk vel eða hvað var erfitt"
@@ -163,7 +163,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
           </label>
 
           <div className="space-y-2 border-t border-slate-100 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Breyta</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Breyta</p>
             <button type="button" onClick={() => { onEditPillar(a.pillar); onClose(); }}
               className={`${hcBtn.secondary} w-full justify-start`}>
               <Pencil className="h-4 w-4" aria-hidden /> Breyta {meta.label.toLowerCase()}-aðgerðunum mínum

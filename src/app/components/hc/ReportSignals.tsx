@@ -45,7 +45,7 @@ export default function ReportSignals({ report, signals, onOpen, max = 8 }: {
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <AlertTriangle className="h-4 w-4 text-amber-600" aria-hidden />
         <p className="text-sm font-bold text-slate-900">Það sem er utan marka</p>
-        <p className="text-xs text-slate-500">{reds} rauð · {yellows} gul</p>
+        <p className="text-xs text-slate-600">{reds} rauð · {yellows} gul</p>
         {onOpen && (
           <button type="button" onClick={onOpen}
             className="ml-auto inline-flex items-center gap-1 rounded-full border border-slate-300 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">
@@ -55,7 +55,7 @@ export default function ReportSignals({ report, signals, onOpen, max = 8 }: {
       </div>
 
       {lit.length === 0 ? (
-        <p className="text-sm text-slate-500">Ekkert gildi er utan marka.</p>
+        <p className="text-sm text-slate-600">Ekkert gildi er utan marka.</p>
       ) : (
         <ul className="flex flex-wrap gap-1.5">
           {shown.map(({ item, signal }) => (

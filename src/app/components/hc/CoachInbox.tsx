@@ -145,7 +145,7 @@ export default function CoachInbox({ api, onRead }: {
     return failed ? (
       <div className={`${hcCard.base} px-4 py-8 text-center`}>
         <p className="text-sm font-semibold text-hc-ink">Náði ekki í skilaboðin.</p>
-        <p className="mt-1 text-xs text-slate-500">Athugaðu netsambandið.</p>
+        <p className="mt-1 text-xs text-slate-600">Athugaðu netsambandið.</p>
         <button type="button" onClick={() => { setFailed(false); void loadList(); }}
           className={`${hcBtn.secondary} mt-3`}>Reyna aftur</button>
       </div>
@@ -158,7 +158,7 @@ export default function CoachInbox({ api, onRead }: {
       <section className={`${hcCard.base} flex flex-col overflow-hidden`}>
         <div className="flex items-center gap-3 border-b border-slate-100 p-3">
           <button type="button" onClick={() => { setOpen(null); setMsgs([]); }}
-            aria-label="Til baka" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
+            aria-label="Til baka" className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100">
             <ArrowLeft className="h-5 w-5" aria-hidden />
           </button>
           <p className="min-w-0 flex-1 truncate font-bold text-hc-ink">{open.name}</p>
@@ -182,7 +182,7 @@ export default function CoachInbox({ api, onRead }: {
                   </p>
                 )}
                 <p className="whitespace-pre-wrap leading-snug">{m.body}</p>
-                <p className={`mt-1 text-[10px] ${m.author_kind === "coach" && m.kind !== "nudge" ? "text-white/70" : "text-slate-400"}`}>
+                <p className={`mt-1 text-[10px] ${m.author_kind === "coach" && m.kind !== "nudge" ? "text-white/70" : "text-slate-500"}`}>
                   {m.pending ? "Sendi…" : ago(m.created_at)}
                 </p>
               </div>
@@ -226,7 +226,7 @@ export default function CoachInbox({ api, onRead }: {
   // ── The list ──────────────────────────────────────────────────────────
   if (!threads.length) {
     return (
-      <p className={`${hcCard.base} px-4 py-8 text-center text-sm text-slate-500`}>
+      <p className={`${hcCard.base} px-4 py-8 text-center text-sm text-slate-600`}>
         Engin skilaboð enn. Þegar einhver skrifar úr heilsuferðinni birtist það hér.
       </p>
     );
@@ -241,9 +241,9 @@ export default function CoachInbox({ api, onRead }: {
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-2">
                 <span className={`min-w-0 flex-1 truncate ${t.unread ? "font-bold text-hc-ink" : "font-semibold text-slate-700"}`}>{t.name}</span>
-                <span className="shrink-0 text-xs text-slate-400">{ago(t.lastAt)}</span>
+                <span className="shrink-0 text-xs text-slate-500">{ago(t.lastAt)}</span>
               </span>
-              <span className={`mt-0.5 block truncate text-sm ${t.unread ? "text-slate-700" : "text-slate-500"}`}>
+              <span className={`mt-0.5 block truncate text-sm ${t.unread ? "text-slate-700" : "text-slate-600"}`}>
                 {t.lastFrom === "coach" ? "Þú: " : ""}{t.last}
               </span>
             </span>

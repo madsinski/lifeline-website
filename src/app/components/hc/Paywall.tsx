@@ -93,7 +93,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
 
   return (
     <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6">
-      <span className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 text-slate-500">
+      <span className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 text-slate-600">
         <Lock className="h-5 w-5" aria-hidden />
       </span>
       <h2 className="mt-3 text-xl font-bold text-slate-900">
@@ -118,10 +118,10 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
       {/* The price, before the button rather than after it. */}
       <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-slate-100 pt-4">
         {applied && applied.price !== pkg.price_isk && (
-          <span className="text-sm text-slate-500 line-through">{kr(pkg.price_isk)}</span>
+          <span className="text-sm text-slate-600 line-through">{kr(pkg.price_isk)}</span>
         )}
         <span className="text-2xl font-bold tabular-nums text-slate-900">{kr(price)}</span>
-        <span className="text-sm text-slate-500">
+        <span className="text-sm text-slate-600">
           á mánuði{applied?.monthsFree ? ` · ${applied.monthsFree === 1 ? "fyrsti mánuður frír" : `${applied.monthsFree} mánuðir fríir`}` : ""}
         </span>
       </div>
@@ -162,7 +162,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
         {price === 0 ? "Hefja áskrift" : `Hefja áskrift — ${kr(price)}/mán.`}
       </button>
 
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-slate-600">
         Skýrslan þín, þjálfarinn og heilsuferðin eru áfram opin, hvort sem þú ert með áskrift eða ekki.
       </p>
     </section>

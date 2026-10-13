@@ -172,7 +172,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
   return (
     <section className="rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-hairline print:hidden">
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center gap-3 p-4 text-left">
-        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${active && !paused ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-slate-100 text-slate-500"}`}>
+        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${active && !paused ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-slate-100 text-slate-600"}`}>
           {active && !paused ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
         </span>
         <span className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
             {!active ? "Slökkt — kveiktu ef þú vilt smá áminningu" : paused ? `Í hléi til ${prefs.paused_until}` : `${MODES.find((m) => m.key === prefs.mode)?.label} kl. ${String(prefs.hour).padStart(2, "0")}:00`}
           </span>
         </span>
-        <ChevronDown className={`h-5 w-5 text-slate-400 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+        <ChevronDown className={`h-5 w-5 text-slate-500 transition ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
 
       {open && (
@@ -199,7 +199,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
                   <button key={c} type="button" disabled={busy || (!can && !on)} onClick={() => void toggle(c)} aria-pressed={on}
                     className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${on ? "bg-hc-brand text-white" : "bg-slate-50 text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-brand-surface"} disabled:cursor-not-allowed disabled:opacity-50`}>
                     {label}
-                    <span className={`block text-xs font-normal ${on ? "text-white/85" : "text-slate-500"}`}>
+                    <span className={`block text-xs font-normal ${on ? "text-white/85" : "text-slate-600"}`}>
                       {on ? "Kveikt" : !can ? (c === "sms" ? "Ekki í boði enn" : c === "push" ? "Ekki stutt í þessum vafra" : "Ekki í boði") : "Slökkt"}
                     </span>
                   </button>
@@ -211,7 +211,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
                 and the mode below, which is worth saying before somebody
                 sets a time and wonders why a message arrived at another. */}
             {prefs.channels.includes("push") && (
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-slate-600">
                 Tilkynningar í símann koma líka þegar þjálfarinn sendir þér skilaboð og þegar félagi ýtir við þér — um leið og það gerist, óháð tímanum hér fyrir neðan.
               </p>
             )}
@@ -229,7 +229,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
                 <button key={m.key} type="button" disabled={busy} onClick={() => void save({ ...prefs, mode: m.key })} aria-pressed={prefs.mode === m.key}
                   className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${prefs.mode === m.key ? "bg-hc-ink text-white" : "bg-slate-50 text-slate-700 ring-1 ring-hc-hairline"}`}>
                   {m.label}
-                  <span className={`block text-xs font-normal ${prefs.mode === m.key ? "text-white/80" : "text-slate-500"}`}>{m.hint}</span>
+                  <span className={`block text-xs font-normal ${prefs.mode === m.key ? "text-white/80" : "text-slate-600"}`}>{m.hint}</span>
                 </button>
               ))}
             </div>

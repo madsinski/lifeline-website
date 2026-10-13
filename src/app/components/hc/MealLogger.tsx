@@ -218,7 +218,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                             ? { background: tone?.color ?? "#3F6212" }
                             : { borderColor: tone?.ring ?? "#CBD5E1" }}>
                           {busy === slot
-                            ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                            ? <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
                             : <Check className="h-5 w-5" strokeWidth={3} />}
                         </button>
                         <div className="min-w-0 flex-1">
@@ -228,24 +228,24 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                             <button type="button" onClick={() => onOpenMeal(meal)}
                               className="flex w-full items-start gap-2 text-left">
                               <span className="min-w-0 flex-1">
-                                <span className={`block font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
+                                <span className={`block font-semibold ${done ? "text-slate-600 line-through" : "text-slate-900"}`}>
                                   {mealName(meal)}
                                 </span>
-                                <span className="mt-0.5 block text-sm text-slate-500">
+                                <span className="mt-0.5 block text-sm text-slate-600">
                                   {[SLOT_IS[slot],
                                     meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
                                     meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
                                     .filter(Boolean).join(" · ")}
                                 </span>
                               </span>
-                              <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+                              <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" aria-hidden />
                             </button>
                           ) : (
                             <>
-                              <p className={`font-semibold ${done ? "text-slate-500 line-through" : "text-slate-900"}`}>
+                              <p className={`font-semibold ${done ? "text-slate-600 line-through" : "text-slate-900"}`}>
                                 {mealName(meal)}
                               </p>
-                              <p className="mt-0.5 text-sm text-slate-500">
+                              <p className="mt-0.5 text-sm text-slate-600">
                                 {[SLOT_IS[slot],
                                   meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
                                   meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
@@ -267,13 +267,13 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                         done ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-white ring-hc-hairline hover:ring-slate-300"}`}>
                       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${
                         done ? "border-transparent bg-emerald-600 text-white" : "border-hc-hairline text-transparent"}`}>
-                        {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : <Check className="h-5 w-5" strokeWidth={3} />}
+                        {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-slate-600" /> : <Check className="h-5 w-5" strokeWidth={3} />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">{SLOT_IS[slot]}</span>
+                        <span className="block text-xs font-semibold uppercase tracking-wide text-slate-600">{SLOT_IS[slot]}</span>
                         <span className={`block truncate font-semibold ${done ? "text-emerald-900" : "text-slate-900"}`}>{mealName(meal)}</span>
                       </span>
-                      <span className="shrink-0 text-right text-xs text-slate-500">
+                      <span className="shrink-0 text-right text-xs text-slate-600">
                         {meal.protein != null && <span className="block font-semibold text-slate-700">{Math.round(Number(meal.protein))} g</span>}
                         {meal.calories != null && <span className="block">{Math.round(Number(meal.calories))} kkal</span>}
                       </span>

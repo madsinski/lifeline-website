@@ -66,7 +66,7 @@ export default function SettingsCard() {
 
       <div className="mt-3 border-t border-slate-100 pt-3">
         <p className="text-sm font-medium text-slate-800">Innskráning með PIN</p>
-        <p className="text-xs text-slate-500">Fjögurra stafa PIN á þessu tæki í stað lykilorðs.</p>
+        <p className="text-xs text-slate-600">Fjögurra stafa PIN á þessu tæki í stað lykilorðs.</p>
         {pinStep === "idle" && (
           <button onClick={() => { setPinStep("first"); setPinErr(""); }} className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold">
             {pinEnabled ? "Breyta PIN" : "Setja upp PIN"}
@@ -77,7 +77,7 @@ export default function SettingsCard() {
             <p className="mb-3 text-center text-sm text-slate-700">{pinStep === "first" ? "Veldu PIN" : "Sláðu PIN inn aftur"}</p>
             <PinPad value={pin} onChange={setPin} onComplete={onPin} error={!!pinErr} />
             {pinErr && <p className="mt-2 text-center text-xs text-red-600">{pinErr}</p>}
-            <button onClick={() => { setPinStep("idle"); setPin(""); }} className="mt-3 block w-full text-center text-xs text-slate-500">Hætta við</button>
+            <button onClick={() => { setPinStep("idle"); setPin(""); }} className="mt-3 block w-full text-center text-xs text-slate-600">Hætta við</button>
           </div>
         )}
         {pinStep === "done" && <p className="mt-2 text-xs text-emerald-700">PIN er virkt á þessu tæki.</p>}
@@ -85,7 +85,7 @@ export default function SettingsCard() {
 
       <div className="mt-4 border-t border-slate-100 pt-3">
         <p className="text-sm font-medium text-slate-800">Dagatal</p>
-        <p className="text-xs text-slate-500">Blóðprufa, mælingar og viðtöl.</p>
+        <p className="text-xs text-slate-600">Blóðprufa, mælingar og viðtöl.</p>
         <div className="mt-1"><CalendarStatus key={calKey} api={CUSTOMER_CALENDAR} onOpen={() => setCalOpen(true)} /></div>
         <CalendarConnect
           api={CUSTOMER_CALENDAR}
