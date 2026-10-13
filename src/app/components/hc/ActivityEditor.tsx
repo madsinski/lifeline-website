@@ -105,7 +105,7 @@ export default function ActivityEditor({ activities, onChange }: {
               <div className="flex flex-wrap gap-1.5">
                 {ACTIVITY_GROUPS.map((g) => (
                   <button key={g} type="button" onClick={() => setGroup(g)} aria-pressed={group === g}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline"}`}>{g}</button>
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-brand-dark text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline"}`}>{g}</button>
                 ))}
               </div>
               <div className="grid gap-1.5 sm:grid-cols-2">
@@ -143,7 +143,7 @@ export default function ActivityEditor({ activities, onChange }: {
                       <button key={w} type="button" aria-pressed={on}
                         onClick={() => setDays(on ? days.filter((d) => d !== i) : [...days, i].sort((a2, b2) => a2 - b2))}
                         className={`inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold transition ${
-                          on ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:ring-slate-300"}`}>
+                          on ? "bg-hc-brand-dark text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:ring-slate-300"}`}>
                         {on && <Check className="h-3.5 w-3.5" aria-hidden />}{WEEKDAYS_SHORT[i]}
                       </button>
                     );

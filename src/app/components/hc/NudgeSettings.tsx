@@ -227,7 +227,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
               {MODES.map((m) => (
                 <button key={m.key} type="button" disabled={busy} onClick={() => void save({ ...prefs, mode: m.key })} aria-pressed={prefs.mode === m.key}
-                  className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${prefs.mode === m.key ? "bg-hc-ink text-white" : "bg-slate-50 text-slate-700 ring-1 ring-hc-hairline"}`}>
+                  className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${prefs.mode === m.key ? "bg-hc-brand-dark text-white" : "bg-slate-50 text-slate-700 ring-1 ring-hc-hairline"}`}>
                   {m.label}
                   <span className={`block text-xs font-normal ${prefs.mode === m.key ? "text-white/80" : "text-slate-600"}`}>{m.hint}</span>
                 </button>

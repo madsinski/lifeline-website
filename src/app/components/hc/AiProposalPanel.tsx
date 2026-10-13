@@ -147,7 +147,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
                 <button key={pr.key} type="button" onClick={() => preset(pr.key)}
                   aria-pressed={scope === pr.key}
                   className={`flex-1 rounded-lg px-2 py-1.5 text-sm font-semibold transition ${
-                    scope === pr.key ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                    scope === pr.key ? "bg-hc-brand-dark text-white" : "text-slate-600 hover:bg-slate-50"}`}>
                   {pr.label}
                 </button>
               ))}

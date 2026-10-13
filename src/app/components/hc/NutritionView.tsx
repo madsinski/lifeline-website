@@ -742,7 +742,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                     <button key={k} type="button" onClick={() => setLibFilter(k)}
                       aria-pressed={libFilter === k}
                       className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                        libFilter === k ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-50"}`}>
+                        libFilter === k ? "bg-hc-brand-dark text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-50"}`}>
                       {label}{k === "fav" && favourites.length > 0 ? ` (${favourites.length})` : ""}
                     </button>
                   ))}

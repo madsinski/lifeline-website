@@ -77,7 +77,7 @@ export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" 
           <div className="hidden items-center gap-1 sm:flex" role="group" aria-label="Kyn fyrir viðmið">
             {([["", "Bæði"], ["m", "Karl"], ["f", "Kona"]] as const).map(([k, l]) => (
               <button key={l} type="button" aria-pressed={sex === (k || null)} onClick={() => setSex((k || null) as Sex)}
-                className={`rounded-lg px-2 py-1 text-xs font-semibold ${sex === (k || null) ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+                className={`rounded-lg px-2 py-1 text-xs font-semibold ${sex === (k || null) ? "bg-hc-brand-dark text-white" : "text-slate-600 hover:bg-slate-100"}`}>
                 {l}
               </button>
             ))}

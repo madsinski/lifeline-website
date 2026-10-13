@@ -109,7 +109,7 @@ function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) 
       {WIZARD_STEPS.map((label, i) => (
         <button key={label} type="button" onClick={() => onGo(i)} aria-current={step === i ? "step" : undefined}
           className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
-            step === i ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+            step === i ? "bg-hc-brand-dark text-white" : "text-slate-600 hover:bg-slate-50"}`}>
           <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
             step === i ? "bg-white/20" : i < step ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
             {i < step ? "✓" : i + 1}
@@ -135,7 +135,7 @@ function WizardFooter({ step, onGo }: { step: number; onGo: (n: number) => void 
           Æfingar" does not, and that is the whole job of this control. */}
       {next ? (
         <button type="button" onClick={() => onGo(step + 1)}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+          className="inline-flex items-center gap-1.5 rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
           Næsta: {next} <ArrowRight className="h-4 w-4" />
         </button>
       ) : (
@@ -524,7 +524,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           <div className="mb-3 flex flex-wrap gap-1">
             {(["all", ...PILLARS] as const).map((p) => (
               <button key={p} onClick={() => setFilter(p)}
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${filter === p ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-600"}`}>
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${filter === p ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-600"}`}>
                 {p === "all" ? "Allt" : PILLAR_META[p].label}
               </button>
             ))}
@@ -869,7 +869,7 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
               className="mt-1 w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm font-normal" />
           </label>
           <button type="button" disabled={busy} onClick={run}
-            className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-40">
+            className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-40">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Setja saman
           </button>
         </div>

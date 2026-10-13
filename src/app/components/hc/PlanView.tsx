@@ -72,7 +72,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
                 aria-selected={tab === t.key}
                 onClick={() => setTab(t.key)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  tab === t.key ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  tab === t.key ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 {t.label}

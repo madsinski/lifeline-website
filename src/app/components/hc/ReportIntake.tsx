@@ -128,7 +128,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
             onChange={(e) => { if (e.target.files?.length) void read(e.target.files); e.target.value = ""; }} />
           <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}
-            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-hc-ink px-4 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50 ${narrow ? "w-full" : ""}`}>
+            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-hc-ink px-4 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 ${narrow ? "w-full" : ""}`}>
             Velja skrá
           </button>
         </div>

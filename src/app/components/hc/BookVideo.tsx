@@ -140,7 +140,7 @@ export default function BookVideo({ api, journey, onBooked }: {
             disabled={k === "followup" && !journey.plan_published_at && !journey.followup_booked_for}
             title={k === "followup" && !journey.plan_published_at ? "Eftirfylgd bókast eftir að áætlun er birt" : KIND_IS[k].blurb}
             className={`flex-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition disabled:opacity-40 ${
-              kind === k ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:bg-slate-100"}`}>
+              kind === k ? "bg-hc-brand-dark text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:bg-slate-100"}`}>
             {KIND_IS[k].label}
           </button>
         ))}
@@ -194,7 +194,7 @@ export default function BookVideo({ api, journey, onBooked }: {
           return (
             <button key={d.toISOString()} type="button" onClick={() => setOffset(on ? null : i)}
               className={`shrink-0 rounded-lg px-2 py-1.5 text-center transition ${
-                on ? "bg-hc-ink text-white" : "bg-white ring-1 ring-hc-hairline hover:bg-slate-100"}`}>
+                on ? "bg-hc-brand-dark text-white" : "bg-white ring-1 ring-hc-hairline hover:bg-slate-100"}`}>
               <span className="block text-[10px] leading-tight opacity-70">{WEEKDAYS_IS[d.getDay()]}</span>
               <span className="block text-sm font-bold leading-tight">{d.getDate()}</span>
               <span className={`block text-[9px] leading-tight ${on ? "opacity-70" : free ? "text-emerald-700" : "text-slate-500"}`}>

@@ -34,7 +34,7 @@ export default function EmptyState({ variant = "empty", title, body, action, com
   quiet?: boolean;
 }) {
   const { Icon, disc, icon } = LOOK[variant];
-  const btn = "mt-4 inline-flex min-h-10 items-center rounded-hc-element bg-hc-ink px-4 text-sm font-semibold text-white hover:bg-slate-700";
+  const btn = "mt-4 inline-flex min-h-10 items-center rounded-hc-element bg-hc-ink px-4 text-sm font-semibold text-white hover:bg-emerald-800";
 
   if (quiet) {
     return (

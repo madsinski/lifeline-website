@@ -56,7 +56,7 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
           {a.video && (a.link ? (
             <a href={a.link} target="_blank" rel="noreferrer"
               className={`mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-base font-bold transition ${
-                soon ? "bg-hc-brand text-white shadow-lg shadow-emerald-500/25 hover:bg-hc-brand-dark" : "bg-hc-ink text-white hover:bg-slate-700"}`}>
+                soon ? "bg-hc-brand text-white shadow-lg shadow-emerald-500/25 hover:bg-hc-brand-dark" : "bg-hc-brand-dark text-white hover:bg-emerald-800"}`}>
               <Video className="h-5 w-5" aria-hidden /> Tengjast myndsímtalinu
             </a>
           ) : (

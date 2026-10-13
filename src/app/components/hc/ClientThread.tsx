@@ -90,7 +90,7 @@ export default function ClientThread({ api, journeyId, onRead }: {
                      behalf, not something they typed, so it does not get to
                      look like their own words. */
                   m.kind === "nudge" ? "bg-amber-50 text-amber-900 ring-1 ring-amber-200"
-                    : mine ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-900"}`}>
+                    : mine ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-900"}`}>
                   {m.body}
                   <span className={`mt-1 block text-[10px] ${mine && m.kind !== "nudge" ? "text-white/60" : "text-slate-600"}`}>
                     {m.kind === "nudge" ? "Hvatning · " : ""}{when(m.created_at)}
@@ -109,7 +109,7 @@ export default function ClientThread({ api, journeyId, onRead }: {
           className="min-w-0 flex-1 rounded-2xl border border-slate-300 p-2 text-sm outline-none focus:ring-2 focus:ring-hc-brand" />
         <button type="button" onClick={() => void send()} disabled={!draft.trim() || busy}
           aria-label="Senda skilaboð"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-ink text-white disabled:opacity-50">
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand-dark text-white disabled:opacity-50">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
         </button>
       </div>

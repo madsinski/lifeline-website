@@ -157,7 +157,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                           <button key={lv.key} type="button" aria-pressed={settings.level === lv.key}
                             onClick={() => set({ level: lv.key })}
                             className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                              settings.level === lv.key ? "bg-hc-ink text-white ring-hc-ink" : "bg-white text-slate-700 ring-hc-hairline"}`}>
+                              settings.level === lv.key ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-white text-slate-700 ring-hc-hairline"}`}>
                             {lv.label}
                           </button>
                         ))}

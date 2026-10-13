@@ -77,7 +77,7 @@ export default function ClientsView({ api, onOpenClient }: {
         <span className="flex-1" />
         {tab === "groups" && (
           <button type="button" onClick={() => setAdding(true)}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-slate-700">
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-emerald-800">
             <Plus className="h-4 w-4" /> Nýr hópur
           </button>
         )}

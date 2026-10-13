@@ -13,7 +13,10 @@ export const hcBtn = {
      #047857 it is 5.48:1. The hover goes darker still rather than lighter,
      so the state change never costs contrast. */
   primary: `${base} bg-hc-brand-dark text-white hover:bg-emerald-800`,
-  dark: `${base} bg-hc-ink text-white hover:bg-slate-700`,
+  /* Kept as a name for a filled neutral action, but it is the brand now:
+     a black button beside an emerald one reads as two systems, and the
+     product has one accent. */
+  dark: `${base} bg-hc-brand-dark text-white hover:bg-emerald-800`,
   /* hc-control, not slate-300: a button's edge identifies the control,
      so 1.4.11 asks 3:1 and slate-300 gives 1.48. */
   secondary: `${base} border border-hc-control bg-hc-surface text-slate-700 hover:bg-slate-50`,

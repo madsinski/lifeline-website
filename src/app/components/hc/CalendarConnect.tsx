@@ -296,7 +296,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                 <p className="mt-1 text-sm text-slate-600">Ýttu á hnappinn á iPhone eða Mac og veldu „Gerast áskrifandi“. Tímarnir uppfærast sjálfkrafa.</p>
                 {!ics ? <p className="mt-3 text-sm text-slate-600">Augnablik…</p> : (
                   <>
-                    <a href={ics.webcal} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-hc-ink px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 sm:w-auto">Bæta við Apple-dagatal</a>
+                    <a href={ics.webcal} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-hc-ink px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 sm:w-auto">Bæta við Apple-dagatal</a>
                     <div className="mt-4 hidden items-center gap-4 rounded-2xl bg-slate-50 p-3 sm:flex">
                       <Qr value={ics.webcal} />
                       <p className="text-xs text-slate-600">Á tölvu? Skannaðu kóðann með myndavélinni á iPhone.</p>

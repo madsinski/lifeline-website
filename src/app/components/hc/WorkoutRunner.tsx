@@ -96,7 +96,7 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
             <div className="mt-2 grid grid-cols-5 gap-1.5">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <button key={n} type="button" onClick={() => setRpe(n)} aria-pressed={rpe === n}
-                  className={`rounded-xl py-2.5 text-sm font-bold transition ${rpe === n ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                  className={`rounded-xl py-2.5 text-sm font-bold transition ${rpe === n ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
                   {n}
                 </button>
               ))}

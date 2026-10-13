@@ -96,7 +96,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             onClick={() => setDays(allWeek ? new Set([todayIdx]) : new Set([0, 1, 2, 3, 4, 5, 6]))}
             aria-pressed={allWeek}
             className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              allWeek ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
+              allWeek ? "bg-hc-brand-dark text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
             Vikan öll
           </button>
           {WEEKDAYS_SHORT.map((lbl, i) => (
@@ -117,7 +117,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             onClick={() => setCats(allCats ? new Set<SlotCat>(["breakfast"]) : new Set(SLOT_CATS))}
             aria-pressed={allCats}
             className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              allCats ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
+              allCats ? "bg-hc-brand-dark text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
             Allar
           </button>
           {SLOT_CATS.map((c) => (

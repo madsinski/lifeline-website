@@ -259,7 +259,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
               onChange={(e) => { if (e.target.files?.length) void readReport(e.target.files); e.target.value = ""; }} />
             <button type="button" onClick={() => setAsking(true)} disabled={reading}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
               {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
               {reading ? "Les skýrsluna…" : "Lesa úr skýrslu"}
             </button>

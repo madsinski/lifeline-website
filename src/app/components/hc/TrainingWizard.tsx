@@ -79,7 +79,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-1.5">
             <span className={`flex h-6 items-center gap-1.5 rounded-full px-2.5 ${
-              i === step ? "bg-hc-ink text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>
+              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>
               {i < step ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}{label}
             </span>
             {i < STEPS.length - 1 && <span className="h-px w-3 bg-slate-200" aria-hidden />}
@@ -156,7 +156,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
                 <button key={w} type="button" onClick={() => toggleDay(i)} aria-pressed={on}
                   title={busy ? (s.activities ?? []).filter((a) => a.day === i).map((a) => a.name).join(", ") : wanted ? wanted.why : undefined}
                   className={`relative min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
-                    on ? "bg-hc-ink text-white" : wanted ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                    on ? "bg-hc-brand-dark text-white" : wanted ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
                   <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span><span className="hidden sm:inline">{w}</span>
                   {busy && <span className={`ml-1.5 text-xs font-normal ${on ? "text-white/70" : "text-slate-600"}`}>•</span>}
                 </button>
@@ -238,7 +238,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
               {REGIONS.map((r) => (
                 <button key={r} type="button" onClick={() => toggleRegion(r)} aria-pressed={s.injuries.includes(r)}
                   className={`min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
-                    s.injuries.includes(r) ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                    s.injuries.includes(r) ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
                   {REGION_IS[r].label}
                 </button>
               ))}

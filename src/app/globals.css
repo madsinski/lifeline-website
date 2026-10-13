@@ -95,7 +95,12 @@ body.hc-scroll-lock {
      cards reads like a spreadsheet; this is the "bright white cards, no
      grey backdrop" direction, with just enough warmth that white lifts off
      it. */
-  --hc-page: #FAFAF8;
+  /* The page beneath the cards. #FAFAF8 separated a white card from its
+     background by 1.045:1, which is no separation at all — the cards
+     stopped reading as cards and the whole surface went flat. #ECF0F3 is
+     the token the rest of the site already uses for exactly this, so the
+     workstation stops being the one page with its own paler backdrop. */
+  --hc-page: #ECF0F3;
   --hc-hero-from: #0F2A23;
   --hc-hero-to: #065F46;
 

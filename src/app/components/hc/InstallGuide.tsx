@@ -194,7 +194,7 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
             {(Object.keys(STEPS) as Platform[]).map((k) => (
               <button key={k} type="button" onClick={() => setPick(k)} aria-pressed={pick === k}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                  pick === k ? "bg-hc-ink text-white ring-hc-ink" : "bg-white text-slate-700 ring-hc-hairline hover:bg-slate-50"}`}>
+                  pick === k ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-white text-slate-700 ring-hc-hairline hover:bg-slate-50"}`}>
                 {STEPS[k].label}
               </button>
             ))}

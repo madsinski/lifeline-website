@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Bell, CalendarClock, Check, ChevronRight, ClipboardList, CreditCard, Droplet, ExternalLink, Video,
   Mail, MessageSquare, Phone, Ruler, Send, Stethoscope,
+  X,
 } from "lucide-react";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import PinPad from "@/app/components/hc/PinPad";
@@ -503,9 +504,36 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
 
 
   // What is waiting on this nurse, most pressing first. One list, no groups.
+  /* Items this actor has cleared. The list is derived from journey state,
+     so there is nothing to delete — a dismissal is recorded separately and
+     filtered here. Keyed by task as well as journey, so clearing "book a
+     follow-up" does not also hide "the report needs confirming" when the
+     journey moves on. */
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const loadDismissed = useCallback(async () => {
+    const r = await api("/api/vinnustod/queue-dismiss").catch(() => null);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
+    const next = new Set<string>((j?.dismissed ?? []).map((d: { journeyId: string; taskKey: string }) => `${d.journeyId}:${d.taskKey}`));
+    setTimeout(() => setDismissed(next), 0);
+  }, [api]);
+  useEffect(() => { void loadDismissed(); }, [loadDismissed]);
+
+  const dismiss = useCallback(async (journeyId: string, taskKey: string) => {
+    /* Optimistic: the row goes immediately and comes back if the write
+       fails, because waiting for a round trip to remove a line you just
+       clicked feels broken. */
+    setDismissed((d) => new Set(d).add(`${journeyId}:${taskKey}`));
+    const r = await api("/api/vinnustod/queue-dismiss", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ journeyId, taskKey }),
+    }).catch(() => null);
+    if (!r?.ok) setDismissed((d) => { const n = new Set(d); n.delete(`${journeyId}:${taskKey}`); return n; });
+  }, [api]);
+
   const waiting = useMemo(
-    () => enriched.filter((x) => x.f.rank < 2).sort((a, b) => a.f.rank - b.f.rank || b.f.waitingDays - a.f.waitingDays),
-    [enriched],
+    () => enriched.filter((x) => x.f.rank < 2 && !dismissed.has(`${x.r.id}:${x.t.key}`))
+      .sort((a, b) => a.f.rank - b.f.rank || b.f.waitingDays - a.f.waitingDays),
+    [enriched, dismissed],
   );
 
 
@@ -547,7 +575,7 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
               <EmptyState variant="done" quiet title="Ekkert bíður" body="Allt sem kallar á þig er afgreitt." />
             ) : (
               <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-hc-hairline bg-white">
-                {waiting.map(({ r, t, f }) => <WaitingRow key={r.id} r={r} t={t} f={f} onOpen={onOpen} onChanged={onChanged} />)}
+                {waiting.map(({ r, t, f }) => <WaitingRow key={r.id} r={r} t={t} f={f} onOpen={onOpen} onChanged={onChanged} onDismiss={() => void dismiss(r.id, t.key)} />)}
               </ul>
             )}
           </section>
@@ -562,8 +590,21 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
         </div>
 
         <aside className="min-w-0 space-y-6">
-          {/* Messages, once: Caseload used to surface unanswered ones too. */}
-          <CoachInbox api={api} onRead={onRead} />
+          {/* Messages, once: Caseload used to surface unanswered ones too.
+
+              The heading is here for alignment as much as for labelling.
+              Every section in the left column opens with one, so its first
+              CARD starts about 28px below the top of the column while this
+              one began at the top — the columns were flush, the cards were
+              not, and the eye reads the cards. Giving this the same heading
+              puts both first cards on the same line, and the panel was
+              unlabelled anyway. */}
+          <section>
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+              Skilaboð
+            </h2>
+            <CoachInbox api={api} onRead={onRead} />
+          </section>
           <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} narrow />
         </aside>
       </div>
@@ -573,8 +614,9 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
 
 
 /** One thing waiting on the nurse: who, what, and the single next action. */
-function WaitingRow({ r, t, f, onOpen }: {
+function WaitingRow({ r, t, f, onOpen, onDismiss }: {
   r: Row; t: Task; f: RowFlags; onOpen: (id: string, compose?: boolean, step?: string) => void; onChanged: () => void;
+  onDismiss: () => void;
 }) {
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -587,6 +629,16 @@ function WaitingRow({ r, t, f, onOpen }: {
             {f.waitingDays > 2 && <span className="text-slate-500"> · {f.waitingDays} d.</span>}
           </span>
         </span>
+      </button>
+      {/* Clear this one off the list.
+          Quiet and last in the row: it is the rarer of the two actions and
+          should not compete with the thing the row is actually asking you
+          to do. Dismissing is per coach and survives a reload, and the item
+          returns on its own if the journey moves to a different task. */}
+      <button type="button" onClick={onDismiss} aria-label="Fjarlægja af listanum"
+        title="Fjarlægja af listanum"
+        className="order-last shrink-0 rounded-lg p-1.5 text-slate-500 transition hover:bg-rose-50 hover:text-rose-700">
+        <X className="h-4 w-4" aria-hidden />
       </button>
       {/* Outlined, not solid.
           Every row in this list carries the same action, so a filled brand
@@ -872,7 +924,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
           return (
             <section key={k} className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card sm:p-5">
               <div className="mb-3 flex items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hc-ink text-white">{st.icon}</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hc-brand-dark text-white">{st.icon}</span>
                 <div className="min-w-0">
                   <h2 className="truncate font-bold text-slate-900">{st.title}</h2>
                   <p className="truncate text-xs text-slate-600">{st.status}</p>
@@ -1527,7 +1579,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
                 <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Sniðmát">
                   {MESSAGE_TEMPLATES.map((t) => (
                     <button key={t.key} type="button" role="radio" aria-checked={tpl === t.key} onClick={() => pick(t.key)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${tpl === t.key ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${tpl === t.key ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
                       {t.label}
                     </button>
                   ))}
@@ -1641,7 +1693,7 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
             <div className="flex gap-1" role="radiogroup" aria-label="Form">
               {([["in_person", "Á staðnum"], ["video", "Myndsímtal"]] as const).map(([k, l]) => (
                 <button key={k} type="button" role="radio" aria-checked={m === k} onClick={() => setM(k)}
-                  className={`${btn} min-h-9 ${m === k ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>{l}</button>
+                  className={`${btn} min-h-9 ${m === k ? "bg-hc-brand-dark text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>{l}</button>
               ))}
             </div>
           )}
@@ -1792,7 +1844,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
           {STEPS.map((s, i) => (
             <li key={s}>
               <button type="button" onClick={() => setStep(i)} aria-current={step === i ? "step" : undefined}
-                className={`flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${step === i ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-50"}`}>
+                className={`flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${step === i ? "bg-hc-brand-dark text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-50"}`}>
                 <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${step === i ? "bg-white text-slate-900" : i < step ? "bg-emerald-500 text-white" : "bg-slate-100"}`}>
                   {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
                 </span>

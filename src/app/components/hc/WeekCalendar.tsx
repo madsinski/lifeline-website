@@ -182,7 +182,7 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
             {days.map((d) => {
               const today = sameDay(d, new Date());
               return (
-                <div key={d.toISOString()} className={`px-2 py-2 text-center ${today ? "bg-hc-ink text-white" : ""}`}>
+                <div key={d.toISOString()} className={`px-2 py-2 text-center ${today ? "bg-hc-brand-dark text-white" : ""}`}>
                   <p className="text-[11px] leading-tight opacity-70">{WEEKDAYS_IS[d.getDay()]}</p>
                   <p className="text-sm font-bold leading-tight">{d.getDate()}</p>
                 </div>
@@ -307,7 +307,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
           <div className="mt-2 flex gap-1" role="group" aria-label="Hvar fer viðtalið fram">
             {([["video", "Myndsímtal"], ["in_person", "Á staðnum"]] as const).map(([m, label]) => (
               <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m}
-                className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${mode === m ? "bg-hc-ink text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${mode === m ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
                 {label}
               </button>
             ))}

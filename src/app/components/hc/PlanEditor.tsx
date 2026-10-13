@@ -60,7 +60,7 @@ type Focus = Pillar | "exercise-program" | "nutrition-program" | "lectures";
  */
 const tabCls = (active: boolean) =>
   `flex shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
-    active ? "bg-hc-ink text-white" : "text-slate-600 hover:bg-slate-50"}`;
+    active ? "bg-hc-brand-dark text-white" : "text-slate-600 hover:bg-slate-50"}`;
 
 /**
  * The same tab, in the category's own colour.

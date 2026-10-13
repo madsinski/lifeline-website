@@ -54,7 +54,7 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-1.5">
             <span className={`flex h-6 items-center gap-1.5 rounded-full px-2.5 ${
-              i === step ? "bg-hc-ink text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>
+              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>
               {i < step ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}{label}
             </span>
             {i < STEPS.length - 1 && <span className="h-px w-3 bg-slate-200" aria-hidden />}
