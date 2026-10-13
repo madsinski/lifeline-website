@@ -154,7 +154,13 @@ export default function WeekAhead({ api, onOpenClient }: {
                     onClick={() => e.journey_id && onOpenClient(e.journey_id)}
                     disabled={!e.journey_id}
                     className={`flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-slate-50 ${
-                      e.done ? "opacity-55" : ""}`}>
+                      /* 80, not 55. Opacity multiplies contrast down
+                         invisibly — a contrast check that reads the
+                         computed colour sees slate-600 passing at 7.58
+                         while the pixels on screen are 2.58. A done
+                         appointment should read as done, not as
+                         unreadable; 80% keeps it at 4.54. */
+                      e.done ? "opacity-80" : ""}`}>
                     {/* The time first and in tabular figures, so a column of
                         them lines up and can be scanned down. */}
                     <span className="w-12 shrink-0 text-sm font-bold tabular-nums text-slate-900">
