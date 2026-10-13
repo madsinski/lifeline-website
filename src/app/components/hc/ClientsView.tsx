@@ -121,8 +121,12 @@ export default function ClientsView({ api, onOpenClient, capped = false }: {
         </ul>
       )}
 
+      {/* The groups list gets the same cap. It was left uncapped when the
+          people list got one, which only shows once you switch tabs — and
+          thirteen groups that each expand their members is the taller of
+          the two lists, not the shorter. */}
       {tab === "groups" && groups !== null && (
-        <ul className="space-y-2">
+        <ul className={`space-y-2 ${capped ? "max-h-80 overflow-y-auto overscroll-contain pr-1" : ""}`}>
           {shownGroups.map((g) => (
             <li key={g.id} className="overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface">
               <button type="button" onClick={() => setOpen(open === g.id ? null : g.id)}

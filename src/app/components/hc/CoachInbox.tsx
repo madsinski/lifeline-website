@@ -158,7 +158,7 @@ export default function CoachInbox({ api, onRead, capped = false }: {
   // ── One conversation ──────────────────────────────────────────────────
   if (open) {
     return (
-      <section className={`${hcCard.base} flex flex-col overflow-hidden`}>
+      <section className={`${hcCard.base} flex flex-col overflow-hidden ${capped ? "max-h-[31rem]" : ""}`}>
         <div className="flex items-center gap-3 border-b border-hc-hairline p-3">
           <button type="button" onClick={() => { setOpen(null); setMsgs([]); }}
             aria-label="Til baka" className="rounded-lg p-1.5 text-hc-ink-2 hover:bg-hc-sunken-2">
@@ -172,7 +172,13 @@ export default function CoachInbox({ api, onRead, capped = false }: {
             page this list is 52vh of the screen, so containing the
             scroll stranded the page: a thumb over the conversation could not
             move it at all. Reaching the end now hands the scroll onward. */}
-        <div className="max-h-[52vh] min-h-32 flex-1 space-y-2 overflow-y-auto bg-hc-sunken/60 p-4">
+        {/* When the card is capped the height comes from the card, so this
+            fills what the header and composer leave rather than setting its
+            own 52vh — two competing limits would make the taller one
+            decorative. min-h-0 because a flex child will not shrink below
+            its content without it, which is the usual reason a "scrollable"
+            flex area pushes its parent instead of scrolling. */}
+        <div className={`${capped ? "min-h-0" : "max-h-[52vh] min-h-32"} flex-1 space-y-2 overflow-y-auto bg-hc-sunken/60 p-4`}>
           {msgs.map((m) => (
             <div key={m.id} className={`flex ${m.author_kind === "coach" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${m.pending ? "opacity-60" : ""} ${
@@ -255,7 +261,7 @@ export default function CoachInbox({ api, onRead, capped = false }: {
      no way to reach the rest. */
   return (
     <ul className={`${hcCard.base} divide-y divide-hc-hairline ${
-      capped ? "max-h-[28rem] overflow-y-auto overscroll-contain" : "overflow-hidden"}`}>
+      capped ? "max-h-[31rem] overflow-y-auto overscroll-contain" : "overflow-hidden"}`}>
       {threads.map((t) => (
         <li key={t.journeyId}>
           <button type="button" onClick={() => { setOpen(t); void loadThread(t); }}
