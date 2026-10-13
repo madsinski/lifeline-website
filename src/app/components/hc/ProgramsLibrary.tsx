@@ -24,12 +24,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, Pencil, Plus, Send, Trash2, X } from "lucide-react";
 import { hcBtn, hcTabs } from "./ui";
+import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
+import DayExampleEditor from "./DayExampleEditor";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type Kind = "exercise" | "nutrition";
 
 interface Program {
   key: string;
+  /** Exercise: the week's sessions, each with its own items. */
+  sessions?: unknown[];
+  /** Nutrition: a day of meals as an example. */
+  day_example?: unknown[];
   name: string;
   goal: string | null;
   description: string | null;
@@ -110,6 +116,7 @@ export default function ProgramsLibrary({ api, people }: {
         <span className="flex-1" />
         <button type="button" onClick={() => setEdit({
           key: "", name: "", goal: "", description: "", principles: [], active: false,
+          sessions: [], day_example: [],
         })} className={`${hcBtn.primary} min-h-9`}>
           <Plus className="h-4 w-4" aria-hidden /> Nýtt prógramm
         </button>
@@ -121,7 +128,7 @@ export default function ProgramsLibrary({ api, people }: {
         </p>
       )}
 
-      {edit && <Editor kind={kind} value={edit} onCancel={() => setEdit(null)} onSave={save} />}
+      {edit && <Editor kind={kind} value={edit} api={api} onCancel={() => setEdit(null)} onSave={save} />}
 
       {loading ? (
         <p className="py-8 text-center text-sm text-hc-ink-2">Hleð…</p>
@@ -237,8 +244,8 @@ function Row({ p, kind, api, people, onEdit, onToggle, onDelete }: {
   );
 }
 
-function Editor({ kind, value, onCancel, onSave }: {
-  kind: Kind; value: Program; onCancel: () => void; onSave: (p: Program) => void;
+function Editor({ kind, value, api, onCancel, onSave }: {
+  kind: Kind; value: Program; api: Api; onCancel: () => void; onSave: (p: Program) => void;
 }) {
   const [p, setP] = useState<Program>(value);
   const set = (patch: Partial<Program>) => setP((v) => ({ ...v, ...patch }));
@@ -280,6 +287,34 @@ function Editor({ kind, value, onCancel, onSave }: {
               onChange={(e) => set({ session_minutes: e.target.value ? Number(e.target.value) : null })}
               className="mt-1 w-full rounded-lg border border-hc-control bg-hc-surface px-3 py-2 text-sm font-normal text-hc-ink" />
           </label>
+        </div>
+      )}
+
+      {/* The programme's actual content, not just its description.
+          Editing a programme without being able to touch the exercises or
+          the meals in it meant the library could only ever be renamed —
+          the sessions came from whoever seeded the table. Both editors own
+          their own pickers, so the exercise library and the meal library
+          arrive with them. */}
+      {kind === "exercise" ? (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold text-hc-ink-2">Æfingar í prógramminu</p>
+          <ExerciseSessionsEditor api={api}
+            sessions={(p.sessions ?? []) as never}
+            onChange={(sessions) => set({
+              sessions,
+              /* Days per week follows the sessions rather than being typed
+                 twice: a programme with four sessions and "3" in the box is
+                 wrong in a way nobody notices until a client counts. */
+              days_per_week: sessions.length || p.days_per_week || null,
+            })} />
+        </div>
+      ) : (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold text-hc-ink-2">Dæmi um dag</p>
+          <DayExampleEditor api={api}
+            value={(p.day_example ?? []) as never}
+            onChange={(day_example) => set({ day_example })} />
         </div>
       )}
 
