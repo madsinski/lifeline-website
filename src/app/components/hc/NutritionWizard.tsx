@@ -97,7 +97,7 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
           ))}
           {/* Not a safety guarantee, and it must not read like one. */}
           {(p.avoid ?? []).length > 0 && (
-            <p className="flex gap-2 rounded-xl bg-hc-sunken-2 px-3 py-2 text-xs text-slate-700">
+            <p className="flex gap-2 rounded-xl bg-hc-sunken-2 px-3 py-2 text-xs text-hc-ink-2">
               <AlertTriangle className="mt-px h-4 w-4 shrink-0 text-hc-ink-2" aria-hidden />
               <span>
                 Þetta er uppskriftasafn, ekki innihaldslýsing frá framleiðanda. Við sjáum hvorki snefilmagn

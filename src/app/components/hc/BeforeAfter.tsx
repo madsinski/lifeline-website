@@ -30,7 +30,7 @@ export default function BeforeAfter({ c }: { c: Comparison }) {
           return (
             <li key={r.marker} className="flex items-center gap-3 px-4 py-3">
               <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tone}`}><Icon className="h-4 w-4" aria-hidden /></span>
-              <span className="min-w-0 flex-1 font-medium text-slate-800">{r.title}</span>
+              <span className="min-w-0 flex-1 font-medium text-hc-ink-2">{r.title}</span>
               <span className="flex items-center gap-1.5 text-sm tabular-nums text-hc-ink-2">
                 {r.signalBefore && <span className={`h-2 w-2 rounded-full ${DOT[r.signalBefore]}`} aria-hidden />}{num(r.before)}
               </span>

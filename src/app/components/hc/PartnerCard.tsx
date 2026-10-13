@@ -117,7 +117,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
       <div className={`flex items-start ${bare ? "" : "gap-3"}`}>
         {!bare && (
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50">
-            <Handshake className="h-5 w-5 text-hc-brand-dark" aria-hidden />
+            <Handshake className="h-5 w-5 text-hc-brand-text" aria-hidden />
           </span>
         )}
         <div className="min-w-0 flex-1">
@@ -189,7 +189,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
             {sent ? (
               <p className="text-sm text-hc-ink-2" role="status">
                 Boðið er sent. Þú sérð hann í listanum þegar hann hefur samþykkt.{" "}
-                <button type="button" onClick={() => setSent(false)} className="font-semibold text-hc-brand-dark hover:underline">
+                <button type="button" onClick={() => setSent(false)} className="font-semibold text-hc-brand-text hover:underline">
                   Bjóða öðrum
                 </button>
               </p>
@@ -225,7 +225,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
                 <button key={c.id} type="button" disabled={busy} onClick={() => void choose(c.id)}
                   className="flex w-full items-center justify-between rounded-hc-element border border-hc-hairline px-3 py-2.5 text-left text-sm font-semibold text-hc-ink transition hover:bg-hc-sunken disabled:opacity-50">
                   {c.name}
-                  {d.partner?.id === c.id && <span className="text-xs font-normal text-hc-brand-dark">núverandi</span>}
+                  {d.partner?.id === c.id && <span className="text-xs font-normal text-hc-brand-text">núverandi</span>}
                 </button>
               ))}
             </div>

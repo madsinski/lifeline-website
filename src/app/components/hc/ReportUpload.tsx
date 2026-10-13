@@ -68,7 +68,7 @@ export default function ReportUpload({ api, onDone, compact, heading, blurb }: {
       <ul className="mt-3 space-y-2.5 rounded-hc-element bg-hc-sunken p-4 ring-1 ring-hc-hairline">
         {SELF_CONSENT_POINTS.map((x) => (
           <li key={x.title} className="flex gap-2.5">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-dark" aria-hidden />
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-text" aria-hidden />
             <span className="min-w-0">
               <span className="block text-sm font-semibold text-hc-ink">{x.title}</span>
               <span className="block text-sm leading-snug text-hc-ink-2">{x.body}</span>

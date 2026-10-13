@@ -35,7 +35,7 @@ export default function FitMeter({ fit, titles, rank }: {
     <div className="mt-2">
       <div className="flex items-center gap-2">
         {rank != null && rank <= 3 && (
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-hc-ink text-[11px] font-bold text-white" aria-hidden>{rank}</span>
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-hc-brand-dark text-[11px] font-bold text-white" aria-hidden>{rank}</span>
         )}
         <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${band.chip}`}>{band.label}</span>
         {!fit.personalised && (
@@ -55,15 +55,15 @@ export default function FitMeter({ fit, titles, rank }: {
       )}
 
       <details className="mt-1 group">
-        <summary className="cursor-pointer list-none text-[11px] font-semibold text-hc-ink-2 hover:text-slate-800">
+        <summary className="cursor-pointer list-none text-[11px] font-semibold text-hc-ink-2 hover:text-hc-ink-2">
           Hvernig er þetta reiknað?
         </summary>
         <div className="mt-1.5 space-y-1.5 rounded-lg bg-hc-sunken p-2">
           {fit.need != null
-            ? <div><p className="text-[11px] font-semibold text-slate-700" title={FIT_IS.need.hint}>{FIT_IS.need.label}</p><Bar value={fit.need} className="bg-amber-400" label={FIT_IS.need.label} /></div>
+            ? <div><p className="text-[11px] font-semibold text-hc-ink-2" title={FIT_IS.need.hint}>{FIT_IS.need.label}</p><Bar value={fit.need} className="bg-amber-400" label={FIT_IS.need.label} /></div>
             : <p className="text-[11px] text-hc-ink-2">{FIT_IS.need.label}: ekkert af því sem þetta tekur á var mælt.</p>}
           {fit.bang != null
-            ? <div><p className="text-[11px] font-semibold text-slate-700" title={FIT_IS.bang.hint}>{FIT_IS.bang.label}</p><Bar value={fit.bang} className="bg-sky-400" label={FIT_IS.bang.label} /></div>
+            ? <div><p className="text-[11px] font-semibold text-hc-ink-2" title={FIT_IS.bang.hint}>{FIT_IS.bang.label}</p><Bar value={fit.bang} className="bg-sky-400" label={FIT_IS.bang.label} /></div>
             : <p className="text-[11px] text-hc-ink-2">{FIT_IS.bang.label}: aðgerðin hefur ekki verið metin.</p>}
           <p className="text-[11px] leading-snug text-hc-ink-2">{FIT_IS.fit.hint}</p>
         </div>

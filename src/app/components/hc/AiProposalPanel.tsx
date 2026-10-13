@@ -189,13 +189,13 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
                       <span className="shrink-0 rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] font-semibold text-hc-ink-2">{TIER_IS[a.tier]}</span>
                       <button type="button" onClick={() => setWhy(open ? null : i)} aria-expanded={open}
                         aria-label={`Af hverju: ${a.title}`}
-                        className="shrink-0 rounded p-1 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700">
+                        className="shrink-0 rounded p-1 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
                         <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
                       </button>
                     </div>
                     {open && (
                       <div className="border-t border-hc-hairline bg-hc-sunken/70 px-3 py-2">
-                        <p className="text-sm text-slate-700">{a.detail}</p>
+                        <p className="text-sm text-hc-ink-2">{a.detail}</p>
                         {a.why && <p className="mt-1 text-xs italic text-hc-ink-2">{a.why}</p>}
                         {!a.module_key && <p className="mt-1 text-[11px] text-hc-ink-3">Ný aðgerð — ekki úr aðgerðasafninu.</p>}
                       </div>
@@ -224,7 +224,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
                     {proposal.focus.map((f, k) => (
                       <li key={k} className="flex gap-2 text-sm">
                         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: PILLAR_META[f.pillar].color }} aria-hidden />
-                        <span><span className="font-semibold text-slate-800">{PILLAR_META[f.pillar].label}:</span> <span className="text-hc-ink-2">{f.why}</span></span>
+                        <span><span className="font-semibold text-hc-ink-2">{PILLAR_META[f.pillar].label}:</span> <span className="text-hc-ink-2">{f.why}</span></span>
                       </li>
                     ))}
                   </ul>

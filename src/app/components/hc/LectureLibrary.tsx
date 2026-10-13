@@ -117,7 +117,7 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
                     <Link href={`/account/heilsuferd/fraedsla/${l.slug}`}
                       className="flex items-center gap-3 px-4 py-3 transition hover:bg-hc-sunken">
                       {l.completed
-                        ? <CheckCircle2 className="h-6 w-6 shrink-0 text-hc-brand-dark" aria-label="Lokið" />
+                        ? <CheckCircle2 className="h-6 w-6 shrink-0 text-hc-brand-text" aria-label="Lokið" />
                         : <span className="h-6 w-6 shrink-0 rounded-full border-2 border-hc-hairline" aria-hidden />}
                       <span className="min-w-0 flex-1">
                         <span className={`block font-semibold ${l.completed ? "text-hc-ink-3" : "text-hc-ink"}`}>
@@ -128,7 +128,7 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
                       {/* Says which ones the plan asked for, so the
                           catalogue does not read as a competing list. */}
                       {l.inPlan && (
-                        <span className="shrink-0 rounded-full bg-hc-brand/10 px-2 py-0.5 text-[11px] font-bold text-hc-brand-dark">
+                        <span className="shrink-0 rounded-full bg-hc-brand/10 px-2 py-0.5 text-[11px] font-bold text-hc-brand-text">
                           Í áætlun
                         </span>
                       )}

@@ -178,11 +178,11 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
                 start again from step one. */}
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
               <button type="button" onClick={onClose}
-                className="rounded-full bg-hc-ink px-5 py-2.5 text-sm font-semibold text-white">
+                className="rounded-full bg-hc-brand-dark px-5 py-2.5 text-sm font-semibold text-white">
                 Loka
               </button>
               <button type="button" onClick={() => setI(steps.length - 1)}
-                className="inline-flex items-center gap-1 rounded-full px-4 py-2.5 text-sm font-semibold text-hc-ink-2 hover:text-slate-800">
+                className="inline-flex items-center gap-1 rounded-full px-4 py-2.5 text-sm font-semibold text-hc-ink-2 hover:text-hc-ink-2">
                 <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
               </button>
             </div>
@@ -214,7 +214,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
                       : "Tengdu Google-dagatalið þitt. Myndsímtöl fá hlekk á fundinn og staðsetning fylgir bókuðum tímum."}
                   </p>
                   <button type="button" onClick={() => setCalOpen(true)}
-                    className="rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
+                    className="rounded-full bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white">
                     {calConnected ? "Skoða dagatalstengingu" : "Tengja dagatal"}
                   </button>
                 </div>
@@ -267,7 +267,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
                 you lose the people who only wanted a look. The wording just
                 tells the truth about what the button means. */}
             <button type="button" onClick={() => setI((n) => n + 1)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
+              className="inline-flex items-center gap-1.5 rounded-full bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white">
               Næsta <ArrowRight className="h-4 w-4" aria-hidden />
             </button>
           </div>

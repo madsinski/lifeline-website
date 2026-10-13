@@ -48,7 +48,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
           re-asked: the level/load/injury dials below are the day-to-day ones. */}
       <div className="rounded-3xl bg-hc-surface p-4 shadow-sm ring-1 ring-hc-hairline sm:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-semibold text-slate-800">Uppsetningin þín</p>
+          <p className="text-sm font-semibold text-hc-ink-2">Uppsetningin þín</p>
           {onSetup && <button type="button" onClick={onSetup} className="text-sm font-semibold text-orange-700 underline hover:text-orange-900">Breyta uppsetningu</button>}
         </div>
         <dl className="mt-2 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
@@ -70,11 +70,11 @@ export default function TrainingControls({ settings, planStart, onChange, saving
       <div className="grid gap-3 sm:grid-cols-3">
         {/* Level */}
         <div className="rounded-2xl bg-hc-surface p-4 shadow-sm ring-1 ring-hc-hairline">
-          <p className="text-sm font-semibold text-slate-800">{you ? "Hvar ertu stödd/staddur?" : "Byrjunarstig"}</p>
+          <p className="text-sm font-semibold text-hc-ink-2">{you ? "Hvar ertu stödd/staddur?" : "Byrjunarstig"}</p>
           <div className="mt-2 grid gap-1.5">
             {([["beginner", "Að byrja", "4 vikna aðlögun fyrst"], ["active", "Æfi nú þegar", "Beint á stig 1"]] as const).map(([k, label, hint]) => (
               <button key={k} type="button" disabled={!edit || saving} onClick={() => set({ level: k })} aria-pressed={settings.level === k}
-                className={`rounded-xl px-3 py-2 text-left text-sm transition ${settings.level === k ? "bg-orange-500 text-white" : "bg-hc-sunken text-slate-700 hover:bg-orange-50"} disabled:cursor-default`}>
+                className={`rounded-xl px-3 py-2 text-left text-sm transition ${settings.level === k ? "bg-orange-500 text-white" : "bg-hc-sunken text-hc-ink-2 hover:bg-orange-50"} disabled:cursor-default`}>
                 <span className="block font-semibold">{label}</span>
                 <span className={`block text-xs ${settings.level === k ? "text-white/85" : "text-hc-ink-2"}`}>{hint}</span>
               </button>
@@ -84,10 +84,10 @@ export default function TrainingControls({ settings, planStart, onChange, saving
 
         {/* Load */}
         <div className="rounded-2xl bg-hc-surface p-4 shadow-sm ring-1 ring-hc-hairline">
-          <p className="text-sm font-semibold text-slate-800">Álag</p>
+          <p className="text-sm font-semibold text-hc-ink-2">Álag</p>
           <div className="mt-3 flex items-center justify-between gap-2">
             <button type="button" disabled={!edit || saving || settings.load <= -2} onClick={() => set({ load: settings.load - 1 })} aria-label="Minnka álag"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-hc-sunken-2 text-2xl font-bold text-slate-700 hover:bg-slate-200 disabled:opacity-40">−</button>
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-hc-sunken-2 text-2xl font-bold text-hc-ink-2 hover:bg-slate-200 disabled:opacity-40">−</button>
             <div className="text-center">
               <p className="text-2xl font-bold text-hc-ink">{settings.load > 0 ? `+${settings.load}` : settings.load}</p>
               <p className="text-xs text-hc-ink-2">{LOAD_IS[settings.load]}</p>
@@ -100,13 +100,13 @@ export default function TrainingControls({ settings, planStart, onChange, saving
 
         {/* Injuries */}
         <div className="rounded-2xl bg-hc-surface p-4 shadow-sm ring-1 ring-hc-hairline">
-          <p className="text-sm font-semibold text-slate-800">{you ? "Meiðsli eða verkir" : "Meiðsli"}</p>
+          <p className="text-sm font-semibold text-hc-ink-2">{you ? "Meiðsli eða verkir" : "Meiðsli"}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {REGIONS.map((r) => {
               const on = settings.injuries.includes(r);
               return (
                 <button key={r} type="button" disabled={!edit || saving} onClick={() => toggle(r)} aria-pressed={on}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${on ? "bg-rose-500 text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-rose-50"} disabled:cursor-default`}>
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${on ? "bg-rose-500 text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-rose-50"} disabled:cursor-default`}>
                   {REGION_IS[r].label}
                 </button>
               );

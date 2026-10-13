@@ -39,7 +39,7 @@ export function ConsentBox({ checked, onChange, error }: { checked: boolean; onC
     <div className={`rounded-xl border p-3 text-sm ${error ? "border-red-300 bg-red-50" : "border-hc-hairline bg-hc-surface"}`}>
       <label className="flex cursor-pointer items-start gap-3">
         <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#10B981]" />
-        <span className="text-slate-700">
+        <span className="text-hc-ink-2">
           Ég hef lesið <strong>upplýst samþykki fyrir heilsumat</strong> og samþykki að Lifeline Health vinni með heilsufarsupplýsingar mínar vegna heilsufarsskoðunarinnar. Ég get dregið samþykkið til baka hvenær sem er.
         </span>
       </label>
@@ -98,7 +98,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
 
   const field = (k: keyof typeof f, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <label className="block text-sm">
-      <span className="font-medium text-slate-700">{label}</span>
+      <span className="font-medium text-hc-ink-2">{label}</span>
       <input
         value={f[k]}
         onChange={(e) => setF({ ...f, [k]: e.target.value })}

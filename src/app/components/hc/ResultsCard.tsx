@@ -240,7 +240,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
               <span className="block text-xs text-hc-ink-2">Hluti af þjónustunni — engin beiðni skráð.</span>
             </button>
           </div>
-          <button type="button" onClick={() => setAsking(false)} className="mt-2 text-xs font-semibold text-hc-ink-2 hover:text-slate-800">Hætta við</button>
+          <button type="button" onClick={() => setAsking(false)} className="mt-2 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">Hætta við</button>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
@@ -259,7 +259,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
               onChange={(e) => { if (e.target.files?.length) void readReport(e.target.files); e.target.value = ""; }} />
             <button type="button" onClick={() => setAsking(true)} disabled={reading}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-brand-dark px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
               {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
               {reading ? "Les skýrsluna…" : "Lesa úr skýrslu"}
             </button>
@@ -273,7 +273,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
               </span>
             )}
             <button type="button" onClick={() => setEditing(true)}
-              className="inline-flex min-h-9 items-center rounded-xl border border-slate-300 bg-hc-surface px-3 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">
+              className="inline-flex min-h-9 items-center rounded-xl border border-slate-300 bg-hc-surface px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
               {recorded.length ? "Breyta gildum" : "Skrá gildi"}
             </button>
           </>
@@ -323,7 +323,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                       ].filter(Boolean).join(" · ") || v.label}
                     </span>
                   </span>
-                  <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-hc-sunken text-slate-700 ring-hc-hairline"}`}>
+                  <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline"}`}>
                     {String(v.value).replace(".", ",")}{v.unit ? ` ${v.unit}` : ""}
                   </span>
                 </li>
@@ -366,11 +366,11 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                       : b ? `${b.label.replace(/\s*\((karlar|konur)\)$/i, "")} · ${bandRangeText(b, e.unit)}` : "utan skilgreindra bila"}
                   </span>
                 </span>
-                <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-hc-sunken text-slate-700 ring-hc-hairline"}`}>
+                <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline"}`}>
                   {String(v).replace(".", ",")}{e.unit ? ` ${e.unit}` : ""}
                 </span>
                 <button type="button" onClick={() => setLookup(`${e.title} ${v}`)} title={`Fletta upp ${e.title}`}
-                  aria-label={`Fletta upp ${e.title}`} className="rounded-lg p-1.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700">
+                  aria-label={`Fletta upp ${e.title}`} className="rounded-lg p-1.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
                   <BookOpen className="h-4 w-4" />
                 </button>
               </li>
@@ -385,8 +385,8 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           <ul className="grid gap-2 sm:grid-cols-2">
             {extras.map((r) => (
               <li key={r.marker} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-hc-hairline">
-                <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{r.note || r.marker.replace(/^x:/, "")}</span>
-                <span className="rounded-lg bg-hc-sunken px-2.5 py-1 text-sm font-bold tabular-nums text-slate-700 ring-1 ring-hc-hairline">
+                <span className="min-w-0 flex-1 truncate text-sm text-hc-ink-2">{r.note || r.marker.replace(/^x:/, "")}</span>
+                <span className="rounded-lg bg-hc-sunken px-2.5 py-1 text-sm font-bold tabular-nums text-hc-ink-2 ring-1 ring-hc-hairline">
                   {String(r.value).replace(".", ",")}{r.unit ? ` ${r.unit}` : ""}
                 </span>
               </li>
@@ -418,7 +418,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                     const ranges = bandsFor(e, sex).filter((x) => x.tone === "good").map((x) => bandRangeText(x, null)).join(" / ");
                     return (
                       <li key={e.slug} className="flex items-center gap-2">
-                        <label className="min-w-0 flex-1 text-sm text-slate-700" htmlFor={`res-${e.slug}`}>
+                        <label className="min-w-0 flex-1 text-sm text-hc-ink-2" htmlFor={`res-${e.slug}`}>
                           <span className="block truncate font-medium">{e.title}</span>
                           <span className="block text-[11px] text-hc-ink-3">
                             {unknown ? "Kjörsvið er kynjaskipt" : `Kjörsvið ${ranges}${e.unit ? ` ${e.unit}` : ""}`}

@@ -48,7 +48,7 @@ export default function ReportSignals({ report, signals, onOpen, max = 8 }: {
         <p className="text-xs text-hc-ink-2">{reds} rauð · {yellows} gul</p>
         {onOpen && (
           <button type="button" onClick={onOpen}
-            className="ml-auto inline-flex items-center gap-1 rounded-full border border-slate-300 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-hc-sunken">
+            className="ml-auto inline-flex items-center gap-1 rounded-full border border-slate-300 px-2.5 py-1 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">
             Sjá alla skýrsluna <ChevronRight className="h-3.5 w-3.5" aria-hidden />
           </button>
         )}

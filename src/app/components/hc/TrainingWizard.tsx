@@ -105,7 +105,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
                       ? (s.places.length > 1 ? s.places.filter((x) => x !== pl) : s.places)
                       : [...s.places, pl],
                   })}>
-                  <Icon className="h-5 w-5 text-hc-brand-dark" aria-hidden />
+                  <Icon className="h-5 w-5 text-hc-brand-text" aria-hidden />
                   <span className="mt-1.5 block font-semibold text-hc-ink">{PLACE_IS[pl].label}</span>
                   <span className="mt-0.5 block text-xs text-hc-ink-2">{PLACE_IS[pl].hint}</span>
                 </button>
@@ -156,7 +156,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
                 <button key={w} type="button" onClick={() => toggleDay(i)} aria-pressed={on}
                   title={busy ? (s.activities ?? []).filter((a) => a.day === i).map((a) => a.name).join(", ") : wanted ? wanted.why : undefined}
                   className={`relative min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
-                    on ? "bg-hc-brand-dark text-white" : wanted ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
+                    on ? "bg-hc-brand-dark text-white" : wanted ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                   <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span><span className="hidden sm:inline">{w}</span>
                   {busy && <span className={`ml-1.5 text-xs font-normal ${on ? "text-white/70" : "text-hc-ink-2"}`}>•</span>}
                 </button>
@@ -238,7 +238,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
               {REGIONS.map((r) => (
                 <button key={r} type="button" onClick={() => toggleRegion(r)} aria-pressed={s.injuries.includes(r)}
                   className={`min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
-                    s.injuries.includes(r) ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
+                    s.injuries.includes(r) ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                   {REGION_IS[r].label}
                 </button>
               ))}
@@ -292,7 +292,7 @@ function ScoreBars({ s, planStart }: { s: TrainingSettings; planStart: string | 
           return (
             <div key={m.key}>
               <div className="flex items-baseline justify-between gap-2">
-                <dt className="text-sm font-medium text-slate-700">{m.label}</dt>
+                <dt className="text-sm font-medium text-hc-ink-2">{m.label}</dt>
                 <dd className="text-xs font-semibold tabular-nums text-hc-ink-2">
                   {m.target === 0 ? "ekki á dagskrá enn" : `${m.have} af ${m.target}`}
                 </dd>

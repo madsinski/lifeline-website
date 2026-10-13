@@ -124,7 +124,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
         <div className="mt-3 space-y-3 rounded-2xl border border-hc-hairline p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="font-semibold text-hc-ink">{REQUEST_IS[kind].label}</p>
-            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-full p-1 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700">
+            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-full p-1 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
               <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
@@ -139,7 +139,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
                     onClick={() => setTopic(o.key)}
                     className={`rounded-full px-3 py-1.5 text-sm transition ${
                       topic === o.key ? "bg-hc-brand-dark font-semibold text-white"
-                                      : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
+                                      : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                     {o.label}
                   </button>
                 ))}
@@ -194,7 +194,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
             <div className="flex flex-wrap gap-1.5">
               {MEETING_WAYS.map((w) => (
                 <button key={w.key} type="button" aria-pressed={way === w.key} onClick={() => setWay(w.key)}
-                  className={`rounded-full px-3 py-1.5 text-sm transition ${way === w.key ? "bg-hc-ink font-semibold text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
+                  className={`rounded-full px-3 py-1.5 text-sm transition ${way === w.key ? "bg-hc-brand-dark font-semibold text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                   {w.label}
                 </button>
               ))}
@@ -205,7 +205,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
             <div className="flex flex-wrap gap-1.5">
               {PILLARS.map((p) => (
                 <button key={p.key} type="button" aria-pressed={pillar === p.key} onClick={() => setPillar(p.key)}
-                  className={`rounded-full px-3 py-1.5 text-sm transition ${pillar === p.key ? "bg-hc-ink font-semibold text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
+                  className={`rounded-full px-3 py-1.5 text-sm transition ${pillar === p.key ? "bg-hc-brand-dark font-semibold text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                   {p.label}
                 </button>
               ))}
@@ -251,17 +251,17 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
 
       {past.length > 0 && (
         <details className="mt-3">
-          <summary className="cursor-pointer text-sm font-semibold text-slate-700">Fyrri erindi ({past.length})</summary>
+          <summary className="cursor-pointer text-sm font-semibold text-hc-ink-2">Fyrri erindi ({past.length})</summary>
           <ul className="mt-2 space-y-2">
             {past.map((r) => (
               <li key={r.id} className="rounded-xl bg-hc-sunken px-3 py-2 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-semibold text-slate-800">{requestSummary(r.kind, r.detail)}</span>
+                  <span className="font-semibold text-hc-ink-2">{requestSummary(r.kind, r.detail)}</span>
                   <span className="text-xs text-hc-ink-2">{STATUS_IS[r.status]} · {fmt(r.created_at)}</span>
                 </div>
                 {r.body && <p className="mt-0.5 text-hc-ink-2">{r.body}</p>}
                 {r.reply && (
-                  <p className="mt-1.5 rounded-lg bg-hc-surface p-2 text-slate-800 ring-1 ring-hc-hairline">
+                  <p className="mt-1.5 rounded-lg bg-hc-surface p-2 text-hc-ink-2 ring-1 ring-hc-hairline">
                     <span className="block text-xs font-semibold text-hc-ink-2">
                       Svar{r.replied_by ? ` frá ${r.replied_by}` : ""}
                     </span>

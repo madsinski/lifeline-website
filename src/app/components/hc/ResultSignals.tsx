@@ -59,7 +59,7 @@ export default function ResultSignals({ flagged }: { flagged: FlaggedValue[] }) 
                   <span className="block truncate font-semibold text-hc-ink">{f.title}</span>
                   {f.band && <span className="block text-xs text-hc-ink-2">{f.band}</span>}
                 </span>
-                <span className="rounded-lg bg-hc-sunken px-3 py-1 text-sm font-bold tabular-nums text-slate-800 ring-1 ring-hc-hairline">
+                <span className="rounded-lg bg-hc-sunken px-3 py-1 text-sm font-bold tabular-nums text-hc-ink-2 ring-1 ring-hc-hairline">
                   {String(f.value).replace(".", ",")}{f.unit ? ` ${f.unit}` : ""}
                 </span>
               </li>

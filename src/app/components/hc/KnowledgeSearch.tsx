@@ -103,7 +103,7 @@ export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" 
           <div className="min-h-0 overflow-y-auto p-4 sm:p-5">
             {current ? <Entry e={current} value={value} sex={sex} /> : (
               <div className="text-sm text-hc-ink-2">
-                <p className="font-semibold text-slate-700">Uppflettirit Lifeline</p>
+                <p className="font-semibold text-hc-ink-2">Uppflettirit Lifeline</p>
                 <p className="mt-1">Sláðu inn heiti á mælingu, gildi eða efni — t.d. „hba1c“, „insúlín 18“, „svefnlengd“ eða „tilvísun“.</p>
               </div>
             )}
@@ -123,7 +123,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
       <header>
         <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{CATEGORY_IS[e.category]}</p>
         <h2 className="text-xl font-bold text-hc-ink">{e.title}{e.unit ? <span className="ml-2 text-sm font-medium text-hc-ink-3">{e.unit}</span> : null}</h2>
-        <p className="mt-1 text-slate-700">{e.summary}</p>
+        <p className="mt-1 text-hc-ink-2">{e.summary}</p>
       </header>
 
       {value != null && bands.length > 0 && (bothSexes ? (
@@ -132,7 +132,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
           {([["m", "Karlar"], ["f", "Konur"]] as const).map(([k, label]) => {
             const b = bandForValue(e, value, k);
             return (
-              <div key={k} className={`rounded-2xl px-4 py-3 ring-1 ${b ? TONE_CLASS[b.tone] : "bg-hc-sunken text-slate-700 ring-hc-hairline"}`}>
+              <div key={k} className={`rounded-2xl px-4 py-3 ring-1 ${b ? TONE_CLASS[b.tone] : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline"}`}>
                 <p className="text-xs font-bold uppercase tracking-wide opacity-70">{label}</p>
                 <p className="text-sm font-semibold">
                   {value.toString().replace(".", ",")}{e.unit ? ` ${e.unit}` : ""} → {b ? `${b.label.replace(/\s*\((karlar|konur)\)$/i, "")} (${TONE_IS[b.tone]})` : "utan bila"}
@@ -143,7 +143,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
           })}
         </div>
       ) : (
-        <div className={`rounded-2xl px-4 py-3 ring-1 ${hit ? TONE_CLASS[hit.tone] : "bg-hc-sunken text-slate-700 ring-hc-hairline"}`}>
+        <div className={`rounded-2xl px-4 py-3 ring-1 ${hit ? TONE_CLASS[hit.tone] : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline"}`}>
           <p className="text-sm font-semibold">
             {value.toString().replace(".", ",")}{e.unit ? ` ${e.unit}` : ""} → {hit ? `${hit.label} (${TONE_IS[hit.tone]})` : "utan skilgreindra bila"}
           </p>
@@ -158,9 +158,9 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
               <tr key={i} className={`border-t border-hc-hairline ${hit === b ? "font-semibold" : ""}`}>
                 <td className="py-1.5 pr-3">
                   <span className={`inline-block h-2.5 w-2.5 rounded-full ${b.tone === "good" ? "bg-emerald-500" : b.tone === "watch" ? "bg-amber-400" : b.tone === "high" ? "bg-red-500" : "bg-blue-400"}`} aria-hidden />
-                  <span className="ml-2 text-slate-800">{b.label}</span>
+                  <span className="ml-2 text-hc-ink-2">{b.label}</span>
                 </td>
-                <td className="py-1.5 text-right tabular-nums text-slate-700">{bandRangeText(b, e.unit)}</td>
+                <td className="py-1.5 text-right tabular-nums text-hc-ink-2">{bandRangeText(b, e.unit)}</td>
               </tr>
             ))}
           </tbody>
@@ -168,7 +168,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
       )}
 
       {e.body_md && (
-        <div className="space-y-2 text-sm leading-relaxed text-slate-700">
+        <div className="space-y-2 text-sm leading-relaxed text-hc-ink-2">
           {e.body_md.split("\n\n").map((para, i) => (
             <p key={i} className="whitespace-pre-line">{renderBold(para)}</p>
           ))}

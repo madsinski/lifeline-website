@@ -183,7 +183,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
                 </button>
               ))}
               <button type="button" onClick={() => setRegion("back")}
-                className="rounded-2xl bg-hc-surface p-3 text-left text-slate-700 ring-1 ring-hc-hairline hover:ring-2 hover:ring-orange-400">
+                className="rounded-2xl bg-hc-surface p-3 text-left text-hc-ink-2 ring-1 ring-hc-hairline hover:ring-2 hover:ring-orange-400">
                 Annað — sýndu mér mildari æfingar
               </button>
             </div>

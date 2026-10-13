@@ -140,7 +140,7 @@ export default function BookVideo({ api, journey, onBooked }: {
             disabled={k === "followup" && !journey.plan_published_at && !journey.followup_booked_for}
             title={k === "followup" && !journey.plan_published_at ? "Eftirfylgd bókast eftir að áætlun er birt" : KIND_IS[k].blurb}
             className={`flex-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition disabled:opacity-40 ${
-              kind === k ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-sunken-2"}`}>
+              kind === k ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2"}`}>
             {KIND_IS[k].label}
           </button>
         ))}
@@ -215,7 +215,7 @@ export default function BookVideo({ api, journey, onBooked }: {
                 <button type="button" disabled={no || saving} onClick={() => void save(iso)}
                   className={`w-full rounded-lg py-1 text-xs font-semibold transition ${
                     no ? "cursor-not-allowed bg-hc-sunken-2 text-slate-300 line-through"
-                       : "bg-hc-surface text-slate-800 ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300"}`}>
+                       : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300"}`}>
                   {t}
                 </button>
               </li>

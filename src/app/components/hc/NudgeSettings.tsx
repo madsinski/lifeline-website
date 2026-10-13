@@ -172,7 +172,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
   return (
     <section className="rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-hairline print:hidden">
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full items-center gap-3 p-4 text-left">
-        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${active && !paused ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${active && !paused ? "bg-hc-brand-surface text-hc-brand-text" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
           {active && !paused ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
         </span>
         <span className="min-w-0 flex-1">
@@ -197,7 +197,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
                 const on = prefs.channels.includes(c);
                 return (
                   <button key={c} type="button" disabled={busy || (!can && !on)} onClick={() => void toggle(c)} aria-pressed={on}
-                    className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${on ? "bg-hc-brand text-white" : "bg-hc-sunken text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-brand-surface"} disabled:cursor-not-allowed disabled:opacity-50`}>
+                    className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${on ? "bg-hc-brand text-white" : "bg-hc-sunken text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-brand-surface"} disabled:cursor-not-allowed disabled:opacity-50`}>
                     {label}
                     <span className={`block text-xs font-normal ${on ? "text-white/85" : "text-hc-ink-2"}`}>
                       {on ? "Kveikt" : !can ? (c === "sms" ? "Ekki í boði enn" : c === "push" ? "Ekki stutt í þessum vafra" : "Ekki í boði") : "Slökkt"}
@@ -227,7 +227,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
               {MODES.map((m) => (
                 <button key={m.key} type="button" disabled={busy} onClick={() => void save({ ...prefs, mode: m.key })} aria-pressed={prefs.mode === m.key}
-                  className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${prefs.mode === m.key ? "bg-hc-brand-dark text-white" : "bg-hc-sunken text-slate-700 ring-1 ring-hc-hairline"}`}>
+                  className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${prefs.mode === m.key ? "bg-hc-brand-dark text-white" : "bg-hc-sunken text-hc-ink-2 ring-1 ring-hc-hairline"}`}>
                   {m.label}
                   <span className={`block text-xs font-normal ${prefs.mode === m.key ? "text-white/80" : "text-hc-ink-2"}`}>{m.hint}</span>
                 </button>

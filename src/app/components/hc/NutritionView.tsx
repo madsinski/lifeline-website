@@ -287,7 +287,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                   )}
                   <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold">
                     <button type="button" onClick={() => setRecipe(m)}
-                      className="rounded-full border border-hc-hairline bg-hc-surface px-3 py-1.5 text-slate-700 hover:bg-hc-sunken">
+                      className="rounded-full border border-hc-hairline bg-hc-surface px-3 py-1.5 text-hc-ink-2 hover:bg-hc-sunken">
                       Uppskriftin
                     </button>
                     <button type="button" onClick={() => setSlotOpen(nextSlot)}
@@ -468,7 +468,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                               </button>
                               {m && (
                                 <span className="shrink-0 text-right text-xs text-hc-ink-2">
-                                  {m.protein != null && <span className="block font-semibold text-slate-700">{Math.round(Number(m.protein))} g</span>}
+                                  {m.protein != null && <span className="block font-semibold text-hc-ink-2">{Math.round(Number(m.protein))} g</span>}
                                   {m.calories != null && <span className="block">{Math.round(Number(m.calories))} kkal</span>}
                                 </span>
                               )}
@@ -489,7 +489,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                       </button>
                     ) : (
                       <button type="button" onClick={() => onPick(pickKey(i, "snack2") as MealSlot, null)}
-                        className="mt-1.5 text-[11px] font-semibold text-hc-ink-2 transition hover:text-slate-700">
+                        className="mt-1.5 text-[11px] font-semibold text-hc-ink-2 transition hover:text-hc-ink-2">
                         Fjarlægja millimál 2
                       </button>
                     )}
@@ -592,7 +592,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                       return (
                         <div key={r.label}>
                           <div className="flex items-baseline justify-between text-sm">
-                            <span className="font-semibold text-slate-700">{r.label}</span>
+                            <span className="font-semibold text-hc-ink-2">{r.label}</span>
                             <span className="tabular-nums text-hc-ink-2">
                               <strong className={under ? "text-amber-700" : over ? "text-hc-ink" : "text-lime-700"}>{r.got}</strong>
                               <span className="text-hc-ink-2"> {r.unit}</span>
@@ -631,7 +631,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                         asks instead. */}
                     {!weightKg && onSelfWeight && (
                       <div className="mt-3 rounded-xl bg-hc-sunken p-3">
-                        <label className="block text-sm font-semibold text-slate-700" htmlFor="self-weight">
+                        <label className="block text-sm font-semibold text-hc-ink-2" htmlFor="self-weight">
                           Próteinmarkið reiknast af þyngd
                         </label>
                         <p className="mt-0.5 text-xs text-hc-ink-2">
@@ -645,7 +645,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                           <button type="button"
                             disabled={!wInput.trim()}
                             onClick={() => { const v = Number(wInput.replace(",", ".")); if (Number.isFinite(v)) onSelfWeight(v); }}
-                            className="rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+                            className="rounded-full bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
                             Vista
                           </button>
                         </div>
@@ -669,7 +669,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 ...(prefs?.diet ?? []).map((k) => ({
                   key: `d:${k}`,
                   label: DIET_OPTIONS.find((d) => d.key === k)?.label.replace(/^Ég borða ekki /, "Ekkert ").replace(/^Ég borða /, "") ?? k,
-                  cls: "text-slate-700 ring-hc-hairline",
+                  cls: "text-hc-ink-2 ring-hc-hairline",
                 })),
                 ...(prefs?.avoid ?? []).map((k) => ({
                   key: `a:${k}`,
@@ -695,7 +695,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Breyta</p>
                 <p className="mt-1 text-sm text-hc-ink-2">Áherslur, mataræði og það sem þú vilt sleppa.</p>
                 <button type="button" onClick={() => { setDetail(false); onCustomise(); }}
-                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white">
                   <Sliders className="h-3.5 w-3.5" aria-hidden /> Breyta áætluninni
                 </button>
               </section>
@@ -703,7 +703,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
             {onChangeProgram && (
               <button type="button" onClick={() => { setDetail(false); onChangeProgram(); }}
-                className="w-full rounded-2xl border border-hc-hairline bg-hc-surface px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-hc-sunken">
+                className="w-full rounded-2xl border border-hc-hairline bg-hc-surface px-4 py-3 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-sunken">
                 Skipta um næringaráætlun
               </button>
             )}
@@ -835,20 +835,20 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
       {recipe && <Recipe m={recipe} onClose={() => setRecipe(null)} />}
       {(nutrition.description || nutrition.goal || nutrition.principles.length > 0) && (
         <details className="group rounded-2xl bg-hc-surface p-4 shadow-sm ring-1 ring-hc-hairline">
-          <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-slate-800">
+          <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-hc-ink-2">
             <Info className="h-4 w-4 text-lime-700" aria-hidden />
             Um áætlunina — það sem skiptir mestu
             <ChevronDown className="ml-auto h-4 w-4 text-hc-ink-2 transition group-open:rotate-180" aria-hidden />
           </summary>
           <div className="mt-3 space-y-4">
-            {nutrition.goal && <p className="text-sm font-medium text-slate-800">{nutrition.goal}</p>}
-            {nutrition.description && <p className="text-sm leading-relaxed text-slate-700">{nutrition.description}</p>}
+            {nutrition.goal && <p className="text-sm font-medium text-hc-ink-2">{nutrition.goal}</p>}
+            {nutrition.description && <p className="text-sm leading-relaxed text-hc-ink-2">{nutrition.description}</p>}
             {nutrition.principles.length > 0 && (
               <ol className="grid gap-2 sm:grid-cols-2">
                 {nutrition.principles.map((x, i) => (
                   <li key={i} className="flex gap-3 rounded-2xl border border-lime-100 bg-lime-50/40 p-3">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-lime-100 text-sm font-bold text-lime-800">{i + 1}</span>
-                    <span className="text-sm text-slate-700">{x}</span>
+                    <span className="text-sm text-hc-ink-2">{x}</span>
                   </li>
                 ))}
               </ol>
@@ -890,7 +890,7 @@ export function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
         </>
       )}
       <div className="space-y-4 p-4">
-        {t.description && <p className="text-slate-700">{t.description}</p>}
+        {t.description && <p className="text-hc-ink-2">{t.description}</p>}
         <div className="grid grid-cols-4 gap-2 text-center">
           {[["Prótein", m.protein, "g"], ["Kolvetni", m.carbs, "g"], ["Fita", m.fat, "g"], ["Orka", m.calories, "kkal"]].map(([l, v, u]) => (
             <div key={l as string} className="rounded-xl bg-lime-50 px-1 py-2">
@@ -905,13 +905,13 @@ export function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
         {t.ingredients.length > 0 && (
           <div>
             <h4 className="font-semibold text-hc-ink">Hráefni</h4>
-            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-slate-700">{t.ingredients.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-hc-ink-2">{t.ingredients.map((x, i) => <li key={i}>{x}</li>)}</ul>
           </div>
         )}
         {t.instructions.length > 0 && (
           <div>
             <h4 className="font-semibold text-hc-ink">Aðferð</h4>
-            <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-slate-700">{t.instructions.map((x, i) => <li key={i}>{x}</li>)}</ol>
+            <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-hc-ink-2">{t.instructions.map((x, i) => <li key={i}>{x}</li>)}</ol>
           </div>
         )}
         <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-sm font-semibold text-hc-ink-2"><ChevronLeft className="h-4 w-4" />Til baka</button>

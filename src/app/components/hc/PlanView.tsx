@@ -81,7 +81,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
             <span className="flex-1" />
             <button
               onClick={() => window.print()}
-              className="whitespace-nowrap rounded-full border border-hc-hairline px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken"
+              className="whitespace-nowrap rounded-full border border-hc-hairline px-4 py-2 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken"
             >
               Prenta / PDF
             </button>
@@ -174,7 +174,7 @@ function Overview({ plan, byPillar }: { plan: ActionPlan; byPillar: (p: Pillar) 
               {goal && <p className="mt-3 text-[15px] font-semibold leading-snug text-hc-ink">{goal.text}</p>}
               <ul className="mt-3 space-y-2">
                 {items.map((m) => (
-                  <li key={m.uid} className="flex items-start gap-2 text-sm text-slate-700">
+                  <li key={m.uid} className="flex items-start gap-2 text-sm text-hc-ink-2">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
                     <span><span className="font-medium">{m.title}</span>{m.frequency ? <span className="text-hc-ink-2"> · {m.frequency}</span> : null}</span>
                   </li>
@@ -187,7 +187,7 @@ function Overview({ plan, byPillar }: { plan: ActionPlan; byPillar: (p: Pillar) 
       {plan.nurse_note && (
         <div className="break-inside-avoid rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5">
           <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Frá hjúkrunarfræðingnum þínum</p>
-          <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-slate-800">{plan.nurse_note}</p>
+          <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-hc-ink-2">{plan.nurse_note}</p>
         </div>
       )}
     </div>
@@ -214,7 +214,7 @@ function ModuleCard({ m }: { m: PlanItem }) {
         <div className="flex-1">{body}</div>
         <span className="mt-1 text-hc-ink-3 transition group-open:rotate-180" aria-hidden>▾</span>
       </summary>
-      <div className="mt-3 space-y-3 pl-4 text-sm leading-relaxed text-slate-700">
+      <div className="mt-3 space-y-3 pl-4 text-sm leading-relaxed text-hc-ink-2">
         {m.details && <p>{m.details}</p>}
         {m.note && (
           <p className="rounded-xl bg-amber-50 px-3 py-2 text-amber-900"><span className="font-semibold">Athugasemd til þín: </span>{m.note}</p>
@@ -315,7 +315,7 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
             {e.principles.map((p, i) => (
               <li key={i} className="flex gap-3 rounded-2xl border border-orange-100 bg-hc-surface p-3 shadow-sm">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-700">{i + 1}</span>
-                <span className="text-sm text-slate-700">{p}</span>
+                <span className="text-sm text-hc-ink-2">{p}</span>
               </li>
             ))}
           </ol>
@@ -373,7 +373,7 @@ function SessionCard({ s, n }: { s: ExerciseSession; n: number }) {
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={it.image} alt="" className="h-7 w-7 rounded-full object-cover" />
                       : <span className="h-7 w-7 rounded-full bg-orange-100" />}
-                    <span className="font-medium text-slate-800">{it.name}</span>
+                    <span className="font-medium text-hc-ink-2">{it.name}</span>
                     {it.prescription && <span className="text-hc-ink-2">{it.prescription}</span>}
                   </li>
                 ))}
@@ -412,7 +412,7 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
             {it.rest && it.equipment ? " · " : ""}
             {it.equipment ? EQUIPMENT_IS[it.equipment] ?? it.equipment : ""}
           </p>
-          {it.note && <p className="mt-1 text-sm italic text-slate-700">{it.note}</p>}
+          {it.note && <p className="mt-1 text-sm italic text-hc-ink-2">{it.note}</p>}
           {how && (
             <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="mt-1.5 text-xs font-semibold text-orange-700 hover:underline">
               {open ? "Fela" : it.video ? "▶ Sjá hvernig" : "Hvernig?"}
@@ -424,7 +424,7 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
         <div className="space-y-3 border-t border-hc-hairline p-3">
           {it.video && <video src={it.video} poster={it.image ?? undefined} controls playsInline preload="none" className="w-full max-w-md rounded-xl bg-black" />}
           {!!it.cues?.length && (
-            <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
+            <ol className="list-decimal space-y-1 pl-5 text-sm text-hc-ink-2">
               {it.cues.map((c, k) => <li key={k}>{c}</li>)}
             </ol>
           )}
@@ -444,7 +444,7 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
       {n.principles.length > 0 && (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 print:grid-cols-2">
           {n.principles.map((p, i) => (
-            <div key={i} className="break-inside-avoid rounded-2xl border border-lime-100 bg-lime-50/50 p-4 text-sm font-medium text-slate-800">
+            <div key={i} className="break-inside-avoid rounded-2xl border border-lime-100 bg-lime-50/50 p-4 text-sm font-medium text-hc-ink-2">
               <span className="mr-2 font-bold text-lime-700">{i + 1}.</span>{p}
             </div>
           ))}
@@ -508,7 +508,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
   const dense = lines > 44;
   const perPillar = dense ? 4 : 5;
   return (
-    <div className="plan-print mx-auto flex h-[276mm] w-[190mm] flex-col overflow-hidden text-[9.5pt] leading-snug text-slate-800">
+    <div className="plan-print mx-auto flex h-[276mm] w-[190mm] flex-col overflow-hidden text-[9.5pt] leading-snug text-hc-ink-2">
       <div className="h-1.5 w-full rounded-full bg-hc-brand" />
       <header className="mt-3 flex items-start justify-between gap-6">
         <div>
@@ -567,8 +567,8 @@ function PrintPage({ plan, clientName, author, byPillar }: {
                 <tbody>
                   {plan.exercise.sessions.slice(0, 7).map((s, i) => (
                     <tr key={i} className="border-t border-orange-100 align-top first:border-t-0">
-                      <td className="w-[22mm] py-1 pr-2 font-semibold text-slate-800">{clip(s.day, 14)}</td>
-                      <td className="py-1 text-slate-700">
+                      <td className="w-[22mm] py-1 pr-2 font-semibold text-hc-ink-2">{clip(s.day, 14)}</td>
+                      <td className="py-1 text-hc-ink-2">
                         <span className="font-semibold">{clip(s.title, 40)}</span>
                         {s.items.length ? (
                           <span className={`block text-[8pt] text-hc-ink-2 ${dense ? "line-clamp-1" : ""}`}>
@@ -585,7 +585,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
           {plan.nutrition ? (
             <div className="rounded-lg border border-lime-200 px-3 py-2.5">
               <p className="text-[9.5pt] font-bold text-lime-700">Næring: {clip(plan.nutrition.name, 40)}</p>
-              <ul className="mt-1 space-y-0.5 text-[8.5pt] text-slate-700">
+              <ul className="mt-1 space-y-0.5 text-[8.5pt] text-hc-ink-2">
                 {plan.nutrition.principles.slice(0, 6).map((x, i) => <li key={i}>• {clip(x, 80)}</li>)}
               </ul>
             </div>
@@ -596,7 +596,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
       {plan.nurse_note && (
         <section className="mt-3 rounded-lg bg-emerald-50 px-4 py-2.5">
           <p className="text-[7.5pt] font-bold uppercase tracking-wide text-emerald-700">Skilaboð</p>
-          <p className={`mt-0.5 whitespace-pre-line text-[9pt] text-slate-800 ${dense ? "line-clamp-2" : "line-clamp-3"}`}>{clip(plan.nurse_note, 360)}</p>
+          <p className={`mt-0.5 whitespace-pre-line text-[9pt] text-hc-ink-2 ${dense ? "line-clamp-2" : "line-clamp-3"}`}>{clip(plan.nurse_note, 360)}</p>
         </section>
       )}
 

@@ -20,7 +20,7 @@ export function TodayHeader({ name, right }: { name: string | null; right?: Reac
   return (
     <div className="flex flex-wrap items-center gap-3">
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-hc-brand-dark">{WEEKDAYS[weekdayOf(now)]} {now.getDate()}. {MO[now.getMonth()]}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-hc-brand-text">{WEEKDAYS[weekdayOf(now)]} {now.getDate()}. {MO[now.getMonth()]}</p>
         <h1 className="text-2xl font-bold text-hc-ink sm:text-3xl">{name ? `Hæ ${name.split(" ")[0]}` : "Í dag"}</h1>
       </div>
       {/* The notification strip sits here, on the same line as the
@@ -185,15 +185,15 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
       {(plan.goals?.length ?? 0) > 0 && (
         <section className="rounded-3xl bg-hc-surface p-4 shadow-sm ring-1 ring-hc-hairline sm:p-5">
           <div className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-hc-brand-dark" aria-hidden />
+            <Target className="h-4 w-4 text-hc-brand-text" aria-hidden />
             <p className="flex-1 font-semibold text-hc-ink">Markmiðin mín</p>
-            <button type="button" onClick={onEdit} className="text-sm font-semibold text-hc-brand-dark hover:underline">Breyta</button>
+            <button type="button" onClick={onEdit} className="text-sm font-semibold text-hc-brand-text hover:underline">Breyta</button>
           </div>
           <ul className="mt-2 grid gap-2 sm:grid-cols-2">
             {plan.goals.map((g, i) => (
               <li key={i} className="flex items-start gap-2 rounded-2xl px-3 py-2 text-sm" style={{ background: PILLAR_META[g.pillar].soft }}>
                 <PillarIcon pillar={g.pillar} size="sm" />
-                <span className="text-slate-800">{g.text}</span>
+                <span className="text-hc-ink-2">{g.text}</span>
               </li>
             ))}
           </ul>

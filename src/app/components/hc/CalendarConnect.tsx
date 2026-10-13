@@ -97,7 +97,7 @@ export function CalendarStatus({ api, onOpen }: { api: CalendarApi; onOpen: () =
       ) : (
         <p className="text-xs text-hc-ink-2">Tímar birtast sjálfkrafa í dagatalinu þínu.</p>
       )}
-      <button onClick={onOpen} className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-hc-sunken">
+      <button onClick={onOpen} className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">
         {g?.connected ? "Stillingar dagatals" : "Tengja dagatal"}
       </button>
     </div>
@@ -184,7 +184,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
 
   const linkRow = (
     <div className="mt-3 flex items-center gap-2">
-      <button onClick={() => void copy()} disabled={!ics} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-hc-surface px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken disabled:opacity-50">
+      <button onClick={() => void copy()} disabled={!ics} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-hc-surface px-3 py-2 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken disabled:opacity-50">
         {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />} {copied ? "Afritað" : "Afrita hlekk"}
       </button>
       <span className="text-[11px] text-hc-ink-2">Hlekkurinn er persónulegur. Ekki deila honum.</span>
@@ -226,7 +226,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                 <b>Google er tengt</b>{g.email ? ` (${g.email})` : ""}. <button onClick={() => setChoice("google")} className="font-semibold underline">Stillingar</button>
               </div>
             )}
-            <div className="mt-4 text-sm font-semibold text-slate-800">Hvaða dagatal notar þú?</div>
+            <div className="mt-4 text-sm font-semibold text-hc-ink-2">Hvaða dagatal notar þú?</div>
             <div className="mt-2 grid grid-cols-2 gap-2.5">
               {tiles.map((c) => (
                 <button key={c.key} type="button" onClick={() => setChoice(c.key)}
@@ -241,7 +241,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
 
         {choice && (
           <div className="mt-3">
-            <button onClick={() => { setChoice(null); setMsg(""); }} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-hc-ink-2 hover:text-slate-700">
+            <button onClick={() => { setChoice(null); setMsg(""); }} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">
               <ArrowLeft className="h-3.5 w-3.5" /> Til baka
             </button>
 
@@ -258,11 +258,11 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                     {g.lastError && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{g.lastError}</p>}
                     <div className="flex flex-wrap gap-2">
                       <button disabled={busy} onClick={() => act({ method: "PATCH", body: JSON.stringify({ sync: true }) }, "Samstillt.")}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-hc-ink px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-hc-brand-dark px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
                         <RefreshCw className="h-4 w-4" /> Samstilla núna
                       </button>
                       <button disabled={busy} onClick={() => act({ method: "PATCH", body: JSON.stringify({ enabled: !g.enabled }) }, g.enabled ? "Samstilling í bið." : "Samstilling virk.")}
-                        className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700">
+                        className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-hc-ink-2">
                         {g.enabled ? "Gera hlé" : "Halda áfram"}
                       </button>
                       <button disabled={busy} onClick={() => { if (confirm("Aftengja Google? Dagatalinu sem við bjuggum til verður eytt.")) void act({ method: "DELETE" }, "Aftengt."); }}
@@ -296,7 +296,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                 <p className="mt-1 text-sm text-hc-ink-2">Ýttu á hnappinn á iPhone eða Mac og veldu „Gerast áskrifandi“. Tímarnir uppfærast sjálfkrafa.</p>
                 {!ics ? <p className="mt-3 text-sm text-hc-ink-2">Augnablik…</p> : (
                   <>
-                    <a href={ics.webcal} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-hc-ink px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 sm:w-auto">Bæta við Apple-dagatal</a>
+                    <a href={ics.webcal} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-hc-brand-dark px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 sm:w-auto">Bæta við Apple-dagatal</a>
                     <div className="mt-4 hidden items-center gap-4 rounded-2xl bg-hc-sunken p-3 sm:flex">
                       <Qr value={ics.webcal} />
                       <p className="text-xs text-hc-ink-2">Á tölvu? Skannaðu kóðann með myndavélinni á iPhone.</p>
@@ -328,7 +328,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                 <p className="mt-1 text-sm text-hc-ink-2">Bættu þessari slóð við sem áskrift í dagatalinu þínu — valkosturinn heitir „Gerast áskrifandi að dagatali“ og „Subscribe from URL“ í enskum viðmótum.</p>
                 {!ics ? <p className="mt-3 text-sm text-hc-ink-2">Augnablik…</p> : (
                   <>
-                    <code className="mt-3 block break-all rounded-xl bg-hc-sunken px-3 py-2 text-[11px] text-slate-700">{ics.https}</code>
+                    <code className="mt-3 block break-all rounded-xl bg-hc-sunken px-3 py-2 text-[11px] text-hc-ink-2">{ics.https}</code>
                     {linkRow}
                   </>
                 )}

@@ -19,7 +19,7 @@ const METHOD_BADGE: Record<ReadMethod, { label: string; title: string; className
   local: { label: "Lesið hjá okkur", title: "Lesið á okkar eigin vél — skráin fór hvergi.", className: "bg-emerald-50 text-emerald-800" },
   "ai-text": { label: "AI-lestur á texta", title: "Textinn úr skjalinu var sendur í AI-lestur án kennitölu, netfangs og símanúmers.", className: "bg-amber-50 text-amber-800" },
   "ai-document": { label: "AI-lestur á skjali", title: "Skjalið sjálft var sent í AI-lestur.", className: "bg-amber-100 text-amber-900" },
-  "needs-consent": { label: "Bíður samþykkis", title: "Skjalið var ekki lesið hér.", className: "bg-hc-sunken-2 text-slate-700" },
+  "needs-consent": { label: "Bíður samþykkis", title: "Skjalið var ekki lesið hér.", className: "bg-hc-sunken-2 text-hc-ink-2" },
 };
 
 interface Identity { name: string | null; kennitala: string | null; kennitala_last4: string | null; sex?: "m" | "f" | null; email?: string | null; phone?: string | null }
@@ -170,7 +170,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
             onChange={(e) => { if (e.target.files?.length) void read(e.target.files); e.target.value = ""; }} />
           <button type="button" onClick={() => fileRef.current?.click()} disabled={busy}
-            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-hc-ink px-4 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 ${narrow ? "w-full" : ""}`}>
+            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-hc-brand-dark px-4 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 ${narrow ? "w-full" : ""}`}>
             Velja skrá
           </button>
         </div>
@@ -332,7 +332,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
                 <li key={`${v.code}-${i}`} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm ring-1 ring-hc-hairline">
                   <input type="checkbox" checked={!!take[i]} onChange={(e) => setTake({ ...take, [i]: e.target.checked })}
                     aria-label={`Vista ${v.label}`} className="h-4 w-4 accent-emerald-600" />
-                  <span className="min-w-0 flex-1 truncate text-slate-700">{v.label}</span>
+                  <span className="min-w-0 flex-1 truncate text-hc-ink-2">{v.label}</span>
                   <span className="shrink-0 font-semibold tabular-nums text-hc-ink">
                     {String(v.value).replace(".", ",")}{v.unit ? ` ${v.unit}` : ""}
                   </span>

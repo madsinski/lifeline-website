@@ -76,13 +76,13 @@ export default function WeekBalance({ score, stage, description, principles, onF
             const tone = SCORE_TONE(m.score);
             return (
               <li key={m.key} className="flex items-center gap-3">
-                <p className="w-24 shrink-0 text-sm font-semibold text-slate-800">{m.label}</p>
+                <p className="w-24 shrink-0 text-sm font-semibold text-hc-ink-2">{m.label}</p>
                 <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-hc-sunken-2">
                   <span className={`block h-full rounded-full transition-all ${tone.bar}`}
                     style={{ width: `${Math.min(100, (m.have / m.target) * 100)}%` }} aria-hidden />
                 </span>
                 <p className="shrink-0 text-sm tabular-nums text-hc-ink-2">
-                  <span className="font-bold text-slate-800">{num(m.have)}</span>/{num(m.target)}
+                  <span className="font-bold text-hc-ink-2">{num(m.have)}</span>/{num(m.target)}
                 </p>
               </li>
             );
@@ -100,7 +100,7 @@ export default function WeekBalance({ score, stage, description, principles, onF
         </p>
         {gaps.length > 0 && onFix && (
           <button type="button" onClick={onFix}
-            className="shrink-0 rounded-hc-element px-3 py-1.5 text-sm font-semibold text-hc-brand-dark ring-1 ring-hc-brand/30 transition hover:bg-hc-brand/5">
+            className="shrink-0 rounded-hc-element px-3 py-1.5 text-sm font-semibold text-hc-brand-text ring-1 ring-hc-brand/30 transition hover:bg-hc-brand/5">
             Fylla upp í
           </button>
         )}
@@ -117,7 +117,7 @@ export default function WeekBalance({ score, stage, description, principles, onF
       {open && (
         <div className="space-y-4 border-t border-hc-hairline px-4 py-3.5 text-sm text-hc-ink-2 sm:px-5">
           {stage && (
-            <p><span className="font-semibold text-slate-800">{stage.title}.</span> {stage.text}</p>
+            <p><span className="font-semibold text-hc-ink-2">{stage.title}.</span> {stage.text}</p>
           )}
           {description && <p className="leading-relaxed">{description}</p>}
 
@@ -135,15 +135,15 @@ export default function WeekBalance({ score, stage, description, principles, onF
             */}
           <dl className="space-y-2">
             <div>
-              <dt className="font-semibold text-slate-800">Styrkur</dt>
+              <dt className="font-semibold text-hc-ink-2">Styrkur</dt>
               <dd>Heldur í vöðva og beinþéttni, sem þolþjálfun gerir ekki.</dd>
             </div>
             <div>
-              <dt className="font-semibold text-slate-800">HIIT</dt>
+              <dt className="font-semibold text-hc-ink-2">HIIT</dt>
               <dd>Mesta bæting í þoli á stystum tíma, en harðir dagar kosta hvíld.</dd>
             </div>
             <div>
-              <dt className="font-semibold text-slate-800">Rólegt þol</dt>
+              <dt className="font-semibold text-hc-ink-2">Rólegt þol</dt>
               <dd>Vinna sem þú getur gert mikið af án þess að þurfa að jafna þig: rösk ganga, hjól, sund.</dd>
             </div>
           </dl>

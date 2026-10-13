@@ -433,7 +433,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 <p className="text-[11px] font-bold uppercase tracking-wide text-hc-ink-2">
                   {actSheet.covers.length ? "Kemur í staðinn fyrir" : "Gott fyrir"}
                 </p>
-                <p className="mt-1 text-sm text-slate-700">
+                <p className="mt-1 text-sm text-hc-ink-2">
                   {actSheet.covers.length
                     ? actSheet.covers.map((c) => COVERS_IS[c]).join(" · ")
                     : (actSheet.benefits ?? []).map((x) => BENEFIT_IS[x]).join(" · ")}
@@ -449,7 +449,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
             {/* Changing it belongs on Æfingar, where the week is. */}
             {links?.exercise && (
               <button type="button" onClick={() => { links.exercise?.(); setActSheet(null); }}
-                className="w-full rounded-2xl bg-hc-ink px-4 py-3 text-sm font-bold text-white">
+                className="w-full rounded-2xl bg-hc-brand-dark px-4 py-3 text-sm font-bold text-white">
                 Opna Æfingar
               </button>
             )}
@@ -503,7 +503,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
               className="w-full bg-hc-sunken px-4 py-2.5 text-left">
               <span className="flex items-center gap-2">
                 <meta.Icon className="h-5 w-5 shrink-0 text-hc-ink-2" aria-hidden />
-                <span className="font-bold text-slate-800">{meta.label}</span>
+                <span className="font-bold text-hc-ink-2">{meta.label}</span>
                 <span className="ml-auto text-xs font-semibold tabular-nums text-hc-ink-2">
                   {dayDone}/{dayOf} í dag
                 </span>
@@ -658,7 +658,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 <li className="border-t border-hc-hairline px-4 py-2.5">
                   <button type="button" onClick={() => setAdding(p)}
                     aria-label={`Bæta við aðgerð — ${meta.label}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-hc-ink-2 transition hover:border-slate-400 hover:text-slate-700">
+                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-hc-ink-2 transition hover:border-slate-400 hover:text-hc-ink-2">
                     {/* Just "Bæta við". "Bæta við í morgunn" does not
                         decline — it would want "að morgni", "um daginn",
                         "um kvöldið" — and the button sits inside the

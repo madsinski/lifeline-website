@@ -36,7 +36,7 @@ const LINE: Record<Checkpoint["state"], string> = {
   upcoming: "bg-slate-200",
 };
 const TEXT: Record<Checkpoint["state"], string> = {
-  done: "text-slate-700",
+  done: "text-hc-ink-2",
   current: "font-bold text-hc-ink",
   waiting: "text-amber-800",
   upcoming: "text-hc-ink-3",
@@ -130,7 +130,7 @@ function VerticalSteps({ steps, onOpen }: { steps: Checkpoint[]; onOpen?: (key: 
         })}
       </ol>
       {!all && hidden > 0 && (
-        <button type="button" onClick={() => setAll(true)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-hc-brand-dark">Sýna öll skref ({steps.length})</button>
+        <button type="button" onClick={() => setAll(true)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-hc-brand-text">Sýna öll skref ({steps.length})</button>
       )}
       {all && (
         <button type="button" onClick={() => setAll(false)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-hc-ink-2">Fela</button>

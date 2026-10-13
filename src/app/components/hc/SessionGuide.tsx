@@ -50,7 +50,7 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
         className="flex w-full items-center gap-2 px-4 py-2.5 text-left">
         <Sparkles className="h-4 w-4 shrink-0 text-hc-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block text-xs font-semibold text-slate-700">
+          <span className="block text-xs font-semibold text-hc-ink-2">
             {g.tag} · {g.trains}
           </span>
           <span className="block truncate text-[11px] text-hc-ink-2">

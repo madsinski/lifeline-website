@@ -117,7 +117,7 @@ function Sketch({ platform }: { platform: Platform }) {
               </div>
             ))}
             <div className="flex items-center justify-between rounded-lg bg-hc-brand/10 px-2 py-2 ring-1 ring-hc-brand/40">
-              <span className="text-[11px] font-bold text-hc-brand-dark">{r.target}</span>
+              <span className="text-[11px] font-bold text-hc-brand-text">{r.target}</span>
               <span className="grid h-5 w-5 place-items-center rounded bg-hc-brand text-[11px] font-bold text-white" aria-hidden>{r.icon}</span>
             </div>
             {r.after.map((x) => (
@@ -128,7 +128,7 @@ function Sketch({ platform }: { platform: Platform }) {
           </div>
         )}
         {r.chrome === "bar" && (
-          <p className="rounded-xl bg-hc-surface px-2.5 py-2 text-[11px] font-bold text-hc-brand-dark shadow-sm">{r.target}</p>
+          <p className="rounded-xl bg-hc-surface px-2.5 py-2 text-[11px] font-bold text-hc-brand-text shadow-sm">{r.target}</p>
         )}
       </div>
       <figcaption className="mt-1.5 text-[11px] text-hc-ink-3">
@@ -167,7 +167,7 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
       : "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-hairline print:hidden"}>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
         className="flex w-full items-center gap-3 p-4 text-left">
-        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${installed ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${installed ? "bg-hc-brand-surface text-hc-brand-text" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
           {installed ? <Check className="h-5 w-5" aria-hidden /> : <MonitorDown className="h-5 w-5" aria-hidden />}
         </span>
         <span className="min-w-0 flex-1">
@@ -184,7 +184,7 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
       {open && (
         <div className="space-y-3 border-t border-hc-hairline p-4">
           {installed && (
-            <p className="rounded-hc-element bg-hc-brand-surface px-3 py-2 text-sm font-medium text-hc-brand-dark">
+            <p className="rounded-hc-element bg-hc-brand-surface px-3 py-2 text-sm font-medium text-hc-brand-text">
               Þetta tæki er þegar með Lifeline uppsett. Leiðbeiningarnar hér fyrir neðan eru fyrir næsta tæki.
             </p>
           )}
@@ -194,7 +194,7 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
             {(Object.keys(STEPS) as Platform[]).map((k) => (
               <button key={k} type="button" onClick={() => setPick(k)} aria-pressed={pick === k}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                  pick === k ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-hc-surface text-slate-700 ring-hc-hairline hover:bg-hc-sunken"}`}>
+                  pick === k ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-hc-surface text-hc-ink-2 ring-hc-hairline hover:bg-hc-sunken"}`}>
                 {STEPS[k].label}
               </button>
             ))}

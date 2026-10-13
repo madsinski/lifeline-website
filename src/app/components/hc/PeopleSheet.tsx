@@ -139,7 +139,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
           {partner?.canNudge && (
             <section className="rounded-hc-card bg-hc-surface p-4 ring-1 ring-hc-hairline">
               <p className="flex items-center gap-2 font-semibold text-hc-ink">
-                <Hand className="h-4 w-4 text-hc-brand-dark" aria-hidden /> Ýta við {partner.name.split(" ")[0]}
+                <Hand className="h-4 w-4 text-hc-brand-text" aria-hidden /> Ýta við {partner.name.split(" ")[0]}
               </p>
               {err && (
                 <p role="status" className="mt-2 rounded-hc-element bg-red-50 px-3 py-2 text-xs font-semibold text-red-800 ring-1 ring-red-200">
@@ -147,7 +147,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                 </p>
               )}
               {sent ? (
-                <p className="mt-2 text-sm font-semibold text-hc-brand-dark">Sent. Þau fá þetta í símann.</p>
+                <p className="mt-2 text-sm font-semibold text-hc-brand-text">Sent. Þau fá þetta í símann.</p>
               ) : (
                 <>
                   {/* The whole thing in one tap. Choosing between four
@@ -163,7 +163,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {NUDGE_KINDS.map((k) => (
                       <button key={k.key} type="button" disabled={sending} onClick={() => void nudge(k.key)}
-                        className="rounded-full bg-hc-sunken-2 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:bg-hc-brand/10 hover:text-hc-brand-dark disabled:opacity-40">
+                        className="rounded-full bg-hc-sunken-2 px-3 py-1.5 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-brand/10 hover:text-hc-brand-text disabled:opacity-40">
                         {k.label}
                       </button>
                     ))}
@@ -250,7 +250,7 @@ function PersonCard({ name, face, stats, today, of, training, highlight = false 
           <p className="flex items-center gap-2 text-sm">
             <span className="w-4 shrink-0" aria-hidden />
             <span className="text-hc-ink-2">Á morgun:</span>
-            <span className="min-w-0 flex-1 text-slate-700">
+            <span className="min-w-0 flex-1 text-hc-ink-2">
               {training.tomorrow.length ? training.tomorrow.join(" + ") : "hvíld"}
             </span>
           </p>

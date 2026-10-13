@@ -151,7 +151,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
 
   const field = (k: keyof Macros, label: string, unit: string) => (
     <label className="flex-1 text-sm">
-      <span className="font-medium text-slate-700">{label}</span>
+      <span className="font-medium text-hc-ink-2">{label}</span>
       <span className="mt-1 flex items-center gap-1 rounded-lg border border-slate-300 bg-hc-surface px-2">
         <input type="number" inputMode="numeric" min={0} value={macros?.[k] ?? 0}
           onChange={(e) => setMacros((m) => (m ? { ...m, [k]: Math.max(0, Number(e.target.value) || 0) } : m))}
@@ -207,7 +207,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
             Þetta er áætlun út frá textanum, ekki mæling. Breyttu tölunum ef þú veit betur.
           </p>
           <button type="button" onClick={() => void save()} disabled={busy === "save"}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-hc-ink px-4 py-3 font-bold text-white disabled:opacity-50">
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-hc-brand-dark px-4 py-3 font-bold text-white disabled:opacity-50">
             {busy === "save" ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Check className="h-5 w-5" aria-hidden />}
             Skrá máltíðina
           </button>

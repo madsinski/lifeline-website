@@ -57,7 +57,7 @@ const TRACK_IS: Record<string, string> = {
  * first, not how anybody is doing.
  */
 function weekTone(days: number): { label: string; cls: string } {
-  if (days >= 5) return { label: "Í góðum takti", cls: "bg-hc-brand/10 text-hc-brand-dark ring-hc-brand/30" };
+  if (days >= 5) return { label: "Í góðum takti", cls: "bg-hc-brand/10 text-hc-brand-text ring-hc-brand/30" };
   if (days >= 2) return { label: "Dregur úr", cls: "bg-amber-50 text-amber-900 ring-amber-200" };
   return { label: "Ekkert í viku", cls: "bg-rose-50 text-rose-900 ring-rose-200" };
 }
@@ -93,7 +93,7 @@ export default function Caseload({ api, onOpen }: {
   if (!clients.length) {
     return (
       <section className="rounded-2xl bg-hc-surface p-4 ring-1 ring-hc-hairline">
-        <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+        <p className="flex items-center gap-2 text-sm font-semibold text-hc-ink-2">
           <Users className="h-4 w-4 text-hc-ink-3" aria-hidden /> Mínir skjólstæðingar
         </p>
         <p className="mt-1 text-sm text-hc-ink-2">

@@ -84,15 +84,15 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
               <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${mine ? "bg-slate-400" : "bg-amber-400"}`} aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-hc-ink-2">
-                  <span className={`font-semibold ${mine ? "text-slate-700" : "text-amber-800"}`}>
+                  <span className={`font-semibold ${mine ? "text-hc-ink-2" : "text-amber-800"}`}>
                     {mine ? (c.by ?? "Starfsmaður") : "Skjólstæðingurinn"}
                   </span>
                   {" · "}{when(c.at)}
                 </p>
                 {c.created ? (
-                  <p className="text-sm text-slate-700">Áætlun sett upp.</p>
+                  <p className="text-sm text-hc-ink-2">Áætlun sett upp.</p>
                 ) : (
-                  <ul className="mt-0.5 space-y-0.5 text-sm text-slate-700">
+                  <ul className="mt-0.5 space-y-0.5 text-sm text-hc-ink-2">
                     {c.added.map((t, i) => (
                       <li key={`a${i}`} className="flex items-start gap-1.5">
                         <Plus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />

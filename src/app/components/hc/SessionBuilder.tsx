@@ -96,12 +96,12 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                   <span className="flex shrink-0 flex-col">
                     <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
                       aria-label={`Færa ${slot.label} upp`}
-                      className="rounded p-0.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700 disabled:opacity-25">
+                      className="rounded p-0.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2 disabled:opacity-25">
                       <ArrowUp className="h-4 w-4" aria-hidden />
                     </button>
                     <button type="button" onClick={() => move(i, 1)} disabled={i === keys.length - 1}
                       aria-label={`Færa ${slot.label} niður`}
-                      className="rounded p-0.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700 disabled:opacity-25">
+                      className="rounded p-0.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2 disabled:opacity-25">
                       <ArrowDown className="h-4 w-4" aria-hidden />
                     </button>
                   </span>
@@ -153,7 +153,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                           <button key={x.key} type="button" disabled={on}
                             onClick={() => { setKeys((k) => [...k, x.key]); setAdding(false); }}
                             className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
-                              on ? "bg-slate-200 text-hc-ink-3" : "bg-hc-surface text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-brand/10 hover:text-hc-brand-dark"}`}>
+                              on ? "bg-slate-200 text-hc-ink-3" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-brand/10 hover:text-hc-brand-text"}`}>
                             {on && <Check className="mr-1 inline h-3 w-3" aria-hidden />}{x.label}
                           </button>
                         );
@@ -162,7 +162,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                   </div>
                 ))}
                 <button type="button" onClick={() => setAdding(false)}
-                  className="text-sm font-semibold text-hc-ink-2 hover:text-slate-800">Hætta við</button>
+                  className="text-sm font-semibold text-hc-ink-2 hover:text-hc-ink-2">Hætta við</button>
               </div>
             )}
           </div>
@@ -171,7 +171,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
         <div className="flex items-center gap-2 border-t border-hc-hairline p-3">
           {!isDefault && (
             <button type="button" onClick={() => setKeys(slotKeysFor(focus))}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-hc-ink-2 hover:text-slate-800">
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-hc-ink-2 hover:text-hc-ink-2">
               <RotateCcw className="h-4 w-4" aria-hidden /> Sjálfgefið
             </button>
           )}

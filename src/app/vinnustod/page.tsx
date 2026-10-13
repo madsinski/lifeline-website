@@ -647,7 +647,7 @@ function WaitingRow({ r, t, f, onOpen, onDismiss }: {
           now the same colour. The row's dot and its reason are what should
           catch the eye; the action just has to be obviously clickable. */}
       <button type="button" onClick={() => onOpen(r.id, t.key === "nudge")}
-        className="inline-flex min-h-9 shrink-0 items-center rounded-full border border-hc-brand/40 bg-hc-surface px-3 text-xs font-semibold text-hc-brand-dark transition hover:bg-hc-brand-surface">
+        className="inline-flex min-h-9 shrink-0 items-center rounded-full border border-hc-brand/40 bg-hc-surface px-3 text-xs font-semibold text-hc-brand-text transition hover:bg-hc-brand-surface">
         {t.cta}
       </button>
     </li>
@@ -727,7 +727,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   }, [api, id, load, onChanged]);
 
   const backBtn = (
-    <button type="button" onClick={onBack} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-hc-hairline bg-hc-surface py-1.5 pl-1.5 pr-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-hc-sunken">
+    <button type="button" onClick={onBack} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-hc-hairline bg-hc-surface py-1.5 pl-1.5 pr-4 text-sm font-semibold text-hc-ink-2 shadow-sm hover:bg-hc-sunken">
       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-hc-sunken-2"><ArrowLeft className="h-4 w-4" /></span> Til baka
     </button>
   );
@@ -1098,7 +1098,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
 
       {/* Out of the way, but one click from anywhere. */}
       <div className="flex flex-wrap gap-4 px-1 pt-1 text-xs">
-        <button type="button" onClick={() => setSheet("history")} className="font-semibold text-hc-ink-3 hover:text-slate-700 hover:underline">
+        <button type="button" onClick={() => setSheet("history")} className="font-semibold text-hc-ink-3 hover:text-hc-ink-2 hover:underline">
           Saga ({d.audit.length})
         </button>
       </div>
@@ -1131,7 +1131,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
           <h2 className="font-bold text-hc-ink">{title}</h2>
           <span className="flex-1" />
           <button type="button" onClick={onClose} aria-label="Loka"
-            className="rounded-lg p-1.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700">✕</button>
+            className="rounded-lg p-1.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">✕</button>
         </div>
         {children}
       </div>
@@ -1426,7 +1426,7 @@ function Adherence({ d }: { d: Detail }) {
   const titleOf = (uid: string) => d.plan?.modules?.find((m) => m.uid === uid)?.title ?? "aðgerð";
   const tone = status === "on-track" ? "bg-emerald-50 text-emerald-900 ring-emerald-200"
     : status === "needs-nudge" ? "bg-amber-50 text-amber-900 ring-amber-200"
-    : "bg-hc-sunken text-slate-700 ring-hc-hairline";
+    : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline";
   return (
     <section className={`flex flex-wrap items-center gap-4 rounded-2xl px-4 py-3 ring-1 ${tone}`}>
       <div>
@@ -1596,10 +1596,10 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
                 </button>
               </div>
               {email && (
-                <label className="block text-sm"><span className="font-medium text-slate-700">Efni tölvupósts</span>
+                <label className="block text-sm"><span className="font-medium text-hc-ink-2">Efni tölvupósts</span>
                   <input value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
               )}
-              <label className="block text-sm"><span className="font-medium text-slate-700">Texti</span>
+              <label className="block text-sm"><span className="font-medium text-hc-ink-2">Texti</span>
                 <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
               {sms && (
                 <p className={`text-xs ${size.segments > 3 ? "text-amber-700" : "text-hc-ink-2"}`}>
@@ -1620,7 +1620,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
                 {d.messages.length === 0 && <li className="text-sm text-hc-ink-3">Engin skilaboð enn.</li>}
                 {d.messages.map((m) => (
                   <li key={m.id} className="rounded-xl bg-hc-sunken p-2.5 text-xs">
-                    <p className="flex items-center gap-1.5 font-semibold text-slate-700">
+                    <p className="flex items-center gap-1.5 font-semibold text-hc-ink-2">
                       {m.channel === "sms" ? <Phone className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />}
                       {dayTime(m.sent_at)}
                       <span className={`ml-auto rounded px-1.5 py-0.5 ${m.status === "sent" ? "bg-emerald-100 text-emerald-800" : m.status === "dry-run" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700"}`}>
@@ -1661,7 +1661,7 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
     <div>
       <div className="flex flex-wrap items-center gap-2">
         <p className="min-w-0 flex-1 text-sm">
-          <span className="font-semibold text-slate-800">{label}</span><br />
+          <span className="font-semibold text-hc-ink-2">{label}</span><br />
           <span className="text-hc-ink-2">{done ? `Lokið ${dayTime(done)}` : at ? `${dayTime(at)}${mode === "video" ? " · myndsímtal" : ""}` : disabled ? disabledText : "Ekki bókað"}</span>
           {!done && at && mode === "video" && (
             <>
@@ -1741,8 +1741,8 @@ function NotesPeek({ j, onBack }: { j: Journey; onBack: () => void }) {
         <dl className="mt-2 space-y-2">
           {rows.map((t) => (
             <div key={t.key}>
-              <dt className="flex items-center gap-1.5 text-xs font-semibold text-slate-700"><span className="h-2 w-2 rounded-full" style={{ background: t.color }} />{t.title}</dt>
-              <dd className="mt-0.5 whitespace-pre-line text-sm text-slate-700">{notes[t.key]}</dd>
+              <dt className="flex items-center gap-1.5 text-xs font-semibold text-hc-ink-2"><span className="h-2 w-2 rounded-full" style={{ background: t.color }} />{t.title}</dt>
+              <dd className="mt-0.5 whitespace-pre-line text-sm text-hc-ink-2">{notes[t.key]}</dd>
             </div>
           ))}
         </dl>
@@ -1972,20 +1972,20 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
           <span className={`flex h-7 w-7 items-center justify-center rounded-full ${(isFollowup ? j.followup_done_at : interviewDone) ? "bg-emerald-500 text-white" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
             {(isFollowup ? j.followup_done_at : interviewDone) ? <Check className="h-4 w-4" /> : 1}
           </span>
-          <span className="flex-1 text-sm font-semibold text-slate-800">{isFollowup ? "Merkja eftirfylgd lokið" : "Merkja viðtali lokið"}</span>
+          <span className="flex-1 text-sm font-semibold text-hc-ink-2">{isFollowup ? "Merkja eftirfylgd lokið" : "Merkja viðtali lokið"}</span>
           {!(isFollowup ? j.followup_done_at : interviewDone) && (
             <button type="button" disabled={busy} onClick={() => run({ event: isFollowup ? "followup_done" : "interview_done" }, "Skráð.")} className={btnPrimary}>Merkja lokið</button>
           )}
         </li>
         <li className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-3">
           <span className={`flex h-7 w-7 items-center justify-center rounded-full ${planPublished ? "bg-emerald-500 text-white" : "bg-hc-sunken-2 text-hc-ink-2"}`}>{planPublished ? <Check className="h-4 w-4" /> : 2}</span>
-          <span className="flex-1 text-sm font-semibold text-slate-800">Aðgerðaáætlun birt skjólstæðingi</span>
+          <span className="flex-1 text-sm font-semibold text-hc-ink-2">Aðgerðaáætlun birt skjólstæðingi</span>
           {!planPublished && <span className="text-xs text-amber-700">Ekki birt enn</span>}
         </li>
         {!isFollowup && (
           <li className="flex flex-wrap items-end gap-3 rounded-xl border border-hc-hairline p-3">
             <span className={`flex h-7 w-7 items-center justify-center rounded-full ${j.followup_booked_for ? "bg-emerald-500 text-white" : "bg-hc-sunken-2 text-hc-ink-2"}`}>{j.followup_booked_for ? <Check className="h-4 w-4" /> : 3}</span>
-            <label className="flex-1 text-sm font-semibold text-slate-800">Bóka eftirfylgd eftir 3 mánuði <span className="font-normal text-hc-ink-2">(ráðlögð, valfrjáls)</span>
+            <label className="flex-1 text-sm font-semibold text-hc-ink-2">Bóka eftirfylgd eftir 3 mánuði <span className="font-normal text-hc-ink-2">(ráðlögð, valfrjáls)</span>
               <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 block rounded-lg border border-slate-300 px-2 py-1.5 text-sm font-normal" />
             </label>
             <button type="button" disabled={busy || !when || !interviewDone} onClick={() => run({ event: "followup_booked", at: new Date(when).toISOString() }, "Eftirfylgd bókuð og sett í dagatal.")} className={btnSecondary}>
@@ -2020,7 +2020,7 @@ function History({ audit }: { audit: Detail["audit"] }) {
         {audit.map((a, i) => (
           <li key={i} className="relative">
             <span className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
-            <p className="text-sm font-semibold text-slate-800">{actionText(a.action)}</p>
+            <p className="text-sm font-semibold text-hc-ink-2">{actionText(a.action)}</p>
             <p className="text-xs text-hc-ink-2">{dayTime(a.at)} · {a.actor}{a.note ? ` · ${a.note}` : ""}</p>
           </li>
         ))}

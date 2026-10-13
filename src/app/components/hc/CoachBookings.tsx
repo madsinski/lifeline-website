@@ -186,13 +186,13 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
 
           <div className="flex flex-wrap gap-2">
             <label className="flex-1 text-sm">
-              <span className="font-medium text-slate-700">Dagur</span>
+              <span className="font-medium text-hc-ink-2">Dagur</span>
               <input type="date" value={day} onChange={(e) => setDay(e.target.value)}
                 min={asOf ? new Date(asOf).toISOString().slice(0, 10) : undefined}
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-hc-ink" />
             </label>
             <label className="text-sm">
-              <span className="font-medium text-slate-700">Tími</span>
+              <span className="font-medium text-hc-ink-2">Tími</span>
               <select value={time} onChange={(e) => setTime(e.target.value)}
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-hc-ink">
                 {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -214,7 +214,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           <div className="flex gap-2">
             <button type="button" onClick={() => void create()}
               disabled={!day || busy === "new" || (adding === "measurement" && !items.length)}
-              className="inline-flex items-center gap-2 rounded-xl bg-hc-ink px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
+              className="inline-flex items-center gap-2 rounded-xl bg-hc-brand-dark px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
               {busy === "new" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Bóka
             </button>
             <button type="button" onClick={() => { setAdding(null); setErr(null); setItems([]); }}
@@ -247,7 +247,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           <h3 className="flex-1 font-bold text-hc-ink">{title}</h3>
           {!open && (
             <button type="button" onClick={() => { setAdding(kind); setErr(null); }}
-              className="shrink-0 rounded-full bg-hc-ink px-3 py-1.5 text-xs font-bold text-white">
+              className="shrink-0 rounded-full bg-hc-brand-dark px-3 py-1.5 text-xs font-bold text-white">
               Bóka
             </button>
           )}

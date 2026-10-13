@@ -80,7 +80,7 @@ export const hcTabs = {
   /*
    * The active tab is the brand, not a black slab.
    *
-   * bg-hc-ink is #0F172A — a near-black pill on white, which Mads called
+   * bg-hc-brand-dark is #0F172A — a near-black pill on white, which Mads called
    * lifeless twice and he is right: it is the heaviest mark on the page and
    * it says nothing about whose product this is. Emerald does both jobs.
    *
@@ -95,7 +95,7 @@ export const hcTabs = {
     `shrink-0 grow basis-auto whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
       active
         ? "bg-hc-brand-dark text-white shadow-hc-card"
-        : "text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-dark"}`,
+        : "text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-text"}`,
 };
 
 /** Kicker above a heading ("NÆSTI TÍMI"). */

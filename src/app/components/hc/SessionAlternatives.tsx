@@ -111,7 +111,7 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
 
           {/* The honest answer is sometimes none of the above. */}
           <div className="rounded-2xl bg-hc-sunken p-3 ring-1 ring-hc-hairline">
-            <p className="text-sm font-semibold text-slate-800">Eitthvað allt annað</p>
+            <p className="text-sm font-semibold text-hc-ink-2">Eitthvað allt annað</p>
             <p className="mt-0.5 text-xs text-hc-ink-2">
               Göngutúr, jóga, sund með börnunum — það telst með. Hreyfing sem þú gerðir er betri en æfing sem þú slepptir.
             </p>

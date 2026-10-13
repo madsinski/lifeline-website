@@ -95,6 +95,11 @@ body.hc-scroll-lock {
      ink-3 is slate-500 (4.76:1 on white) rather than --hc-muted, which is
      slate-400 and measures 2.63 — it exists for icons and dots, not text. */
   --hc-ink-3: #62748E;
+  /* Brand-coloured TEXT, as opposed to a brand-coloured fill.
+     A fill carries white and must stay dark in both themes; text sits on
+     the surface and has to invert with it. #047857 measures 5.48:1 on white
+     and 2.85 on the dark card, so one value cannot serve both. */
+  --hc-brand-text: #047857;
   --hc-sunken: #F8FAFC;
   --hc-sunken-2: #F1F5F9;
   /* A warm ground rather than a clinical blue-grey. Slate-50 under white
@@ -177,6 +182,7 @@ body.hc-scroll-lock {
   --color-hc-border: var(--hc-border);
   --color-hc-surface: var(--hc-surface);
   --color-hc-ink-3: var(--hc-ink-3);
+  --color-hc-brand-text: var(--hc-brand-text);
   --color-hc-sunken: var(--hc-sunken);
   --color-hc-sunken-2: var(--hc-sunken-2);
   --color-hc-page: var(--hc-page);
@@ -566,6 +572,7 @@ main.readonly-locked a {
     --hc-ink: #E6ECF3;
     --hc-ink-2: #AFBCCC;
     --hc-ink-3: #93A1B3;
+    --hc-brand-text: #34D399;   /* 8.14:1 on the card */
     --hc-muted: #6B7A8C;
     --hc-hairline: #2A3542;
     --hc-border: #35414F;
@@ -586,6 +593,7 @@ main.readonly-locked a {
   --hc-ink: #E6ECF3;
   --hc-ink-2: #AFBCCC;
   --hc-ink-3: #93A1B3;
+  --hc-brand-text: #34D399;   /* 8.14:1 on the card */
   --hc-muted: #6B7A8C;
   --hc-hairline: #2A3542;
   --hc-border: #35414F;

@@ -68,7 +68,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
               <h2 className="text-lg font-bold text-hc-ink">{mode === "replace" ? "Skipta um æfingu" : "Æfingasafn"}</h2>
               <p className="text-xs text-hc-ink-2">Sama safn og í /admin/content. Mest fyrir minnst: stórar hreyfingar sem nota marga vöðvahópa.</p>
             </div>
-            <button type="button" onClick={onClose} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
+            <button type="button" onClick={onClose} className="rounded-xl bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white">
               {mode === "add" && added.length ? `Klárt (${added.length})` : "Loka"}
             </button>
           </div>
@@ -140,7 +140,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-hc-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-lg font-bold text-hc-ink">{open.name_is || open.name}</h3>
-              <button type="button" onClick={() => setOpen(null)} className="text-hc-ink-3 hover:text-slate-700" aria-label="Loka">✕</button>
+              <button type="button" onClick={() => setOpen(null)} className="text-hc-ink-3 hover:text-hc-ink-2" aria-label="Loka">✕</button>
             </div>
             {open.video_url
               ? <video src={open.video_url} poster={open.illustration_url ?? undefined} controls playsInline className="mt-3 w-full rounded-2xl bg-black" />
@@ -148,7 +148,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
               : open.illustration_url ? <img src={open.illustration_url} alt="" className="mt-3 w-full rounded-2xl" /> : null}
             <p className="mt-3 text-xs text-hc-ink-2">{(open.primary_muscles ?? []).concat(open.secondary_muscles ?? []).map(muscleIs).join(" · ")}</p>
             {!!(open.instructions_is?.length ? open.instructions_is : open.instructions)?.length && (
-              <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-slate-700">
+              <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-hc-ink-2">
                 {(open.instructions_is?.length ? open.instructions_is : open.instructions ?? []).map((s, i) => <li key={i}>{s}</li>)}
               </ol>
             )}

@@ -182,7 +182,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
             belongs at the top of that column, not buried in a sentence. */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-hc-brand-dark">Heilsufarsskýrsla</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-hc-brand-text">Heilsufarsskýrsla</p>
             <h2 className="mt-1 text-2xl font-bold text-hc-ink sm:text-3xl">
               {overall ? "Lífstílseinkunn" : "Niðurstöður"}
             </h2>
@@ -245,7 +245,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
             findable without competing. */}
         {onUpload && (
           <button type="button" onClick={onUpload}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-hc-sunken-2 px-4 py-2 text-xs font-semibold text-slate-700 ring-1 ring-hc-hairline transition hover:bg-slate-200">
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-hc-sunken-2 px-4 py-2 text-xs font-semibold text-hc-ink-2 ring-1 ring-hc-hairline transition hover:bg-slate-200">
             <Upload className="h-3.5 w-3.5 shrink-0" aria-hidden />
             Ertu með nýrri skýrslu? Hlaða upp
           </button>
@@ -254,11 +254,11 @@ export default function ReportView({ report, signals, reference, sex, audience =
 
       {only && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-hc-element bg-hc-sunken-2 px-4 py-2.5">
-          <p className="min-w-0 flex-1 text-sm font-semibold text-slate-700">
+          <p className="min-w-0 flex-1 text-sm font-semibold text-hc-ink-2">
             Sýni aðeins: {SIGNAL_LABEL[only].toLowerCase()} ({counts[only]})
           </p>
           <button type="button" onClick={() => setOnly(null)}
-            className="shrink-0 text-sm font-bold text-hc-brand-dark hover:underline">Sýna allt</button>
+            className="shrink-0 text-sm font-bold text-hc-brand-text hover:underline">Sýna allt</button>
         </div>
       )}
 
@@ -282,7 +282,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
                     </span>
                   </p>
                   {first && (
-                    <p className="mt-1 text-sm leading-snug text-slate-700">
+                    <p className="mt-1 text-sm leading-snug text-hc-ink-2">
                       <span className="font-semibold text-red-800">Fyrsta skrefið: </span>{first}
                     </p>
                   )}
@@ -324,7 +324,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
                   and "byrjum hér" belongs beside its own number rather than
                   next to a title three words long. */}
               {s.pillar && s.key === weakest && (
-                <span className="ml-auto rounded-full bg-hc-ink px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>
+                <span className="ml-auto rounded-full bg-hc-brand-dark px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>
               )}
               {avg !== undefined && (
                 <span className={`flex items-baseline gap-1 ${s.pillar && s.key === weakest ? "" : "ml-auto"}`}>
@@ -356,7 +356,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
-  return <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-700">{children}</h3>;
+  return <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">{children}</h3>;
 }
 
 /* Pillars lived here: four cards headed "Stoðirnar fjórar", each summarising
@@ -407,7 +407,7 @@ function Row({ item, signal, entry, sex }: {
             {move !== 0 ? `${move > 0 ? "+" : ""}${fmt(move)}` : "óbreytt"}
           </span>
         )}
-        <span className={`shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${signal ? CHIP[signal] : "bg-hc-sunken text-slate-700 ring-hc-hairline"}`}>
+        <span className={`shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${signal ? CHIP[signal] : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline"}`}>
           {fmt(item.value)}{item.unit ? ` ${item.unit}` : ""}
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-hc-ink-3 transition ${open ? "rotate-180" : ""}`} />
@@ -425,7 +425,7 @@ function Row({ item, signal, entry, sex }: {
                 {item.recommendations.map((r, i) => (
                   <li key={i} className="flex gap-2">
                     <span className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${DOT[r.priority]}`} aria-hidden />
-                    <span className="text-sm leading-snug text-slate-800">
+                    <span className="text-sm leading-snug text-hc-ink-2">
                       {r.component && <span className="font-semibold">{r.component}: </span>}
                       {r.text}
                     </span>
@@ -442,7 +442,7 @@ function Row({ item, signal, entry, sex }: {
             <Block title="Einkunnin er samsett úr">
               <ul className="space-y-0.5">
                 {entry.components.map((c, i) => (
-                  <li key={i} className="flex gap-1.5 text-sm leading-snug text-slate-700">
+                  <li key={i} className="flex gap-1.5 text-sm leading-snug text-hc-ink-2">
                     <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-slate-400" />{c}
                   </li>
                 ))}
@@ -452,7 +452,7 @@ function Row({ item, signal, entry, sex }: {
 
           {entry?.summary && (
             <Block title="Af hverju þetta skiptir máli">
-              <p className="text-sm leading-relaxed text-slate-700">{entry.summary}</p>
+              <p className="text-sm leading-relaxed text-hc-ink-2">{entry.summary}</p>
             </Block>
           )}
 
@@ -497,7 +497,7 @@ function Row({ item, signal, entry, sex }: {
             <Block title="Úr skýrslunni">
               <ul className="space-y-1">
                 {item.advice.map((a, i) => (
-                  <li key={i} className="flex gap-1.5 text-sm leading-snug text-slate-700">
+                  <li key={i} className="flex gap-1.5 text-sm leading-snug text-hc-ink-2">
                     <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-slate-400" />{a}
                   </li>
                 ))}
@@ -558,7 +558,7 @@ function BandScale({ bands, value, unit, sex }: {
       <div className="relative pt-6">
         {/* the value, sitting where it actually falls */}
         <div className="absolute top-0 -translate-x-1/2 whitespace-nowrap" style={{ left: `${at}%` }}>
-          <span className="rounded-md bg-hc-ink px-1.5 py-0.5 text-[11px] font-bold text-white">
+          <span className="rounded-md bg-hc-brand-dark px-1.5 py-0.5 text-[11px] font-bold text-white">
             {fmt(value)}{unit ? ` ${unit}` : ""}
           </span>
         </div>
@@ -567,13 +567,13 @@ function BandScale({ bands, value, unit, sex }: {
             <div key={i} className={TONE_BAR[b.tone]} style={{ width: width(b.min ?? lo, b.max ?? hi) }} title={b.label} />
           ))}
         </div>
-        <span className="absolute bottom-0 h-4 w-0.5 -translate-x-1/2 rounded bg-hc-ink" style={{ left: `${at}%` }} aria-hidden />
+        <span className="absolute bottom-0 h-4 w-0.5 -translate-x-1/2 rounded bg-hc-brand-dark" style={{ left: `${at}%` }} aria-hidden />
       </div>
       <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
         {ordered.map((b, i) => (
           <li key={i} className="flex items-center gap-1.5 text-xs text-hc-ink-2">
             <span className={`h-2 w-2 shrink-0 rounded-full ${TONE_BAR[b.tone]}`} aria-hidden />
-            <span className="font-semibold text-slate-800">{b.label}</span>
+            <span className="font-semibold text-hc-ink-2">{b.label}</span>
             <span className="tabular-nums">{rangeText(b, unit)}</span>
           </li>
         ))}

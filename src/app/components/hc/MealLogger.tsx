@@ -274,7 +274,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                         <span className={`block truncate font-semibold ${done ? "text-emerald-900" : "text-hc-ink"}`}>{mealName(meal)}</span>
                       </span>
                       <span className="shrink-0 text-right text-xs text-hc-ink-2">
-                        {meal.protein != null && <span className="block font-semibold text-slate-700">{Math.round(Number(meal.protein))} g</span>}
+                        {meal.protein != null && <span className="block font-semibold text-hc-ink-2">{Math.round(Number(meal.protein))} g</span>}
                         {meal.calories != null && <span className="block">{Math.round(Number(meal.calories))} kkal</span>}
                       </span>
                     </button>

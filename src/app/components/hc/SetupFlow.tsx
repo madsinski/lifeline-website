@@ -192,7 +192,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
       </ul>
 
       <button type="button" onClick={() => setWalk(true)}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-hc-ink px-5 py-3 font-bold text-white transition hover:bg-hc-ink">
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-hc-brand-dark px-5 py-3 font-bold text-white transition hover:bg-hc-brand-dark">
         <PlayCircle className="h-4 w-4" aria-hidden />
         {count === 0 ? "Leiða mig í gegnum það" : all ? "Skoða skref fyrir skref" : "Halda áfram"}
       </button>
@@ -301,7 +301,7 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
                   <button type="button" onClick={() => setBioOpen(openBio ? null : c.id)}
                     aria-expanded={openBio}
                     aria-label={`Um ${c.name ?? "þjálfarann"}`}
-                    className="shrink-0 rounded-full p-1.5 text-hc-ink-3 transition hover:bg-hc-sunken-2 hover:text-slate-700">
+                    className="shrink-0 rounded-full p-1.5 text-hc-ink-3 transition hover:bg-hc-sunken-2 hover:text-hc-ink-2">
                     <ChevronDown className={`h-4 w-4 transition ${openBio ? "rotate-180" : ""}`} aria-hidden />
                   </button>
                 )}

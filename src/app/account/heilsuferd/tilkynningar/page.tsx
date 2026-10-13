@@ -69,7 +69,7 @@ function Tilkynningar() {
             they want to know what is happening, so both live here and the
             heading says which is which. */}
         <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold text-hc-ink sm:text-3xl">
-          <CalendarClock className="h-6 w-6 shrink-0 text-hc-brand-dark" aria-hidden />Á döfinni
+          <CalendarClock className="h-6 w-6 shrink-0 text-hc-brand-text" aria-hidden />Á döfinni
         </h1>
         {ready
           ? <UpcomingList items={upcoming} />

@@ -56,7 +56,7 @@ export default function MealPicker({ api, category, onPick, onClose }: {
               <h2 className="text-lg font-bold text-hc-ink">Máltíðasafn</h2>
               <p className="text-xs text-hc-ink-2">Sama safn og í /admin/content. Raðað eftir próteini.</p>
             </div>
-            <button type="button" onClick={onClose} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white">Loka</button>
+            <button type="button" onClick={onClose} className="rounded-xl bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white">Loka</button>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita (enska: chicken, oats…)"

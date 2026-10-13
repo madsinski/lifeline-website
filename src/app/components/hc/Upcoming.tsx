@@ -177,7 +177,7 @@ function Row({ x, urgent = false, onNavigate }: {
           browsers. */}
       <Link href={ROW_HREF} className="absolute inset-0 z-0" aria-label={`${x.title} — sjá bókunina`}
         onClick={(e) => { if (onNavigate?.(ROW_HREF)) e.preventDefault(); }} />
-      <span className={`pointer-events-none relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgent ? "bg-amber-200 text-amber-900" : "bg-hc-brand/10 text-hc-brand-dark"}`}>
+      <span className={`pointer-events-none relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgent ? "bg-amber-200 text-amber-900" : "bg-hc-brand/10 text-hc-brand-text"}`}>
         {video ? <Video className="h-4 w-4" aria-hidden /> : <CalendarClock className="h-4 w-4" aria-hidden />}
       </span>
       <span className="pointer-events-none relative z-10 min-w-0 flex-1">

@@ -86,7 +86,7 @@ export default function LecturePage() {
               <span className="flex-1" />
               {next
                 ? <Link href={`/account/heilsuferd/fraedsla/${next.slug}`}
-                    className="inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-hc-surface px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-hc-sunken">
+                    className="inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-hc-surface px-4 text-sm font-semibold text-hc-ink-2 shadow-sm hover:bg-hc-sunken">
                     Næsti: {next.title} <ChevronRight className="h-4 w-4" aria-hidden />
                   </Link>
                 : <BackLink href="/account/heilsuferd" label="Aftur í heilsuferðina" />}

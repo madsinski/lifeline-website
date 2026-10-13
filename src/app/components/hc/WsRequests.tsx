@@ -94,7 +94,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
                 </button>
               )}
             </div>
-            {r.body && <p className="mt-1 text-sm text-slate-700">{r.body}</p>}
+            {r.body && <p className="mt-1 text-sm text-hc-ink-2">{r.body}</p>}
 
             {openId === r.id ? (
               <div className="mt-2 space-y-2">
@@ -103,12 +103,12 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
                   placeholder="Svar sem skjólstæðingurinn sér í heilsuferðinni sinni…" />
                 <div className="flex flex-wrap gap-2">
                   <button type="button" disabled={busy} onClick={() => void send(r.id, "done")}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-hc-ink px-3 text-sm font-semibold text-white disabled:opacity-50">
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-hc-brand-dark px-3 text-sm font-semibold text-white disabled:opacity-50">
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
                     Svara og loka
                   </button>
                   <button type="button" disabled={busy} onClick={() => void send(r.id, "in_progress")}
-                    className="min-h-9 rounded-full border border-slate-300 px-3 text-sm font-semibold text-slate-700">
+                    className="min-h-9 rounded-full border border-slate-300 px-3 text-sm font-semibold text-hc-ink-2">
                     Svara, held áfram
                   </button>
                   <button type="button" onClick={() => { setOpenId(null); setReply(""); }}

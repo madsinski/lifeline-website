@@ -40,7 +40,7 @@ export default function WsHeader({ name, role, items }: { name: string; role: st
           <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-haspopup="menu"
             className="flex items-center gap-2 rounded-full border border-hc-hairline py-1 pl-1 pr-2.5 hover:bg-hc-sunken">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-hc-brand-dark text-xs font-bold text-white">{initials}</span>
-            <span className="hidden max-w-[10rem] truncate text-sm font-medium text-slate-700 sm:block">{name}</span>
+            <span className="hidden max-w-[10rem] truncate text-sm font-medium text-hc-ink-2 sm:block">{name}</span>
             <ChevronDown className="h-4 w-4 text-hc-ink-3" />
           </button>
           {open && (
@@ -53,7 +53,7 @@ export default function WsHeader({ name, role, items }: { name: string; role: st
                   return (
                     <button key={it.label} type="button" role="menuitem"
                       onClick={() => { setOpen(false); it.onClick(); }}
-                      className="flex w-full items-center gap-2 border-t border-hc-hairline px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-hc-sunken">
+                      className="flex w-full items-center gap-2 border-t border-hc-hairline px-4 py-2.5 text-left text-sm text-hc-ink-2 hover:bg-hc-sunken">
                       {Icon && <Icon className="h-4 w-4 text-hc-ink-3" />}
                       <span className="flex-1">{it.label}</span>
                       {it.hint && <span className="text-xs text-hc-ink-3">{it.hint}</span>}

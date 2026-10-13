@@ -11,7 +11,7 @@ type Variant = "waiting" | "empty" | "done";
 const LOOK: Record<Variant, { Icon: LucideIcon; disc: string; icon: string }> = {
   waiting: { Icon: Clock, disc: "bg-amber-50", icon: "text-amber-600" },
   empty: { Icon: Inbox, disc: "bg-hc-sunken-2", icon: "text-hc-ink-2" },
-  done: { Icon: CheckCircle2, disc: "bg-hc-brand-surface", icon: "text-hc-brand-dark" },
+  done: { Icon: CheckCircle2, disc: "bg-hc-brand-surface", icon: "text-hc-brand-text" },
 };
 
 export default function EmptyState({ variant = "empty", title, body, action, compact, quiet }: {
@@ -34,7 +34,7 @@ export default function EmptyState({ variant = "empty", title, body, action, com
   quiet?: boolean;
 }) {
   const { Icon, disc, icon } = LOOK[variant];
-  const btn = "mt-4 inline-flex min-h-10 items-center rounded-hc-element bg-hc-ink px-4 text-sm font-semibold text-white hover:bg-emerald-800";
+  const btn = "mt-4 inline-flex min-h-10 items-center rounded-hc-element bg-hc-brand-dark px-4 text-sm font-semibold text-white hover:bg-emerald-800";
 
   if (quiet) {
     return (
@@ -43,8 +43,8 @@ export default function EmptyState({ variant = "empty", title, body, action, com
         <span className="font-semibold text-hc-ink">{title}</span>
         {body && <span className="min-w-0 truncate">{body}</span>}
         {action && (action.href
-          ? <Link href={action.href} className="ml-auto shrink-0 font-semibold text-hc-brand-dark hover:underline">{action.label}</Link>
-          : <button type="button" onClick={action.onClick} className="ml-auto shrink-0 font-semibold text-hc-brand-dark hover:underline">{action.label}</button>)}
+          ? <Link href={action.href} className="ml-auto shrink-0 font-semibold text-hc-brand-text hover:underline">{action.label}</Link>
+          : <button type="button" onClick={action.onClick} className="ml-auto shrink-0 font-semibold text-hc-brand-text hover:underline">{action.label}</button>)}
       </p>
     );
   }

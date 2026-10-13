@@ -57,10 +57,10 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
       aria-label="Staðfesta skýrslu">
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50">
-          <FileCheck2 className="h-5 w-5 text-hc-brand-dark" aria-hidden />
+          <FileCheck2 className="h-5 w-5 text-hc-brand-text" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <p className={`${hcKicker} text-hc-brand-dark`}>Staðfesting</p>
+          <p className={`${hcKicker} text-hc-brand-text`}>Staðfesting</p>
           <p className="mt-0.5 font-semibold text-hc-ink">
             {pending.requestedBy ? `${pending.requestedBy} setti` : "Starfsmaður setti"} Grunnheilsa-skýrsluna þína inn
             {pending.reportDate ? ` frá ${pending.reportDate}` : ""}.

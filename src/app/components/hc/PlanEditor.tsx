@@ -419,7 +419,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                   return (
                     <li key={m.key} className={`p-3 ${top ? "bg-emerald-50/60 ring-1 ring-inset ring-hc-brand" : ""}`}>
                       {top && (
-                        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-hc-brand-dark">
+                        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-hc-brand-text">
                           <Sparkles className="h-3.5 w-3.5" aria-hidden /> Mælum helst með þessu
                         </p>
                       )}
@@ -452,7 +452,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         <section>
           <div className="mb-2 flex items-baseline justify-between">
             <p className={`${hcKicker} text-hc-ink-2`}>Veldu æfingaáætlun</p>
-            {exKey && <button type="button" onClick={() => { mark(focus); setExKey(null); }} className="text-xs font-semibold text-hc-ink-2 hover:text-slate-800">Engin</button>}
+            {exKey && <button type="button" onClick={() => { mark(focus); setExKey(null); }} className="text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">Engin</button>}
           </div>
           <ProgramList rows={programs.exercise} current={exKey} onPick={(k) => { mark("exercise-program"); setExKey(k); }} tone="exercise" />
         </section>
@@ -462,7 +462,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         <section>
           <div className="mb-2 flex items-baseline justify-between">
             <p className={`${hcKicker} text-hc-ink-2`}>Veldu næringaráætlun</p>
-            {nuKey && <button type="button" onClick={() => { mark(focus); setNuKey(null); }} className="text-xs font-semibold text-hc-ink-2 hover:text-slate-800">Engin</button>}
+            {nuKey && <button type="button" onClick={() => { mark(focus); setNuKey(null); }} className="text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">Engin</button>}
           </div>
           <ProgramList rows={programs.nutrition} current={nuKey} onPick={(k) => { mark("nutrition-program"); setNuKey(k); }} tone="nutrition" />
         </section>

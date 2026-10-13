@@ -71,7 +71,7 @@ export default function ActivityEditor({ activities, onChange }: {
                   <span className="block font-semibold text-hc-ink">{a.name}</span>
                   <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
                     {rows.sort((x, y) => x.day - y.day).map((r) => (
-                      <span key={r.id} className="rounded-md bg-hc-sunken-2 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">
+                      <span key={r.id} className="rounded-md bg-hc-sunken-2 px-1.5 py-0.5 text-[11px] font-bold text-hc-ink-2">
                         {WEEKDAYS_SHORT[r.day]}{r.at ? ` ${r.at}` : ""}
                       </span>
                     ))}
@@ -105,7 +105,7 @@ export default function ActivityEditor({ activities, onChange }: {
               <div className="flex flex-wrap gap-1.5">
                 {ACTIVITY_GROUPS.map((g) => (
                   <button key={g} type="button" onClick={() => setGroup(g)} aria-pressed={group === g}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-slate-700 ring-1 ring-hc-hairline"}`}>{g}</button>
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline"}`}>{g}</button>
                 ))}
               </div>
               <div className="grid gap-1.5 sm:grid-cols-2">
@@ -123,7 +123,7 @@ export default function ActivityEditor({ activities, onChange }: {
                 ))}
               </div>
               <label className="block text-sm">
-                <span className="font-medium text-slate-700">Eða skrifaðu þitt eigið</span>
+                <span className="font-medium text-hc-ink-2">Eða skrifaðu þitt eigið</span>
                 <input value={own} onChange={(e) => setOwn(e.target.value)} maxLength={60}
                   placeholder="t.d. „Dans“" className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
               </label>
@@ -135,7 +135,7 @@ export default function ActivityEditor({ activities, onChange }: {
             <>
               {preset?.why && <p className="rounded-xl bg-hc-surface p-2.5 text-xs leading-snug text-hc-ink-2 ring-1 ring-hc-hairline">{preset.why}</p>}
               <div>
-                <p className="mb-1.5 text-sm font-medium text-slate-700">Hvaða daga?</p>
+                <p className="mb-1.5 text-sm font-medium text-hc-ink-2">Hvaða daga?</p>
                 <div className="flex flex-wrap gap-1.5">
                   {WEEKDAYS.map((w, i) => {
                     const on = days.includes(i);
@@ -143,7 +143,7 @@ export default function ActivityEditor({ activities, onChange }: {
                       <button key={w} type="button" aria-pressed={on}
                         onClick={() => setDays(on ? days.filter((d) => d !== i) : [...days, i].sort((a2, b2) => a2 - b2))}
                         className={`inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold transition ${
-                          on ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-slate-700 ring-1 ring-hc-hairline hover:ring-slate-300"}`}>
+                          on ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline hover:ring-slate-300"}`}>
                         {on && <Check className="h-3.5 w-3.5" aria-hidden />}{WEEKDAYS_SHORT[i]}
                       </button>
                     );

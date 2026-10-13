@@ -754,7 +754,7 @@ function PlanPageInner() {
                       session: { id: sx.id, title: sx.title, modality: sx.modality, weekday: sx.weekday },
                     })} />
                   <button type="button" onClick={() => setEditing(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-hc-surface/60 px-4 py-4 text-sm font-semibold text-slate-700 hover:border-hc-brand hover:text-hc-brand-dark">
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-hc-surface/60 px-4 py-4 text-sm font-semibold text-hc-ink-2 hover:border-hc-brand hover:text-hc-brand-text">
                     <Pencil className="h-4 w-4" aria-hidden /> Bæta við, taka út eða raða aðgerðum
                   </button>
                 </div>
@@ -925,13 +925,13 @@ function PlanPageInner() {
                   {data.report?.source && data.report.source !== "self" && (
                     <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-hc-sunken px-4 py-3 text-sm ring-1 ring-slate-200">
                       <Info className="h-4 w-4 shrink-0 text-hc-ink-3" aria-hidden />
-                      <span className="text-slate-700">
+                      <span className="text-hc-ink-2">
                         {data.report.source === "staff_on_behalf"
                           ? "Starfsmaður Lifeline setti þessa skýrslu inn að þinni beiðni."
                           : "Starfsmaður Lifeline las þessa skýrslu inn fyrir viðtalið þitt."}
                       </span>
                       <button type="button" onClick={() => setTab("coach")}
-                        className="ml-auto rounded-full border border-slate-300 bg-hc-surface px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-hc-sunken">
+                        className="ml-auto rounded-full border border-slate-300 bg-hc-surface px-3 py-1 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">
                         Þetta er ekki rétt
                       </button>
                     </div>

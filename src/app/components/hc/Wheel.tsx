@@ -116,12 +116,12 @@ export default function Wheel({ label, value, onChange, step, min, max, unit, co
           screen reader sees. The wheel above is a faster way to drive it. */}
       <div className="mt-1 flex items-center gap-2">
         <button type="button" onClick={() => bump(-step)} aria-label={`Minnka ${label.toLowerCase()}`}
-          className={`shrink-0 rounded-lg bg-hc-surface font-bold text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-sunken-2 ${compact ? "h-8 w-8 text-base" : "h-9 w-9 text-lg"}`}>−</button>
+          className={`shrink-0 rounded-lg bg-hc-surface font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2 ${compact ? "h-8 w-8 text-base" : "h-9 w-9 text-lg"}`}>−</button>
         <input type="number" inputMode="decimal" value={value} aria-label={label} step={step} min={min} max={max}
           onChange={(e) => onChange(Math.min(max, Math.max(min, Number(e.target.value) || min)))}
           className={`min-w-0 flex-1 rounded-lg border border-hc-control text-center font-bold text-hc-ink ${compact ? "h-8 text-sm" : "h-9 text-sm"}`} />
         <button type="button" onClick={() => bump(step)} aria-label={`Auka ${label.toLowerCase()}`}
-          className={`shrink-0 rounded-lg bg-hc-surface font-bold text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-sunken-2 ${compact ? "h-8 w-8 text-base" : "h-9 w-9 text-lg"}`}>+</button>
+          className={`shrink-0 rounded-lg bg-hc-surface font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2 ${compact ? "h-8 w-8 text-base" : "h-9 w-9 text-lg"}`}>+</button>
       </div>
     </div>
   );

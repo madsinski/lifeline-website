@@ -112,7 +112,7 @@ export default function WeekAhead({ api, onOpenClient }: {
         <button type="button" onClick={() => { setMine((v) => !v); setEvents(null); }}
           aria-pressed={mine}
           className={`rounded-full px-3 py-1 text-xs font-bold transition ${
-            mine ? "bg-hc-brand-surface text-hc-brand-dark" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
+            mine ? "bg-hc-brand-surface text-hc-brand-text" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
           {mine ? "Mínar" : "Allar"}
         </button>
         <button type="button" onClick={() => shift(-1)} aria-label="Fyrri vika" className={`${hcBtn.ghost} h-8 w-8 p-0`}>
@@ -143,7 +143,7 @@ export default function WeekAhead({ api, onOpenClient }: {
         {days.filter((d) => d.items.length > 0).map((d) => (
           <div key={d.date.toISOString()}>
             <p className={`mb-1 text-[11px] font-bold uppercase tracking-wide ${
-              d.isToday ? "text-hc-brand-dark" : "text-hc-ink-2"}`}>
+              d.isToday ? "text-hc-brand-text" : "text-hc-ink-2"}`}>
               {DAY_IS[(d.date.getDay() + 6) % 7]} {d.date.getDate()}.
               {d.isToday && " · í dag"}
             </p>
@@ -179,7 +179,7 @@ export default function WeekAhead({ api, onOpenClient }: {
                       </span>
                     </span>
                     {e.meeting_url && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-hc-brand-surface px-2 py-1 text-[11px] font-bold text-hc-brand-dark">
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-hc-brand-surface px-2 py-1 text-[11px] font-bold text-hc-brand-text">
                         <Video className="h-3 w-3" aria-hidden /> Fundur
                       </span>
                     )}

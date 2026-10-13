@@ -106,7 +106,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
   return (
     <div>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <p className="text-sm font-semibold text-slate-700">Vikan sem þátttakandinn sér</p>
+        <p className="text-sm font-semibold text-hc-ink-2">Vikan sem þátttakandinn sér</p>
         {band && <p className="text-xs text-hc-ink-2">Próteinmarkmið {band.min}–{band.max} g á dag</p>}
       </div>
       <p className="mb-2 mt-0.5 text-xs text-hc-ink-2">
@@ -120,7 +120,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
           return (
             <li key={i} className="flex items-center gap-2 border-b border-hc-hairline px-2 py-1.5 last:border-b-0">
               <span className="w-9 shrink-0 text-[11px] font-bold uppercase text-hc-ink-3">{WEEKDAYS_SHORT[i]}</span>
-              <span className="min-w-0 flex-1 truncate text-sm text-slate-700">
+              <span className="min-w-0 flex-1 truncate text-sm text-hc-ink-2">
                 {d.dinner ? mealName(d.dinner) : "—"}
               </span>
               {/* Flagged, not corrected: a day under the band may be the
@@ -144,7 +144,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
             <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">
               {SLOT_IS[open.slot]} · {WEEKDAYS[open.day].toLowerCase()}
             </p>
-            <button type="button" onClick={() => setOpen(null)} className="text-xs font-semibold text-hc-ink-2 hover:text-slate-800">Loka</button>
+            <button type="button" onClick={() => setOpen(null)} className="text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">Loka</button>
           </div>
           {(() => {
             const current = dayFor(meals, programKey, picks, prefs, open.day, targetG)?.[open.slot] ?? null;
@@ -157,7 +157,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
                   <li key={m.id}>
                     <button type="button" disabled={busy} onClick={() => void setPick(open.day, open.slot, m.id)}
                       className="flex w-full items-center justify-between gap-2 rounded-lg border border-hc-hairline bg-hc-surface px-2 py-1.5 text-left text-xs transition hover:border-lime-400 disabled:opacity-50">
-                      <span className="min-w-0 truncate font-semibold text-slate-800">{mealName(m)}</span>
+                      <span className="min-w-0 truncate font-semibold text-hc-ink-2">{mealName(m)}</span>
                       <span className="shrink-0 tabular-nums text-hc-ink-2">
                         {idx < alts.near.length ? "≈ " : ""}{m.protein ?? 0} g
                       </span>
@@ -169,7 +169,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
           })()}
           {picks[pickKey(open.day, open.slot)] && (
             <button type="button" disabled={busy} onClick={() => void setPick(open.day, open.slot, null)}
-              className="mt-1.5 text-[11px] font-semibold text-hc-ink-2 hover:text-slate-800 disabled:opacity-50">
+              className="mt-1.5 text-[11px] font-semibold text-hc-ink-2 hover:text-hc-ink-2 disabled:opacity-50">
               Til baka í tillögu áætlunarinnar
             </button>
           )}

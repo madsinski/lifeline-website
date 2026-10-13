@@ -244,7 +244,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
 
           {daySessions.length === 0 && dayActivities.length === 0 && (
             <div className="rounded-2xl bg-hc-surface p-5 text-center shadow-sm ring-1 ring-hc-hairline">
-              <p className="font-semibold text-slate-800">Hvíldardagur</p>
+              <p className="font-semibold text-hc-ink-2">Hvíldardagur</p>
               <p className="mt-1 text-sm text-hc-ink-2">Ekkert á dagskrá {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}.</p>
               {onAddDay && (
                 <button type="button" onClick={() => setAddDay(shownDay)} className={`${hcBtn.secondary} mx-auto mt-3`}>
@@ -497,7 +497,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           {editable && (canSplitHiit(exercise) || custom) && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               {canSplitHiit(exercise) && (
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-hc-hairline px-3 py-1.5 text-sm font-semibold text-slate-700">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-hc-hairline px-3 py-1.5 text-sm font-semibold text-hc-ink-2">
                   <input type="checkbox" checked={mine && personal.hiit_split} onChange={(e) => save({ hiit_split: e.target.checked })} className="h-4 w-4 accent-orange-600" />
                   HIIT á sér dögum
                 </label>
@@ -619,7 +619,7 @@ const TONE: Record<Modality, { band: string; ring: string; today: string; tile: 
   strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-600 hover:bg-orange-700" },
   hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200",     go: "bg-rose-600 hover:bg-rose-700" },
   cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200",       go: "bg-sky-600 hover:bg-sky-700" },
-  other:    { band: "bg-hc-sunken",     ring: "ring-hc-hairline",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-hc-ink-2",  pill: "text-slate-700 ring-hc-hairline",   go: "bg-slate-700 hover:bg-hc-ink" },
+  other:    { band: "bg-hc-sunken",     ring: "ring-hc-hairline",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-hc-ink-2",  pill: "text-hc-ink-2 ring-hc-hairline",   go: "bg-slate-700 hover:bg-hc-brand-dark" },
 };
 
 /** The shell and header both cards share. */
@@ -778,7 +778,7 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             {onInstead && !done && (
               <button type="button" onClick={onInstead}
-                className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-slate-800 hover:underline">
+                className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
                 Gera annað
               </button>
             )}
@@ -895,7 +895,7 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
           <p className="mt-1 text-xs text-hc-ink-2">
             {[it.rest ? `Hvíld ${it.rest}` : null, it.equipment ? EQUIPMENT_IS[it.equipment] ?? it.equipment : null].filter(Boolean).join(" · ")}
           </p>
-          {it.note && <p className="mt-1 text-sm text-slate-700">{it.note}</p>}
+          {it.note && <p className="mt-1 text-sm text-hc-ink-2">{it.note}</p>}
           <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs font-semibold">
             {how && (
               <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="text-orange-700 hover:underline">
@@ -905,7 +905,7 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
             {swappable && onSwap && (
               <button type="button" onClick={() => onSwap(it.slot!, it)}
                 aria-label={`Skipta út æfingunni ${it.name}`}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-slate-300 bg-hc-surface px-3 text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-800">
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-slate-300 bg-hc-surface px-3 text-hc-ink-2 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-800">
                 <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta um æfingu
               </button>
             )}
@@ -927,7 +927,7 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
         <div className="space-y-3 border-t border-hc-hairline p-3">
           {it.video && <video src={it.video} poster={it.image ?? undefined} controls playsInline preload="none" className="w-full max-w-md rounded-xl bg-black" />}
           {!!it.cues?.length && (
-            <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
+            <ol className="list-decimal space-y-1 pl-5 text-sm text-hc-ink-2">
               {it.cues.map((c, k) => <li key={k}>{c}</li>)}
             </ol>
           )}
@@ -1009,13 +1009,13 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                     <span className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-0.5">
                       {onBuild && a.focus && (
                         <button type="button" onClick={() => onBuild(a)}
-                          className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-slate-800 hover:underline">
+                          className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
                           Sjá æfingar
                         </button>
                       )}
                       {onRun && a.focus && onComplete && (
                         <button type="button" onClick={() => onComplete(a)}
-                          className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-slate-800 hover:underline">
+                          className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
                           Ég gerði þetta
                         </button>
                       )}
@@ -1040,13 +1040,13 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                     <span className="flex items-center gap-1">
                       <button type="button" aria-label="Minnka álag" disabled={(a.load ?? 0) <= -2}
                         onClick={() => onLoad(a.id, Math.max(-2, (a.load ?? 0) - 1))}
-                        className="grid h-8 w-8 place-items-center rounded-full bg-hc-surface text-slate-700 ring-1 ring-hc-hairline disabled:opacity-30">−</button>
+                        className="grid h-8 w-8 place-items-center rounded-full bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline disabled:opacity-30">−</button>
                       <span className="w-6 text-center text-sm font-bold tabular-nums text-hc-ink">
                         {(a.load ?? 0) > 0 ? `+${a.load}` : a.load ?? 0}
                       </span>
                       <button type="button" aria-label="Auka álag" disabled={(a.load ?? 0) >= 2}
                         onClick={() => onLoad(a.id, Math.min(2, (a.load ?? 0) + 1))}
-                        className="grid h-8 w-8 place-items-center rounded-full bg-hc-surface text-slate-700 ring-1 ring-hc-hairline disabled:opacity-30">+</button>
+                        className="grid h-8 w-8 place-items-center rounded-full bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline disabled:opacity-30">+</button>
                     </span>
                   </div>
                 )}

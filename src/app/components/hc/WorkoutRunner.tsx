@@ -92,11 +92,11 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
         <div className="space-y-4 p-4">
           <p className="text-sm text-hc-ink-2">{minutes} mín. · {session.title}</p>
           <div>
-            <p className="text-sm font-semibold text-slate-800">Hversu erfið fannst þér æfingin?</p>
+            <p className="text-sm font-semibold text-hc-ink-2">Hversu erfið fannst þér æfingin?</p>
             <div className="mt-2 grid grid-cols-5 gap-1.5">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <button key={n} type="button" onClick={() => setRpe(n)} aria-pressed={rpe === n}
-                  className={`rounded-xl py-2.5 text-sm font-bold transition ${rpe === n ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
+                  className={`rounded-xl py-2.5 text-sm font-bold transition ${rpe === n ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                   {n}
                 </button>
               ))}
@@ -117,7 +117,7 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
       <div className="border-b border-hc-hairline px-4 pb-3">
         <div className="flex gap-1" role="img" aria-label={`Æfing ${idx + 1} af ${items.length}`}>
           {items.map((_, i) => (
-            <span key={i} className={`h-1.5 flex-1 rounded-full ${i < idx ? "bg-emerald-400" : i === idx ? "bg-hc-ink" : "bg-slate-200"}`} />
+            <span key={i} className={`h-1.5 flex-1 rounded-full ${i < idx ? "bg-emerald-400" : i === idx ? "bg-hc-brand-dark" : "bg-slate-200"}`} />
           ))}
         </div>
         <p className="mt-1.5 text-xs font-semibold text-hc-ink-2">{idx + 1} af {items.length}</p>
@@ -133,7 +133,7 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
       <div className="flex items-center gap-2 border-t border-hc-hairline p-3">
         <button type="button" onClick={() => go(Math.max(0, idx - 1))} disabled={idx === 0}
           className={`${hcBtn.ghost} disabled:opacity-30`}><ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri</button>
-        <button type="button" onClick={finish} className="text-xs font-semibold text-hc-ink-2 hover:text-slate-800">Ljúka hér</button>
+        <button type="button" onClick={finish} className="text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">Ljúka hér</button>
         <span className="flex-1" />
         {idx < items.length - 1
           ? <button type="button" onClick={() => go(idx + 1)} className={hcBtn.primary}>Næsta <ChevronRight className="h-4 w-4" aria-hidden /></button>
@@ -159,7 +159,7 @@ function ExercisePanel({ it, onSwap, body }: { it: ExerciseItem; onSwap?: (slot:
           demo loops, and object-cover was cutting the lift out of the frame.
           The video is the better demonstration when the library has one. */}
       {(it.video || it.image) && (
-        <div className="overflow-hidden rounded-2xl bg-hc-ink">
+        <div className="overflow-hidden rounded-2xl bg-hc-brand-dark">
           {it.video ? (
             <video src={it.video} poster={it.image ?? undefined} autoPlay loop muted playsInline
               className="h-52 w-full object-contain" aria-label={`Sýnikennsla: ${it.name}`} />
@@ -176,12 +176,12 @@ function ExercisePanel({ it, onSwap, body }: { it: ExerciseItem; onSwap?: (slot:
         </div>
         {onSwap && it.slot && (
           <button type="button" onClick={() => onSwap(it.slot!, it)}
-            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-hc-sunken">
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta
           </button>
         )}
       </div>
-      {it.note && <p className="text-sm text-slate-700">{it.note}</p>}
+      {it.note && <p className="text-sm text-hc-ink-2">{it.note}</p>}
       {!!it.cues?.length && (
         <ul className="space-y-1">
           {it.cues.map((c, i) => <li key={i} className="flex gap-2 text-sm text-hc-ink-2"><span className="text-orange-500">•</span>{c}</li>)}
@@ -402,7 +402,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   return (
     <div className="space-y-3 rounded-2xl bg-hc-sunken p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-800">Skrá sett</p>
+        <p className="text-sm font-semibold text-hc-ink-2">Skrá sett</p>
         <div className="flex items-center gap-3">
           {pr?.weight != null && (
             <p className="text-xs font-semibold text-amber-700" title="Þitt besta sett í þessari æfingu til þessa">
@@ -497,14 +497,14 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
               <span>Hvíld</span>
               <button type="button" onClick={() => changeRest(restSec - 15)} aria-label="Stytta hvíld um 15 sekúndur"
                 className="h-7 w-7 rounded-lg font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2">−</button>
-              <span className="min-w-14 text-center font-bold tabular-nums text-slate-800">
+              <span className="min-w-14 text-center font-bold tabular-nums text-hc-ink-2">
                 {restSec >= 60 ? `${Math.floor(restSec / 60)}:${String(restSec % 60).padStart(2, "0")}` : `${restSec} sek.`}
               </span>
               <button type="button" onClick={() => changeRest(restSec + 15)} aria-label="Lengja hvíld um 15 sekúndur"
                 className="h-7 w-7 rounded-lg font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2">+</button>
               {restSec !== prescribedRest && (
                 <button type="button" onClick={() => { try { window.localStorage.removeItem(restKey); } catch { /* private mode */ } setRestSec(prescribedRest); }}
-                  className="font-semibold text-hc-brand-dark hover:underline">Sjálfgefið</button>
+                  className="font-semibold text-hc-brand-text hover:underline">Sjálfgefið</button>
               )}
             </div>
           )}
@@ -520,7 +520,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
       {today.length > 0 && (
         <ul className="flex flex-wrap gap-1.5">
           {today.map((s, i) => (
-            <li key={s.id ?? i} className="flex items-center gap-1 rounded-lg bg-hc-surface py-1 pl-2 pr-1 text-xs font-medium text-slate-700 ring-1 ring-hc-hairline">
+            <li key={s.id ?? i} className="flex items-center gap-1 rounded-lg bg-hc-surface py-1 pl-2 pr-1 text-xs font-medium text-hc-ink-2 ring-1 ring-hc-hairline">
               <span className="tabular-nums">{s.weight != null ? `${s.weight} kg × ` : ""}{s.reps}{timed ? " sek." : ""}</span>
               {/* A mistyped weight is the common case and it used to be
                   permanent — it would then feed the suggestion for next

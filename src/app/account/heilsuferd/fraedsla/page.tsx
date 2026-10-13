@@ -90,7 +90,7 @@ function Fraedsla() {
             title line now, and the space goes to the next lecture. */}
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className={`${hcKicker} text-hc-brand-dark`}>Fræðslan mín</p>
+            <p className={`${hcKicker} text-hc-brand-text`}>Fræðslan mín</p>
             <h1 className="text-2xl font-bold text-hc-ink sm:text-3xl">Fræðsla</h1>
           </div>
           {!!lectures?.length && <Ring done={done} of={lectures.length} />}
@@ -152,7 +152,7 @@ function Fraedsla() {
                     <Link href={`/account/heilsuferd/fraedsla/${l.slug}`}
                       className="flex items-center gap-3 px-4 py-3 transition hover:bg-hc-sunken">
                       {l.completed
-                        ? <CheckCircle2 className="h-6 w-6 shrink-0 text-hc-brand-dark" aria-label="Lokið" />
+                        ? <CheckCircle2 className="h-6 w-6 shrink-0 text-hc-brand-text" aria-label="Lokið" />
                         : <span className="h-6 w-6 shrink-0 rounded-full border-2 border-slate-200" aria-hidden />}
                       <span className="min-w-0 flex-1">
                         <span className={`block font-semibold ${l.completed ? "text-slate-400" : "text-hc-ink"}`}>{l.title}</span>

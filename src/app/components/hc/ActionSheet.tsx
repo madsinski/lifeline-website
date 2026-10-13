@@ -61,7 +61,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
 
 
         <div className="space-y-4 p-4">
-          {a.summary && <p className="text-sm text-slate-700">{a.summary}</p>}
+          {a.summary && <p className="text-sm text-hc-ink-2">{a.summary}</p>}
           {a.details && <p className="whitespace-pre-line text-sm text-hc-ink-2">{a.details}</p>}
           {a.note && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm italic text-emerald-900">{a.note}</p>}
 
@@ -83,7 +83,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
               {atTime
                 ? (
                   <button type="button" onClick={() => onTime(null)}
-                    className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-slate-800 hover:underline">
+                    className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
                     Hreinsa
                   </button>
                 )
@@ -144,10 +144,10 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
             <div className="flex flex-wrap gap-2">
               {links.go && (
                 <button type="button" onClick={() => { links.go!.onClick(); onClose(); }}
-                  className="inline-flex min-h-9 items-center rounded-full border border-hc-hairline px-3 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">{links.go.label}</button>
+                  className="inline-flex min-h-9 items-center rounded-full border border-hc-hairline px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">{links.go.label}</button>
               )}
               {links.lecture && (
-                <a href={links.lecture.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-hc-hairline px-3 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">
+                <a href={links.lecture.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-hc-hairline px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
                   <BookOpen className="h-4 w-4" aria-hidden /> {links.lecture.title}
                 </a>
               )}
@@ -159,7 +159,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
             <textarea value={v} onChange={(e) => setV(e.target.value)} rows={2} maxLength={300}
               onBlur={() => v.trim() !== note && onNote(v.trim())}
               placeholder="T.d. hvað gekk vel eða hvað var erfitt"
-              className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500" />
+              className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2 text-sm text-hc-ink-2 outline-none focus:ring-2 focus:ring-emerald-500" />
           </label>
 
           <div className="space-y-2 border-t border-hc-hairline pt-3">

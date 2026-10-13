@@ -64,7 +64,7 @@ export function Markdown({ text }: { text: string }) {
           : part);
   const blocks = text.split(/\n{2,}/).filter((b) => b.trim());
   return (
-    <div className="space-y-5 text-[17px] leading-relaxed text-slate-700">
+    <div className="space-y-5 text-[17px] leading-relaxed text-hc-ink-2">
       {blocks.map((b, i) => {
         const t = b.trim();
         const lines = t.split("\n");
@@ -120,9 +120,9 @@ export function Markdown({ text }: { text: string }) {
 function linkify(ref: string) {
   return ref.split(/(doi:\s*10\.\S+|PMID:?\s*\d+)/gi).map((part, i) => {
     const doi = /^doi:\s*(10\.\S+?)[.,;]?$/i.exec(part);
-    if (doi) return <a key={i} href={`https://doi.org/${doi[1]}`} target="_blank" rel="noreferrer" className="text-hc-brand-dark underline">{part}</a>;
+    if (doi) return <a key={i} href={`https://doi.org/${doi[1]}`} target="_blank" rel="noreferrer" className="text-hc-brand-text underline">{part}</a>;
     const pm = /^PMID:?\s*(\d+)$/i.exec(part);
-    if (pm) return <a key={i} href={`https://pubmed.ncbi.nlm.nih.gov/${pm[1]}/`} target="_blank" rel="noreferrer" className="text-hc-brand-dark underline">{part}</a>;
+    if (pm) return <a key={i} href={`https://pubmed.ncbi.nlm.nih.gov/${pm[1]}/`} target="_blank" rel="noreferrer" className="text-hc-brand-text underline">{part}</a>;
     return part;
   });
 }
@@ -235,7 +235,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
             <div>
               {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">{counter} · Ráð</p>}
               <h2 className="mt-1 text-2xl font-bold text-hc-ink">{slide.title}</h2>
-              {slide.body && <p className="mt-2 whitespace-pre-line text-lg text-slate-700">{slide.body}</p>}
+              {slide.body && <p className="mt-2 whitespace-pre-line text-lg text-hc-ink-2">{slide.body}</p>}
               <Refs refs={slide.refs} light />
             </div>
           </div>
@@ -248,7 +248,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
             {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-hc-ink-2">{counter}</p>}
             <h2 className="mt-2 flex items-center gap-2 text-2xl font-bold text-hc-ink"><BookOpen className="h-6 w-6 text-hc-ink-3" aria-hidden />{slide.title || "Heimildir"}</h2>
             {slide.body && <p className="mt-2 text-sm text-hc-ink-2">{slide.body}</p>}
-            <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm leading-snug text-slate-700 marker:text-hc-ink-3">
+            <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm leading-snug text-hc-ink-2 marker:text-hc-ink-3">
               {(slide.items ?? []).filter(Boolean).map((it, i) => <li key={i} className="break-words pl-1">{linkify(it)}</li>)}
             </ol>
           </div>
@@ -310,7 +310,7 @@ export function SlideDeck({ slides, onLastSlide, start = 0, pillar }: { slides: 
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
         <button type="button" onClick={() => setI(Math.max(0, idx - 1))} disabled={idx === 0}
-          className="inline-flex min-h-11 items-center gap-1 rounded-full border border-hc-hairline bg-hc-surface px-4 font-semibold text-slate-700 shadow-sm hover:bg-hc-sunken disabled:opacity-30">
+          className="inline-flex min-h-11 items-center gap-1 rounded-full border border-hc-hairline bg-hc-surface px-4 font-semibold text-hc-ink-2 shadow-sm hover:bg-hc-sunken disabled:opacity-30">
           <ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri
         </button>
         <div className="hidden flex-wrap justify-center gap-1.5 sm:flex" role="tablist" aria-label="Glærur">

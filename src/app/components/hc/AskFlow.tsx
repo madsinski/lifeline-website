@@ -132,7 +132,7 @@ export default function AskFlow({ onPick, onFree, portalUrl }: {
         {/* The way past the whole thing, in the same list rather than hidden
             at the end of it. */}
         <button type="button" onClick={onFree}
-          className="flex w-full items-center gap-2 border-t border-hc-hairline px-4 py-3.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-hc-sunken">
+          className="flex w-full items-center gap-2 border-t border-hc-hairline px-4 py-3.5 text-left text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-sunken">
           <PenLine className="h-4 w-4 shrink-0 text-hc-ink-2" aria-hidden />
           Skrifa frjálst í staðinn
         </button>

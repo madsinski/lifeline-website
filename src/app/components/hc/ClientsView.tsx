@@ -77,7 +77,7 @@ export default function ClientsView({ api, onOpenClient }: {
         <span className="flex-1" />
         {tab === "groups" && (
           <button type="button" onClick={() => setAdding(true)}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-ink px-3 text-sm font-semibold text-white hover:bg-emerald-800">
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-brand-dark px-3 text-sm font-semibold text-white hover:bg-emerald-800">
             <Plus className="h-4 w-4" /> Nýr hópur
           </button>
         )}
@@ -146,7 +146,7 @@ export default function ClientsView({ api, onOpenClient }: {
                         return (
                           <li key={m.id}>
                             <button type="button" disabled={!j} onClick={() => j && onOpenClient(j)}
-                              className="w-full truncate rounded-lg bg-hc-surface px-2.5 py-1.5 text-left text-sm text-slate-800 ring-1 ring-hc-hairline enabled:hover:bg-emerald-50 disabled:opacity-60">
+                              className="w-full truncate rounded-lg bg-hc-surface px-2.5 py-1.5 text-left text-sm text-hc-ink-2 ring-1 ring-hc-hairline enabled:hover:bg-emerald-50 disabled:opacity-60">
                               {m.full_name ?? "—"}
                               {!j && <span className="ml-1 text-xs text-hc-ink-3">(engin heilsuferð)</span>}
                             </button>
@@ -215,7 +215,7 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
             className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-hc-brand px-3 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Stofna hóp
           </button>
-          <button type="button" onClick={onClose} className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">Hætta við</button>
+          <button type="button" onClick={onClose} className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">Hætta við</button>
         </div>
       </div>
     </Sheet>

@@ -257,10 +257,10 @@ export default function CoachInbox({ api, onRead }: {
             <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${t.unread ? "bg-red-500" : "bg-transparent"}`} aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-2">
-                <span className={`min-w-0 flex-1 truncate ${t.unread ? "font-bold text-hc-ink" : "font-semibold text-slate-700"}`}>{t.name}</span>
+                <span className={`min-w-0 flex-1 truncate ${t.unread ? "font-bold text-hc-ink" : "font-semibold text-hc-ink-2"}`}>{t.name}</span>
                 <span className="shrink-0 text-xs text-hc-ink-3">{ago(t.lastAt)}</span>
               </span>
-              <span className={`mt-0.5 block truncate text-sm ${t.unread ? "text-slate-700" : "text-hc-ink-2"}`}>
+              <span className={`mt-0.5 block truncate text-sm ${t.unread ? "text-hc-ink-2" : "text-hc-ink-2"}`}>
                 {t.lastFrom === "coach" ? "Þú: " : ""}{t.last}
               </span>
             </span>

@@ -41,7 +41,7 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-700">Næsti tími</p>
               <p className="mt-1 text-lg font-bold text-hc-ink">{a.title}</p>
-              <p className="mt-0.5 flex items-center gap-1.5 text-slate-700">
+              <p className="mt-0.5 flex items-center gap-1.5 text-hc-ink-2">
                 <CalendarClock className="h-4 w-4 text-hc-ink-3" aria-hidden />
                 {WD[at.getDay()]} {at.getDate()}. {MO[at.getMonth()]} kl. {hhmm(at)}
               </p>

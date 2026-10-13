@@ -116,7 +116,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
           <div className="flex flex-wrap gap-1.5">
             {ACTIVITY_GROUPS.map((g) => (
               <button key={g} type="button" onClick={() => setGroup(g)} aria-pressed={group === g}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-slate-700 ring-1 ring-hc-hairline"}`}>{g}</button>
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline"}`}>{g}</button>
             ))}
           </div>
 

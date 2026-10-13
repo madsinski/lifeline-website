@@ -364,24 +364,24 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-5">
             {(c?.bio || !!c?.specialties?.length) && (
               <button type="button" onClick={() => setAbout(!about)} aria-expanded={about}
-                className="flex items-center gap-1 text-sm font-semibold text-hc-ink-2 hover:text-slate-800">
+                className="flex items-center gap-1 text-sm font-semibold text-hc-ink-2 hover:text-hc-ink-2">
                 Um {first}
                 <ChevronDown className={`h-4 w-4 transition ${about ? "rotate-180" : ""}`} aria-hidden />
               </button>
             )}
             {data.coaches.length > 0 && (
               <button type="button" onClick={() => setSwitching(!switching)} aria-expanded={switching}
-                className="text-sm font-semibold text-hc-brand-dark hover:underline">Skipta um þjálfara</button>
+                className="text-sm font-semibold text-hc-brand-text hover:underline">Skipta um þjálfara</button>
             )}
           </div>
         )}
         {about && (
           <div className="space-y-2 border-t border-hc-hairline px-4 py-3 sm:px-5">
-            {c?.bio && <p className="text-sm leading-relaxed text-slate-700">{c.bio}</p>}
+            {c?.bio && <p className="text-sm leading-relaxed text-hc-ink-2">{c.bio}</p>}
             {!!c?.specialties?.length && (
               <ul className="flex flex-wrap gap-1.5">
                 {c.specialties.map((x) => (
-                  <li key={x} className="rounded-full bg-hc-brand/10 px-2.5 py-1 text-xs font-semibold text-hc-brand-dark">{x}</li>
+                  <li key={x} className="rounded-full bg-hc-brand/10 px-2.5 py-1 text-xs font-semibold text-hc-brand-text">{x}</li>
                 ))}
               </ul>
             )}
@@ -503,7 +503,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           <div className="mx-auto flex max-w-4xl items-end gap-2 border-t border-hc-hairline bg-hc-surface/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
             <button type="button" onClick={() => setPrompts(true)}
               aria-label="Tilbúin skilaboð"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-2 ring-1 ring-hc-hairline transition hover:bg-hc-sunken hover:text-hc-brand-dark">
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-2 ring-1 ring-hc-hairline transition hover:bg-hc-sunken hover:text-hc-brand-text">
               <MessageSquarePlus className="h-5 w-5" aria-hidden />
             </button>
             <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
@@ -592,7 +592,7 @@ function Book({ data, busy, onPost }: {
             {data.bookings.map((b) => (
               <button key={b.id} type="button" onClick={() => setOpenBooking(b)}
                 className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 p-4 text-left transition hover:bg-hc-sunken">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-text">
                   {b.kind === "video" ? <Video className="h-5 w-5" aria-hidden /> : <Activity className="h-5 w-5" aria-hidden />}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -620,14 +620,14 @@ function Book({ data, busy, onPost }: {
           {/* The menu: the brand tint, because these are the choices. */}
           <button type="button" onClick={() => setChoice("video")} disabled={left <= 0}
             className="flex flex-col items-start gap-1 rounded-hc-card bg-hc-brand/5 p-5 text-left shadow-hc-card ring-1 ring-hc-brand/25 transition hover:bg-hc-brand/10 hover:shadow-hc-raised disabled:opacity-50 disabled:hover:bg-hc-brand/5 disabled:hover:shadow-hc-card">
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark"><Video className="h-5 w-5" aria-hidden /></span>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-text"><Video className="h-5 w-5" aria-hidden /></span>
             <span className="mt-1 font-bold text-hc-ink">Myndsímtal</span>
             <span className="text-sm text-hc-ink-2">30 mínútur með þjálfaranum.</span>
             <span className="mt-2 flex items-center gap-1.5" aria-label={`${left} af ${allowance} eftir í þessum mánuði`}>
               {Array.from({ length: allowance }, (_, i) => (
                 <span key={i} className={`h-2.5 w-2.5 rounded-full ${i < left ? "bg-hc-brand" : "bg-slate-200"}`} aria-hidden />
               ))}
-              <span className="ml-1 text-sm font-bold tabular-nums text-slate-700">{left}/{allowance}</span>
+              <span className="ml-1 text-sm font-bold tabular-nums text-hc-ink-2">{left}/{allowance}</span>
               <span className="text-xs text-hc-ink-2">í mánuðinum</span>
             </span>
             {left <= 0 && <span className="text-xs font-semibold text-hc-ink-2">Búin — næsti mánuður opnast 1.</span>}
@@ -635,7 +635,7 @@ function Book({ data, busy, onPost }: {
 
           <button type="button" onClick={() => setChoice("measurement")}
             className="flex flex-col items-start gap-1 rounded-hc-card bg-hc-brand/5 p-5 text-left shadow-hc-card ring-1 ring-hc-brand/25 transition hover:bg-hc-brand/10 hover:shadow-hc-raised">
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark"><Activity className="h-5 w-5" aria-hidden /></span>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-text"><Activity className="h-5 w-5" aria-hidden /></span>
             <span className="mt-1 font-bold text-hc-ink">Mælingar</span>
             <span className="text-sm text-hc-ink-2">Veldu eina eða fleiri — tíminn leggst saman.</span>
             <span className="mt-2 text-xs text-hc-ink-2">{MEASURES.map((m) => m.label).join(" · ")}</span>
@@ -664,7 +664,7 @@ function Book({ data, busy, onPost }: {
                         on ? "border-hc-brand bg-hc-brand text-white" : "border-slate-300"}`}>
                         {on && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />}
                       </span>
-                      <m.Icon className={`h-5 w-5 shrink-0 ${on ? "text-hc-brand-dark" : "text-hc-ink-3"}`} aria-hidden />
+                      <m.Icon className={`h-5 w-5 shrink-0 ${on ? "text-hc-brand-text" : "text-hc-ink-3"}`} aria-hidden />
                       <span className="min-w-0 flex-1">
                         <span className="block font-semibold text-hc-ink">{m.label}</span>
                         <span className="block text-sm text-hc-ink-2">{m.hint}</span>
@@ -679,7 +679,7 @@ function Book({ data, busy, onPost }: {
 
           {minutes > 0 && (
             <>
-              <p className="flex items-baseline justify-between gap-2 bg-hc-brand/5 px-4 py-2.5 text-sm font-semibold text-hc-brand-dark sm:px-5">
+              <p className="flex items-baseline justify-between gap-2 bg-hc-brand/5 px-4 py-2.5 text-sm font-semibold text-hc-brand-text sm:px-5">
                 <span>{choice === "video" ? "Myndsímtal" : `${picked.length} ${picked.length === 1 ? "mæling" : "mælingar"}`}</span>
                 <span className="tabular-nums">{minutes} mínútur í allt</span>
               </p>
@@ -748,7 +748,7 @@ function Slots({ minutes, busy, onBook }: {
             return (
               <button key={d.toISOString()} type="button" onClick={() => setDay(d)}
                 className={`flex w-16 shrink-0 flex-col items-center gap-0.5 rounded-xl px-2 py-2.5 text-center transition ${
-                  on ? "bg-hc-brand text-white shadow-sm" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
+                  on ? "bg-hc-brand text-white shadow-sm" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                 <span className="text-[11px] font-bold uppercase opacity-70">{DAY_SHORT[d.getDay()]}</span>
                 <span className="text-xl font-bold leading-none tabular-nums">{d.getDate()}</span>
                 <span className="text-[11px] opacity-70">{MO[d.getMonth()]}</span>
@@ -765,7 +765,7 @@ function Slots({ minutes, busy, onBook }: {
             {slots.map((t) => (
               <button key={t.toISOString()} type="button" disabled={busy}
                 onClick={() => void onBook(t.toISOString())}
-                className="rounded-lg bg-hc-sunken-2 py-2 text-sm font-semibold tabular-nums text-slate-800 transition hover:bg-hc-brand hover:text-white disabled:opacity-40">
+                className="rounded-lg bg-hc-sunken-2 py-2 text-sm font-semibold tabular-nums text-hc-ink-2 transition hover:bg-hc-brand hover:text-white disabled:opacity-40">
                 {hhmm(t)}
               </button>
             ))}
@@ -872,7 +872,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Nýr tími</p>
             <Slots minutes={booking.minutes} busy={busy} onBook={move} />
             <button type="button" onClick={() => setMoving(false)}
-              className="mt-2 w-full text-center text-xs font-semibold text-hc-ink-2 hover:text-slate-800 hover:underline">
+              className="mt-2 w-full text-center text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2 hover:underline">
               Hætta við að færa
             </button>
           </div>
@@ -902,7 +902,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
                 Afbóka
               </button>
               <button type="button" onClick={() => setConfirming(false)}
-                className="flex-1 rounded-hc-element bg-hc-surface px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-300 transition hover:bg-hc-sunken">
+                className="flex-1 rounded-hc-element bg-hc-surface px-3 py-2 text-sm font-semibold text-hc-ink-2 ring-1 ring-slate-300 transition hover:bg-hc-sunken">
                 Nei
               </button>
             </div>

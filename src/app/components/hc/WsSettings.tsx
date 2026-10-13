@@ -102,7 +102,7 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
         <button type="button" onClick={toggleSound}
           className="flex w-full items-center gap-3 rounded-xl border border-hc-hairline p-3 text-left transition hover:bg-hc-sunken">
           <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
-            sound ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-hc-sunken-2 text-hc-ink-3"}`}>
+            sound ? "bg-hc-brand-surface text-hc-brand-text" : "bg-hc-sunken-2 text-hc-ink-3"}`}>
             {sound ? <Bell className="h-4 w-4" aria-hidden /> : <BellOff className="h-4 w-4" aria-hidden />}
           </span>
           <span className="min-w-0 flex-1">
@@ -125,7 +125,7 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
           {([["system", "Kerfið", Monitor], ["light", "Ljóst", Sun], ["dark", "Dökkt", Moon]] as const).map(([k, label, Icon]) => (
             <button key={k} type="button" onClick={() => pickScheme(k)} aria-pressed={scheme === k}
               className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
-                scheme === k ? "border-hc-brand bg-hc-brand-surface text-hc-brand-dark"
+                scheme === k ? "border-hc-brand bg-hc-brand-surface text-hc-brand-text"
                              : "border-hc-hairline text-hc-ink-2 hover:bg-hc-sunken"}`}>
               <Icon className="h-4 w-4" aria-hidden /> {label}
             </button>
@@ -171,12 +171,12 @@ function Row({ icon, title, detail, cta, onClick, done }: {
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 text-sm font-semibold text-hc-ink">
           {title}
-          {done && <Check className="h-3.5 w-3.5 text-hc-brand-dark" aria-hidden />}
+          {done && <Check className="h-3.5 w-3.5 text-hc-brand-text" aria-hidden />}
         </span>
         <span className="block text-xs text-hc-ink-2">{detail}</span>
       </span>
       <button type="button" onClick={onClick}
-        className="shrink-0 rounded-full border border-hc-brand/40 bg-hc-surface px-3 py-1.5 text-xs font-semibold text-hc-brand-dark transition hover:bg-hc-brand-surface">
+        className="shrink-0 rounded-full border border-hc-brand/40 bg-hc-surface px-3 py-1.5 text-xs font-semibold text-hc-brand-text transition hover:bg-hc-brand-surface">
         {cta}
       </button>
     </div>

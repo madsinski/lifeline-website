@@ -155,7 +155,7 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
           ))}
         </div>
         <button type="button" onClick={onConnect}
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-hc-surface px-2.5 text-xs font-semibold text-slate-700 hover:bg-hc-sunken">
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-hc-surface px-2.5 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">
           <Link2 className="h-3.5 w-3.5" /> Tengja við dagatal
         </button>
         {loading && <Loader2 className="h-4 w-4 animate-spin text-hc-ink-3" />}
@@ -223,7 +223,7 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
                           <span className="block truncate font-bold" style={{ color: lk.color }}>
                             {lk.short}{ev.mode === "video" && <Video className="ml-1 inline h-3 w-3" />}
                           </span>
-                          <span className="block truncate text-slate-700">{ev.client ?? "—"}</span>
+                          <span className="block truncate text-hc-ink-2">{ev.client ?? "—"}</span>
                         </div>
                       );
                     })}
@@ -296,7 +296,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
         <div className="mt-3 flex gap-1">
           {APPT_KINDS.map((k) => (
             <button key={k} type="button" onClick={() => setKind(k)}
-              className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${kind === k ? "text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}
+              className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${kind === k ? "text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}
               style={kind === k ? { backgroundColor: APPT_IS[k].color } : undefined}>
               {APPT_IS[k].label}
             </button>
@@ -307,7 +307,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
           <div className="mt-2 flex gap-1" role="group" aria-label="Hvar fer viðtalið fram">
             {([["video", "Myndsímtal"], ["in_person", "Á staðnum"]] as const).map(([m, label]) => (
               <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m}
-                className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${mode === m ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
+                className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${mode === m ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                 {label}
               </button>
             ))}
@@ -337,7 +337,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
         </ul>
 
         {msg && <p className="mt-2 text-sm text-red-700">{msg}</p>}
-        <button type="button" onClick={onClose} className="mt-3 w-full rounded-xl border border-slate-300 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">Loka</button>
+        <button type="button" onClick={onClose} className="mt-3 w-full rounded-xl border border-slate-300 py-2 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">Loka</button>
       </div>
     </Sheet>
   );

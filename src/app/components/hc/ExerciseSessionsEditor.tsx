@@ -115,7 +115,7 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
                 </ul>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setPicker({ si, replace: null })} className="rounded-xl bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700">+ Úr æfingasafni</button>
-                  <button type="button" onClick={() => setItems(si, [...s.items, { name: "", prescription: "", block: "main" }])} className="rounded-xl border border-hc-hairline px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">+ Frjáls lína</button>
+                  <button type="button" onClick={() => setItems(si, [...s.items, { name: "", prescription: "", block: "main" }])} className="rounded-xl border border-hc-hairline px-3 py-2 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">+ Frjáls lína</button>
                 </div>
               </div>
             )}

@@ -139,14 +139,14 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                       <div className="mt-1.5 flex items-center gap-3">
                         <button type="button" aria-label="Minnka álag" disabled={settings.load <= -2}
                           onClick={() => set({ load: Math.max(-2, settings.load - 1) })}
-                          className="grid h-10 w-10 place-items-center rounded-full bg-hc-sunken-2 text-lg font-bold text-slate-700 disabled:opacity-30">−</button>
+                          className="grid h-10 w-10 place-items-center rounded-full bg-hc-sunken-2 text-lg font-bold text-hc-ink-2 disabled:opacity-30">−</button>
                         <span className="min-w-0 flex-1 text-center">
                           <span className="block text-sm font-bold text-hc-ink">{LOAD_IS[settings.load] ?? "Venjulegt"}</span>
                           <span className="block text-xs text-hc-ink-2">{settings.load > 0 ? `+${settings.load}` : settings.load}</span>
                         </span>
                         <button type="button" aria-label="Auka álag" disabled={settings.load >= 2}
                           onClick={() => set({ load: Math.min(2, settings.load + 1) })}
-                          className="grid h-10 w-10 place-items-center rounded-full bg-hc-sunken-2 text-lg font-bold text-slate-700 disabled:opacity-30">+</button>
+                          className="grid h-10 w-10 place-items-center rounded-full bg-hc-sunken-2 text-lg font-bold text-hc-ink-2 disabled:opacity-30">+</button>
                       </div>
                       <p className="mt-1 text-[11px] text-hc-ink-2">Gildir um allar æfingar. Stakar æfingar má stilla á þeim sjálfum.</p>
                     </div>
@@ -157,7 +157,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                           <button key={lv.key} type="button" aria-pressed={settings.level === lv.key}
                             onClick={() => set({ level: lv.key })}
                             className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                              settings.level === lv.key ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-hc-surface text-slate-700 ring-hc-hairline"}`}>
+                              settings.level === lv.key ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-hc-surface text-hc-ink-2 ring-hc-hairline"}`}>
                             {lv.label}
                           </button>
                         ))}

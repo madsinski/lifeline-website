@@ -122,21 +122,21 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
         </p>
       )}
 
-      {msg && <p className="mt-2 text-xs font-semibold text-hc-brand-dark">{msg}</p>}
+      {msg && <p className="mt-2 text-xs font-semibold text-hc-brand-text">{msg}</p>}
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-hc-hairline pt-3">
         <button type="button" onClick={() => setMore(!more)} aria-expanded={more}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-hc-ink-2 hover:text-slate-700">
+          className="inline-flex items-center gap-1 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">
           Nánar <ChevronDown className={`h-3.5 w-3.5 transition ${more ? "rotate-180" : ""}`} aria-hidden />
         </button>
         {d.partner?.canNudge && !sending && (
           <button type="button" onClick={() => setSending(true)}
-            className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-hc-brand-dark hover:underline">
+            className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-hc-brand-text hover:underline">
             <Hand className="h-3.5 w-3.5" aria-hidden />Senda kveðju
           </button>
         )}
         {!d.partner && (
-          <Link href="/account/heilsuferd/adgangur" className="ml-auto text-xs font-semibold text-hc-brand-dark hover:underline">
+          <Link href="/account/heilsuferd/adgangur" className="ml-auto text-xs font-semibold text-hc-brand-text hover:underline">
             Velja félaga
           </Link>
         )}

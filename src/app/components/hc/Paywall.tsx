@@ -107,7 +107,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
       {pkg.includes?.length ? (
         <ul className="mt-3 space-y-1.5">
           {pkg.includes.map((x) => (
-            <li key={x} className="flex gap-2 text-sm text-slate-700">
+            <li key={x} className="flex gap-2 text-sm text-hc-ink-2">
               <Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand" aria-hidden />
               <span>{x}</span>
             </li>
@@ -125,7 +125,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
           á mánuði{applied?.monthsFree ? ` · ${applied.monthsFree === 1 ? "fyrsti mánuður frír" : `${applied.monthsFree} mánuðir fríir`}` : ""}
         </span>
       </div>
-      {applied && <p className="mt-1 text-sm font-semibold text-hc-brand-dark">{applied.label}</p>}
+      {applied && <p className="mt-1 text-sm font-semibold text-hc-brand-text">{applied.label}</p>}
 
       {/* The code. */}
       <div className="mt-3">
@@ -137,14 +137,14 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
             placeholder="KÓÐI"
             className="min-w-0 flex-1 rounded-hc-element border border-slate-300 px-3 py-2 text-sm uppercase outline-none focus:ring-2 focus:ring-hc-brand/30" />
           <button type="button" onClick={() => void tryCode()} disabled={busy !== null || !code.trim()}
-            className="rounded-full border border-slate-300 bg-hc-surface px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-40">
+            className="rounded-full border border-slate-300 bg-hc-surface px-4 py-2 text-sm font-semibold text-hc-ink-2 disabled:opacity-40">
             {busy === "code" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : "Nota kóða"}
           </button>
         </div>
         {codeMsg && <p className="mt-1 text-sm text-hc-ink-2" role="status">{codeMsg}</p>}
       </div>
 
-      <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm text-slate-700">
+      <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm text-hc-ink-2">
         <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)}
           className="mt-0.5 h-4 w-4 shrink-0 accent-[#10B981]" />
         <span>
@@ -157,7 +157,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
       {err && <p className="mt-2 text-sm font-semibold text-red-700" role="alert">{err}</p>}
 
       <button type="button" onClick={() => void subscribe()} disabled={busy !== null || !terms}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-hc-ink px-5 py-3 font-bold text-white transition disabled:opacity-40">
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-hc-brand-dark px-5 py-3 font-bold text-white transition disabled:opacity-40">
         {busy === "pay" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
         {price === 0 ? "Hefja áskrift" : `Hefja áskrift — ${kr(price)}/mán.`}
       </button>
