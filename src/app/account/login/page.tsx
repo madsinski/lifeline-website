@@ -209,6 +209,14 @@ function AccountLoginContent() {
         setSignupStage("terms");
         setError("");
         setLoading(false);
+        /* Advancing a step used to leave the scroll position where the
+           button was, so the page swapped its content ABOVE the viewport
+           and the person was left looking at the middle of a form they had
+           already filled in. On a 390x844 phone against a 2771px page that
+           reads as nothing happening. */
+        setTimeout(() => {
+          document.getElementById("signup-terms-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 50);
         return;
       }
       // Stage 2 (terms) — actually create the account.
@@ -618,7 +626,7 @@ function TermsConsentStage({
 }) {
   return (
     <form onSubmit={onConfirm} className="space-y-5">
-      <div>
+      <div id="signup-terms-top" className="scroll-mt-4">
         <h2 className="text-lg font-semibold text-[#0F172A]">
           {firstName ? `Næstum þar, ${firstName}` : "Næstum þar"}
         </h2>
@@ -714,11 +722,23 @@ function TermsConsentStage({
         <button
           type="submit"
           disabled={loading || !acceptTerms}
+          title={!acceptTerms ? "Hakaðu við að þú samþykkir skilmálana" : undefined}
+          aria-describedby={!acceptTerms ? "signup-blocked" : undefined}
           className="flex-1 bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Stofnar aðgang..." : "Samþykkja og stofna aðgang"}
         </button>
       </div>
+      {/* Why the button does nothing.
+          It is disabled until the required box is ticked, and that box sits
+          about 300px further up — off screen on a phone. A greyed button
+          with no reason beside it is indistinguishable from a broken one,
+          which is exactly how it was reported. */}
+      {!acceptTerms && (
+        <p id="signup-blocked" className="text-center text-sm text-amber-700">
+          Hakaðu við að þú samþykkir skilmálana hér fyrir ofan til að halda áfram.
+        </p>
+      )}
     </form>
   );
 }
