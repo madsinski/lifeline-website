@@ -58,8 +58,8 @@ const TRACK_IS: Record<string, string> = {
  */
 function weekTone(days: number): { label: string; cls: string } {
   if (days >= 5) return { label: "Í góðum takti", cls: "bg-hc-brand/10 text-hc-brand-text ring-hc-brand/30" };
-  if (days >= 2) return { label: "Dregur úr", cls: "bg-amber-50 text-amber-900 ring-amber-200" };
-  return { label: "Ekkert í viku", cls: "bg-rose-50 text-rose-900 ring-rose-200" };
+  if (days >= 2) return { label: "Dregur úr", cls: "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30" };
+  return { label: "Ekkert í viku", cls: "bg-hc-bad-surface text-hc-bad-ink ring-hc-bad-ink/30" };
 }
 
 export default function Caseload({ api, onOpen }: {
@@ -113,7 +113,7 @@ export default function Caseload({ api, onOpen }: {
           <span className="font-normal text-hc-ink-2">{clients.length}</span>
         </p>
         {waiting > 0 && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-900 ring-1 ring-rose-200">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-hc-bad-surface px-2.5 py-0.5 text-xs font-bold text-hc-bad-ink ring-1 ring-hc-bad-ink/30">
             <MessageSquare className="h-3.5 w-3.5" aria-hidden />
             {waiting} {waiting === 1 ? "bíður svars" : "bíða svars"}
           </span>
@@ -143,7 +143,7 @@ export default function Caseload({ api, onOpen }: {
                   {/* The last thing they said, because that is usually the
                       reason to open somebody. */}
                   {c.last_message ? (
-                    <span className={`mt-1 block truncate text-sm ${c.needs_reply ? "font-semibold text-rose-900" : "text-hc-ink-2"}`}>
+                    <span className={`mt-1 block truncate text-sm ${c.needs_reply ? "font-semibold text-hc-bad-ink" : "text-hc-ink-2"}`}>
                       {c.last_message.fromClient ? "" : "Þú: "}{c.last_message.body}
                     </span>
                   ) : (

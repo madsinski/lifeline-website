@@ -162,7 +162,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
             : <div className="flex aspect-video items-center justify-center bg-hc-sunken-2 text-sm text-hc-ink-2">Engin mynd valin</div>}
           {(slide.title || slide.caption) && (
             <figcaption className="px-6 py-4">
-              {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{counter}</p>}
+              {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-hc-ok-ink">{counter}</p>}
               {slide.title && <p className="mt-1 text-lg font-bold text-hc-ink">{slide.title}</p>}
               {slide.caption && <p className="text-sm text-hc-ink-2">{slide.caption}</p>}
             </figcaption>
@@ -233,7 +233,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
           <div className="flex min-h-[300px] flex-col justify-center gap-4 p-8 sm:flex-row sm:items-center sm:p-12">
             <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-white shadow-md"><Lightbulb className="h-8 w-8" aria-hidden /></span>
             <div>
-              {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-700">{counter} · Ráð</p>}
+              {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-hc-warn-ink">{counter} · Ráð</p>}
               <h2 className="mt-1 text-2xl font-bold text-hc-ink">{slide.title}</h2>
               {slide.body && <p className="mt-2 whitespace-pre-line text-lg text-hc-ink-2">{slide.body}</p>}
               <Refs refs={slide.refs} light />

@@ -103,12 +103,12 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
       {open.length > 0 && (
         <ul className="space-y-1.5">
           {open.map((r) => (
-            <li key={r.id} className="rounded-xl bg-amber-50 p-2.5 ring-1 ring-amber-200">
-              <p className="text-sm font-semibold text-amber-900">
+            <li key={r.id} className="rounded-xl bg-hc-warn-surface p-2.5 ring-1 ring-hc-warn-ink/30">
+              <p className="text-sm font-semibold text-hc-warn-ink">
                 {TARGET_IS[r.target].label}
                 <span className="ml-1.5 font-normal">· {r.reason}</span>
               </p>
-              <p className="mt-0.5 text-[11px] text-amber-800">
+              <p className="mt-0.5 text-[11px] text-hc-warn-ink">
                 {STATUS_IS[r.status]}
                 {r.doctor_notified_at ? " · skeyti sent" : " · skeyti ekki sent"}
                 {r.suggested_by === "ai" ? " · tillaga AI" : ""}
@@ -144,7 +144,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={() => setOver(false)}
         onDrop={onDrop}
-        className={`rounded-xl border-2 border-dashed p-3 transition ${over ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-hc-sunken/60"}`}
+        className={`rounded-xl border-2 border-dashed p-3 transition ${over ? "border-emerald-500 bg-hc-ok-surface" : "border-slate-300 bg-hc-sunken/60"}`}
       >
         <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Tilvísun</p>
         {staged.length === 0 ? (
@@ -182,7 +182,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         )}
       </div>
 
-      {msg && <p role="status" className="text-xs leading-snug text-emerald-800">{msg}</p>}
+      {msg && <p role="status" className="text-xs leading-snug text-hc-ok-ink">{msg}</p>}
 
       {/* What the plan proposal thought */}
       {fresh.length > 0 && (
@@ -202,7 +202,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
                     {s.why && <span className="mt-0.5 block text-[11px] text-hc-ink-2">{s.why}</span>}
                   </span>
                   <button type="button" aria-label="Bæta við" onClick={() => add(s.target, s.reason, "ai")}
-                    className="shrink-0 rounded p-1 text-hc-ink-3 hover:bg-emerald-50 hover:text-emerald-700">
+                    className="shrink-0 rounded p-1 text-hc-ink-3 hover:bg-hc-ok-surface hover:text-hc-ok-ink">
                     <Plus className="h-3.5 w-3.5" />
                   </button>
                 </div>

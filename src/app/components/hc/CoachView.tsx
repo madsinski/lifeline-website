@@ -230,7 +230,7 @@ export default function CoachView({ api, startOn, focusNewest = false, portalUrl
         ))}
       </nav>
 
-      {err && <p className="rounded-hc-element bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-900 ring-1 ring-rose-200">{err}</p>}
+      {err && <p className="rounded-hc-element bg-hc-bad-surface px-4 py-2.5 text-sm font-semibold text-hc-bad-ink ring-1 ring-hc-bad-ink/30">{err}</p>}
 
       {tab === "talk" && <Talk data={data} draft={draft} setDraft={setDraft} busy={busy} pending={pending}
         box={box} end={end} onSend={send} onPost={post} portalUrl={portalUrl} />}
@@ -444,7 +444,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
                 m.author_kind === "client"
                   ? "bg-hc-brand text-white"
                   : m.kind === "nudge"
-                    ? "bg-amber-50 text-amber-950 ring-1 ring-amber-200"
+                    ? "bg-hc-warn-surface text-amber-950 ring-1 ring-hc-warn-ink/30"
                     : "bg-hc-surface text-hc-ink ring-1 ring-hc-hairline"}`}>
                 {m.author_kind === "coach" && (
                   <p className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide opacity-60">
@@ -885,9 +885,9 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
 
         {/* Last, and it asks. */}
         {confirming ? (
-          <div className="rounded-hc-element bg-rose-50 p-3 ring-1 ring-rose-200">
-            <p className="text-sm font-semibold text-rose-900">Afbóka þennan tíma?</p>
-            <p className="mt-0.5 text-xs text-rose-800">
+          <div className="rounded-hc-element bg-hc-bad-surface p-3 ring-1 ring-hc-bad-ink/30">
+            <p className="text-sm font-semibold text-hc-bad-ink">Afbóka þennan tíma?</p>
+            <p className="mt-0.5 text-xs text-hc-bad-ink">
               {isVideo
                 /* Accurate, which the first draft was not: the allowance
                    query excludes cancelled rows, so cancelling hands the
@@ -909,7 +909,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
           </div>
         ) : (
           <button type="button" onClick={() => setConfirming(true)}
-            className="w-full text-center text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-rose-700 hover:underline">
+            className="w-full text-center text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-bad-ink hover:underline">
             Afbóka tímann
           </button>
         )}

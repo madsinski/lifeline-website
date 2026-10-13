@@ -89,7 +89,7 @@ const PILLAR_DATIVE: Record<Pillar, string> = {
 
 const tmpId = () => Math.random().toString(36).slice(2);
 const SIGNAL_IS = { red: "Þarfnast athygli", yellow: "Má bæta", green: "Í góðu lagi" } as const;
-const SIGNAL_CLS = { red: "bg-red-50 text-red-800 ring-red-200", yellow: "bg-amber-50 text-amber-900 ring-amber-200", green: "bg-emerald-50 text-emerald-800 ring-emerald-200" } as const;
+const SIGNAL_CLS = { red: "bg-red-50 text-red-800 ring-red-200", yellow: "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30", green: "bg-hc-ok-surface text-hc-ok-ink ring-hc-ok-ink/30" } as const;
 
 export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
   api: Api; onDone: () => void; onCancel: () => void;
@@ -208,7 +208,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         {busy ? "Vista…" : d.plan ? "Vista breytingar" : "Vista áætlunina"}
       </button>
       <button type="button" onClick={onCancel} className={hcBtn.ghost}>Hætta við</button>
-      {touched.length > 0 && !busy && <p className="text-sm font-medium text-amber-800">Óvistaðar breytingar</p>}
+      {touched.length > 0 && !busy && <p className="text-sm font-medium text-hc-warn-ink">Óvistaðar breytingar</p>}
       {msg && <p role="alert" className="text-sm text-red-700">{msg}</p>}
     </div>
   );
@@ -429,13 +429,13 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                           {m.frequency && <p className="text-xs text-hc-ink-2">{m.frequency}</p>}
                           <p className="mt-0.5 line-clamp-2 text-xs text-hc-ink-2">{m.summary}</p>
                           <div className="mt-1.5 flex flex-wrap gap-1">
-                            {why && f.targets.length === 0 && <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 ring-1 ring-amber-200"><Sparkles className="h-3 w-3" aria-hidden />Tillaga · {why}</span>}
+                            {why && f.targets.length === 0 && <span className="inline-flex items-center gap-1 rounded-full bg-hc-warn-surface px-2 py-0.5 text-[11px] font-semibold text-hc-warn-ink ring-1 ring-hc-warn-ink/30"><Sparkles className="h-3 w-3" aria-hidden />Tillaga · {why}</span>}
                             {m.evidence_grade && GRADE_IS[m.evidence_grade] && <span title={GRADE_IS[m.evidence_grade].hint} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${GRADE_IS[m.evidence_grade].className}`}>Rannsóknir {m.evidence_grade}</span>}
                           </div>
                           <FitMeter fit={f} titles={d.marker_titles ?? {}} rank={i + 1} />
                         </div>
                         <button type="button" disabled={taken} onClick={() => { mark(focus); add(m); }} aria-label={taken ? `${m.title} er í áætluninni` : `Bæta við: ${m.title}`}
-                          className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${taken ? "bg-emerald-50 text-emerald-700" : "bg-hc-brand text-white hover:bg-hc-brand-dark"}`}>
+                          className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${taken ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-hc-brand text-white hover:bg-hc-brand-dark"}`}>
                           {taken ? "Í áætlun" : "+ Bæta við"}
                         </button>
                       </div>

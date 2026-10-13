@@ -26,7 +26,7 @@ export interface Checkpoint {
 const DOT: Record<Checkpoint["state"], string> = {
   done: "bg-emerald-500 text-white",
   current: "bg-hc-brand-dark text-white ring-4 ring-slate-900/10",
-  waiting: "bg-amber-100 text-amber-800",
+  waiting: "bg-amber-100 text-hc-warn-ink",
   upcoming: "bg-hc-sunken-2 text-hc-ink-3",
 };
 const LINE: Record<Checkpoint["state"], string> = {
@@ -38,7 +38,7 @@ const LINE: Record<Checkpoint["state"], string> = {
 const TEXT: Record<Checkpoint["state"], string> = {
   done: "text-hc-ink-2",
   current: "font-bold text-hc-ink",
-  waiting: "text-amber-800",
+  waiting: "text-hc-warn-ink",
   upcoming: "text-hc-ink-3",
 };
 

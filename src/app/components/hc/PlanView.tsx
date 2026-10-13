@@ -136,7 +136,7 @@ function Header({ plan, clientName, print }: { plan: ActionPlan; clientName?: st
   const review = fmtDate(plan.review_date);
   return (
     <div className={print ? "mb-6 border-b pb-4" : "mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-6 text-white sm:p-8"}>
-      <p className={`text-xs font-bold uppercase tracking-[0.2em] ${print ? "text-emerald-700" : "text-emerald-300"}`}>Aðgerðaáætlun · Lifeline Health</p>
+      <p className={`text-xs font-bold uppercase tracking-[0.2em] ${print ? "text-hc-ok-ink" : "text-emerald-300"}`}>Aðgerðaáætlun · Lifeline Health</p>
       <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">{plan.headline || "Áætlunin þín til næstu þriggja mánaða"}</h1>
       <p className={`mt-2 text-sm ${print ? "text-hc-ink-2" : "text-emerald-100"}`}>
         {clientName ? `${clientName} · ` : ""}{start ? `Frá ${start}` : ""}{review ? ` · Endurmat ${review}` : ""}
@@ -186,7 +186,7 @@ function Overview({ plan, byPillar }: { plan: ActionPlan; byPillar: (p: Pillar) 
       </div>
       {plan.nurse_note && (
         <div className="break-inside-avoid rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Frá hjúkrunarfræðingnum þínum</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-hc-ok-ink">Frá hjúkrunarfræðingnum þínum</p>
           <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-hc-ink-2">{plan.nurse_note}</p>
         </div>
       )}
@@ -217,7 +217,7 @@ function ModuleCard({ m }: { m: PlanItem }) {
       <div className="mt-3 space-y-3 pl-4 text-sm leading-relaxed text-hc-ink-2">
         {m.details && <p>{m.details}</p>}
         {m.note && (
-          <p className="rounded-xl bg-amber-50 px-3 py-2 text-amber-900"><span className="font-semibold">Athugasemd til þín: </span>{m.note}</p>
+          <p className="rounded-xl bg-hc-warn-surface px-3 py-2 text-hc-warn-ink"><span className="font-semibold">Athugasemd til þín: </span>{m.note}</p>
         )}
       </div>
     </details>
@@ -256,12 +256,12 @@ function Lectures({ lectures, href }: { lectures: LectureRef[]; href?: (slug: st
         const to = href?.(l.slug) ?? null;
         const body = (
           <>
-            <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
+            <p className="text-xs font-bold uppercase tracking-wide text-hc-ok-ink">
               {KIND_IS[l.kind] ?? "Fræðsla"}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}
             </p>
             <p className="mt-1 text-lg font-bold leading-snug text-hc-ink">{l.title}</p>
             {l.subtitle && <p className="mt-1 text-sm text-hc-ink-2">{l.subtitle}</p>}
-            {to && <p className="mt-3 text-sm font-semibold text-emerald-700">Opna fræðsluna →</p>}
+            {to && <p className="mt-3 text-sm font-semibold text-hc-ok-ink">Opna fræðsluna →</p>}
           </>
         );
         return to
@@ -514,7 +514,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/lifeline-logo-rebrand.png" alt="Lifeline Health" className="h-[9mm] w-auto" />
-          <p className="mt-2 text-[7.5pt] font-bold uppercase tracking-[0.2em] text-emerald-700">Aðgerðaáætlun</p>
+          <p className="mt-2 text-[7.5pt] font-bold uppercase tracking-[0.2em] text-hc-ok-ink">Aðgerðaáætlun</p>
         </div>
         <div className="text-right">
           <p className="text-[14pt] font-bold text-hc-ink">{clientName || ""}</p>
@@ -594,8 +594,8 @@ function PrintPage({ plan, clientName, author, byPillar }: {
       ) : null}
 
       {plan.nurse_note && (
-        <section className="mt-3 rounded-lg bg-emerald-50 px-4 py-2.5">
-          <p className="text-[7.5pt] font-bold uppercase tracking-wide text-emerald-700">Skilaboð</p>
+        <section className="mt-3 rounded-lg bg-hc-ok-surface px-4 py-2.5">
+          <p className="text-[7.5pt] font-bold uppercase tracking-wide text-hc-ok-ink">Skilaboð</p>
           <p className={`mt-0.5 whitespace-pre-line text-[9pt] text-hc-ink-2 ${dense ? "line-clamp-2" : "line-clamp-3"}`}>{clip(plan.nurse_note, 360)}</p>
         </section>
       )}

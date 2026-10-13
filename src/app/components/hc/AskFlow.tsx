@@ -151,8 +151,8 @@ export default function AskFlow({ onPick, onFree, portalUrl }: {
       {/* Said before the options, not after: somebody who came here about a
           blood test should know who answers it before they pick anything. */}
       {topic.clinical && (
-        <div className="mx-4 mb-2 rounded-xl bg-sky-50 p-3 ring-1 ring-sky-200">
-          <p className="flex items-start gap-2 text-sm font-semibold text-sky-900">
+        <div className="mx-4 mb-2 rounded-xl bg-hc-info-surface p-3 ring-1 ring-hc-info-ink/30">
+          <p className="flex items-start gap-2 text-sm font-semibold text-hc-info-ink">
             <Stethoscope className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             Læknir svarar þessu, ekki þjálfarinn.
           </p>

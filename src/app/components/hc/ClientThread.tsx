@@ -89,7 +89,7 @@ export default function ClientThread({ api, journeyId, onRead }: {
                   /* A nudge is something the system sent on the coach's
                      behalf, not something they typed, so it does not get to
                      look like their own words. */
-                  m.kind === "nudge" ? "bg-amber-50 text-amber-900 ring-1 ring-amber-200"
+                  m.kind === "nudge" ? "bg-hc-warn-surface text-hc-warn-ink ring-1 ring-hc-warn-ink/30"
                     : mine ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink"}`}>
                   {m.body}
                   <span className={`mt-1 block text-[10px] ${mine && m.kind !== "nudge" ? "text-white/60" : "text-hc-ink-2"}`}>
@@ -113,7 +113,7 @@ export default function ClientThread({ api, journeyId, onRead }: {
           {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
         </button>
       </div>
-      {err && <p className="text-sm text-rose-700">{err}</p>}
+      {err && <p className="text-sm text-hc-bad-ink">{err}</p>}
     </div>
   );
 }

@@ -26,7 +26,7 @@ export default function BeforeAfter({ c }: { c: Comparison }) {
       <ul className="divide-y divide-hc-hairline">
         {c.rows.map((r) => {
           const Icon = r.better === true ? (r.after > r.before ? ArrowUpRight : ArrowDownRight) : r.better === false ? (r.after > r.before ? ArrowUpRight : ArrowDownRight) : Minus;
-          const tone = r.better === true ? "text-emerald-700 bg-emerald-50" : r.better === false ? "text-red-700 bg-red-50" : "text-hc-ink-2 bg-hc-sunken-2";
+          const tone = r.better === true ? "text-hc-ok-ink bg-hc-ok-surface" : r.better === false ? "text-red-700 bg-red-50" : "text-hc-ink-2 bg-hc-sunken-2";
           return (
             <li key={r.marker} className="flex items-center gap-3 px-4 py-3">
               <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tone}`}><Icon className="h-4 w-4" aria-hidden /></span>

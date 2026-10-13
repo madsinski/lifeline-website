@@ -39,14 +39,14 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
         <div className="flex-1 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-700">Næsti tími</p>
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-hc-ok-ink">Næsti tími</p>
               <p className="mt-1 text-lg font-bold text-hc-ink">{a.title}</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-hc-ink-2">
                 <CalendarClock className="h-4 w-4 text-hc-ink-3" aria-hidden />
                 {WD[at.getDay()]} {at.getDate()}. {MO[at.getMonth()]} kl. {hhmm(at)}
               </p>
             </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-bold ${soon ? "bg-emerald-500 text-white" : "bg-emerald-50 text-emerald-800"}`}>{relative(at, now)}</span>
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${soon ? "bg-emerald-500 text-white" : "bg-hc-ok-surface text-hc-ok-ink"}`}>{relative(at, now)}</span>
           </div>
           <p className="mt-2 flex items-center gap-1.5 text-sm text-hc-ink-2">
             {a.video ? <Video className="h-4 w-4 text-hc-ink-3" aria-hidden /> : <MapPin className="h-4 w-4 text-hc-ink-3" aria-hidden />}
@@ -60,7 +60,7 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
               <Video className="h-5 w-5" aria-hidden /> Tengjast myndsímtalinu
             </a>
           ) : (
-            <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Hlekkurinn á myndsímtalið birtist hér fyrir viðtalið.</p>
+            <p className="mt-3 rounded-xl bg-hc-warn-surface px-3 py-2 text-sm text-hc-warn-ink">Hlekkurinn á myndsímtalið birtist hér fyrir viðtalið.</p>
           ))}
         </div>
       </div>

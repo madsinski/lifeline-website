@@ -207,7 +207,7 @@ export default function CoachInbox({ api, onRead }: {
             {NUDGES.map((n, i) => (
               <button key={i} type="button" disabled={busy}
                 onClick={() => { setNudgesOpen(false); void send(n, true); }}
-                className="rounded-full bg-amber-50 px-3 py-1.5 text-left text-xs font-semibold text-amber-900 ring-1 ring-amber-200 transition hover:bg-amber-100 disabled:opacity-40">
+                className="rounded-full bg-hc-warn-surface px-3 py-1.5 text-left text-xs font-semibold text-hc-warn-ink ring-1 ring-hc-warn-ink/30 transition hover:bg-amber-100 disabled:opacity-40">
                 <Sparkles className="mr-1 inline h-3 w-3" aria-hidden />{n.slice(0, 38)}…
               </button>
             ))}
@@ -223,8 +223,8 @@ export default function CoachInbox({ api, onRead }: {
           <button type="button" onClick={() => setNudgesOpen((v) => !v)}
             aria-label="Tillögur" aria-expanded={nudgesOpen} title="Tillögur"
             className={`grid h-11 w-11 shrink-0 place-items-center rounded-hc-element border transition ${
-              nudgesOpen ? "border-amber-300 bg-amber-50 text-amber-900"
-                         : "border-hc-control bg-hc-surface text-hc-ink-2 hover:bg-amber-50 hover:text-amber-900"}`}>
+              nudgesOpen ? "border-amber-300 bg-hc-warn-surface text-hc-warn-ink"
+                         : "border-hc-control bg-hc-surface text-hc-ink-2 hover:bg-hc-warn-surface hover:text-hc-warn-ink"}`}>
             <Sparkles className="h-4 w-4" aria-hidden />
           </button>
           <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}

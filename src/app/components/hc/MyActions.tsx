@@ -707,7 +707,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 <li key={a.uid} className="flex items-center gap-3 rounded-xl bg-hc-sunken px-3 py-2">
                   <span className="min-w-0 flex-1 text-sm text-hc-ink-2">{a.title}</span>
                   <button type="button" onClick={() => setPref(a.uid, { hidden: false })}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline">
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-hc-ok-ink hover:underline">
                     <RotateCcw className="h-3.5 w-3.5" /> Taka aftur inn
                   </button>
                 </li>

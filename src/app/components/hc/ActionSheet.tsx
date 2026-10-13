@@ -63,7 +63,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
         <div className="space-y-4 p-4">
           {a.summary && <p className="text-sm text-hc-ink-2">{a.summary}</p>}
           {a.details && <p className="whitespace-pre-line text-sm text-hc-ink-2">{a.details}</p>}
-          {a.note && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm italic text-emerald-900">{a.note}</p>}
+          {a.note && <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-sm italic text-hc-ok-ink">{a.note}</p>}
 
           {/* An exact time, if they want one.
               The plan says "daglega" and the section says "Morgunn", which
@@ -101,7 +101,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
                 <p className="text-sm text-hc-ink-2">
                   {a.frequency || "Daglega"}
                   {target < 7 && (
-                    <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-hc-ink-3"}>
+                    <span className={thisWeek >= target ? "font-semibold text-hc-ok-ink" : "text-hc-ink-3"}>
                       {" "}· {thisWeek} af {target}
                     </span>
                   )}
@@ -132,7 +132,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
                 <p className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${
                   a.source.priority === "red"
                     ? "bg-red-50 text-red-800 ring-red-200"
-                    : "bg-amber-50 text-amber-900 ring-amber-200"}`}
+                    : "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30"}`}
                   title={`Úr skýrslunni þinni: ${a.source.text}`}>
                   Úr skýrslunni · {a.source.priority === "red" ? "Forgangur 1" : "Forgangur 2"}
                 </p>

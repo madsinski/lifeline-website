@@ -637,7 +637,7 @@ function WaitingRow({ r, t, f, onOpen, onDismiss }: {
           returns on its own if the journey moves to a different task. */}
       <button type="button" onClick={onDismiss} aria-label="Fjarlægja af listanum"
         title="Fjarlægja af listanum"
-        className="order-last shrink-0 rounded-lg p-1.5 text-hc-ink-3 transition hover:bg-rose-50 hover:text-rose-700">
+        className="order-last shrink-0 rounded-lg p-1.5 text-hc-ink-3 transition hover:bg-hc-bad-surface hover:text-hc-bad-ink">
         <X className="h-4 w-4" aria-hidden />
       </button>
       {/* Outlined, not solid.
@@ -655,7 +655,7 @@ function WaitingRow({ r, t, f, onOpen, onDismiss }: {
 }
 
 function TestBadge() {
-  return <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase text-amber-800">Prufa</span>;
+  return <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase text-hc-warn-ink">Prufa</span>;
 }
 
 
@@ -829,7 +829,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
       {/* Who this is: reference, not work. Hairline and flat. */}
       <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 sm:p-5">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-800">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-hc-ok-ink">
             {cleanName(d.patient.full_name).split(" ").map((p) => p[0]).slice(0, 2).join("")}
           </span>
           <div className="min-w-0 flex-1">
@@ -857,7 +857,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
           <button type="button" onClick={() => setSheet("orders")}
             className="inline-flex items-center gap-1.5 rounded-lg px-1.5 py-0.5 hover:bg-hc-sunken-2">
             <CreditCard className="h-3.5 w-3.5 shrink-0 text-hc-ink-3" aria-hidden />
-            <span className={paid ? "text-emerald-800" : "font-semibold text-amber-800"}>{paid ? "Greitt" : "Ógreitt"}</span>
+            <span className={paid ? "text-hc-ok-ink" : "font-semibold text-hc-warn-ink"}>{paid ? "Greitt" : "Ógreitt"}</span>
             {code && (
               <span className="text-hc-ink-2">
                 · kóði {code.activation_redeemed_at ? "virkjaður" : code.activation_code}
@@ -869,12 +869,12 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
           </a>
         </div>
         {call && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm ring-1 ring-emerald-100">
-            <Video className="h-4 w-4 text-emerald-700" aria-hidden />
-            <span className="text-emerald-900">{call.kind === "followup" ? "Eftirfylgd" : "Viðtal"} í myndsímtali {dayTime(call.at)}</span>
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-hc-ok-surface px-3 py-2 text-sm ring-1 ring-emerald-100">
+            <Video className="h-4 w-4 text-hc-ok-ink" aria-hidden />
+            <span className="text-hc-ok-ink">{call.kind === "followup" ? "Eftirfylgd" : "Viðtal"} í myndsímtali {dayTime(call.at)}</span>
             {call.link
               ? <a href={call.link} target="_blank" rel="noreferrer" className={`${btnPrimary} ml-auto min-h-9 px-3`}><Video className="h-4 w-4" /> Hefja myndsímtal</a>
-              : <span className="ml-auto text-xs text-amber-800">Hlekkur ekki kominn. Tengdu Google-dagatal eða límdu hlekk í bókunina.</span>}
+              : <span className="ml-auto text-xs text-hc-warn-ink">Hlekkur ekki kominn. Tengdu Google-dagatal eða límdu hlekk í bókunina.</span>}
           </div>
         )}
         {/* Framvinda moved to Staða, beside the conversation: the two
@@ -1309,7 +1309,7 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
           Skýrslan var staðfest {dayTime(j.report_generated_at)}. Hún er í Medalia og á aðgangi skjólstæðingsins.
         </p>
         {shared ? (
-          <p className="flex items-center gap-1.5 text-sm text-emerald-800">
+          <p className="flex items-center gap-1.5 text-sm text-hc-ok-ink">
             <Check className="h-4 w-4" aria-hidden /> Deilt með skjólstæðingi {dayTime(shared)}.
           </p>
         ) : (
@@ -1325,7 +1325,7 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
           className={shared ? btnSecondary : btnDark}>
           <Send className="h-4 w-4" /> {shared ? "Senda aftur" : "Deila með skjólstæðingi"}
         </button>
-        {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+        {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
       </div>
     );
   }
@@ -1339,13 +1339,13 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
             className={`${btnDark} w-full sm:w-auto`}><Stethoscope className="h-4 w-4" /> Staðfesta skýrsluna</button>
         </>
       ) : (
-        <p className="text-sm text-amber-800">
+        <p className="text-sm text-hc-warn-ink">
           {j.report_imported_at
             ? "Skýrslan er komin inn og bíður staðfestingar læknis. Þú getur bókað og undirbúið viðtalið; skjólstæðingurinn sér skýrsluna þegar læknir hefur staðfest hana."
             : `Svörin komu fyrir ${minutesSince(j.blood_results_at)} mínútum. Læknir fær SMS ef skýrslan er ekki staðfest innan fimm mínútna.`}
         </p>
       )}
-      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+      {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
     </div>
   );
 }
@@ -1365,7 +1365,7 @@ function InterviewStep({ d, isDoctor, record, onPlan, onChanged }: { d: Detail; 
         disabled={!j.report_generated_at && !j.report_imported_at} disabledText="Hægt að bóka þegar skýrslan er komin inn."
         onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy}
         onCancel={(noShow) => run({ event: "interview_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Viðtal afbókað.")} />
-      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+      {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
       {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} onChanged={onChanged} mode="interview" />}
     </div>
   );
@@ -1386,7 +1386,7 @@ function FollowupStep({ d, record, isDoctor, onPlan, onChanged }: { d: Detail; r
         disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir fyrsta viðtal." suggest={90}
         onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy}
         onCancel={(noShow) => run({ event: "followup_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Eftirfylgd afbókuð.")} />
-      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+      {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
       {/* The follow-up conversation, guided like the first one but with its
           own notes and questions about how it went. Marking it done is the
           wizard's last step. */}
@@ -1413,7 +1413,7 @@ function Orders({ d, record }: { d: Detail; record: (p: Record<string, unknown>)
         <button type="button" disabled={busy} onClick={async () => { setBusy(true); const e = await record({ action: "remind_client" }); setBusy(false); setMsg(e ?? "Áminning send."); }}
           className={btnSecondary}><Bell className="h-4 w-4" /> Senda áminningu um virkjun</button>
       )}
-      {msg && <p role="status" className="text-sm text-emerald-800">{msg}</p>}
+      {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
     </div>
   );
 }
@@ -1424,8 +1424,8 @@ function Adherence({ d }: { d: Detail }) {
   const hidden = (d.prefs ?? []).filter((p) => p.hidden);
   const notes = (d.prefs ?? []).filter((p) => (p.note ?? "").trim());
   const titleOf = (uid: string) => d.plan?.modules?.find((m) => m.uid === uid)?.title ?? "aðgerð";
-  const tone = status === "on-track" ? "bg-emerald-50 text-emerald-900 ring-emerald-200"
-    : status === "needs-nudge" ? "bg-amber-50 text-amber-900 ring-amber-200"
+  const tone = status === "on-track" ? "bg-hc-ok-surface text-hc-ok-ink ring-hc-ok-ink/30"
+    : status === "needs-nudge" ? "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30"
     : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline";
   return (
     <section className={`flex flex-wrap items-center gap-4 rounded-2xl px-4 py-3 ring-1 ${tone}`}>
@@ -1602,11 +1602,11 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
               <label className="block text-sm"><span className="font-medium text-hc-ink-2">Texti</span>
                 <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" /></label>
               {sms && (
-                <p className={`text-xs ${size.segments > 3 ? "text-amber-700" : "text-hc-ink-2"}`}>
+                <p className={`text-xs ${size.segments > 3 ? "text-hc-warn-ink" : "text-hc-ink-2"}`}>
                   SMS: {size.chars} stafir · {size.segments} {size.segments === 1 ? "hluti" : "hlutar"}{size.encoding === "UCS-2" ? " (íslenskir stafir: 70 í hluta)" : ""}. Vefslóðir geta verið síaðar hjá símafyrirtækjum.
                 </p>
               )}
-              {msg && <p role="status" className={`rounded-lg px-3 py-2 text-sm ${msg.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}>{msg.text}</p>}
+              {msg && <p role="status" className={`rounded-lg px-3 py-2 text-sm ${msg.ok ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-red-50 text-red-700"}`}>{msg.text}</p>}
               <div className="flex flex-wrap gap-2">
                 <button type="button" disabled={busy || (!sms && !email) || text.trim().length < 5} onClick={send} className={btnPrimary}>
                   {busy ? "Sendir…" : `Senda${sms && email ? " SMS og tölvupóst" : sms ? " SMS" : email ? " tölvupóst" : ""}`}
@@ -1623,7 +1623,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
                     <p className="flex items-center gap-1.5 font-semibold text-hc-ink-2">
                       {m.channel === "sms" ? <Phone className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />}
                       {dayTime(m.sent_at)}
-                      <span className={`ml-auto rounded px-1.5 py-0.5 ${m.status === "sent" ? "bg-emerald-100 text-emerald-800" : m.status === "dry-run" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-700"}`}>
+                      <span className={`ml-auto rounded px-1.5 py-0.5 ${m.status === "sent" ? "bg-emerald-100 text-hc-ok-ink" : m.status === "dry-run" ? "bg-amber-100 text-hc-warn-ink" : "bg-red-100 text-red-700"}`}>
                         {m.status === "sent" ? "Sent" : m.status === "dry-run" ? "Prufa" : "Mistókst"}
                       </span>
                     </p>
@@ -1667,11 +1667,11 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
             <>
               <br />
               {meetingUrl ? (
-                <a href={meetingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:underline">
+                <a href={meetingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-hc-ok-ink hover:underline">
                   <Video className="h-3.5 w-3.5" /> Opna fjarfund
                 </a>
               ) : (
-                <span className="text-amber-800">Myndsímtal án hlekks — hann kemur sjálfkrafa þegar tíminn fer í Google-dagatalið, eða settu hann inn sjálf.</span>
+                <span className="text-hc-warn-ink">Myndsímtal án hlekks — hann kemur sjálfkrafa þegar tíminn fer í Google-dagatalið, eða settu hann inn sjálf.</span>
               )}
             </>
           )}
@@ -1735,7 +1735,7 @@ function NotesPeek({ j, onBack }: { j: Journey; onBack: () => void }) {
     <section className="mb-3 rounded-xl bg-hc-sunken p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Úr viðtalinu</p>
-        <button type="button" onClick={onBack} className="text-xs font-semibold text-emerald-700 hover:underline">← Aftur í viðtalið</button>
+        <button type="button" onClick={onBack} className="text-xs font-semibold text-hc-ok-ink hover:underline">← Aftur í viðtalið</button>
       </div>
       {rows.length ? (
         <dl className="mt-2 space-y-2">
@@ -1864,7 +1864,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
               {prep.map((p, i) => (
                 <li key={i}>
                   <button type="button" role="checkbox" aria-checked={checked[i]} onClick={() => setChecked(checked.map((c, k) => (k === i ? !c : c)))}
-                    className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition ${checked[i] ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-hc-hairline hover:bg-hc-sunken"}`}>
+                    className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition ${checked[i] ? "border-hc-ok-ink/30 bg-hc-ok-surface text-hc-ok-ink" : "border-hc-hairline hover:bg-hc-sunken"}`}>
                     <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked[i] ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300"}`}>{checked[i] && <Check className="h-3.5 w-3.5" />}</span>
                     {p}
                   </button>
@@ -1912,14 +1912,14 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
             <h3 className="text-lg font-bold text-hc-ink">Mat</h3>
             <p className="mb-4 text-sm text-hc-ink-2">Er eitthvað í niðurstöðum eða samtalinu sem gæti kallað á læknismeðferð?</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                <p className="font-semibold text-emerald-900">Nei, lífsstílsáætlun nægir</p>
-                <p className="mt-1 text-sm text-emerald-800">Haltu áfram í áætlunargerð.</p>
+              <div className="rounded-xl border border-hc-ok-ink/30 bg-hc-ok-surface p-4">
+                <p className="font-semibold text-hc-ok-ink">Nei, lífsstílsáætlun nægir</p>
+                <p className="mt-1 text-sm text-hc-ok-ink">Haltu áfram í áætlunargerð.</p>
                 <button type="button" onClick={() => setStep(3)} className={`${btnPrimary} mt-3`}>Áfram í áætlun <ChevronRight className="h-4 w-4" /></button>
               </div>
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <p className="font-semibold text-amber-900">{isDoctor ? "Já, skrá tilvísun" : "Já eða óviss: læknir metur eða vísað áfram"}</p>
-                <p className="mt-1 text-sm text-amber-800">Veldu „Læknir Lifeline“ ef læknir á að líta á eitthvað, eða hvert á að vísa. Læknir fær skeyti.</p>
+              <div className="rounded-xl border border-hc-warn-ink/30 bg-hc-warn-surface p-4">
+                <p className="font-semibold text-hc-warn-ink">{isDoctor ? "Já, skrá tilvísun" : "Já eða óviss: læknir metur eða vísað áfram"}</p>
+                <p className="mt-1 text-sm text-hc-warn-ink">Veldu „Læknir Lifeline“ ef læknir á að líta á eitthvað, eða hvert á að vísa. Læknir fær skeyti.</p>
               </div>
             </div>
             <div className="mt-3">
@@ -1935,7 +1935,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
             <h3 className="text-lg font-bold text-hc-ink">Aðgerðaáætlun</h3>
             <p className="mt-1 text-sm text-hc-ink-2">Veldu sniðmát sem passar, dragðu inn 2–4 aðgerðir á stoð í mesta lagi og skrifaðu persónulegar athugasemdir. Punktar úr samtalinu fylgja sem samantekt.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {d.plan && <span className={`rounded-full px-3 py-1 text-xs font-bold ${d.plan.status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{d.plan.status === "published" ? `Birt ${day(d.plan.published_at)}` : "Drög til"}</span>}
+              {d.plan && <span className={`rounded-full px-3 py-1 text-xs font-bold ${d.plan.status === "published" ? "bg-emerald-100 text-hc-ok-ink" : "bg-amber-100 text-hc-warn-ink"}`}>{d.plan.status === "published" ? `Birt ${day(d.plan.published_at)}` : "Drög til"}</span>}
             </div>
             <div className="mt-4 flex justify-between">
               <button type="button" onClick={() => setStep(2)} className={btnGhost}><ArrowLeft className="h-4 w-4" /> Mat</button>
@@ -1951,7 +1951,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
           <FinishStep j={j} planPublished={d.plan?.status === "published"} busy={busy} run={run} isFollowup={isFollowup} />
         )}
 
-        {msg && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-2 text-sm text-emerald-800">{msg}</p>}
+        {msg && <p role="status" className="rounded-xl bg-hc-ok-surface px-4 py-2 text-sm text-hc-ok-ink">{msg}</p>}
       </div>
     </div>
   );
@@ -1980,7 +1980,7 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
         <li className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-3">
           <span className={`flex h-7 w-7 items-center justify-center rounded-full ${planPublished ? "bg-emerald-500 text-white" : "bg-hc-sunken-2 text-hc-ink-2"}`}>{planPublished ? <Check className="h-4 w-4" /> : 2}</span>
           <span className="flex-1 text-sm font-semibold text-hc-ink-2">Aðgerðaáætlun birt skjólstæðingi</span>
-          {!planPublished && <span className="text-xs text-amber-700">Ekki birt enn</span>}
+          {!planPublished && <span className="text-xs text-hc-warn-ink">Ekki birt enn</span>}
         </li>
         {!isFollowup && (
           <li className="flex flex-wrap items-end gap-3 rounded-xl border border-hc-hairline p-3">
@@ -2068,7 +2068,7 @@ function Login({ onDone }: { onDone: () => void }) {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-3xl bg-hc-surface p-8 shadow-sm">
         <LifelineLogo size="lg" />
-        <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Vinnustöð</p>
+        <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-hc-ok-ink">Vinnustöð</p>
         {trusted && !usePassword ? (
           <div className="mt-6">
             <p className="text-center text-sm text-hc-ink-2">Hæ {trusted.name.split(" ")[0]}, sláðu inn PIN</p>

@@ -29,8 +29,8 @@ import type { KnowledgeBand, ReportReference } from "@/lib/hc/knowledge";
 const DOT: Record<Signal, string> = { green: "bg-emerald-500", yellow: "bg-amber-400", red: "bg-red-500" };
 
 const CHIP: Record<Signal, string> = {
-  green: "bg-emerald-50 text-emerald-800 ring-emerald-200",
-  yellow: "bg-amber-50 text-amber-800 ring-amber-200",
+  green: "bg-hc-ok-surface text-hc-ok-ink ring-hc-ok-ink/30",
+  yellow: "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30",
   red: "bg-red-50 text-red-700 ring-red-200",
 };
 const TONE_BAR: Record<KnowledgeBand["tone"], string> = {
@@ -395,14 +395,14 @@ function Row({ item, signal, entry, sex }: {
                 components. Saying so here stops the dots inside the dropdown
                 reading as a contradiction of the verdict above them. */}
             {flaggedCount > 0 && (
-              <span className={signal === "green" ? "font-medium text-amber-700" : ""}>
+              <span className={signal === "green" ? "font-medium text-hc-warn-ink" : ""}>
                 {" · "}{flaggedCount} {flaggedCount === 1 ? "atriði" : "atriði"} til að taka á
               </span>
             )}
           </span>
         </span>
         {item.trend.length > 0 && (
-          <span className={`hidden items-center gap-1 text-xs sm:flex ${move > 0 ? "text-emerald-700" : move < 0 ? "text-hc-ink-2" : "text-hc-ink-3"}`}>
+          <span className={`hidden items-center gap-1 text-xs sm:flex ${move > 0 ? "text-hc-ok-ink" : move < 0 ? "text-hc-ink-2" : "text-hc-ink-3"}`}>
             {move > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : move < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
             {move !== 0 ? `${move > 0 ? "+" : ""}${fmt(move)}` : "óbreytt"}
           </span>
@@ -459,13 +459,13 @@ function Row({ item, signal, entry, sex }: {
           {(improves.length > 0 || worsens.length > 0) && (
             <div className="grid gap-3 sm:grid-cols-2">
               {improves.length > 0 && (
-                <div className="rounded-xl bg-emerald-50/80 p-3 ring-1 ring-emerald-200">
-                  <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-emerald-800">
+                <div className="rounded-xl bg-emerald-50/80 p-3 ring-1 ring-hc-ok-ink/30">
+                  <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-hc-ok-ink">
                     <Plus className="h-3.5 w-3.5" aria-hidden /> Þetta bætir
                   </p>
                   <ul className="space-y-1">
                     {improves.map((a, i) => (
-                      <li key={i} className="flex gap-1.5 text-sm leading-snug text-emerald-900">
+                      <li key={i} className="flex gap-1.5 text-sm leading-snug text-hc-ok-ink">
                         <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-emerald-600" />{a}
                       </li>
                     ))}

@@ -285,7 +285,7 @@ export function NotificationList({ items, onNavigate, onOpened, onDismiss }: {
         const Icon = ICON[n.kind] ?? Zap;
         const inner = (
           <>
-            <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full ${n.unread ? "bg-emerald-50" : "bg-hc-sunken-2"}`}>
+            <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full ${n.unread ? "bg-hc-ok-surface" : "bg-hc-sunken-2"}`}>
               <Icon className={`h-4 w-4 ${n.unread ? "text-hc-brand-text" : "text-hc-ink-2"}`} aria-hidden />
             </span>
             <span className="min-w-0 flex-1">

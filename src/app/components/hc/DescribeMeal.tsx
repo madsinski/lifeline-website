@@ -214,7 +214,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
         </>
       )}
 
-      {err && <p className="text-sm text-rose-700">{err}</p>}
+      {err && <p className="text-sm text-hc-bad-ink">{err}</p>}
     </div>
   );
 }

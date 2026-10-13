@@ -23,7 +23,7 @@ export default function BackLink({ href, label, className = "", onBack }: {
   const cls = `group inline-flex min-h-11 items-center gap-2 rounded-full border border-hc-hairline bg-hc-surface py-2 pl-2 pr-4 text-sm font-semibold text-hc-ink-2 shadow-sm transition hover:border-slate-300 hover:bg-hc-sunken hover:text-hc-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 print:hidden ${className}`;
   const inner = (
     <>
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-hc-sunken-2 text-hc-ink-2 transition group-hover:-translate-x-0.5 group-hover:bg-emerald-50 group-hover:text-emerald-700">
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-hc-sunken-2 text-hc-ink-2 transition group-hover:-translate-x-0.5 group-hover:bg-hc-ok-surface group-hover:text-hc-ok-ink">
         <ChevronLeft className="h-4 w-4" aria-hidden />
       </span>
       {label}

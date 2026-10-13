@@ -41,8 +41,8 @@ interface Proposal {
 
 const SIGNAL_DOT: Record<Signal, string> = { green: "bg-emerald-500", yellow: "bg-amber-400", red: "bg-red-500" };
 const SIGNAL_RING: Record<Signal, string> = {
-  green: "ring-emerald-200 bg-emerald-50 text-emerald-900",
-  yellow: "ring-amber-200 bg-amber-50 text-amber-900",
+  green: "ring-hc-ok-ink/30 bg-hc-ok-surface text-hc-ok-ink",
+  yellow: "ring-hc-warn-ink/30 bg-hc-warn-surface text-hc-warn-ink",
   red: "ring-red-200 bg-red-50 text-red-900",
 };
 const TIER_IS: Record<ProposedAction["tier"], string> = { core: "Kjarni", standard: "Ráðlagt", extra: "Aukalega" };
@@ -104,7 +104,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
   return (
     <section className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Sparkles className="h-5 w-5 text-emerald-700" />
+        <Sparkles className="h-5 w-5 text-hc-ok-ink" />
         <h3 className="font-bold text-hc-ink">Tillaga út frá niðurstöðum</h3>
         <span className="flex-1" />
         <button type="button" onClick={run} disabled={busy}
@@ -179,7 +179,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
                               The nurse is choosing among the doctor's own
                               priorities, not among a model's suggestions. */}
                           {a.source && (
-                            <span className={a.source.priority === "red" ? "text-red-700" : "text-amber-700"}>
+                            <span className={a.source.priority === "red" ? "text-red-700" : "text-hc-warn-ink"}>
                               {" · "}{a.source.priority === "red" ? "Forgangur 1" : "Forgangur 2"}
                               {a.source.component ? ` · ${a.source.component}` : ""}
                             </span>

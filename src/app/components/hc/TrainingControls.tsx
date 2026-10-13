@@ -106,7 +106,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
               const on = settings.injuries.includes(r);
               return (
                 <button key={r} type="button" disabled={!edit || saving} onClick={() => toggle(r)} aria-pressed={on}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${on ? "bg-rose-500 text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-rose-50"} disabled:cursor-default`}>
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${on ? "bg-rose-500 text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-hc-bad-surface"} disabled:cursor-default`}>
                   {REGION_IS[r].label}
                 </button>
               );
@@ -117,7 +117,7 @@ export default function TrainingControls({ settings, planStart, onChange, saving
       </div>
 
       {settings.injuries.length > 0 && (
-        <div className="rounded-2xl bg-rose-50 p-3 text-sm text-rose-900 ring-1 ring-rose-100">
+        <div className="rounded-2xl bg-hc-bad-surface p-3 text-sm text-hc-bad-ink ring-1 ring-rose-100">
           <ul className="list-disc space-y-0.5 pl-5">{injuryNotes(settings).map((n) => <li key={n}>{n}</li>)}</ul>
           <p className="mt-1.5 text-xs">Verkur sem eykst við æfingu er merki um að stoppa. Ræddu við hjúkrunarfræðinginn eða sjúkraþjálfara ef hann hverfur ekki.</p>
         </div>

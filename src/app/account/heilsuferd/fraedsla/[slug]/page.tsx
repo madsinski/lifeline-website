@@ -61,7 +61,7 @@ export default function LecturePage() {
         {error && <p className="mt-8 text-hc-ink-2">{error}</p>}
         {lecture && (
           <article className="mt-5">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Fræðsla{lecture.duration_min ? ` · ${lecture.duration_min} mín.` : ""}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-hc-ok-ink">Fræðsla{lecture.duration_min ? ` · ${lecture.duration_min} mín.` : ""}</p>
             <h1 className="mt-2 text-3xl font-bold text-[#0F172A]">{lecture.title}</h1>
             {lecture.subtitle && <p className="mt-1 text-lg text-hc-ink-3">{lecture.subtitle}</p>}
 
@@ -77,7 +77,7 @@ export default function LecturePage() {
 
             <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-hc-hairline pt-6">
               {done
-                ? <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-4 w-4" aria-hidden /> Lokið</span>
+                ? <span className="inline-flex items-center gap-1.5 rounded-full bg-hc-ok-surface px-4 py-2 text-sm font-semibold text-hc-ok-ink"><CheckCircle2 className="h-4 w-4" aria-hidden /> Lokið</span>
                 : lecture.kind !== "slides" && (
                   <button type="button" onClick={() => void complete()} className="min-h-11 rounded-full bg-[#10B981] px-5 font-semibold text-white hover:bg-[#047857]">
                     Merkja sem lokið

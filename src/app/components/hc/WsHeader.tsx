@@ -33,7 +33,7 @@ export default function WsHeader({ name, role, items }: { name: string; role: st
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <LifelineLogo size="sm" />
-          <span className="hidden text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700 sm:block">Vinnustöð</span>
+          <span className="hidden text-[11px] font-bold uppercase tracking-[0.18em] text-hc-ok-ink sm:block">Vinnustöð</span>
         </div>
 
         <div className="relative">

@@ -63,7 +63,7 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
       {open && (
         <div className={`space-y-3 px-4 pb-4 ${headless ? "pt-3" : ""}`}>
           <div>
-            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-amber-700">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-hc-warn-ink">
               <AlertTriangle className="h-3.5 w-3.5" aria-hidden />Algengustu meiðslin í þessari grein
             </p>
             <ul className="mt-1 space-y-1">
@@ -77,7 +77,7 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-700">
+              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-hc-ok-ink">
                 <Dumbbell className="h-3.5 w-3.5" aria-hidden />Upphitun
               </p>
               <ul className="mt-1 space-y-0.5">
@@ -87,7 +87,7 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
               </ul>
             </div>
             <div>
-              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-sky-700">
+              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-hc-info-ink">
                 {/* "Niðurlag" is the standard term in Icelandic sports
                     pedagogy — upphitun, aðalhluti, niðurlag — but its
                     everyday sense is closer to "defeat", and this screen is

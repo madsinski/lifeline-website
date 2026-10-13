@@ -149,7 +149,7 @@ export default function BookVideo({ api, journey, onBooked }: {
 
       {/* Already booked */}
       {booked && !done && (
-        <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-emerald-50 p-2 text-xs text-emerald-900 ring-1 ring-emerald-200">
+        <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-hc-ok-surface p-2 text-xs text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
           <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>
             Bókað {dayLabel(new Date(booked))} kl. {new Date(booked).toTimeString().slice(0, 5)}.
@@ -177,7 +177,7 @@ export default function BookVideo({ api, journey, onBooked }: {
         }
         if (now != null && from.getTime() > now) {
           return (
-            <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] leading-snug text-amber-900">
+            <p className="mt-2 rounded-lg bg-hc-warn-surface px-2 py-1.5 text-[11px] leading-snug text-hc-warn-ink">
               Niðurstöður koma venjulega {INTERVIEW_WAIT_DAYS} dögum eftir síðustu rannsókn — eftir {dayLabel(from)}.
             </p>
           );
@@ -197,7 +197,7 @@ export default function BookVideo({ api, journey, onBooked }: {
                 on ? "bg-hc-brand-dark text-white" : "bg-hc-surface ring-1 ring-hc-hairline hover:bg-hc-sunken-2"}`}>
               <span className="block text-[10px] leading-tight opacity-70">{WEEKDAYS_IS[d.getDay()]}</span>
               <span className="block text-sm font-bold leading-tight">{d.getDate()}</span>
-              <span className={`block text-[9px] leading-tight ${on ? "opacity-70" : free ? "text-emerald-700" : "text-hc-ink-3"}`}>
+              <span className={`block text-[9px] leading-tight ${on ? "opacity-70" : free ? "text-hc-ok-ink" : "text-hc-ink-3"}`}>
                 {free ? `${free} laus` : "fullt"}
               </span>
             </button>
@@ -215,7 +215,7 @@ export default function BookVideo({ api, journey, onBooked }: {
                 <button type="button" disabled={no || saving} onClick={() => void save(iso)}
                   className={`w-full rounded-lg py-1 text-xs font-semibold transition ${
                     no ? "cursor-not-allowed bg-hc-sunken-2 text-slate-300 line-through"
-                       : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300"}`}>
+                       : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-ok-surface hover:ring-emerald-300"}`}>
                   {t}
                 </button>
               </li>
@@ -225,7 +225,7 @@ export default function BookVideo({ api, journey, onBooked }: {
       )}
 
       {saving && <p className="mt-2 flex items-center gap-1.5 text-xs text-hc-ink-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Bóka…</p>}
-      {msg && <p role="status" className="mt-2 text-xs text-emerald-800">{msg}</p>}
+      {msg && <p role="status" className="mt-2 text-xs text-hc-ok-ink">{msg}</p>}
       <p className="mt-2 text-[11px] leading-snug text-hc-ink-3">
         Bókunin fer í dagatalið sjálfkrafa — í Google innan sekúndna, og í Apple eða Outlook um áskriftarslóðina.
       </p>

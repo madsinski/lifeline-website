@@ -156,8 +156,8 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
             const why = needsDoctor(kind, topic);
             if (!why) return null;
             return (
-              <div className="rounded-xl bg-sky-50 p-3 ring-1 ring-sky-200">
-                <p className="flex items-start gap-2 text-sm font-semibold text-sky-900">
+              <div className="rounded-xl bg-hc-info-surface p-3 ring-1 ring-hc-info-ink/30">
+                <p className="flex items-start gap-2 text-sm font-semibold text-hc-info-ink">
                   <Stethoscope className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                   {why}
                 </p>
@@ -181,7 +181,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
                 return (
                   <button key={m.key} type="button" aria-pressed={on}
                     onClick={() => setPicked(on ? picked.filter((x) => x !== m.key) : [...picked, m.key])}
-                    className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-emerald-500 bg-emerald-50 font-semibold text-emerald-900" : "border-hc-hairline bg-hc-surface hover:border-slate-300"}`}>
+                    className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-emerald-500 bg-hc-ok-surface font-semibold text-hc-ok-ink" : "border-hc-hairline bg-hc-surface hover:border-slate-300"}`}>
                     {m.label}
                     <span className="block text-xs font-normal text-hc-ink-2">{m.hint}</span>
                   </button>

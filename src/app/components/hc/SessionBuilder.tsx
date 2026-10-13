@@ -77,7 +77,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
           {/* What is missing, when something is. Advisory, and it names the
               gap rather than just flagging one. */}
           {advice && (
-            <p className="flex items-start gap-2 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900">
+            <p className="flex items-start gap-2 bg-hc-warn-surface px-4 py-2.5 text-sm font-medium text-hc-warn-ink">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />{advice}
             </p>
           )}
@@ -125,7 +125,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                   </span>
                   <button type="button" onClick={() => setKeys((x) => x.filter((_, j) => j !== i))}
                     aria-label={`Taka ${slot.label} út`}
-                    className="shrink-0 rounded-lg p-2 text-hc-ink-3 transition hover:bg-rose-50 hover:text-rose-600">
+                    className="shrink-0 rounded-lg p-2 text-hc-ink-3 transition hover:bg-hc-bad-surface hover:text-rose-600">
                     <X className="h-4 w-4" aria-hidden />
                   </button>
                 </li>

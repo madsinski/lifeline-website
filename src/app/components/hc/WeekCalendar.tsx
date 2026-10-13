@@ -172,7 +172,7 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
         <span className="text-xs text-hc-ink-3">Dragðu tíma á annan stað til að færa hann.</span>
       </div>
 
-      {msg && <p role="status" className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{msg}</p>}
+      {msg && <p role="status" className="rounded-xl bg-hc-ok-surface px-3 py-2 text-sm text-hc-ok-ink">{msg}</p>}
 
       <div className="overflow-x-auto rounded-2xl border border-hc-hairline bg-hc-surface">
         <div className="min-w-[46rem]">
@@ -204,7 +204,7 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
                     {here.length === 0 ? (
                       <button type="button" onClick={() => setBooking({ at: isoAt(d, slot) })}
                         aria-label={`Bóka ${slot}`}
-                        className="h-full min-h-8 w-full rounded text-slate-200 transition hover:bg-emerald-50 hover:text-emerald-600">
+                        className="h-full min-h-8 w-full rounded text-slate-200 transition hover:bg-hc-ok-surface hover:text-emerald-600">
                         <CalendarPlus className="mx-auto h-3.5 w-3.5" />
                       </button>
                     ) : here.map((ev, i) => {
@@ -327,7 +327,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
           {hits.map((c) => (
             <li key={c.journey_id}>
               <button type="button" disabled={busy} onClick={() => book(c)}
-                className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300 disabled:opacity-50">
+                className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm ring-1 ring-hc-hairline hover:bg-hc-ok-surface hover:ring-emerald-300 disabled:opacity-50">
                 <span className="truncate font-semibold text-hc-ink">{c.name ?? "—"}</span>
                 <span className="shrink-0 text-xs text-hc-ink-2">Bóka</span>
               </button>

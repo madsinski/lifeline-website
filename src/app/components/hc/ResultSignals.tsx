@@ -20,8 +20,8 @@ export interface FlaggedValue {
 
 const GROUPS: { signal: Signal; title: string; hint: string; ring: string; dot: string }[] = [
   { signal: "red", title: "Utan viðmiða", hint: "Þessi gildi eru utan þeirra marka sem við miðum við.", ring: "ring-red-200 bg-red-50", dot: "bg-red-500" },
-  { signal: "yellow", title: "Fylgjast með", hint: "Innan marka en í efri eða neðri kantinum.", ring: "ring-amber-200 bg-amber-50", dot: "bg-amber-400" },
-  { signal: "green", title: "Í lagi", hint: "Á kjörsviði.", ring: "ring-emerald-200 bg-emerald-50", dot: "bg-emerald-500" },
+  { signal: "yellow", title: "Fylgjast með", hint: "Innan marka en í efri eða neðri kantinum.", ring: "ring-hc-warn-ink/30 bg-hc-warn-surface", dot: "bg-amber-400" },
+  { signal: "green", title: "Í lagi", hint: "Á kjörsviði.", ring: "ring-hc-ok-ink/30 bg-hc-ok-surface", dot: "bg-emerald-500" },
 ];
 
 export default function ResultSignals({ flagged }: { flagged: FlaggedValue[] }) {

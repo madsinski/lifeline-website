@@ -405,7 +405,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
         <p className="text-sm font-semibold text-hc-ink-2">Skrá sett</p>
         <div className="flex items-center gap-3">
           {pr?.weight != null && (
-            <p className="text-xs font-semibold text-amber-700" title="Þitt besta sett í þessari æfingu til þessa">
+            <p className="text-xs font-semibold text-hc-warn-ink" title="Þitt besta sett í þessari æfingu til þessa">
               Met: {pr.weight} kg{pr.reps ? ` × ${pr.reps}` : ""}
             </p>
           )}

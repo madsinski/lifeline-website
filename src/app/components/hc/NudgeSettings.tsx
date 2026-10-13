@@ -216,7 +216,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
               </p>
             )}
             {env.ios && !env.standalone && (
-              <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <p className="mt-2 rounded-lg bg-hc-warn-surface px-3 py-2 text-xs text-hc-warn-ink">
                 Á iPhone koma tilkynningar aðeins þegar Lifeline er á heimaskjánum: ýttu á Deila og svo „Bæta á heimaskjá“, opnaðu þaðan og kveiktu hér.
               </p>
             )}

@@ -18,7 +18,7 @@ import type { Grunnheilsa, Signal } from "@/lib/hc/grunnheilsa";
 
 const TONE: Record<"red" | "yellow", { dot: string; cls: string }> = {
   red: { dot: "bg-red-500", cls: "bg-red-50 text-red-900 ring-red-200" },
-  yellow: { dot: "bg-amber-500", cls: "bg-amber-50 text-amber-900 ring-amber-200" },
+  yellow: { dot: "bg-amber-500", cls: "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30" },
 };
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : String(n).replace(".", ","));

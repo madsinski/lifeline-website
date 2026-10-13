@@ -699,7 +699,7 @@ function PlanPageInner() {
                   Shown from the last week, because a reminder on day one is
                   just an advert. */}
               {access?.ok && access.reason === "trial" && access.daysLeft != null && access.daysLeft <= 7 && (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-hc-element bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-hc-element bg-hc-warn-surface px-3 py-2.5 text-sm text-hc-warn-ink">
                   <span>
                     {access.daysLeft === 0
                       ? "Prufutímabilið endar í dag."
@@ -887,7 +887,7 @@ function PlanPageInner() {
                         <p className="text-lg font-bold">Búðu til áætlunina þína</p>
                         <p className="text-sm text-emerald-100">Tillögur byggðar á skýrslunni. Þú velur, raðar og breytir, og hjúkrunarfræðingurinn fer yfir hana með þér í viðtalinu.</p>
                       </div>
-                      <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Byrja →</button>
+                      <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-hc-ok-surface">Byrja →</button>
                     </div>
                   )}
 

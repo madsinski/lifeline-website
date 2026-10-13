@@ -44,7 +44,7 @@ export function ConsentBox({ checked, onChange, error }: { checked: boolean; onC
         </span>
       </label>
       <details className="mt-2 pl-8">
-        <summary className="cursor-pointer text-xs font-semibold text-emerald-700">Lesa samþykkið í heild</summary>
+        <summary className="cursor-pointer text-xs font-semibold text-hc-ok-ink">Lesa samþykkið í heild</summary>
         <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-hc-sunken p-3 font-sans text-xs leading-relaxed text-hc-ink-2">{renderHealthAssessmentConsent()}</pre>
       </details>
       {error && <p className="mt-2 pl-8 text-xs text-red-600">{error}</p>}
@@ -138,7 +138,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
         <button disabled={busy} className="rounded-full bg-hc-brand px-5 py-2.5 font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
           {busy ? "Vistar…" : "Vista upplýsingar"}
         </button>
-        {saved && <span className="text-sm text-emerald-700">Vistað</span>}
+        {saved && <span className="text-sm text-hc-ok-ink">Vistað</span>}
       </div>
       {track === "care" && (
         <p className="text-xs text-hc-ink-2">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir sjálf(ur).</p>

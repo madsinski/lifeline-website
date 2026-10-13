@@ -131,7 +131,7 @@ export default function ClientsView({ api, onOpenClient }: {
                   </span>
                 </span>
                 {g.status === "draft" && (
-                  <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200">óútfyllt</span>
+                  <span className="shrink-0 rounded-full bg-hc-warn-surface px-2 py-0.5 text-[11px] font-semibold text-hc-warn-ink ring-1 ring-hc-warn-ink/30">óútfyllt</span>
                 )}
                 <ChevronDown className={`h-4 w-4 shrink-0 text-hc-ink-3 transition ${open === g.id ? "rotate-180" : ""}`} />
               </button>
@@ -146,7 +146,7 @@ export default function ClientsView({ api, onOpenClient }: {
                         return (
                           <li key={m.id}>
                             <button type="button" disabled={!j} onClick={() => j && onOpenClient(j)}
-                              className="w-full truncate rounded-lg bg-hc-surface px-2.5 py-1.5 text-left text-sm text-hc-ink-2 ring-1 ring-hc-hairline enabled:hover:bg-emerald-50 disabled:opacity-60">
+                              className="w-full truncate rounded-lg bg-hc-surface px-2.5 py-1.5 text-left text-sm text-hc-ink-2 ring-1 ring-hc-hairline enabled:hover:bg-hc-ok-surface disabled:opacity-60">
                               {m.full_name ?? "—"}
                               {!j && <span className="ml-1 text-xs text-hc-ink-3">(engin heilsuferð)</span>}
                             </button>

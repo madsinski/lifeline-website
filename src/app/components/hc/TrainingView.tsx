@@ -617,8 +617,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
  */
 const TONE: Record<Modality, { band: string; ring: string; today: string; tile: string; ink: string; pill: string; go: string }> = {
   strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-600 hover:bg-orange-700" },
-  hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200",     go: "bg-rose-600 hover:bg-rose-700" },
-  cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200",       go: "bg-sky-600 hover:bg-sky-700" },
+  hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-hc-bad-ink",   pill: "text-hc-bad-ink ring-hc-bad-ink/30",     go: "bg-rose-600 hover:bg-rose-700" },
+  cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-hc-info-ink",    pill: "text-hc-info-ink ring-hc-info-ink/30",       go: "bg-sky-600 hover:bg-sky-700" },
   other:    { band: "bg-hc-sunken",     ring: "ring-hc-hairline",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-hc-ink-2",  pill: "text-hc-ink-2 ring-hc-hairline",   go: "bg-slate-700 hover:bg-hc-brand-dark" },
 };
 
@@ -750,7 +750,7 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
       actions={(onStart || onDid) && (
         <div className="border-b border-hc-hairline px-4 py-3">
           {done ? (
-            <p className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 font-bold text-emerald-800 ring-1 ring-emerald-200">
+            <p className="flex w-full items-center justify-center gap-2 rounded-2xl bg-hc-ok-surface px-4 py-3 font-bold text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
               <Check className="h-4 w-4" aria-hidden /> Búið í dag
             </p>
           ) : onStart ? (
@@ -981,7 +981,7 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
             actions={(onComplete || onRemove) && (
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-3">
                 {done?.has(a.id) ? (
-                  <p className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-50 px-4 py-2.5 font-bold text-emerald-800 ring-1 ring-emerald-200">
+                  <p className="flex w-full items-center justify-center gap-2 rounded-2xl bg-hc-ok-surface px-4 py-2.5 font-bold text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
                     <Check className="h-4 w-4" aria-hidden /> Búið í dag
                   </p>
                 ) : (

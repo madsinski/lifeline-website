@@ -16,9 +16,9 @@ type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type ReadMethod = "local" | "ai-text" | "ai-document" | "needs-consent";
 
 const METHOD_BADGE: Record<ReadMethod, { label: string; title: string; className: string }> = {
-  local: { label: "Lesið hjá okkur", title: "Lesið á okkar eigin vél — skráin fór hvergi.", className: "bg-emerald-50 text-emerald-800" },
-  "ai-text": { label: "AI-lestur á texta", title: "Textinn úr skjalinu var sendur í AI-lestur án kennitölu, netfangs og símanúmers.", className: "bg-amber-50 text-amber-800" },
-  "ai-document": { label: "AI-lestur á skjali", title: "Skjalið sjálft var sent í AI-lestur.", className: "bg-amber-100 text-amber-900" },
+  local: { label: "Lesið hjá okkur", title: "Lesið á okkar eigin vél — skráin fór hvergi.", className: "bg-hc-ok-surface text-hc-ok-ink" },
+  "ai-text": { label: "AI-lestur á texta", title: "Textinn úr skjalinu var sendur í AI-lestur án kennitölu, netfangs og símanúmers.", className: "bg-hc-warn-surface text-hc-warn-ink" },
+  "ai-document": { label: "AI-lestur á skjali", title: "Skjalið sjálft var sent í AI-lestur.", className: "bg-amber-100 text-hc-warn-ink" },
   "needs-consent": { label: "Bíður samþykkis", title: "Skjalið var ekki lesið hér.", className: "bg-hc-sunken-2 text-hc-ink-2" },
 };
 
@@ -134,7 +134,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); if (e.dataTransfer.files?.length) void read(e.dataTransfer.files); }}
-      className={`rounded-3xl border-2 border-dashed p-5 transition ${over ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-hc-surface"}`}
+      className={`rounded-3xl border-2 border-dashed p-5 transition ${over ? "border-emerald-500 bg-hc-ok-surface" : "border-slate-300 bg-hc-surface"}`}
     >
       {/* Stacked or in a row, decided by the caller.
           My first attempt used sm:, which reads the viewport — and the
@@ -158,7 +158,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
         <div className={narrow
           ? "flex flex-col gap-3"
           : "flex flex-wrap items-center gap-4"}>
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-hc-ok-surface text-hc-ok-ink">
             {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileUp className="h-6 w-6" />}
           </span>
           <div className={narrow ? "min-w-0" : "min-w-0 flex-1"}>
@@ -238,12 +238,12 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           </div>
 
           {result.method === "needs-consent" && (
-            <div className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
-              <p className="flex items-center gap-2 font-bold text-amber-900">
+            <div className="rounded-2xl bg-hc-warn-surface p-4 ring-1 ring-hc-warn-ink/30">
+              <p className="flex items-center gap-2 font-bold text-hc-warn-ink">
                 <ShieldAlert className="h-4 w-4 shrink-0" aria-hidden /> Við gátum ekki lesið þetta skjal hér
               </p>
               {result.warnings.map((w, i) => (
-                <p key={i} className="mt-1 text-sm leading-relaxed text-amber-900">{w}</p>
+                <p key={i} className="mt-1 text-sm leading-relaxed text-hc-warn-ink">{w}</p>
               ))}
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <button type="button" disabled={busy || !pending.length} onClick={() => void read(pending, true)}
@@ -251,7 +251,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Senda í AI-lestur
                 </button>
                 <button type="button" onClick={() => { setResult(null); setPending([]); }}
-                  className="text-sm font-semibold text-amber-900 hover:underline">Nei, ég skrái gildin sjálf</button>
+                  className="text-sm font-semibold text-hc-warn-ink hover:underline">Nei, ég skrái gildin sjálf</button>
               </div>
             </div>
           )}
@@ -266,7 +266,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold text-hc-ink">
                         {m.full_name}
-                        {m.confident && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">kennitala stemmir</span>}
+                        {m.confident && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-hc-ok-ink">kennitala stemmir</span>}
                       </span>
                       <span className="block text-xs text-hc-ink-2">
                         {[m.email, m.kennitala_last4 ? `···${m.kennitala_last4}` : null, m.journey_id ? "á heilsuferð í gangi" : "engin heilsuferð"].filter(Boolean).join(" · ")}
@@ -336,12 +336,12 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
                   <span className="shrink-0 font-semibold tabular-nums text-hc-ink">
                     {String(v.value).replace(".", ",")}{v.unit ? ` ${v.unit}` : ""}
                   </span>
-                  {v.confidence !== "high" && <span className="shrink-0 text-[11px] text-amber-700">?</span>}
+                  {v.confidence !== "high" && <span className="shrink-0 text-[11px] text-hc-warn-ink">?</span>}
                 </li>
               ))}
             </ul>
             {result.warnings.length > 0 && (
-              <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-xs text-amber-800">
+              <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-xs text-hc-warn-ink">
                 {result.warnings.map((w, i) => <li key={i}>{w}</li>)}
               </ul>
             )}

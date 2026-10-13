@@ -96,7 +96,7 @@ export default function ReportUpload({ api, onDone, compact, heading, blurb }: {
       <p className="mt-2 text-xs text-hc-ink-2">
         Kennitalan á skýrslunni þarf að vera þín. Þú getur afturkallað samþykkið með því að eyða skýrslunni í Aðgangi.
       </p>
-      {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm ${msg.ok ? "text-emerald-700" : "text-red-700"}`}>{msg.text}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm ${msg.ok ? "text-hc-ok-ink" : "text-red-700"}`}>{msg.text}</p>}
     </div>
   );
 }

@@ -77,7 +77,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
                     <button key={r} type="button" aria-pressed={on}
                       onClick={() => setInjuries((xs) => (on ? xs.filter((y) => y !== r) : [...xs, r]))}
                       className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                        on ? "bg-amber-100 text-amber-900 ring-amber-300" : "bg-hc-surface text-hc-ink-2 ring-hc-hairline"}`}>
+                        on ? "bg-amber-100 text-hc-warn-ink ring-amber-300" : "bg-hc-surface text-hc-ink-2 ring-hc-hairline"}`}>
                       {REGION_IS[r].label}
                     </button>
                   );

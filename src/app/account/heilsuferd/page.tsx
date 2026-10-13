@@ -226,7 +226,7 @@ function Heilsuferd() {
             </>
           ) : current && !ours ? (
             <button type="button" onClick={() => { setOpen(current.key); setTimeout(() => document.getElementById(`step-${current.key}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
-              className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Halda áfram: {current.title} →</button>
+              className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-hc-ok-surface">Halda áfram: {current.title} →</button>
           ) : null}
           {data.profile.company_name && <span className="rounded-full bg-hc-surface/10 px-3 py-1 text-xs">Í boði {data.profile.company_name}</span>}
         </div>
@@ -326,7 +326,7 @@ function Heilsuferd() {
         <aside className="space-y-4">
           {healthOrder?.activation_code && (
             <div className="rounded-2xl border border-emerald-100 bg-hc-surface p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Virkjunarkóði</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-hc-ok-ink">Virkjunarkóði</p>
               <CodeBox code={healthOrder.activation_code} />
               <p className="mt-2 text-xs text-hc-ink-3">{healthOrder.activation_redeemed_at ? "Virkjaður í sjúklingagátt." : "Sláðu kóðann inn í sjúklingagáttina."}</p>
             </div>
@@ -423,7 +423,7 @@ function StartJourney() {
           um svefn, hreyfingu, næringu og andlega líðan.
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
-          <Link href="/account/heilsuferd?start=1" className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Hefja heilsuferð →</Link>
+          <Link href="/account/heilsuferd?start=1" className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-hc-ok-surface">Hefja heilsuferð →</Link>
           <Link href="/account/heilsuferd/adgangur" className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface/15 px-4 font-semibold text-white ring-1 ring-white/30 hover:bg-hc-surface/25">Stillingar</Link>
         </div>
       </section>
@@ -503,7 +503,7 @@ function InterviewBooking({ j, portal }: { j: HcJourney; portal: string }) {
 /** One of the three things inside the tests step, ticked when it is done. */
 function TestTask({ n, title, done, children }: { n: number; title: string; done: boolean; children: React.ReactNode }) {
   return (
-    <div className={`rounded-xl border p-3 ${done ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200 bg-hc-surface"}`}>
+    <div className={`rounded-xl border p-3 ${done ? "border-hc-ok-ink/30 bg-emerald-50/50" : "border-slate-200 bg-hc-surface"}`}>
       <p className="flex items-center gap-2 font-semibold text-hc-ink">
         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
           done ? "bg-emerald-500 text-white" : "bg-slate-900 text-white"}`}>
@@ -723,7 +723,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           <p>Í viðtalinu farið þið yfir svefn, hreyfingu, næringu og andlega líðan, mælingar og blóðprufur, og gerið saman áætlun til þriggja mánaða.</p>
           {j.interview_booked_for
             ? (
-              <div className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-900">
+              <div className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">
                 <p>Bókað: <strong>{fmtDateTime(j.interview_booked_for)}</strong>{j.interview_mode === "video" ? " · myndsímtal" : loc?.interview_site ? ` · ${loc.interview_site}` : ""}</p>
                 {j.meeting_url && (
                   <a href={j.meeting_url} target="_blank" rel="noreferrer"
@@ -800,7 +800,7 @@ function CodeBox({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="mt-2 flex items-center gap-2">
-      <span className="flex-1 rounded-xl bg-emerald-50 px-4 py-3 text-center font-mono text-xl font-bold tracking-[0.15em] text-emerald-900">{code}</span>
+      <span className="flex-1 rounded-xl bg-hc-ok-surface px-4 py-3 text-center font-mono text-xl font-bold tracking-[0.15em] text-hc-ok-ink">{code}</span>
       <button
         onClick={async () => { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
         className="rounded-xl border border-slate-200 px-3 py-3 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken"
@@ -821,7 +821,7 @@ function ConsentCard({ reload }: { reload: () => Promise<unknown> }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   return (
-    <section className="mb-4 rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-amber-200">
+    <section className="mb-4 rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-warn-ink/30">
       <p className="font-bold text-hc-ink">Eitt atriði vantar: samþykki</p>
       <p className="mt-1 text-sm text-hc-ink-2">Áður en við förum lengra þurfum við upplýst samþykki þitt fyrir vinnslu heilsufarsupplýsinga.</p>
       <div className="mt-3"><ConsentBox checked={checked} onChange={setChecked} error={err || undefined} /></div>
@@ -981,7 +981,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
             <input id="company-code" value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeState(null); }} placeholder="FY-XXXX-XXXX" className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5 font-mono uppercase tracking-wider" />
             <button type="button" onClick={checkCode} disabled={code.length < 8} className="rounded-lg bg-slate-800 px-4 text-sm font-semibold text-white disabled:opacity-40">Staðfesta</button>
           </div>
-          {codeState?.ok === true && <p className="mt-2 text-sm text-emerald-700">✓ {codeState.company_name ?? "Vinnuveitandi"} greiðir {codeState.contribution_isk != null ? formatIsk(codeState.contribution_isk) : codeState.contribution_percent >= 100 ? "allt" : `${codeState.contribution_percent}%`}.</p>}
+          {codeState?.ok === true && <p className="mt-2 text-sm text-hc-ok-ink">✓ {codeState.company_name ?? "Vinnuveitandi"} greiðir {codeState.contribution_isk != null ? formatIsk(codeState.contribution_isk) : codeState.contribution_percent >= 100 ? "allt" : `${codeState.contribution_percent}%`}.</p>}
           {codeState?.ok === false && <p className="mt-2 text-sm text-red-600">{codeState.error}</p>}
         </ContributionToggle>
         <ContributionToggle on={useUnion} onToggle={() => setUseUnion((v) => !v)} disabled={!info.unions.length}
@@ -1029,7 +1029,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
         <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5" />
         <span>Ég samþykki <a href="/soluskilmalar" target="_blank" className="underline">söluskilmála</a> Lifeline Health.</span>
       </label>
-      {info.eligibility_error && <p className="text-sm text-amber-700">{info.eligibility_error}</p>}
+      {info.eligibility_error && <p className="text-sm text-hc-warn-ink">{info.eligibility_error}</p>}
       {err && <p role="alert" className="text-sm text-red-600">{err}</p>}
       <button type="button" onClick={pay} disabled={!canPay} className="w-full rounded-full bg-[#10B981] px-6 py-3 font-semibold text-white shadow-lg shadow-green-500/20 hover:bg-[#047857] disabled:opacity-40">
         {busy ? "Augnablik…" : q.chargedIsk > 0 ? `Greiða ${formatIsk(q.chargedIsk)}` : "Staðfesta"}
@@ -1079,7 +1079,7 @@ function TestStep({ kind, title, address, info, bookedFor, done, portal, reload 
         {address && <p>{address}</p>}
         {info && <p className="mt-1 text-hc-ink-3">{info}</p>}
       </div>
-      {done ? <p className="text-emerald-700">Lokið. Niðurstöður berast lækni sjálfkrafa.</p> : (
+      {done ? <p className="text-hc-ok-ink">Lokið. Niðurstöður berast lækni sjálfkrafa.</p> : (
         <>
           <a href={portal} target="_blank" rel="noreferrer" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">Bóka í sjúklingagátt</a>
           <div className="flex flex-wrap items-end gap-2">
@@ -1114,7 +1114,7 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
       <div className="space-y-2 text-sm text-hc-ink-2">
         <p>Greitt. Virkjaðu eftirfylgdina í sjúklingagáttinni með kóðanum og bókaðu tíma:</p>
         {order.activation_code && <CodeBox code={order.activation_code} />}
-        {j.followup_booked_for && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-900">Bókað: <strong>{fmtDateTime(j.followup_booked_for)}</strong></p>}
+        {j.followup_booked_for && <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">Bókað: <strong>{fmtDateTime(j.followup_booked_for)}</strong></p>}
       </div>
     );
   }
@@ -1160,7 +1160,7 @@ function HistoryCard({ history }: { history: NonNullable<JourneyData["history"]>
           <li key={h.id}>
             <Link href={`/account/heilsuferd/aaetlun?journey=${h.id}&tab=plan`} className="flex items-center justify-between rounded-xl px-3 py-2 text-sm ring-1 ring-slate-200 hover:bg-hc-sunken">
               <span className="text-hc-ink-2">Áætlun frá {fmtDate(h.plan_published_at)}</span>
-              <span className="text-emerald-700">Opna →</span>
+              <span className="text-hc-ok-ink">Opna →</span>
             </Link>
           </li>
         ))}

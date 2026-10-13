@@ -95,7 +95,7 @@ export function ConsentBanner({ consent }: { consent: ConsentState }) {
   if (!consent.on_behalf) {
     const own = consent.source === "self";
     return (
-      <p className="flex items-start gap-2 rounded-2xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+      <p className="flex items-start gap-2 rounded-2xl bg-hc-ok-surface p-3 text-sm text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <span>
           {own
@@ -108,7 +108,7 @@ export function ConsentBanner({ consent }: { consent: ConsentState }) {
 
   if (consent.visible_to_client) {
     return (
-      <p className="flex items-start gap-2 rounded-2xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+      <p className="flex items-start gap-2 rounded-2xl bg-hc-ok-surface p-3 text-sm text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <span>
           Staðfest af skjólstæðingi {day(consent.client_confirmed_at)} — þau sjá skýrsluna í appinu.
@@ -118,7 +118,7 @@ export function ConsentBanner({ consent }: { consent: ConsentState }) {
   }
 
   return (
-    <p className="flex items-start gap-2 rounded-2xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
+    <p className="flex items-start gap-2 rounded-2xl bg-hc-warn-surface p-3 text-sm text-hc-warn-ink ring-1 ring-hc-warn-ink/30">
       <ShieldQuestion className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
       <span>
         Skjólstæðingur hefur ekki staðfest skýrsluna sem var skráð fyrir þau

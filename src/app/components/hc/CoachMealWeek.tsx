@@ -125,7 +125,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
               </span>
               {/* Flagged, not corrected: a day under the band may be the
                   right call for a reason the coach knows and this does not. */}
-              <span className={`shrink-0 text-xs font-semibold tabular-nums ${low ? "text-amber-700" : "text-hc-ink-2"}`}>
+              <span className={`shrink-0 text-xs font-semibold tabular-nums ${low ? "text-hc-warn-ink" : "text-hc-ink-2"}`}>
                 {protein} g
               </span>
               <button type="button" onClick={() => setOpen({ day: i, slot: "dinner" })}

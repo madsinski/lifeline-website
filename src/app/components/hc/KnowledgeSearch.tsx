@@ -92,7 +92,7 @@ export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" 
             {results.slice(0, 40).map((e) => (
               <li key={e.slug}>
                 <button type="button" onClick={() => setPicked(e.slug)}
-                  className={`w-full px-4 py-2.5 text-left hover:bg-hc-sunken ${current?.slug === e.slug ? "bg-emerald-50" : ""}`}>
+                  className={`w-full px-4 py-2.5 text-left hover:bg-hc-sunken ${current?.slug === e.slug ? "bg-hc-ok-surface" : ""}`}>
                   <span className="block text-sm font-semibold text-hc-ink">{e.title}</span>
                   <span className="block text-xs text-hc-ink-2">{CATEGORY_IS[e.category]}</span>
                 </button>
@@ -121,7 +121,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
   return (
     <article className="space-y-4">
       <header>
-        <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{CATEGORY_IS[e.category]}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-hc-ok-ink">{CATEGORY_IS[e.category]}</p>
         <h2 className="text-xl font-bold text-hc-ink">{e.title}{e.unit ? <span className="ml-2 text-sm font-medium text-hc-ink-3">{e.unit}</span> : null}</h2>
         <p className="mt-1 text-hc-ink-2">{e.summary}</p>
       </header>

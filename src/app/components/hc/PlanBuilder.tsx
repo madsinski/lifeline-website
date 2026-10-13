@@ -111,7 +111,7 @@ function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) 
           className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
             step === i ? "bg-hc-brand-dark text-white" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
           <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
-            step === i ? "bg-hc-surface/20" : i < step ? "bg-emerald-100 text-emerald-800" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+            step === i ? "bg-hc-surface/20" : i < step ? "bg-emerald-100 text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
             {i < step ? "✓" : i + 1}
           </span>
           {label}
@@ -441,9 +441,9 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
     };
     return (
       <div>
-        <div className="mb-4 flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 print:hidden">
+        <div className="mb-4 flex items-center justify-between rounded-2xl bg-hc-warn-surface px-4 py-3 text-sm text-hc-warn-ink print:hidden">
           <span>Forskoðun: svona sér skjólstæðingurinn áætlunina.</span>
-          <button onClick={() => setPreview(false)} className="rounded-full bg-hc-surface px-4 py-1.5 font-semibold ring-1 ring-amber-200">Til baka í ritil</button>
+          <button onClick={() => setPreview(false)} className="rounded-full bg-hc-surface px-4 py-1.5 font-semibold ring-1 ring-hc-warn-ink/30">Til baka í ritil</button>
         </div>
         <PlanView plan={asPlan} clientName={clientName} author={author}
           lectures={draft.lecture_slugs.map((k) => lib.lectures?.find((l) => l.slug === k)).filter((l): l is NonNullable<typeof l> => !!l)}
@@ -473,7 +473,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           coach needs to know whether what they are looking at is live.
           Everything that acts goes behind the disclosure. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-emerald-100 text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
           {status === "published" ? (dirty ? "Birt · óvistaðar breytingar" : "Birt") : dirty ? "Óvistað" : status === "draft" ? "Drög" : "Ný"}
         </span>
         <span className="min-w-0 flex-1 truncate text-sm text-hc-ink-2">{clientName || "Skjólstæðingur"}</span>
@@ -504,7 +504,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       )}
 
       {msg && (
-        <div role="status" className={`rounded-xl px-4 py-2 text-sm ${msg.tone === "ok" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`}>{msg.text}</div>
+        <div role="status" className={`rounded-xl px-4 py-2 text-sm ${msg.tone === "ok" ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-red-50 text-red-700"}`}>{msg.text}</div>
       )}
 
       {step === 0 && <AiProposalPanel api={api} journeyId={journeyId} ready={readyProposal} onApply={applyProposal} />}
@@ -692,7 +692,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                                 onChange={(e) => patchItem(m.uid, { note: e.target.value || null })}
                                 placeholder="Persónuleg athugasemd til skjólstæðings"
                                 rows={m.note ? 2 : 1}
-                                className="w-full rounded-lg bg-amber-50/70 px-2 py-1 text-sm text-amber-900 placeholder:text-amber-700/50"
+                                className="w-full rounded-lg bg-amber-50/70 px-2 py-1 text-sm text-hc-warn-ink placeholder:text-amber-700/50"
                               />
                             </div>
                           )}
@@ -775,7 +775,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                 {lib.lectures.map((l) => {
                   const on = draft.lecture_slugs.includes(l.slug);
                   return (
-                    <label key={l.slug} className={`flex cursor-pointer items-start gap-2 rounded-xl px-3 py-2 ring-1 ${on ? "bg-emerald-50 ring-emerald-300" : "ring-hc-hairline hover:bg-hc-sunken"}`}>
+                    <label key={l.slug} className={`flex cursor-pointer items-start gap-2 rounded-xl px-3 py-2 ring-1 ${on ? "bg-hc-ok-surface ring-emerald-300" : "ring-hc-hairline hover:bg-hc-sunken"}`}>
                       <input type="checkbox" className="mt-1" checked={on}
                         onChange={(e) => update({ lecture_slugs: e.target.checked ? [...draft.lecture_slugs, l.slug] : draft.lecture_slugs.filter((x) => x !== l.slug) })} />
                       <span>
@@ -858,7 +858,7 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
           {busy ? "Set saman…" : "Láta AI setja saman"}
         </button>
         {disabled && <span className="text-xs text-hc-ink-2">Veldu sniðmát fyrst.</span>}
-        {msg && <span className="text-xs text-emerald-800">{msg}</span>}
+        {msg && <span className="text-xs text-hc-ok-ink">{msg}</span>}
       </div>
       {open && !disabled && (
         <div className="mt-2 rounded-xl bg-hc-sunken p-3">

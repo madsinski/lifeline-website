@@ -89,7 +89,7 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
         <div className="space-y-4 p-4">
           {set.options.length > 0 && (
             <>
-              <p className="flex items-start gap-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+              <p className="flex items-start gap-2 rounded-xl bg-hc-ok-surface p-3 text-sm text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {set.blurb}
               </p>
               <div className="grid gap-2 sm:grid-cols-2">

@@ -70,7 +70,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
       <div className="space-y-3">
         <button type="button" onClick={() => setOpen(null)} className="rounded-full bg-hc-surface px-4 py-1.5 text-sm font-semibold ring-1 ring-hc-hairline">← Til baka</button>
         {isAdaptive(program.key) && (
-          <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="rounded-2xl bg-hc-warn-surface px-4 py-3 text-sm text-hc-warn-ink">
             Prufustillingar: breytingar hér vistast ekki. Stillingar skjólstæðings eru í áætlun hans, skrefinu Hreyfing.
           </p>
         )}
@@ -88,7 +88,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
           {lectures.map((l) => (
             <button key={l.slug} type="button" onClick={() => setOpen({ kind: "lecture", slug: l.slug })}
               className="rounded-2xl bg-hc-surface p-4 text-left shadow-sm ring-1 ring-hc-hairline transition hover:ring-emerald-300">
-              <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
+              <p className="text-xs font-bold uppercase tracking-wide text-hc-ok-ink">
                 {KIND_IS[l.kind] ?? "Fræðsla"}{l.kind === "slides" ? ` · ${l.slides.length} glærur` : ""}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}
               </p>
               <p className="mt-1 font-bold text-hc-ink">{l.title}</p>

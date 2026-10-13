@@ -45,8 +45,8 @@ export default function ActivityIcon({ name, className = "h-5 w-5" }: { name: st
 
 const COVER_CLS: Record<Covers, string> = {
   strength: "bg-orange-100 text-orange-900",
-  hiit: "bg-rose-100 text-rose-900",
-  cardio: "bg-sky-100 text-sky-900",
+  hiit: "bg-rose-100 text-hc-bad-ink",
+  cardio: "bg-sky-100 text-hc-info-ink",
 };
 
 /**

@@ -116,7 +116,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
     <section className={bare ? "" : `${hcCard.base} p-5`}>
       <div className={`flex items-start ${bare ? "" : "gap-3"}`}>
         {!bare && (
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-ok-surface">
             <Handshake className="h-5 w-5 text-hc-brand-text" aria-hidden />
           </span>
         )}

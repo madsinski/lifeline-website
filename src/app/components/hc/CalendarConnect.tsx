@@ -91,7 +91,7 @@ export function CalendarStatus({ api, onOpen }: { api: CalendarApi; onOpen: () =
     <div>
       {g?.connected ? (
         <p className="text-xs text-hc-ink-2">
-          <span className="font-semibold text-emerald-700">● Google tengt</span>{g.email ? ` · ${g.email}` : ""}
+          <span className="font-semibold text-hc-ok-ink">● Google tengt</span>{g.email ? ` · ${g.email}` : ""}
           {g.lastError ? <span className="block text-red-600">{g.lastError}</span> : <span className="block text-hc-ink-3">Samstillt {ago(g.lastSyncAt)}</span>}
         </p>
       ) : (
@@ -212,7 +212,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
       <div className="max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-hc-surface p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Dagatal</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-hc-ok-ink">Dagatal</div>
             <h2 id="cal-title" className="mt-0.5 text-xl font-bold text-hc-ink">Tímarnir í dagatalið þitt</h2>
           </div>
           <button onClick={close} aria-label="Loka" className="rounded-full p-1.5 text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-4 w-4" /></button>
@@ -222,7 +222,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
           <>
             <p className="mt-2 text-sm text-hc-ink-2">{intro}</p>
             {g?.connected && (
-              <div className="mt-3 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              <div className="mt-3 rounded-2xl bg-hc-ok-surface px-4 py-3 text-sm text-hc-ok-ink">
                 <b>Google er tengt</b>{g.email ? ` (${g.email})` : ""}. <button onClick={() => setChoice("google")} className="font-semibold underline">Stillingar</button>
               </div>
             )}
@@ -250,10 +250,10 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                 <h3 className="flex items-center gap-2 text-base font-bold"><GoogleMark /> Google-dagatal</h3>
                 {g?.connected ? (
                   <div className="mt-3 space-y-3">
-                    <div className="rounded-2xl bg-emerald-50 p-4 text-emerald-900">
+                    <div className="rounded-2xl bg-hc-ok-surface p-4 text-hc-ok-ink">
                       <div className="flex items-center gap-2 font-bold"><CheckCircle2 className="h-5 w-5 text-emerald-600" /> Tengt{g.email ? ` · ${g.email}` : ""}</div>
                       <p className="mt-1 text-sm">Tímarnir fara í dagatalið „{g.calendarName}“ um leið og þeir eru bókaðir eða breytast.</p>
-                      <p className="mt-1 text-xs text-emerald-800">Síðast samstillt {ago(g.lastSyncAt)}{g.enabled ? "" : " · í bið"}</p>
+                      <p className="mt-1 text-xs text-hc-ok-ink">Síðast samstillt {ago(g.lastSyncAt)}{g.enabled ? "" : " · í bið"}</p>
                     </div>
                     {g.lastError && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{g.lastError}</p>}
                     <div className="flex flex-wrap gap-2">
@@ -275,10 +275,10 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                   <>
                     <p className="mt-1 text-sm text-hc-ink-2">Við búum til sérstakt dagatal í Google-reikningnum þínum og setjum tímana þar inn. Breytingar birtast strax. Við sjáum ekkert annað í dagatalinu þínu.</p>
                     {googleReturn && googleReturn !== "connected" && (
-                      <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">{GOOGLE_RETURN_TEXT[googleReturn] ?? "Tenging mistókst."}</p>
+                      <p className="mt-3 rounded-xl bg-hc-warn-surface px-3 py-2 text-sm text-hc-warn-ink">{GOOGLE_RETURN_TEXT[googleReturn] ?? "Tenging mistókst."}</p>
                     )}
                     {g && !g.configured ? (
-                      <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Bein tenging við Google er væntanleg. Notaðu „Annað“ og bættu hlekknum við í Google-dagatali á meðan.</p>
+                      <p className="mt-3 rounded-xl bg-hc-warn-surface px-3 py-2 text-sm text-hc-warn-ink">Bein tenging við Google er væntanleg. Notaðu „Annað“ og bættu hlekknum við í Google-dagatali á meðan.</p>
                     ) : (
                       <button onClick={() => { setBusy(true); void api.startGoogle().finally(() => setBusy(false)); }} disabled={busy || !g}
                         className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 sm:w-auto">

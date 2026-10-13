@@ -117,7 +117,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
               </div>
             ) : (
               <button type="button" onClick={() => { setOpenId(r.id); setReply(r.reply ?? ""); }}
-                className="mt-1 text-sm font-semibold text-emerald-700 hover:underline">
+                className="mt-1 text-sm font-semibold text-hc-ok-ink hover:underline">
                 Svara
               </button>
             )}

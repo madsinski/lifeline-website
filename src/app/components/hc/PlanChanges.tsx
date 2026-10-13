@@ -84,7 +84,7 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
               <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${mine ? "bg-slate-400" : "bg-amber-400"}`} aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-hc-ink-2">
-                  <span className={`font-semibold ${mine ? "text-hc-ink-2" : "text-amber-800"}`}>
+                  <span className={`font-semibold ${mine ? "text-hc-ink-2" : "text-hc-warn-ink"}`}>
                     {mine ? (c.by ?? "Starfsmaður") : "Skjólstæðingurinn"}
                   </span>
                   {" · "}{when(c.at)}

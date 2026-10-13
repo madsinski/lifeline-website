@@ -100,7 +100,7 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
                         <input value={it.note ?? ""} onChange={(e) => setItem(si, ii, { note: e.target.value || null })} placeholder="Persónuleg athugasemd (t.d. „notaðu stól ef hnéð kvartar“)" aria-label="Athugasemd" className="w-full rounded-lg border border-hc-hairline px-2 py-1 text-xs" />
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                           {it.exercise_id
-                            ? <span className="font-semibold text-emerald-700">✓ Úr safni{it.video ? " · myndband" : ""}</span>
+                            ? <span className="font-semibold text-hc-ok-ink">✓ Úr safni{it.video ? " · myndband" : ""}</span>
                             : <span className="text-hc-ink-3">Frjáls lína</span>}
                           <button type="button" onClick={() => setPicker({ si, replace: ii })} className="font-semibold text-orange-700 hover:underline">
                             {it.exercise_id ? "Skipta um æfingu" : "Tengja við safn"}

@@ -122,7 +122,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
     <li key={b.id} className="border-b border-hc-hairline p-3 last:border-b-0">
       <div className="flex items-start gap-3">
         <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
-          b.kind === "video" ? "bg-sky-50 text-sky-700" : "bg-emerald-50 text-emerald-700"}`}>
+          b.kind === "video" ? "bg-hc-info-surface text-hc-info-ink" : "bg-hc-ok-surface text-hc-ok-ink"}`}>
           {b.kind === "video" ? <Video className="h-4 w-4" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
         </span>
         <div className="min-w-0 flex-1">
@@ -143,7 +143,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           {/* The join link, when Google has given us one. */}
           {b.meeting_url && !dim && (
             <a href={b.meeting_url} target="_blank" rel="noopener noreferrer"
-              className="mt-1 inline-block text-sm font-semibold text-sky-700 hover:underline">
+              className="mt-1 inline-block text-sm font-semibold text-hc-info-ink hover:underline">
               Opna fundinn
             </a>
           )}
@@ -209,7 +209,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
               : `${bookingMinutes(adding, items)} mínútur í dagbókinni.`}
           </p>
 
-          {err && <p className="text-sm text-rose-700">{err}</p>}
+          {err && <p className="text-sm text-hc-bad-ink">{err}</p>}
 
           <div className="flex gap-2">
             <button type="button" onClick={() => void create()}
@@ -241,7 +241,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
       <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-3">
         <div className="mb-2 flex items-center gap-2">
           <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
-            kind === "video" ? "bg-sky-50 text-sky-700" : "bg-emerald-50 text-emerald-700"}`}>
+            kind === "video" ? "bg-hc-info-surface text-hc-info-ink" : "bg-hc-ok-surface text-hc-ok-ink"}`}>
             {icon}
           </span>
           <h3 className="flex-1 font-bold text-hc-ink">{title}</h3>

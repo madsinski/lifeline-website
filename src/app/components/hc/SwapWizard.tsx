@@ -153,7 +153,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
           <div className="space-y-2 p-4">
             <p className="font-semibold text-hc-ink">Af hverju viltu skipta?</p>
             {known && (
-              <p className="rounded-xl bg-sky-50 p-3 text-xs text-sky-900 ring-1 ring-sky-200">
+              <p className="rounded-xl bg-hc-info-surface p-3 text-xs text-hc-info-ink ring-1 ring-hc-info-ink/30">
                 Við vitum af {injuries.map((r) => REGION_IS[r].gen).join(" og ")} úr uppsetningunni þinni og sleppum
                 æfingum með höggi, hvað sem þú velur hér.
               </p>
@@ -227,7 +227,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
                         {[(e.primary_muscles ?? []).slice(0, 2).map(muscleIs).join(", "), e.equipment ? EQUIPMENT_IS[e.equipment] ?? e.equipment : null].filter(Boolean).join(" · ")}
                       </span>
                     </span>
-                    {e.bang_for_buck && <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">Mest fyrir minnst</span>}
+                    {e.bang_for_buck && <span className="shrink-0 rounded-full bg-hc-ok-surface px-2 py-0.5 text-[11px] font-semibold text-hc-ok-ink">Mest fyrir minnst</span>}
                   </button>
                 </li>
               ))}

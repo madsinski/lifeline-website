@@ -111,12 +111,12 @@ export function UpcomingSoon({ items, onDismiss }: {
           Fela
         </button>
       )}
-      <div className="relative rounded-hc-card bg-amber-50 ring-1 ring-amber-300 transition-transform"
+      <div className="relative rounded-hc-card bg-hc-warn-surface ring-1 ring-amber-300 transition-transform"
         style={{ transform: `translateX(${swipe.dx}px)`, transitionDuration: swipe.dx === 0 || swipe.open ? "160ms" : "0ms", touchAction: "pan-y" }}
         {...(onDismiss ? swipe.handlers : {})}>
         <div className="flex items-center gap-2 px-4 pt-3 sm:px-5">
-          <CalendarClock className="h-4 w-4 shrink-0 text-amber-700" aria-hidden />
-          <p className="min-w-0 flex-1 text-xs font-bold uppercase tracking-[0.14em] text-amber-800">
+          <CalendarClock className="h-4 w-4 shrink-0 text-hc-warn-ink" aria-hidden />
+          <p className="min-w-0 flex-1 text-xs font-bold uppercase tracking-[0.14em] text-hc-warn-ink">
             {soon.length === 1 ? "Á næstunni" : "Á næstunni"}
           </p>
         </div>
@@ -177,7 +177,7 @@ function Row({ x, urgent = false, onNavigate }: {
           browsers. */}
       <Link href={ROW_HREF} className="absolute inset-0 z-0" aria-label={`${x.title} — sjá bókunina`}
         onClick={(e) => { if (onNavigate?.(ROW_HREF)) e.preventDefault(); }} />
-      <span className={`pointer-events-none relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgent ? "bg-amber-200 text-amber-900" : "bg-hc-brand/10 text-hc-brand-text"}`}>
+      <span className={`pointer-events-none relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full ${urgent ? "bg-amber-200 text-hc-warn-ink" : "bg-hc-brand/10 text-hc-brand-text"}`}>
         {video ? <Video className="h-4 w-4" aria-hidden /> : <CalendarClock className="h-4 w-4" aria-hidden />}
       </span>
       <span className="pointer-events-none relative z-10 min-w-0 flex-1">

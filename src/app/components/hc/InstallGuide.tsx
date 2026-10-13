@@ -215,7 +215,7 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
           </ol>
 
           {cur.note && (
-            <p className="rounded-hc-element bg-amber-50 px-3 py-2 text-xs text-amber-900">{cur.note}</p>
+            <p className="rounded-hc-element bg-hc-warn-surface px-3 py-2 text-xs text-hc-warn-ink">{cur.note}</p>
           )}
         </div>
       )}

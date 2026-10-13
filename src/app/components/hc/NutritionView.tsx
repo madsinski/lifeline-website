@@ -414,7 +414,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                       <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">
                         {WEEKDAYS[i]}{i === todayIdx ? " · í dag" : ""}
                       </p>
-                      <p className={`text-xs font-bold tabular-nums ${low ? "text-amber-700" : "text-hc-ink-2"}`}>
+                      <p className={`text-xs font-bold tabular-nums ${low ? "text-hc-warn-ink" : "text-hc-ink-2"}`}>
                         {protein} g prótein
                       </p>
                     </div>
@@ -594,7 +594,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                           <div className="flex items-baseline justify-between text-sm">
                             <span className="font-semibold text-hc-ink-2">{r.label}</span>
                             <span className="tabular-nums text-hc-ink-2">
-                              <strong className={under ? "text-amber-700" : over ? "text-hc-ink" : "text-lime-700"}>{r.got}</strong>
+                              <strong className={under ? "text-hc-warn-ink" : over ? "text-hc-ink" : "text-lime-700"}>{r.got}</strong>
                               <span className="text-hc-ink-2"> {r.unit}</span>
                               {r.target && <span className="text-xs text-hc-ink-2"> · mark {r.target.min}–{r.target.max}</span>}
                             </span>
@@ -610,7 +610,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                     {/* Said plainly, once. A bar that is short tells you
                         something is off; it does not tell you what to do. */}
                     {band && prot < band.min && (
-                      <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      <p className="mt-2 rounded-xl bg-hc-warn-surface px-3 py-2 text-sm text-hc-warn-ink">
                         Máltíðirnar í vikunni skila að meðaltali {prot} g próteini á dag, undir markinu {band.min}–{band.max} g.
                         Skiptu einhverri máltíð út fyrir próteinríkari — þær sem eru efst í „Skipta“ eru valdar eftir próteini.
                       </p>
@@ -674,7 +674,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 ...(prefs?.avoid ?? []).map((k) => ({
                   key: `a:${k}`,
                   label: `Ekkert ${(ALLERGEN_OPTIONS.find((a) => a.key === k)?.label ?? k).toLowerCase().replace(/ \(.*\)$/, "")}`,
-                  cls: "bg-rose-50 text-rose-900 ring-rose-200",
+                  cls: "bg-hc-bad-surface text-hc-bad-ink ring-hc-bad-ink/30",
                 })),
               ];
               if (chips.length === 0) return null;
@@ -805,7 +805,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                             aria-pressed={fav}
                             aria-label={fav ? `Taka ${mealName(m)} úr eftirlæti` : `Setja ${mealName(m)} í eftirlæti`}
                             className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${
-                              fav ? "text-amber-500 hover:bg-amber-50" : "text-slate-300 hover:bg-hc-sunken-2 hover:text-hc-ink-2"}`}>
+                              fav ? "text-amber-500 hover:bg-hc-warn-surface" : "text-slate-300 hover:bg-hc-sunken-2 hover:text-hc-ink-2"}`}>
                             <Star className={`h-5 w-5 ${fav ? "fill-current" : ""}`} aria-hidden />
                           </button>
                         </div>

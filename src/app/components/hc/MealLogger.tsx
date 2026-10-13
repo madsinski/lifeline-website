@@ -264,14 +264,14 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                     <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
                       aria-pressed={done}
                       className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition ${
-                        done ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`}>
+                        done ? "bg-hc-ok-surface ring-2 ring-emerald-500" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`}>
                       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${
                         done ? "border-transparent bg-emerald-600 text-white" : "border-hc-hairline text-transparent"}`}>
                         {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-hc-ink-2" /> : <Check className="h-5 w-5" strokeWidth={3} />}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-xs font-semibold uppercase tracking-wide text-hc-ink-2">{SLOT_IS[slot]}</span>
-                        <span className={`block truncate font-semibold ${done ? "text-emerald-900" : "text-hc-ink"}`}>{mealName(meal)}</span>
+                        <span className={`block truncate font-semibold ${done ? "text-hc-ok-ink" : "text-hc-ink"}`}>{mealName(meal)}</span>
                       </span>
                       <span className="shrink-0 text-right text-xs text-hc-ink-2">
                         {meal.protein != null && <span className="block font-semibold text-hc-ink-2">{Math.round(Number(meal.protein))} g</span>}
@@ -307,7 +307,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
             aria-pressed={done}
             className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold transition disabled:opacity-60 ${
               done
-                ? "bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500"
+                ? "bg-hc-ok-surface text-hc-ok-ink ring-2 ring-emerald-500"
                 : "bg-lime-700 text-white hover:bg-lime-800"}`}>
             {busy === slot
               ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden />

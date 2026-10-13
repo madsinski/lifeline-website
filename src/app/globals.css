@@ -100,6 +100,17 @@ body.hc-scroll-lock {
      the surface and has to invert with it. #047857 measures 5.48:1 on white
      and 2.85 on the dark card, so one value cannot serve both. */
   --hc-brand-text: #047857;
+  /* Status pairs. A surface and the ink that sits on it, defined together
+     because they have to move together: in dark mode a light ink on the
+     original amber-50 would be light-on-light, so converting only the text
+     would have traded one unreadable combination for another.
+     Light values are the Tailwind pairs already in use (-50 with -800/900),
+     so nothing changes here; the names only give dark mode something to
+     answer. */
+  --hc-ok-surface: #ECFDF5;    --hc-ok-ink: #065F46;
+  --hc-warn-surface: #FFFBEB;  --hc-warn-ink: #92400E;
+  --hc-info-surface: #F0F9FF;  --hc-info-ink: #075985;
+  --hc-bad-surface: #FFF1F2;   --hc-bad-ink: #9F1239;
   --hc-sunken: #F8FAFC;
   --hc-sunken-2: #F1F5F9;
   /* A warm ground rather than a clinical blue-grey. Slate-50 under white
@@ -183,6 +194,10 @@ body.hc-scroll-lock {
   --color-hc-surface: var(--hc-surface);
   --color-hc-ink-3: var(--hc-ink-3);
   --color-hc-brand-text: var(--hc-brand-text);
+  --color-hc-ok-surface: var(--hc-ok-surface);   --color-hc-ok-ink: var(--hc-ok-ink);
+  --color-hc-warn-surface: var(--hc-warn-surface); --color-hc-warn-ink: var(--hc-warn-ink);
+  --color-hc-info-surface: var(--hc-info-surface); --color-hc-info-ink: var(--hc-info-ink);
+  --color-hc-bad-surface: var(--hc-bad-surface);  --color-hc-bad-ink: var(--hc-bad-ink);
   --color-hc-sunken: var(--hc-sunken);
   --color-hc-sunken-2: var(--hc-sunken-2);
   --color-hc-page: var(--hc-page);
@@ -573,6 +588,14 @@ main.readonly-locked a {
     --hc-ink-2: #AFBCCC;
     --hc-ink-3: #93A1B3;
     --hc-brand-text: #34D399;   /* 8.14:1 on the card */
+  --hc-ok-surface: #112A20;  --hc-ok-ink: #34D399;
+  --hc-warn-surface: #2A2211;  --hc-warn-ink: #FBBF24;
+  --hc-info-surface: #102534;  --hc-info-ink: #38BDF8;
+  --hc-bad-surface: #2C161B;   --hc-bad-ink: #FB7185;
+    --hc-ok-surface: #112A20;    --hc-ok-ink: #34D399;
+    --hc-warn-surface: #2A2211;  --hc-warn-ink: #FBBF24;
+    --hc-info-surface: #102534;  --hc-info-ink: #38BDF8;
+    --hc-bad-surface: #2C161B;   --hc-bad-ink: #FB7185;
     --hc-muted: #6B7A8C;
     --hc-hairline: #2A3542;
     --hc-border: #35414F;
@@ -594,6 +617,10 @@ main.readonly-locked a {
   --hc-ink-2: #AFBCCC;
   --hc-ink-3: #93A1B3;
   --hc-brand-text: #34D399;   /* 8.14:1 on the card */
+  --hc-ok-surface: #112A20;  --hc-ok-ink: #34D399;
+  --hc-warn-surface: #2A2211;  --hc-warn-ink: #FBBF24;
+  --hc-info-surface: #102534;  --hc-info-ink: #38BDF8;
+  --hc-bad-surface: #2C161B;   --hc-bad-ink: #FB7185;
   --hc-muted: #6B7A8C;
   --hc-hairline: #2A3542;
   --hc-border: #35414F;

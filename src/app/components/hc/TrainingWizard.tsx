@@ -70,7 +70,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
   const last = step === STEPS.length - 1;
 
   const card = (on: boolean) =>
-    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-emerald-50 ring-2 ring-hc-brand" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`;
+    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-hc-ok-surface ring-2 ring-hc-brand" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`;
 
   return (
     <section className={`${hcCard.base} p-5 sm:p-6`} aria-label="Uppsetning æfingaáætlunar">
@@ -79,7 +79,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-1.5">
             <span className={`flex h-6 items-center gap-1.5 rounded-full px-2.5 ${
-              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-emerald-100 text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
               {i < step ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}{label}
             </span>
             {i < STEPS.length - 1 && <span className="h-px w-3 bg-slate-200" aria-hidden />}
@@ -113,15 +113,15 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
             })}
           </div>
           {s.places.includes("class") && (
-            <div className="rounded-2xl bg-sky-50 p-4 ring-1 ring-sky-200">
-              <p className="text-sm font-semibold text-sky-900">{gym?.name ? `Hóptímar hjá ${gym.name}` : "Hóptímar"}</p>
+            <div className="rounded-2xl bg-hc-info-surface p-4 ring-1 ring-hc-info-ink/30">
+              <p className="text-sm font-semibold text-hc-info-ink">{gym?.name ? `Hóptímar hjá ${gym.name}` : "Hóptímar"}</p>
               <p className="mt-1 text-sm text-sky-900/80">
                 Áætlunin segir þér hvers konar tíma þú átt að sækja hverja viku og hvað þú átt að segja þjálfaranum.
                 Tímarnir sjálfir breytast milli vikna, svo við geymum ekki stundaskrána — opnaðu hana hjá stöðinni.
               </p>
               {gym?.info && <p className="mt-1 text-sm text-sky-900/80">{gym.info}</p>}
               {gym?.url && (
-                <a href={gym.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-semibold text-sky-800 underline">
+                <a href={gym.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm font-semibold text-hc-info-ink underline">
                   Opna stundaskrána →
                 </a>
               )}
@@ -156,14 +156,14 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
                 <button key={w} type="button" onClick={() => toggleDay(i)} aria-pressed={on}
                   title={busy ? (s.activities ?? []).filter((a) => a.day === i).map((a) => a.name).join(", ") : wanted ? wanted.why : undefined}
                   className={`relative min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
-                    on ? "bg-hc-brand-dark text-white" : wanted ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
+                    on ? "bg-hc-brand-dark text-white" : wanted ? "bg-hc-warn-surface text-hc-warn-ink ring-1 ring-amber-300 hover:bg-amber-100" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                   <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span><span className="hidden sm:inline">{w}</span>
                   {busy && <span className={`ml-1.5 text-xs font-normal ${on ? "text-white/70" : "text-hc-ink-2"}`}>•</span>}
                 </button>
               );
             })}
           </div>
-          <p className={`text-sm ${s.days.length >= 2 ? "text-hc-ink-2" : "text-amber-800"}`}>
+          <p className={`text-sm ${s.days.length >= 2 ? "text-hc-ink-2" : "text-hc-warn-ink"}`}>
             {s.days.length >= 2 ? `${s.days.length} dagar valdir.` : "Veldu að minnsta kosti tvo daga."}
             {(s.activities ?? []).length > 0 && <span className="text-hc-ink-2"> Punktur merkir dag sem þú ert þegar á ferðinni.</span>}
           </p>
@@ -173,8 +173,8 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
               was left to work out for themselves that they have no strength
               work and that it should not go the day after football. */}
           {suggested.length > 0 && (
-            <div className="rounded-2xl bg-amber-50 p-3 ring-1 ring-amber-200">
-              <p className="text-sm font-semibold text-amber-900">
+            <div className="rounded-2xl bg-hc-warn-surface p-3 ring-1 ring-hc-warn-ink/30">
+              <p className="text-sm font-semibold text-hc-warn-ink">
                 Þetta vantar í vikuna: {[...new Set(suggested.map((x) => COVERS_IS[x.modality]))].join(", ")}
               </p>
               <ul className="mt-1 space-y-0.5 text-sm text-amber-900/90">
@@ -300,7 +300,7 @@ function ScoreBars({ s, planStart }: { s: TrainingSettings; planStart: string | 
               <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-200">
                 <div className={`h-full rounded-full ${tone.bar}`} style={{ width: `${Math.max(4, (m.score / 10) * 100)}%` }} />
               </div>
-              {m.gap && <p className="mt-0.5 text-[11px] text-amber-800">{m.gap}</p>}
+              {m.gap && <p className="mt-0.5 text-[11px] text-hc-warn-ink">{m.gap}</p>}
             </div>
           );
         })}
@@ -321,7 +321,7 @@ function WeekPreview({ s, planStart }: { s: TrainingSettings; planStart: string 
       <ScoreBars s={s} planStart={planStart} />
 
       {sessions.length === 0
-        ? <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">Vikan þín þekur nú þegar allt sem þarf — áætlunin bætir engu ofan á.</p>
+        ? <p className="rounded-xl bg-hc-ok-surface p-3 text-sm text-hc-ok-ink ring-1 ring-hc-ok-ink/30">Vikan þín þekur nú þegar allt sem þarf — áætlunin bætir engu ofan á.</p>
         : <p className="text-sm text-hc-ink-2">Áætlunin bætir þessu við:</p>}
       <ol className="space-y-2">
         {sessions.map((x, i) => (
@@ -335,7 +335,7 @@ function WeekPreview({ s, planStart }: { s: TrainingSettings; planStart: string 
         ))}
       </ol>
       {!hiit.on && hiit.why && (
-        <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">{hiit.why}</p>
+        <p className="rounded-xl bg-hc-warn-surface p-3 text-sm text-hc-warn-ink ring-1 ring-hc-warn-ink/30">{hiit.why}</p>
       )}
       <p className="text-xs text-hc-ink-2">Þú getur fært æfingarnar á aðra daga og skipt út einstökum æfingum eftir á.</p>
     </div>

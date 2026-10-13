@@ -44,8 +44,8 @@ export interface HcResult {
 }
 
 const TONE_PILL: Record<string, string> = {
-  good: "bg-emerald-50 text-emerald-800 ring-emerald-200",
-  watch: "bg-amber-50 text-amber-800 ring-amber-200",
+  good: "bg-hc-ok-surface text-hc-ok-ink ring-hc-ok-ink/30",
+  watch: "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30",
   high: "bg-red-50 text-red-700 ring-red-200",
   low: "bg-blue-50 text-blue-700 ring-blue-200",
 };
@@ -251,7 +251,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           <span className="rounded-full bg-hc-sunken-2 px-2.5 py-0.5 text-xs font-semibold text-hc-ink-2">{recorded.length} skráð</span>
         )}
         {flagged > 0 && (
-          <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800 ring-1 ring-amber-200">{flagged} utan viðmiða</span>
+          <span className="rounded-full bg-hc-warn-surface px-2.5 py-0.5 text-xs font-bold text-hc-warn-ink ring-1 ring-hc-warn-ink/30">{flagged} utan viðmiða</span>
         )}
         <span className="flex-1" />
         {!editing && (
@@ -282,16 +282,16 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
       </div>
 
       {needsConsent && (
-        <div className="mt-3 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-200">
-          <p className="font-bold text-amber-900">Við gátum ekki lesið þetta skjal hér</p>
-          {warnings.map((w, i) => <p key={i} className="mt-1 text-sm leading-relaxed text-amber-900">{w}</p>)}
+        <div className="mt-3 rounded-2xl bg-hc-warn-surface p-4 ring-1 ring-hc-warn-ink/30">
+          <p className="font-bold text-hc-warn-ink">Við gátum ekki lesið þetta skjal hér</p>
+          {warnings.map((w, i) => <p key={i} className="mt-1 text-sm leading-relaxed text-hc-warn-ink">{w}</p>)}
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <button type="button" disabled={reading || !pending.length} onClick={() => void readReport(pending, true)}
               className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-amber-900 px-4 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50">
               {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Senda í AI-lestur
             </button>
             <button type="button" onClick={() => { setNeedsConsent(false); setWarnings([]); setPending([]); }}
-              className="text-sm font-semibold text-amber-900 hover:underline">Nei, ég skrái gildin sjálf</button>
+              className="text-sm font-semibold text-hc-warn-ink hover:underline">Nei, ég skrái gildin sjálf</button>
           </div>
         </div>
       )}
@@ -332,7 +332,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           </ul>
 
           {warnings.length > 0 && (
-            <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-amber-800">
+            <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-hc-warn-ink">
               {warnings.map((w, i) => <li key={i}>{w}</li>)}
             </ul>
           )}
@@ -428,7 +428,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                           id={`res-${e.slug}`} inputMode="decimal" value={raw}
                           onChange={(ev) => setDraft({ ...draft, [e.slug]: ev.target.value })}
                           placeholder="—"
-                          className={`w-24 rounded-lg border px-2 py-1.5 text-right text-sm tabular-nums ${b && b.tone !== "good" ? "border-amber-300 bg-amber-50" : "border-slate-300"}`}
+                          className={`w-24 rounded-lg border px-2 py-1.5 text-right text-sm tabular-nums ${b && b.tone !== "good" ? "border-amber-300 bg-hc-warn-surface" : "border-slate-300"}`}
                         />
                         <span className="w-20 shrink-0 text-[11px] text-hc-ink-2">{b ? TONE_IS[b.tone] : unknown && v != null ? "kyn vantar" : ""}</span>
                       </li>

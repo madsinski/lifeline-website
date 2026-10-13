@@ -46,7 +46,7 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
   const last = step === STEPS.length - 1;
 
   const card = (on: boolean) =>
-    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-emerald-50 ring-2 ring-hc-brand" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`;
+    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-hc-ok-surface ring-2 ring-hc-brand" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`;
 
   return (
     <section className={`${hcCard.base} p-5 sm:p-6`} aria-label="Uppsetning næringaráætlunar">
@@ -54,7 +54,7 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-1.5">
             <span className={`flex h-6 items-center gap-1.5 rounded-full px-2.5 ${
-              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-emerald-100 text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
               {i < step ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}{label}
             </span>
             {i < STEPS.length - 1 && <span className="h-px w-3 bg-slate-200" aria-hidden />}
@@ -86,14 +86,14 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
               return (
                 <button key={a.key} type="button" onClick={() => toggleAvoid(a.key)} aria-pressed={on}
                   className={`rounded-xl border px-3 py-2 text-left text-sm transition ${
-                    on ? "border-rose-500 bg-rose-50 font-semibold text-rose-900" : "border-hc-hairline bg-hc-surface text-hc-ink hover:border-slate-300"}`}>
+                    on ? "border-rose-500 bg-hc-bad-surface font-semibold text-hc-bad-ink" : "border-hc-hairline bg-hc-surface text-hc-ink hover:border-slate-300"}`}>
                   {a.label}
                 </button>
               );
             })}
           </div>
           {(p.avoid ?? []).map((k) => ALLERGEN_OPTIONS.find((a) => a.key === k)).filter((a) => a?.note).map((a) => (
-            <p key={a!.key} className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{a!.note}</p>
+            <p key={a!.key} className="rounded-xl bg-hc-warn-surface px-3 py-2 text-xs text-hc-warn-ink">{a!.note}</p>
           ))}
           {/* Not a safety guarantee, and it must not read like one. */}
           {(p.avoid ?? []).length > 0 && (
@@ -175,7 +175,7 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
           {/* When the measurement disagrees with the choice, say so once and
               leave the choice alone. */}
           {focusTension(p.focus, emphasis) && (
-            <p className="rounded-hc-element bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
+            <p className="rounded-hc-element bg-hc-warn-surface px-3 py-2 text-xs text-hc-warn-ink ring-1 ring-hc-warn-ink/30">
               {focusTension(p.focus, emphasis)}
             </p>
           )}
@@ -204,14 +204,14 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
               <p className={`${hcKicker} mb-2 text-hc-ink-2`}>Máltíðir í boði fyrir þig</p>
               <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {depth.map((d) => (
-                  <div key={d.slot} className={`rounded-xl p-3 text-center ${d.have < 4 ? "bg-amber-50 ring-1 ring-amber-200" : "bg-hc-sunken"}`}>
+                  <div key={d.slot} className={`rounded-xl p-3 text-center ${d.have < 4 ? "bg-hc-warn-surface ring-1 ring-hc-warn-ink/30" : "bg-hc-sunken"}`}>
                     <dt className="text-xs font-semibold text-hc-ink-2">{SLOT_IS[d.slot]}</dt>
-                    <dd className={`text-lg font-bold ${d.have < 4 ? "text-amber-800" : "text-hc-ink"}`}>{d.have}<span className="text-xs font-medium text-hc-ink-2"> af {d.total}</span></dd>
+                    <dd className={`text-lg font-bold ${d.have < 4 ? "text-hc-warn-ink" : "text-hc-ink"}`}>{d.have}<span className="text-xs font-medium text-hc-ink-2"> af {d.total}</span></dd>
                   </div>
                 ))}
               </dl>
               {thin.length > 0 && (
-                <p className="mt-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
+                <p className="mt-2 rounded-xl bg-hc-warn-surface p-3 text-sm text-hc-warn-ink ring-1 ring-hc-warn-ink/30">
                   Safnið okkar á fáar máltíðir sem passa við valið þitt
                   {` (${thin.map((d) => SLOT_IS[d.slot].toLowerCase()).join(", ")})`}.
                   Þú munt sjá sömu réttina oft. Segðu hjúkrunarfræðingnum frá — við bætum við.

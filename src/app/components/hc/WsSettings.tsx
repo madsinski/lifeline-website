@@ -153,7 +153,7 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
       {mode === "worker" && (
         <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-hc-card">
           <button type="button" onClick={onLogout}
-            className={`${hcBtn.secondary} w-full justify-center text-rose-700 ring-rose-200 hover:bg-rose-50`}>
+            className={`${hcBtn.secondary} w-full justify-center text-hc-bad-ink ring-hc-bad-ink/30 hover:bg-hc-bad-surface`}>
             <LogOut className="h-4 w-4" aria-hidden /> Útskrá
           </button>
         </section>

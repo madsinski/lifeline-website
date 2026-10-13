@@ -80,7 +80,7 @@ export default function SettingsCard() {
             <button onClick={() => { setPinStep("idle"); setPin(""); }} className="mt-3 block w-full text-center text-xs text-hc-ink-2">Hætta við</button>
           </div>
         )}
-        {pinStep === "done" && <p className="mt-2 text-xs text-emerald-700">PIN er virkt á þessu tæki.</p>}
+        {pinStep === "done" && <p className="mt-2 text-xs text-hc-ok-ink">PIN er virkt á þessu tæki.</p>}
       </div>
 
       <div className="mt-4 border-t border-hc-hairline pt-3">

@@ -56,7 +56,7 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
     <section className={`${hcCard.base} border-l-4 border-l-hc-brand mb-4 p-5`} role="region"
       aria-label="Staðfesta skýrslu">
       <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-50">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-ok-surface">
           <FileCheck2 className="h-5 w-5 text-hc-brand-text" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">

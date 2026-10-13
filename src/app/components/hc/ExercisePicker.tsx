@@ -120,7 +120,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
                     <p className="mt-0.5 line-clamp-1 text-[11px] text-hc-ink-3">{(ex.primary_muscles ?? []).map(muscleIs).join(", ")}</p>
                     <span className="flex-1" />
                     <button type="button" onClick={() => pick(ex)}
-                      className={`mt-2 rounded-lg px-2 py-1.5 text-xs font-semibold ${isAdded ? "bg-emerald-50 text-emerald-700" : "bg-orange-600 text-white hover:bg-orange-700"}`}>
+                      className={`mt-2 rounded-lg px-2 py-1.5 text-xs font-semibold ${isAdded ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-orange-600 text-white hover:bg-orange-700"}`}>
                       {mode === "replace" ? "Velja" : isAdded ? "✓ Bætt við · aftur" : "+ Bæta við"}
                     </button>
                   </div>
