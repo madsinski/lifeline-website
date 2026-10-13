@@ -79,7 +79,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-1.5">
             <span className={`flex h-6 items-center gap-1.5 rounded-full px-2.5 ${
-              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-emerald-100 text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
               {i < step ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}{label}
             </span>
             {i < STEPS.length - 1 && <span className="h-px w-3 bg-slate-200" aria-hidden />}

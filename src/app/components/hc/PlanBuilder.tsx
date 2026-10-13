@@ -111,7 +111,7 @@ function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) 
           className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
             step === i ? "bg-hc-brand-dark text-white" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
           <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
-            step === i ? "bg-hc-surface/20" : i < step ? "bg-emerald-100 text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+            step === i ? "bg-hc-surface/20" : i < step ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
             {i < step ? "✓" : i + 1}
           </span>
           {label}
@@ -473,7 +473,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           coach needs to know whether what they are looking at is live.
           Everything that acts goes behind the disclosure. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-emerald-100 text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
           {status === "published" ? (dirty ? "Birt · óvistaðar breytingar" : "Birt") : dirty ? "Óvistað" : status === "draft" ? "Drög" : "Ný"}
         </span>
         <span className="min-w-0 flex-1 truncate text-sm text-hc-ink-2">{clientName || "Skjólstæðingur"}</span>

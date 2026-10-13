@@ -539,75 +539,79 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
 
   return (
     <div className="space-y-6">
-      <div>
+      {/* pt-2: the greeting sat directly under the tab bar with nothing
+          between them, so the two read as one block. */}
+      <div className="pt-2">
         <p className="text-sm text-hc-ink-2">{longDate(new Date())}</p>
         <h1 className="text-2xl font-bold text-hc-ink">{greet}, {me.name.split(" ")[0]}</h1>
       </div>
 
-      {/* ── The work, and the tools to do it with ──────────────────
-          On a laptop this was one column down the middle of a 1280px
-          screen with empty grey either side, and five cards of identical
-          weight stacked in it: the caseload, the drop zone, a search box,
-          the queue, a link. Nothing said which mattered.
+      {/* ── Two sections, grouped by the question they answer ─────────────
+          Before this the page was one grid of six cards of equal weight and
+          you had to read each heading to know what it was for. They split
+          cleanly in two: what needs me today, and my people. The roster and
+          the new-client card in particular belong together — they are the
+          same subject, and having "add a person" sit beside the messages
+          while "the list of people" sat three cards below was an accident
+          of which column had room.
 
-          Two columns from lg up. The left is the work — who needs you,
-          what is waiting. The right is the tools you reach for, which are
-          real but are not why you opened the page: dropping a report in,
-          looking somebody up. Below lg it stacks in the same order, so a
-          phone still gets the work first. */}
-      {/* The work on the left, the things you reach for on the right.
-          Stacks in this order below lg, so a phone gets the queue first. */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="min-w-0 space-y-6">
-          {/* What the journeys themselves say needs doing. Not the same
-              list as WsRequests below, which is what participants have
-              ASKED for — two different questions that both look like a
-              queue, and I nearly collapsed them into one by mistake. */}
-          <section>
-            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">
-              Bíður þín {waiting.length > 0 && <span className="rounded-full bg-hc-brand-dark px-2 py-0.5 text-[11px] text-white">{waiting.length}</span>}
-            </h2>
-            {/* Quiet is deliberate: an empty "bíður þín" is this panel's
-                most common state, and 150px of centred card to say there is
-                nothing to do pushes the work below the fold on the days
-                there is some. */}
-            {waiting.length === 0 ? (
-              <EmptyState variant="done" quiet title="Ekkert bíður" body="Allt sem kallar á þig er afgreitt." />
-            ) : (
-              <ul className="divide-y divide-hc-hairline overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface">
-                {waiting.map(({ r, t, f }) => <WaitingRow key={r.id} r={r} t={t} f={f} onOpen={onOpen} onChanged={onChanged} onDismiss={() => void dismiss(r.id, t.key)} />)}
-              </ul>
-            )}
-          </section>
+          Each section carries its own title so the split is visible rather
+          than implied by a gap. */}
+      <section className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-hc-ink-3">
+          Dagurinn þinn
+        </h2>
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="min-w-0 space-y-6">
+            {/* What the journeys themselves say needs doing. Not the same
+                list as WsRequests below, which is what participants have
+                ASKED for — two different questions that both look like a
+                queue, and I nearly collapsed them into one by mistake. */}
+            <div>
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">
+                Bíður þín {waiting.length > 0 && <span className="rounded-full bg-hc-brand-dark px-2 py-0.5 text-[11px] text-white">{waiting.length}</span>}
+              </h3>
+              {/* Quiet is deliberate: an empty "bíður þín" is this panel's
+                  most common state, and 150px of centred card to say there is
+                  nothing to do pushes the work below the fold on the days
+                  there is some. */}
+              {waiting.length === 0 ? (
+                <EmptyState variant="done" quiet title="Ekkert bíður" body="Allt sem kallar á þig er afgreitt." />
+              ) : (
+                <ul className="divide-y divide-hc-hairline overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface">
+                  {waiting.map(({ r, t, f }) => <WaitingRow key={r.id} r={r} t={t} f={f} onOpen={onOpen} onChanged={onChanged} onDismiss={() => void dismiss(r.id, t.key)} />)}
+                </ul>
+              )}
+            </div>
 
-          <WsRequests api={api} onOpen={onOpen} />
+            <WsRequests api={api} onOpen={onOpen} />
+            <WeekAhead api={api} onOpenClient={(id) => onOpen(id)} />
+          </div>
 
-          {/* The week, in place of the old 15-minute grid. */}
-          <WeekAhead api={api} onOpenClient={(id) => onOpen(id)} />
-
-          {/* The roster and its search, once. */}
-          <ClientsView api={api} onOpenClient={(id) => onOpen(id)} />
-        </div>
-
-        <aside className="min-w-0 space-y-6">
-          {/* Messages, once: Caseload used to surface unanswered ones too.
-
-              The heading is here for alignment as much as for labelling.
-              Every section in the left column opens with one, so its first
-              CARD starts about 28px below the top of the column while this
-              one began at the top — the columns were flush, the cards were
-              not, and the eye reads the cards. Giving this the same heading
-              puts both first cards on the same line, and the panel was
-              unlabelled anyway. */}
-          <section>
-            <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">
-              Skilaboð
-            </h2>
+          <aside className="min-w-0">
+            <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">Skilaboð</h3>
             <CoachInbox api={api} onRead={onRead} />
-          </section>
-          <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} narrow />
-        </aside>
-      </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-hc-ink-3">
+          Skjólstæðingar
+        </h2>
+        {/* The roster takes the width and the new-client card sits beside
+            it, open rather than behind a button: this section is where you
+            come to add somebody, so hiding the form behind a click inside
+            the section about people was one step too many. */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="min-w-0">
+            <ClientsView api={api} onOpenClient={(id) => onOpen(id)} />
+          </div>
+          <aside className="min-w-0">
+            <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} narrow expanded />
+          </aside>
+        </div>
+      </section>
     </div>
   );
 }
@@ -829,7 +833,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
       {/* Who this is: reference, not work. Hairline and flat. */}
       <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 sm:p-5">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-hc-ok-ink">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-hc-ok-surface font-bold text-hc-ok-ink">
             {cleanName(d.patient.full_name).split(" ").map((p) => p[0]).slice(0, 2).join("")}
           </span>
           <div className="min-w-0 flex-1">
@@ -1623,7 +1627,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
                     <p className="flex items-center gap-1.5 font-semibold text-hc-ink-2">
                       {m.channel === "sms" ? <Phone className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />}
                       {dayTime(m.sent_at)}
-                      <span className={`ml-auto rounded px-1.5 py-0.5 ${m.status === "sent" ? "bg-emerald-100 text-hc-ok-ink" : m.status === "dry-run" ? "bg-amber-100 text-hc-warn-ink" : "bg-red-100 text-red-700"}`}>
+                      <span className={`ml-auto rounded px-1.5 py-0.5 ${m.status === "sent" ? "bg-hc-ok-surface text-hc-ok-ink" : m.status === "dry-run" ? "bg-amber-100 text-hc-warn-ink" : "bg-red-100 text-red-700"}`}>
                         {m.status === "sent" ? "Sent" : m.status === "dry-run" ? "Prufa" : "Mistókst"}
                       </span>
                     </p>
@@ -1935,7 +1939,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
             <h3 className="text-lg font-bold text-hc-ink">Aðgerðaáætlun</h3>
             <p className="mt-1 text-sm text-hc-ink-2">Veldu sniðmát sem passar, dragðu inn 2–4 aðgerðir á stoð í mesta lagi og skrifaðu persónulegar athugasemdir. Punktar úr samtalinu fylgja sem samantekt.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {d.plan && <span className={`rounded-full px-3 py-1 text-xs font-bold ${d.plan.status === "published" ? "bg-emerald-100 text-hc-ok-ink" : "bg-amber-100 text-hc-warn-ink"}`}>{d.plan.status === "published" ? `Birt ${day(d.plan.published_at)}` : "Drög til"}</span>}
+              {d.plan && <span className={`rounded-full px-3 py-1 text-xs font-bold ${d.plan.status === "published" ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-amber-100 text-hc-warn-ink"}`}>{d.plan.status === "published" ? `Birt ${day(d.plan.published_at)}` : "Drög til"}</span>}
             </div>
             <div className="mt-4 flex justify-between">
               <button type="button" onClick={() => setStep(2)} className={btnGhost}><ArrowLeft className="h-4 w-4" /> Mat</button>

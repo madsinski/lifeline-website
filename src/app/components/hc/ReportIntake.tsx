@@ -26,7 +26,7 @@ interface Identity { name: string | null; kennitala: string | null; kennitala_la
 interface Match { client_id: string; full_name: string | null; email: string | null; kennitala_last4: string | null; journey_id: string | null; confident: boolean }
 interface Value { slug: string | null; code: string; label: string; value: number; unit: string; confidence: "high" | "medium" | "low"; converted_from?: string }
 
-export default function ReportIntake({ api, onOpen, narrow = false }: {
+export default function ReportIntake({ api, onOpen, narrow = false, expanded = false }: {
   api: Api;
   /**
    * Rendered in a narrow column rather than across a page.
@@ -36,6 +36,9 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
    * knows how much room it gave.
    */
   narrow?: boolean;
+  /** Invite form open from the start — for the Skjólstæðingar section,
+      where adding somebody is the reason you are looking at it. */
+  expanded?: boolean;
   /** Open the client's workspace once the report has landed. */
   onOpen: (journeyId: string) => void;
 }) {
@@ -43,7 +46,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
   /* The invite half. Separate state from the dropzone's, because the two
      paths fail differently and a shared `msg` would show a parse error
      under an invite form. */
-  const [invite, setInvite] = useState(false);
+  const [invite, setInvite] = useState(expanded);
   const [iName, setIName] = useState("");
   const [iEmail, setIEmail] = useState("");
   const [iPhone, setIPhone] = useState("");
@@ -266,7 +269,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold text-hc-ink">
                         {m.full_name}
-                        {m.confident && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-hc-ok-ink">kennitala stemmir</span>}
+                        {m.confident && <span className="ml-2 rounded-full bg-hc-ok-surface px-2 py-0.5 text-[11px] font-bold text-hc-ok-ink">kennitala stemmir</span>}
                       </span>
                       <span className="block text-xs text-hc-ink-2">
                         {[m.email, m.kennitala_last4 ? `···${m.kennitala_last4}` : null, m.journey_id ? "á heilsuferð í gangi" : "engin heilsuferð"].filter(Boolean).join(" · ")}
