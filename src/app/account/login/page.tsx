@@ -67,7 +67,7 @@ function NewPassword() {
             <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Nýtt lykilorð (minnst 12 stafir)" autoComplete="new-password" className={input} />
             <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="Nýtt lykilorð aftur" autoComplete="new-password" className={input} />
             {err && <p className="text-sm text-red-600">{err}</p>}
-            <button disabled={busy || !ready} className="w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">{busy ? "Vista…" : "Vista nýtt lykilorð"}</button>
+            <button type="submit" disabled={busy || !ready} className="w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">{busy ? "Vista…" : "Vista nýtt lykilorð"}</button>
           </form>
         )}
       </div>
@@ -392,6 +392,7 @@ function AccountLoginContent() {
               return (
                 <button
                   key={tab.key}
+                  type="button"
                   role="tab"
                   aria-selected={active}
                   onClick={() => { setMode(tab.key); setSignupStage("form"); setError(""); setInfo(""); }}
@@ -419,6 +420,7 @@ function AccountLoginContent() {
               </div>
               {pinError && <p role="alert" className="mt-4 text-center text-sm text-red-600">{pinError}</p>}
               <button
+                type="button"
                 onClick={() => { setUsePin(false); setPinError(""); }}
                 className="mt-5 block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981]"
               >
@@ -624,6 +626,7 @@ function AccountLoginContent() {
 
           {mode === "login" && !usePin && pinAvailable && (
             <button
+              type="button"
               onClick={() => setUsePin(true)}
               className="block w-full text-center text-sm font-medium text-[#10B981] hover:text-[#047857] mt-4 transition-colors"
             >
@@ -632,6 +635,7 @@ function AccountLoginContent() {
           )}
           {mode === "login" && !usePin && (
             <button
+              type="button"
               onClick={handleForgotPassword}
               className="block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981] mt-4 transition-colors"
             >
