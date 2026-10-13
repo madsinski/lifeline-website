@@ -7,7 +7,8 @@
 // never stored — only the values, after the nurse has looked at them.
 
 import { useRef, useState } from "react";
-import { FileUp, Loader2, UserPlus, Check, ShieldAlert } from "lucide-react";
+import { FileUp, Loader2, Send, UserPlus, Check, ShieldAlert } from "lucide-react";
+import { hcBtn } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -39,6 +40,37 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
   onOpen: (journeyId: string) => void;
 }) {
   const [over, setOver] = useState(false);
+  /* The invite half. Separate state from the dropzone's, because the two
+     paths fail differently and a shared `msg` would show a parse error
+     under an invite form. */
+  const [invite, setInvite] = useState(false);
+  const [iName, setIName] = useState("");
+  const [iEmail, setIEmail] = useState("");
+  const [iPhone, setIPhone] = useState("");
+  const [iBusy, setIBusy] = useState(false);
+  const [iMsg, setIMsg] = useState("");
+
+  const sendInvite = async () => {
+    setIBusy(true); setIMsg("");
+    const r = await api("/api/vinnustod/invite", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: iName.trim(), email: iEmail.trim(), phone: iPhone.trim() || undefined }),
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    setIBusy(false);
+    if (!r?.ok) { setIMsg(j.error || "Tókst ekki að senda boð."); return; }
+    /* What actually left, not what was asked for: a phone number with no
+       Twilio behind it would otherwise look like a text that was sent. */
+    const bits: string[] = [];
+    if (j.sent?.includes("email")) bits.push("tölvupósti");
+    if (j.sent?.includes("sms")) bits.push("SMS");
+    setIMsg(bits.length
+      ? `Boð sent í ${bits.join(" og ")}.`
+      : iPhone.trim() && !j.smsConfigured
+        ? "Aðgangur stofnaður, en SMS er ekki uppsett — boðið fór ekki út."
+        : "Aðgangur stofnaður, en boðið fór ekki út.");
+    if (bits.length) { setIName(""); setIEmail(""); setIPhone(""); }
+  };
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [result, setResult] = useState<{ method?: ReadMethod; identity: Identity; report: { date_iso: string | null }; grunnheilsa?: unknown; values: Value[]; warnings: string[]; matches: Match[] } | null>(null);
@@ -112,6 +144,16 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           and the button. A container query would do it; a prop is certain,
           and the caller is the only thing that knows how much room it
           gave. */}
+      {/* The card is "new client", and the report is one of two ways in.
+          It read as a file dropper that happened to create people, so the
+          only way to take somebody on was to already have their report —
+          fine when the report arrived first, useless after a phone call. */}
+      {!result && (
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
+          Nýr skjólstæðingur
+        </h2>
+      )}
+
       {!result && (
         <div className={narrow
           ? "flex flex-col gap-3"
@@ -131,6 +173,47 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
             className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-hc-ink px-4 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 ${narrow ? "w-full" : ""}`}>
             Velja skrá
           </button>
+        </div>
+      )}
+
+      {/* The other door. Collapsed by default so the card still reads as
+          one thing: dropping a report is the common case and should not
+          have to share the first screen with a form. */}
+      {!result && (
+        <div className="mt-4 border-t border-hc-hairline pt-3">
+          {!invite ? (
+            <button type="button" onClick={() => setInvite(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-sunken">
+              <UserPlus className="h-4 w-4" aria-hidden /> Bjóða skjólstæðingi — engin skýrsla enn
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-hc-ink">Bjóða skjólstæðingi</p>
+              <input value={iName} onChange={(e) => setIName(e.target.value)} placeholder="Nafn"
+                aria-label="Nafn" className="w-full rounded-lg border border-hc-control bg-hc-surface px-3 py-2 text-sm text-hc-ink outline-none focus:border-hc-brand" />
+              <input value={iEmail} onChange={(e) => setIEmail(e.target.value)} placeholder="Netfang" type="email"
+                aria-label="Netfang" className="w-full rounded-lg border border-hc-control bg-hc-surface px-3 py-2 text-sm text-hc-ink outline-none focus:border-hc-brand" />
+              <input value={iPhone} onChange={(e) => setIPhone(e.target.value)} placeholder="Símanúmer (valfrjálst)" type="tel"
+                aria-label="Símanúmer" className="w-full rounded-lg border border-hc-control bg-hc-surface px-3 py-2 text-sm text-hc-ink outline-none focus:border-hc-brand" />
+              {/* Said before they type it, not after they send: the number
+                  is only useful if the SMS can actually go out. */}
+              <p className="text-xs text-hc-ink-3">
+                Netfang þarf til að búa til aðgang. Símanúmer sendir sömu slóð í SMS til viðbótar.
+              </p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => void sendInvite()} disabled={iBusy || !iName.trim() || !iEmail.trim()}
+                  className={`${hcBtn.primary} flex-1 justify-center disabled:opacity-40`}>
+                  {iBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
+                  Senda boð
+                </button>
+                <button type="button" onClick={() => { setInvite(false); setIMsg(""); }}
+                  className="rounded-xl px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+                  Hætta við
+                </button>
+              </div>
+              {iMsg && <p className="text-sm text-hc-ink-2">{iMsg}</p>}
+            </div>
+          )}
         </div>
       )}
 
