@@ -6,7 +6,7 @@
 // workstation queue read the same list, so the two can never offer and expect
 // different things.
 
-export const REQUEST_KINDS = ["help", "appointment", "measurement", "program", "injury"] as const;
+export const REQUEST_KINDS = ["help", "medical", "appointment", "measurement", "program", "injury"] as const;
 export type RequestKind = (typeof REQUEST_KINDS)[number];
 
 export const REQUEST_IS: Record<RequestKind, {
@@ -21,9 +21,23 @@ export const REQUEST_IS: Record<RequestKind, {
 }> = {
   help: {
     label: "Ég er með spurningu", short: "Spurning",
-    hint: "Hvað sem er — æfing, matur, svefn, eitthvað í skýrslunni.",
+    /* No longer "eitthvað í skýrslunni". Questions about results belong to
+       the medical kind below, which reaches a doctor: a coach reading a
+       blood test back to somebody is practising medicine, and the old hint
+       invited exactly that. */
+    hint: "Æfingar, matur, svefn eða áætlunin þín.",
     prompt: "Um hvað viltu spyrja?",
     cls: "bg-sky-50 text-sky-900 ring-sky-200", dot: "bg-sky-500",
+  },
+  /* Anything clinical. Separated from "spurning" so it can be routed to a
+     doctor rather than to the coach — the coach does not interpret
+     measurements, blood tests, symptoms or medication, and the form should
+     not quietly accept questions it cannot answer. */
+  medical: {
+    label: "Ég vil ræða heilsufar eða niðurstöður", short: "Læknir",
+    hint: "Blóðprufa, mælingar, einkenni eða lyf. Fer til læknis, ekki þjálfara.",
+    prompt: "Hvað viltu að læknirinn viti fyrir fram?",
+    cls: "bg-sky-50 text-sky-900 ring-sky-200", dot: "bg-sky-600",
   },
   appointment: {
     label: "Ég vil tala við einhvern", short: "Viðtal",
@@ -91,4 +105,70 @@ export function requestSummary(kind: RequestKind, detail: Record<string, unknown
     return p ? (IS[p] ?? p) : "Áætlun";
   }
   return REQUEST_IS[kind].short;
+}
+
+
+/**
+ * One question after the situation, no more.
+ *
+ * The form asked what the situation was and then handed over a blank box,
+ * so what arrived was "hæ, ég er í vandræðum með æfingarnar" and the coach
+ * spent the first reply asking which part. One multiple choice closes most
+ * of that gap, and a second would start to feel like a form.
+ *
+ * Kinds already carrying their own structured follow-up — measurement picks
+ * a list, appointment picks a way, program picks a pillar — are absent here
+ * on purpose: they ask their own question already.
+ */
+export const TOPICS: Partial<Record<RequestKind, { q: string; options: { key: string; label: string }[] }>> = {
+  help: {
+    q: "Um hvað snýst spurningin?",
+    options: [
+      { key: "exercise", label: "Æfingar" },
+      { key: "nutrition", label: "Næring" },
+      { key: "sleep", label: "Svefn" },
+      { key: "mental", label: "Andleg líðan" },
+      { key: "practical", label: "Aðgangur, tímar eða reikningar" },
+      { key: "other", label: "Annað" },
+    ],
+  },
+  medical: {
+    q: "Hvað viltu ræða?",
+    options: [
+      { key: "blood", label: "Niðurstöður úr blóðprufu" },
+      { key: "measures", label: "Niðurstöður úr mælingum" },
+      { key: "symptom", label: "Einkenni eða verkir" },
+      { key: "meds", label: "Lyf" },
+      { key: "other", label: "Annað heilsufarslegt" },
+    ],
+  },
+  injury: {
+    q: "Hvað á við?",
+    options: [
+      { key: "new", label: "Nýtt — gerðist nýlega" },
+      { key: "old", label: "Gamalt sem er að taka sig upp" },
+      { key: "worse", label: "Versnar við æfingar" },
+      { key: "severe", label: "Mikill verkur eða ég kemst illa um" },
+    ],
+  },
+};
+
+/**
+ * Whether this request should be put in front of a doctor rather than a
+ * coach, and the reason to show the person.
+ *
+ * Deliberately generous: anything clinical, and an injury that is severe or
+ * getting worse. Being sent to a doctor you did not need costs a cancelled
+ * booking; the other error costs more.
+ */
+export function needsDoctor(kind: RequestKind, topic?: string | null): string | null {
+  if (kind === "medical") {
+    return topic === "blood" || topic === "measures"
+      ? "Þjálfarinn les ekki úr blóðprufum eða mælingum. Læknir fer yfir niðurstöðurnar með þér."
+      : "Þetta á heima hjá lækni frekar en þjálfara.";
+  }
+  if (kind === "injury" && (topic === "severe" || topic === "worse")) {
+    return "Láttu lækni líta á þetta áður en þú heldur áfram með æfingarnar.";
+  }
+  return null;
 }

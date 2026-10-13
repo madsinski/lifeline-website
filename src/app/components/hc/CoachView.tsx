@@ -16,6 +16,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import AskFlow from "./AskFlow";
+import { portalFor } from "@/lib/hc/portal";
 import { useKeyboard } from "@/lib/hc/use-keyboard";
 import {
   Activity, CalendarClock, CalendarPlus, Check, ChevronDown, ChevronRight,
@@ -85,37 +87,6 @@ const MEASURES = [
 ] as const;
 const MEASURE_LABEL = new Map(MEASURES.map((m) => [m.key as string, m.label]));
 
-/**
- * Whole messages, not openings.
- *
- * These were fragments ending in a dash for the person to finish, which is
- * the one thing a prompt should not ask for: somebody who taps a chip is
- * saying "send this for me", not "help me start". Each one now reads as a
- * complete, sendable message — and it stays editable, so anybody with more
- * to say adds it.
- */
-const PROMPTS = [
-  {
-    label: "Áætlunin er of mikil",
-    text: "Áætlunin er meiri en ég kem í verk eins og er. Getum við létt hana?",
-  },
-  {
-    label: "Áætlunin er of létt",
-    text: "Mér finnst áætlunin of létt núna. Má ég fá meira að gera?",
-  },
-  {
-    label: "Ég meiddi mig",
-    text: "Ég meiddi mig og get ekki æft eins og áætlunin segir. Hvað á ég að gera í staðinn?",
-  },
-  {
-    label: "Vil mæla mig aftur",
-    text: "Mig langar að láta mæla mig aftur. Hvenær passar það?",
-  },
-  {
-    label: "Spurning um skýrsluna",
-    text: "Ég er með spurningu um eitt gildi í skýrslunni minni.",
-  },
-];
 
 const MO = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
 const DAY_SHORT = ["sun", "mán", "þri", "mið", "fim", "fös", "lau"];
@@ -125,8 +96,10 @@ const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.g
 const when = (iso: string) => { const d = new Date(iso); return `${d.getDate()}. ${MO[d.getMonth()]} kl. ${hhmm(d)}`; };
 const longWhen = (iso: string) => { const d = new Date(iso); return `${DAYS_LONG[d.getDay()]} ${d.getDate()}. ${MO[d.getMonth()]}, kl. ${hhmm(d)}`; };
 
-export default function CoachView({ api, startOn, focusNewest = false }: {
+export default function CoachView({ api, startOn, focusNewest = false, portalUrl }: {
   api: Api;
+  /** The location's Medalia portal, for the clinical path in AskFlow. */
+  portalUrl?: string | null;
   /** "book" to open on Bóka, where an upcoming appointment lives. */
   startOn?: "talk" | "book";
   /**
@@ -260,7 +233,7 @@ export default function CoachView({ api, startOn, focusNewest = false }: {
       {err && <p className="rounded-hc-element bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-900 ring-1 ring-rose-200">{err}</p>}
 
       {tab === "talk" && <Talk data={data} draft={draft} setDraft={setDraft} busy={busy} pending={pending}
-        box={box} end={end} onSend={send} onPost={post} />}
+        box={box} end={end} onSend={send} onPost={post} portalUrl={portalUrl} />}
       {tab === "book" && <Book data={data} busy={busy} onPost={post} />}
     </div>
   );
@@ -268,10 +241,12 @@ export default function CoachView({ api, startOn, focusNewest = false }: {
 
 /* ── Skilaboð: the coach, then the thread ──────────────────────────────── */
 
-function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }: {
+function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, portalUrl }: {
   data: CoachData; draft: string; setDraft: (s: string) => void; busy: boolean; pending: string[];
   box: React.RefObject<HTMLTextAreaElement | null>; end: React.RefObject<HTMLDivElement | null>;
   onSend: () => Promise<void>; onPost: (p: Record<string, unknown>) => Promise<boolean>;
+  /** The location's Medalia portal, for the clinical path in AskFlow. */
+  portalUrl?: string | null;
 }) {
   const [switching, setSwitching] = useState(false);
   const [prompts, setPrompts] = useState(false);
@@ -550,23 +525,18 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
           under it. 20 rather than 24: at 24 the page measured 851px against
           an 844px screen, so entering Þjálfari began 7px scrolled. */}
       <div aria-hidden className="h-20" />
+      {/* Two questions instead of a flat list of canned lines.
+          The list was fine as far as it went, but it could not ask a second
+          question — "Ég meiddi mig" produced a sentence and the coach still
+          had to ask where and since when — and it could not tell a clinical
+          question from a coaching one. See AskFlow. */}
       {prompts && (
-        <Sheet title="Tilbúin skilaboð" onClose={() => setPrompts(false)}>
-          <ul className="divide-y divide-slate-100">
-            {PROMPTS.map((x) => (
-              <li key={x.label}>
-                <button type="button"
-                  onClick={() => { setPrompts(false); start(x.text); }}
-                  className="w-full px-4 py-3.5 text-left transition hover:bg-slate-50">
-                  <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">{x.label}</span>
-                  <span className="mt-0.5 block text-sm leading-snug text-hc-ink">{x.text}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="px-4 py-3 text-xs text-slate-600">
-            Skilaboðin fara í reitinn — þú getur breytt þeim áður en þú sendir.
-          </p>
+        <Sheet title="Hvað get ég hjálpað þér með?" onClose={() => setPrompts(false)}>
+          <AskFlow
+            portalUrl={portalFor(portalUrl)}
+            onPick={(opener) => { setPrompts(false); start(opener); }}
+            onFree={() => { setPrompts(false); box.current?.focus(); }}
+          />
         </Sheet>
       )}
     </>

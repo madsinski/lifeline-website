@@ -55,6 +55,7 @@ export default function CoachInbox({ api, onRead }: {
   const [open, setOpen] = useState<Thread | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");
+  const [nudgesOpen, setNudgesOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   /** The list never arrived. Distinct from "no threads", which is fine. */
@@ -191,13 +192,21 @@ export default function CoachInbox({ api, onRead }: {
           <div ref={end} />
         </div>
 
-        {/* The nudges. Sent as kind=nudge so the person's page shows them
-            apart from answers — a coach reaching out unprompted is not a
-            reply to anything they asked. */}
-        {!draft && (
+        {/* The nudges, behind a button on the composer row rather than a
+            row of chips above it.
+            As chips they took three lines of the panel whenever the draft
+            was empty — which is most of the time — and pushed the
+            conversation up out of view to offer something a coach uses
+            occasionally. Behind a button they cost one icon.
+            Still sent as kind=nudge, so the person's page shows them apart
+            from answers: a coach reaching out unprompted is not a reply to
+            anything they asked. Picking one still sends it, as the chips
+            did; the button is a different door to the same act. */}
+        {nudgesOpen && (
           <div className="flex flex-wrap gap-1.5 border-t border-slate-100 px-3 pt-3">
             {NUDGES.map((n, i) => (
-              <button key={i} type="button" disabled={busy} onClick={() => void send(n, true)}
+              <button key={i} type="button" disabled={busy}
+                onClick={() => { setNudgesOpen(false); void send(n, true); }}
                 className="rounded-full bg-amber-50 px-3 py-1.5 text-left text-xs font-semibold text-amber-900 ring-1 ring-amber-200 transition hover:bg-amber-100 disabled:opacity-40">
                 <Sparkles className="mr-1 inline h-3 w-3" aria-hidden />{n.slice(0, 38)}…
               </button>
@@ -210,6 +219,14 @@ export default function CoachInbox({ api, onRead }: {
           </p>
         )}
         <div className="flex items-end gap-2 p-3">
+          {/* Left of the field, so the row reads: suggest · write · send. */}
+          <button type="button" onClick={() => setNudgesOpen((v) => !v)}
+            aria-label="Tillögur" aria-expanded={nudgesOpen} title="Tillögur"
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded-hc-element border transition ${
+              nudgesOpen ? "border-amber-300 bg-amber-50 text-amber-900"
+                         : "border-hc-control bg-white text-slate-600 hover:bg-amber-50 hover:text-amber-900"}`}>
+            <Sparkles className="h-4 w-4" aria-hidden />
+          </button>
           <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(draft); } }}
             placeholder="Svaraðu…" aria-label={`Svar til ${open.name}`}

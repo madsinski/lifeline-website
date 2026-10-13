@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, hcAudit, requireUser } from "@/lib/hc/server";
-import { MEASUREMENTS, MEETING_WAYS, isKind } from "@/lib/hc/requests";
+import { MEASUREMENTS, MEETING_WAYS, TOPICS, isKind, type RequestKind } from "@/lib/hc/requests";
 
 export const runtime = "nodejs";
 
@@ -57,6 +57,12 @@ export async function POST(req: NextRequest) {
   }
   if (b.kind === "appointment" && MEETING_WAYS.some((w) => w.key === b.detail?.way)) detail.way = b.detail.way;
   if (b.kind === "program" && ["exercise", "nutrition", "sleep", "mental"].includes(b.detail?.pillar)) detail.pillar = b.detail.pillar;
+  /* The one sharpening question. Validated against the shared list rather
+     than stored as whatever arrived, so the queue can rely on it. */
+  if (typeof b.detail?.topic === "string") {
+    const allowed = TOPICS[b.kind as RequestKind]?.options.some((o: { key: string }) => o.key === b.detail.topic);
+    if (allowed) detail.topic = b.detail.topic;
+  }
 
   const body = typeof b.body === "string" && b.body.trim() ? b.body.trim().slice(0, 2000) : null;
 
