@@ -23,6 +23,7 @@ import { getHcActor } from "@/lib/hc/ws-auth";
 import { DEFAULT_LOCATION, getOrCreateJourney, hcAudit, siteOrigin } from "@/lib/hc/server";
 import { renderBrandedEmail, sendEmail } from "@/lib/email";
 import { sendSms, smsConfigured, toE164 } from "@/lib/sms";
+import { fillName, inviteTemplate } from "@/lib/hc/invite-templates";
 
 export const runtime = "nodejs";
 
@@ -101,28 +102,35 @@ export async function POST(req: NextRequest) {
 
   const sent: string[] = [];
   const first = name.split(" ")[0];
+  /* Fixed text from a list rather than free text. The same first contact
+     should read the same way every time, and SMS to Icelandic numbers is
+     filtered on content as well as sender — see invite-templates.ts. */
+  const tpl = inviteTemplate(typeof body?.template === "string" ? body.template : "");
+  const channels = Array.isArray(body?.channels)
+    ? (body.channels as unknown[]).filter((c): c is string => c === "email" || c === "sms")
+    : ["email"];
 
-  const mail = await sendEmail({
-    to: email,
-    subject: "Aðgangur að heilsuferðinni þinni hjá Lifeline",
-    html: renderBrandedEmail({
-      title: "Heilsuferðin þín",
-      preheader: "Aðgangurinn þinn hjá Lifeline er tilbúinn.",
-      bodyHtml: `<p>Hæ ${first}.</p><p>Við höfum sett upp aðganginn þinn hjá Lifeline. Þar sérðu áætlunina þína, bókar tíma og nærð í okkur.</p>`,
-      ctaLabel: "Opna aðganginn",
-      ctaUrl: url,
-      footerNote: "Ef þú áttir ekki von á þessum pósti er óhætt að hunsa hann.",
-    }),
-    text: `Hæ ${first}. Aðgangurinn þinn hjá Lifeline er tilbúinn: ${url}`,
-  }).catch(() => ({ ok: false }));
-  if (mail.ok) sent.push("email");
+  if (channels.includes("email")) {
+    const mail = await sendEmail({
+      to: email,
+      subject: tpl.subject,
+      html: renderBrandedEmail({
+        title: tpl.subject,
+        preheader: "Aðgangurinn þinn hjá Lifeline er tilbúinn.",
+        bodyHtml: `<p>Hæ ${first}.</p><p>${tpl.email}</p>`,
+        ctaLabel: "Opna aðganginn",
+        ctaUrl: url,
+        footerNote: "Ef þú áttir ekki von á þessum pósti er óhætt að hunsa hann.",
+      }),
+      text: `Hæ ${first}. ${tpl.email} ${url}`,
+    }).catch(() => ({ ok: false }));
+    if (mail.ok) sent.push("email");
+  }
 
-  /* ASCII-safe: Icelandic letters force UCS-2 and 70 characters a segment,
-     and this message is already close to the limit with the link in it. */
-  if (phone && smsConfigured()) {
+  if (channels.includes("sms") && phone && smsConfigured()) {
     const r = await sendSms({
       to: phone,
-      body: `Hae ${first}. Adgangurinn thinn hja Lifeline er tilbuinn: ${url}`,
+      body: `${fillName(tpl.sms, name)} ${url}`,
     }).catch(() => ({ ok: false }));
     if (r.ok) sent.push("sms");
   }

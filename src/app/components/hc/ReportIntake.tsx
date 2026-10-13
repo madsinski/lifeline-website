@@ -9,6 +9,7 @@
 import { useRef, useState } from "react";
 import { FileUp, Loader2, Send, UserPlus, Check, ShieldAlert } from "lucide-react";
 import { hcBtn } from "./ui";
+import { INVITE_TEMPLATES, fillName, inviteTemplate } from "@/lib/hc/invite-templates";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -50,6 +51,8 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
   const [iName, setIName] = useState("");
   const [iEmail, setIEmail] = useState("");
   const [iPhone, setIPhone] = useState("");
+  const [iTpl, setITpl] = useState(INVITE_TEMPLATES[0].key);
+  const [iSms, setISms] = useState(false);
   const [iBusy, setIBusy] = useState(false);
   const [iMsg, setIMsg] = useState("");
 
@@ -57,7 +60,11 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
     setIBusy(true); setIMsg("");
     const r = await api("/api/vinnustod/invite", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: iName.trim(), email: iEmail.trim(), phone: iPhone.trim() || undefined }),
+      body: JSON.stringify({
+        name: iName.trim(), email: iEmail.trim(), phone: iPhone.trim() || undefined,
+        template: iTpl,
+        channels: iSms && iPhone.trim() ? ["email", "sms"] : ["email"],
+      }),
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setIBusy(false);
@@ -198,10 +205,41 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
                 aria-label="Netfang" className="w-full rounded-lg border border-hc-control bg-hc-surface px-3 py-2 text-sm text-hc-ink outline-none focus:border-hc-brand" />
               <input value={iPhone} onChange={(e) => setIPhone(e.target.value)} placeholder="Símanúmer (valfrjálst)" type="tel"
                 aria-label="Símanúmer" className="w-full rounded-lg border border-hc-control bg-hc-surface px-3 py-2 text-sm text-hc-ink outline-none focus:border-hc-brand" />
-              {/* Said before they type it, not after they send: the number
-                  is only useful if the SMS can actually go out. */}
+
+              {/* The message is chosen, not written.
+                  The same first contact should read the same way every
+                  time, and SMS to Icelandic numbers is filtered on content
+                  as well as sender — free text is what gets caught, and a
+                  filtered message looks delivered until the carrier says
+                  otherwise. */}
+              <label className="block text-xs font-semibold text-hc-ink-2">Skilaboð
+                <select value={iTpl} onChange={(e) => setITpl(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-hc-control bg-hc-surface px-3 py-2 text-sm font-normal text-hc-ink">
+                  {INVITE_TEMPLATES.map((t) => <option key={t.key} value={t.key}>{t.label} — {t.hint}</option>)}
+                </select>
+              </label>
+
+              {/* Shown, not described: a coach about to send something to a
+                  stranger should be able to read it first. */}
+              <p className="rounded-xl bg-hc-sunken px-3 py-2 text-xs leading-snug text-hc-ink-2">
+                {inviteTemplate(iTpl).email}
+              </p>
+
+              <label className="flex items-start gap-2 text-sm text-hc-ink">
+                <input type="checkbox" checked={iSms} onChange={(e) => setISms(e.target.checked)}
+                  disabled={!iPhone.trim()} className="mt-0.5 h-4 w-4 rounded border-hc-control disabled:opacity-40" />
+                <span>
+                  Senda líka í SMS
+                  {iSms && iPhone.trim() && (
+                    <span className="mt-1 block rounded-lg bg-hc-sunken px-2 py-1 font-mono text-[11px] text-hc-ink-2">
+                      {fillName(inviteTemplate(iTpl).sms, iName)} …
+                    </span>
+                  )}
+                </span>
+              </label>
+
               <p className="text-xs text-hc-ink-3">
-                Netfang þarf til að búa til aðgang. Símanúmer sendir sömu slóð í SMS til viðbótar.
+                Netfang þarf til að búa til aðgang.
               </p>
               <div className="flex gap-2">
                 <button type="button" onClick={() => void sendInvite()} disabled={iBusy || !iName.trim() || !iEmail.trim()}
