@@ -1378,22 +1378,30 @@ function Adherence({ d }: { d: Detail }) {
   return (
     <section className={`flex flex-wrap items-center gap-4 rounded-2xl px-4 py-3 ring-1 ${tone}`}>
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide opacity-70">Framvinda</p>
+        {/* opacity-80, not 70. The card tints itself green, amber or slate
+            by state and these labels borrow that colour through opacity,
+            which is why they adapt — but at 70% the amber state measured
+            4.11:1 and the green one 4.21, both under the 4.5 small text
+            needs. 80% puts every state above 5.2.
+            Only the amber state showed up in testing, because that is the
+            state this client is in; the green one was failing just as
+            quietly for everyone on track. */}
+        <p className="text-xs font-bold uppercase tracking-wide opacity-80">Framvinda</p>
         <p className="font-semibold">{NUDGE_IS[status]}</p>
       </div>
       <div className="text-center">
         <p className="text-xl font-bold tabular-nums">{a.percent}%</p>
-        <p className="text-[11px] opacity-70">7 dagar</p>
+        <p className="text-[11px] opacity-80">7 dagar</p>
       </div>
       {a.streak > 1 && (
         <div className="text-center">
           <p className="text-xl font-bold tabular-nums">{a.streak}</p>
-          <p className="text-[11px] opacity-70">dagar í röð</p>
+          <p className="text-[11px] opacity-80">dagar í röð</p>
         </div>
       )}
       <div className="text-center">
         <p className="text-xl font-bold tabular-nums">{a.done}/{a.target}</p>
-        <p className="text-[11px] opacity-70">merkingar</p>
+        <p className="text-[11px] opacity-80">merkingar</p>
       </div>
       <span className="flex-1" />
       <p className="text-sm">
