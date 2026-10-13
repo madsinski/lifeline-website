@@ -67,18 +67,18 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
   };
 
   return (
-    <section className={bare ? "" : "rounded-3xl bg-white p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6"}>
+    <section className={bare ? "" : "rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6"}>
       {!bare && (
         <>
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">Hvar viltu byrja?</p>
-          <h2 className="mt-0.5 text-xl font-bold text-slate-900">Þetta er þín ferð</h2>
+          <h2 className="mt-0.5 text-xl font-bold text-hc-ink">Þetta er þín ferð</h2>
         </>
       )}
-      <p className={`text-sm text-slate-600 ${bare ? "" : "mt-1.5"}`}>
+      <p className={`text-sm text-hc-ink-2 ${bare ? "" : "mt-1.5"}`}>
         Þú getur breytt þessu síðar. Ekkert af því sem þú gerir í appinu fer forgörðum ef þú skiptir.
       </p>
       {preview && (
-        <p className="mt-2 rounded-xl bg-slate-100 px-3 py-2 text-xs text-slate-600">
+        <p className="mt-2 rounded-xl bg-hc-sunken-2 px-3 py-2 text-xs text-hc-ink-2">
           Þetta er fyrsta spurningin sem nýr þátttakandi fær. Hnapparnir hér eru óvirkir.
         </p>
       )}
@@ -131,18 +131,18 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
           if (o.key === "report" && !onUpload && !preview) return null;
           return (
             <button key={o.key} type="button" disabled={!!busy || preview} onClick={act}
-              className="flex w-full items-start gap-3 rounded-2xl border border-hc-hairline bg-white p-3.5 text-left transition hover:border-hc-brand disabled:opacity-60">
+              className="flex w-full items-start gap-3 rounded-2xl border border-hc-hairline bg-hc-surface p-3.5 text-left transition hover:border-hc-brand disabled:opacity-60">
               <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand">
                 <Icon className="h-4 w-4" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-semibold leading-snug text-slate-900">{o.title}</span>
-                <span className="mt-0.5 block text-sm leading-snug text-slate-600">{o.body}</span>
+                <span className="block font-semibold leading-snug text-hc-ink">{o.title}</span>
+                <span className="mt-0.5 block text-sm leading-snug text-hc-ink-2">{o.body}</span>
                 {/* What it commits you to, in the smallest type on the card.
                     On the app option that is "no kennitala", which is true
                     and is the difference the audit turned up; on the check it
                     is where the thing actually happens. */}
-                <span className="mt-1 block text-xs text-slate-500">{o.foot}</span>
+                <span className="mt-1 block text-xs text-hc-ink-3">{o.foot}</span>
               </span>
             </button>
           );

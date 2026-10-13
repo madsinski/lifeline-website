@@ -191,8 +191,8 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                   return (
                     <li key={slot} ref={drag?.ref}
                       onPointerDown={drag?.onPointerDown}
-                      className={`border-t border-slate-100 px-3 py-3 first:border-t-0 sm:px-4 ${
-                        lifted ? "relative z-10 bg-white shadow-xl" : ""}`}
+                      className={`border-t border-hc-hairline px-3 py-3 first:border-t-0 sm:px-4 ${
+                        lifted ? "relative z-10 bg-hc-surface shadow-xl" : ""}`}
                       style={{
                         /* Follow the finger while carried, glide back otherwise —
                            the same two states ActionRow uses, so a carried meal
@@ -212,13 +212,13 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                         <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
                           aria-pressed={done}
                           aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${SLOT_IS[slot]} — ${mealName(meal)}`}
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-white transition active:scale-90 ${
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-hc-surface transition active:scale-90 ${
                             done ? "border-transparent text-white" : "text-transparent"}`}
                           style={done
                             ? { background: tone?.color ?? "#3F6212" }
                             : { borderColor: tone?.ring ?? "#CBD5E1" }}>
                           {busy === slot
-                            ? <Loader2 className="h-4 w-4 animate-spin text-slate-600" />
+                            ? <Loader2 className="h-4 w-4 animate-spin text-hc-ink-2" />
                             : <Check className="h-5 w-5" strokeWidth={3} />}
                         </button>
                         <div className="min-w-0 flex-1">
@@ -228,24 +228,24 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                             <button type="button" onClick={() => onOpenMeal(meal)}
                               className="flex w-full items-start gap-2 text-left">
                               <span className="min-w-0 flex-1">
-                                <span className={`block font-semibold ${done ? "text-slate-600 line-through" : "text-slate-900"}`}>
+                                <span className={`block font-semibold ${done ? "text-hc-ink-2 line-through" : "text-hc-ink"}`}>
                                   {mealName(meal)}
                                 </span>
-                                <span className="mt-0.5 block text-sm text-slate-600">
+                                <span className="mt-0.5 block text-sm text-hc-ink-2">
                                   {[SLOT_IS[slot],
                                     meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
                                     meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
                                     .filter(Boolean).join(" · ")}
                                 </span>
                               </span>
-                              <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" aria-hidden />
+                              <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-hc-ink-3" aria-hidden />
                             </button>
                           ) : (
                             <>
-                              <p className={`font-semibold ${done ? "text-slate-600 line-through" : "text-slate-900"}`}>
+                              <p className={`font-semibold ${done ? "text-hc-ink-2 line-through" : "text-hc-ink"}`}>
                                 {mealName(meal)}
                               </p>
-                              <p className="mt-0.5 text-sm text-slate-600">
+                              <p className="mt-0.5 text-sm text-hc-ink-2">
                                 {[SLOT_IS[slot],
                                   meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
                                   meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
@@ -264,16 +264,16 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                     <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
                       aria-pressed={done}
                       className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition ${
-                        done ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-white ring-hc-hairline hover:ring-slate-300"}`}>
+                        done ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`}>
                       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${
                         done ? "border-transparent bg-emerald-600 text-white" : "border-hc-hairline text-transparent"}`}>
-                        {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-slate-600" /> : <Check className="h-5 w-5" strokeWidth={3} />}
+                        {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-hc-ink-2" /> : <Check className="h-5 w-5" strokeWidth={3} />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-semibold uppercase tracking-wide text-slate-600">{SLOT_IS[slot]}</span>
-                        <span className={`block truncate font-semibold ${done ? "text-emerald-900" : "text-slate-900"}`}>{mealName(meal)}</span>
+                        <span className="block text-xs font-semibold uppercase tracking-wide text-hc-ink-2">{SLOT_IS[slot]}</span>
+                        <span className={`block truncate font-semibold ${done ? "text-emerald-900" : "text-hc-ink"}`}>{mealName(meal)}</span>
                       </span>
-                      <span className="shrink-0 text-right text-xs text-slate-600">
+                      <span className="shrink-0 text-right text-xs text-hc-ink-2">
                         {meal.protein != null && <span className="block font-semibold text-slate-700">{Math.round(Number(meal.protein))} g</span>}
                         {meal.calories != null && <span className="block">{Math.round(Number(meal.calories))} kkal</span>}
                       </span>

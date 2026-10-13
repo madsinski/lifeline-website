@@ -102,24 +102,24 @@ export default function WeekAhead({ api, onOpenClient }: {
   const range = `${start.getDate()}.–${days[6].date.getDate()}. ${days[6].date.toLocaleDateString("is-IS", { month: "long" })}`;
 
   return (
-    <section className="rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card">
+    <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-hc-card">
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-600">Vikan</h2>
-        <span className="text-sm font-semibold text-slate-900">{range}</span>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Vikan</h2>
+        <span className="text-sm font-semibold text-hc-ink">{range}</span>
         <span className="flex-1" />
         {/* Mine or everyone's: a partner site shares a diary, so "whose" is
             a question the coach actually has. */}
         <button type="button" onClick={() => { setMine((v) => !v); setEvents(null); }}
           aria-pressed={mine}
           className={`rounded-full px-3 py-1 text-xs font-bold transition ${
-            mine ? "bg-hc-brand-surface text-hc-brand-dark" : "text-slate-600 hover:bg-slate-50"}`}>
+            mine ? "bg-hc-brand-surface text-hc-brand-dark" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
           {mine ? "Mínar" : "Allar"}
         </button>
         <button type="button" onClick={() => shift(-1)} aria-label="Fyrri vika" className={`${hcBtn.ghost} h-8 w-8 p-0`}>
           <ChevronLeft className="h-4 w-4" aria-hidden />
         </button>
         <button type="button" onClick={() => { const d = new Date(); setStart(monday(d)); setEvents(null); }}
-          className="rounded-full px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+          className="rounded-full px-3 py-1 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">
           Í dag
         </button>
         <button type="button" onClick={() => shift(1)} aria-label="Næsta vika" className={`${hcBtn.ghost} h-8 w-8 p-0`}>
@@ -143,7 +143,7 @@ export default function WeekAhead({ api, onOpenClient }: {
         {days.filter((d) => d.items.length > 0).map((d) => (
           <div key={d.date.toISOString()}>
             <p className={`mb-1 text-[11px] font-bold uppercase tracking-wide ${
-              d.isToday ? "text-hc-brand-dark" : "text-slate-600"}`}>
+              d.isToday ? "text-hc-brand-dark" : "text-hc-ink-2"}`}>
               {DAY_IS[(d.date.getDay() + 6) % 7]} {d.date.getDate()}.
               {d.isToday && " · í dag"}
             </p>
@@ -153,7 +153,7 @@ export default function WeekAhead({ api, onOpenClient }: {
                   <button type="button"
                     onClick={() => e.journey_id && onOpenClient(e.journey_id)}
                     disabled={!e.journey_id}
-                    className={`flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-slate-50 ${
+                    className={`flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-hc-sunken ${
                       /* 80, not 55. Opacity multiplies contrast down
                          invisibly — a contrast check that reads the
                          computed colour sees slate-600 passing at 7.58
@@ -163,17 +163,17 @@ export default function WeekAhead({ api, onOpenClient }: {
                       e.done ? "opacity-80" : ""}`}>
                     {/* The time first and in tabular figures, so a column of
                         them lines up and can be scanned down. */}
-                    <span className="w-12 shrink-0 text-sm font-bold tabular-nums text-slate-900">
+                    <span className="w-12 shrink-0 text-sm font-bold tabular-nums text-hc-ink">
                       {new Date(e.at).toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                     <span className={`h-6 w-0.5 shrink-0 rounded-full ${
                       e.kind === "video" || e.kind === "interview" || e.kind === "followup"
                         ? "bg-hc-brand" : "bg-slate-300"}`} aria-hidden />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-slate-900">
+                      <span className="block truncate text-sm font-semibold text-hc-ink">
                         {e.client ?? "—"}
                       </span>
-                      <span className="block truncate text-xs text-slate-600">
+                      <span className="block truncate text-xs text-hc-ink-2">
                         {[KIND_IS[e.kind] ?? e.kind, e.minutes ? `${e.minutes} mín.` : null,
                           e.done ? "lokið" : null].filter(Boolean).join(" · ")}
                       </span>
@@ -192,7 +192,7 @@ export default function WeekAhead({ api, onOpenClient }: {
       </div>
 
       {events !== null && events.length === 0 && (
-        <p className="mt-3 text-sm text-slate-600">Ekkert bókað þessa viku.</p>
+        <p className="mt-3 text-sm text-hc-ink-2">Ekkert bókað þessa viku.</p>
       )}
     </section>
   );

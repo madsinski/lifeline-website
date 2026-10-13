@@ -58,12 +58,12 @@ export default function LecturePage() {
         <JourneyHeader />
         <div className="sm:mb-4"><JourneyNav active="fraedsla" /></div>
         <BackLink href="/account/heilsuferd/fraedsla" label="Fræðslan" />
-        {error && <p className="mt-8 text-slate-600">{error}</p>}
+        {error && <p className="mt-8 text-hc-ink-2">{error}</p>}
         {lecture && (
           <article className="mt-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Fræðsla{lecture.duration_min ? ` · ${lecture.duration_min} mín.` : ""}</p>
             <h1 className="mt-2 text-3xl font-bold text-[#0F172A]">{lecture.title}</h1>
-            {lecture.subtitle && <p className="mt-1 text-lg text-slate-500">{lecture.subtitle}</p>}
+            {lecture.subtitle && <p className="mt-1 text-lg text-hc-ink-3">{lecture.subtitle}</p>}
 
             <div className="mt-6">
               {lecture.kind === "video" && lecture.video_url && (
@@ -75,7 +75,7 @@ export default function LecturePage() {
               )}
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-6">
+            <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-hc-hairline pt-6">
               {done
                 ? <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-4 w-4" aria-hidden /> Lokið</span>
                 : lecture.kind !== "slides" && (
@@ -86,7 +86,7 @@ export default function LecturePage() {
               <span className="flex-1" />
               {next
                 ? <Link href={`/account/heilsuferd/fraedsla/${next.slug}`}
-                    className="inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+                    className="inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-hc-surface px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-hc-sunken">
                     Næsti: {next.title} <ChevronRight className="h-4 w-4" aria-hidden />
                   </Link>
                 : <BackLink href="/account/heilsuferd" label="Aftur í heilsuferðina" />}

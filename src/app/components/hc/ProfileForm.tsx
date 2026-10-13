@@ -36,7 +36,7 @@ export interface ProfileFormData {
 /** GDPR 9. gr.: informed consent for processing health data, with the full text one tap away. */
 export function ConsentBox({ checked, onChange, error }: { checked: boolean; onChange: (v: boolean) => void; error?: string }) {
   return (
-    <div className={`rounded-xl border p-3 text-sm ${error ? "border-red-300 bg-red-50" : "border-hc-hairline bg-white"}`}>
+    <div className={`rounded-xl border p-3 text-sm ${error ? "border-red-300 bg-red-50" : "border-hc-hairline bg-hc-surface"}`}>
       <label className="flex cursor-pointer items-start gap-3">
         <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#10B981]" />
         <span className="text-slate-700">
@@ -45,7 +45,7 @@ export function ConsentBox({ checked, onChange, error }: { checked: boolean; onC
       </label>
       <details className="mt-2 pl-8">
         <summary className="cursor-pointer text-xs font-semibold text-emerald-700">Lesa samþykkið í heild</summary>
-        <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-3 font-sans text-xs leading-relaxed text-slate-600">{renderHealthAssessmentConsent()}</pre>
+        <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-hc-sunken p-3 font-sans text-xs leading-relaxed text-hc-ink-2">{renderHealthAssessmentConsent()}</pre>
       </details>
       {error && <p className="mt-2 pl-8 text-xs text-red-600">{error}</p>}
     </div>
@@ -103,7 +103,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
         value={f[k]}
         onChange={(e) => setF({ ...f, [k]: e.target.value })}
         aria-invalid={!!errors[k]}
-        className={`mt-1 w-full rounded-lg border px-3 py-2.5 text-slate-900 outline-none focus:ring-2 focus:ring-[#10B981] ${errors[k] ? "border-red-300" : "border-slate-300"}`}
+        className={`mt-1 w-full rounded-lg border px-3 py-2.5 text-hc-ink outline-none focus:ring-2 focus:ring-[#10B981] ${errors[k] ? "border-red-300" : "border-slate-300"}`}
         {...props}
       />
       {errors[k] && <span className="mt-1 block text-xs text-red-600">{errors[k]}</span>}
@@ -112,7 +112,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-hc-ink-2">
         {track === "app"
           ? "Bara nafnið, til að heilsa þér og setja á áætlunina. Kennitölu þarf ekki fyrir þjálfunina."
           : "Við þurfum þessar upplýsingar fyrir sjúklingagáttina og til að útbúa umsókn til stéttarfélagsins þíns ef við á."}
@@ -141,9 +141,9 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
         {saved && <span className="text-sm text-emerald-700">Vistað</span>}
       </div>
       {track === "care" && (
-        <p className="text-xs text-slate-600">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir sjálf(ur).</p>
+        <p className="text-xs text-hc-ink-2">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir sjálf(ur).</p>
       )}
-      <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
+      <div className="rounded-xl bg-hc-sunken p-3 text-xs text-hc-ink-2">
         Ábending: Í stillingum hér til hliðar getur þú sett upp <strong>PIN</strong> fyrir fljótlegri innskráningu og tengt ferðina við <strong>Google eða Apple dagatal</strong>.
       </div>
     </form>

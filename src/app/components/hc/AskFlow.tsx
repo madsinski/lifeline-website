@@ -118,13 +118,13 @@ export default function AskFlow({ onPick, onFree, portalUrl }: {
   if (!topic) {
     return (
       <div>
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-hc-hairline">
           {ASK_TOPICS.map((t) => (
             <li key={t.key}>
               <button type="button" onClick={() => setTopic(t)}
-                className="w-full px-4 py-3.5 text-left transition hover:bg-slate-50">
+                className="w-full px-4 py-3.5 text-left transition hover:bg-hc-sunken">
                 <span className="block text-sm font-semibold text-hc-ink">{t.label}</span>
-                {t.hint && <span className="mt-0.5 block text-xs leading-snug text-slate-600">{t.hint}</span>}
+                {t.hint && <span className="mt-0.5 block text-xs leading-snug text-hc-ink-2">{t.hint}</span>}
               </button>
             </li>
           ))}
@@ -132,8 +132,8 @@ export default function AskFlow({ onPick, onFree, portalUrl }: {
         {/* The way past the whole thing, in the same list rather than hidden
             at the end of it. */}
         <button type="button" onClick={onFree}
-          className="flex w-full items-center gap-2 border-t border-slate-100 px-4 py-3.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-          <PenLine className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
+          className="flex w-full items-center gap-2 border-t border-hc-hairline px-4 py-3.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-hc-sunken">
+          <PenLine className="h-4 w-4 shrink-0 text-hc-ink-2" aria-hidden />
           Skrifa frjálst í staðinn
         </button>
       </div>
@@ -143,7 +143,7 @@ export default function AskFlow({ onPick, onFree, portalUrl }: {
   return (
     <div>
       <button type="button" onClick={() => setTopic(null)}
-        className="flex items-center gap-1 px-4 pt-3 text-xs font-semibold text-slate-600 hover:text-hc-ink">
+        className="flex items-center gap-1 px-4 pt-3 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink">
         <ChevronLeft className="h-3.5 w-3.5" aria-hidden /> Til baka
       </button>
       <p className="px-4 pb-2 pt-1 text-sm font-semibold text-hc-ink">{topic.q}</p>
@@ -169,18 +169,18 @@ export default function AskFlow({ onPick, onFree, portalUrl }: {
         </div>
       )}
 
-      <ul className="divide-y divide-slate-100 border-t border-slate-100">
+      <ul className="divide-y divide-hc-hairline border-t border-hc-hairline">
         {topic.options.map((o) => (
           <li key={o.key}>
             <button type="button" onClick={() => onPick(o.opener)}
-              className="w-full px-4 py-3 text-left transition hover:bg-slate-50">
+              className="w-full px-4 py-3 text-left transition hover:bg-hc-sunken">
               <span className="block text-sm font-semibold text-hc-ink">{o.label}</span>
-              <span className="mt-0.5 block text-xs leading-snug text-slate-600">{o.opener.trim()}</span>
+              <span className="mt-0.5 block text-xs leading-snug text-hc-ink-2">{o.opener.trim()}</span>
             </button>
           </li>
         ))}
       </ul>
-      <p className="px-4 py-3 text-xs text-slate-600">
+      <p className="px-4 py-3 text-xs text-hc-ink-2">
         Skilaboðin fara í reitinn — þú getur breytt þeim áður en þú sendir.
       </p>
     </div>

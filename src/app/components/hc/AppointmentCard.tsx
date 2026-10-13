@@ -33,26 +33,26 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
   const at = new Date(a.at);
   const soon = at.getTime() - now < 30 * 60_000;
   return (
-    <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-emerald-100" aria-label="Næsti tími">
+    <section className="overflow-hidden rounded-3xl bg-hc-surface shadow-sm ring-1 ring-emerald-100" aria-label="Næsti tími">
       <div className="flex items-stretch">
         <div className="w-1.5 shrink-0 bg-hc-brand" aria-hidden />
         <div className="flex-1 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-700">Næsti tími</p>
-              <p className="mt-1 text-lg font-bold text-slate-900">{a.title}</p>
+              <p className="mt-1 text-lg font-bold text-hc-ink">{a.title}</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-slate-700">
-                <CalendarClock className="h-4 w-4 text-slate-500" aria-hidden />
+                <CalendarClock className="h-4 w-4 text-hc-ink-3" aria-hidden />
                 {WD[at.getDay()]} {at.getDate()}. {MO[at.getMonth()]} kl. {hhmm(at)}
               </p>
             </div>
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${soon ? "bg-emerald-500 text-white" : "bg-emerald-50 text-emerald-800"}`}>{relative(at, now)}</span>
           </div>
-          <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
-            {a.video ? <Video className="h-4 w-4 text-slate-500" aria-hidden /> : <MapPin className="h-4 w-4 text-slate-500" aria-hidden />}
+          <p className="mt-2 flex items-center gap-1.5 text-sm text-hc-ink-2">
+            {a.video ? <Video className="h-4 w-4 text-hc-ink-3" aria-hidden /> : <MapPin className="h-4 w-4 text-hc-ink-3" aria-hidden />}
             {a.video ? "Myndsímtal" : a.place ?? "Á staðnum"}
           </p>
-          {a.note && <p className="mt-1 text-sm text-slate-600">{a.note}</p>}
+          {a.note && <p className="mt-1 text-sm text-hc-ink-2">{a.note}</p>}
           {a.video && (a.link ? (
             <a href={a.link} target="_blank" rel="noreferrer"
               className={`mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-base font-bold transition ${

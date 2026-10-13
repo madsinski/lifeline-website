@@ -63,7 +63,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
       {/* ── Screen ─────────────────────────────────────────────── */}
       {!printOnly && <div className="print:hidden">
         <Header plan={plan} clientName={clientName} />
-        <div className="sticky top-0 z-10 -mx-4 mb-6 bg-white/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:px-2">
+        <div className="sticky top-0 z-10 -mx-4 mb-6 bg-hc-surface/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:px-2">
           <div className="flex items-center gap-2 overflow-x-auto" role="tablist" aria-label="Hlutar áætlunar">
             {tabs.filter((t) => t.show).map((t) => (
               <button
@@ -72,7 +72,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
                 aria-selected={tab === t.key}
                 onClick={() => setTab(t.key)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  tab === t.key ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  tab === t.key ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"
                 }`}
               >
                 {t.label}
@@ -81,7 +81,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
             <span className="flex-1" />
             <button
               onClick={() => window.print()}
-              className="whitespace-nowrap rounded-full border border-hc-hairline px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="whitespace-nowrap rounded-full border border-hc-hairline px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken"
             >
               Prenta / PDF
             </button>
@@ -138,7 +138,7 @@ function Header({ plan, clientName, print }: { plan: ActionPlan; clientName?: st
     <div className={print ? "mb-6 border-b pb-4" : "mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-6 text-white sm:p-8"}>
       <p className={`text-xs font-bold uppercase tracking-[0.2em] ${print ? "text-emerald-700" : "text-emerald-300"}`}>Aðgerðaáætlun · Lifeline Health</p>
       <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">{plan.headline || "Áætlunin þín til næstu þriggja mánaða"}</h1>
-      <p className={`mt-2 text-sm ${print ? "text-slate-600" : "text-emerald-100"}`}>
+      <p className={`mt-2 text-sm ${print ? "text-hc-ink-2" : "text-emerald-100"}`}>
         {clientName ? `${clientName} · ` : ""}{start ? `Frá ${start}` : ""}{review ? ` · Endurmat ${review}` : ""}
       </p>
       {plan.summary && <p className={`mt-4 max-w-2xl text-[15px] leading-relaxed ${print ? "" : "text-white/90"}`}>{plan.summary}</p>}
@@ -166,17 +166,17 @@ function Overview({ plan, byPillar }: { plan: ActionPlan; byPillar: (p: Pillar) 
           const items = byPillar(p);
           if (!goal && !items.length) return null;
           return (
-            <div key={p} className="break-inside-avoid rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: meta.ring }}>
+            <div key={p} className="break-inside-avoid rounded-2xl border bg-hc-surface p-5 shadow-sm" style={{ borderColor: meta.ring }}>
               <div className="flex items-center justify-between">
                 <PillarBadge pillar={p} />
-                <span className="text-xs text-slate-500">{items.length} {items.length === 1 ? "aðgerð" : "aðgerðir"}</span>
+                <span className="text-xs text-hc-ink-3">{items.length} {items.length === 1 ? "aðgerð" : "aðgerðir"}</span>
               </div>
               {goal && <p className="mt-3 text-[15px] font-semibold leading-snug text-hc-ink">{goal.text}</p>}
               <ul className="mt-3 space-y-2">
                 {items.map((m) => (
                   <li key={m.uid} className="flex items-start gap-2 text-sm text-slate-700">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
-                    <span><span className="font-medium">{m.title}</span>{m.frequency ? <span className="text-slate-600"> · {m.frequency}</span> : null}</span>
+                    <span><span className="font-medium">{m.title}</span>{m.frequency ? <span className="text-hc-ink-2"> · {m.frequency}</span> : null}</span>
                   </li>
                 ))}
               </ul>
@@ -202,17 +202,17 @@ function ModuleCard({ m }: { m: PlanItem }) {
       <span className="mt-1 h-8 w-1 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
       <div className="flex-1">
         <p className="font-semibold text-hc-ink">{m.title}</p>
-        <p className="mt-0.5 text-sm text-slate-600">{m.summary}</p>
-        {m.frequency && <span className="mt-2 inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">{m.frequency}</span>}
+        <p className="mt-0.5 text-sm text-hc-ink-2">{m.summary}</p>
+        {m.frequency && <span className="mt-2 inline-block rounded-full bg-hc-sunken-2 px-2.5 py-0.5 text-xs font-medium text-hc-ink-2">{m.frequency}</span>}
       </div>
     </div>
   );
-  if (!hasMore) return <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">{body}</div>;
+  if (!hasMore) return <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-sm">{body}</div>;
   return (
-    <details className="group rounded-2xl border border-slate-100 bg-white p-4 shadow-sm open:ring-1 open:ring-hc-hairline">
+    <details className="group rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-sm open:ring-1 open:ring-hc-hairline">
       <summary className="flex cursor-pointer list-none items-start gap-2 [&::-webkit-details-marker]:hidden">
         <div className="flex-1">{body}</div>
-        <span className="mt-1 text-slate-500 transition group-open:rotate-180" aria-hidden>▾</span>
+        <span className="mt-1 text-hc-ink-3 transition group-open:rotate-180" aria-hidden>▾</span>
       </summary>
       <div className="mt-3 space-y-3 pl-4 text-sm leading-relaxed text-slate-700">
         {m.details && <p>{m.details}</p>}
@@ -259,14 +259,14 @@ function Lectures({ lectures, href }: { lectures: LectureRef[]; href?: (slug: st
             <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
               {KIND_IS[l.kind] ?? "Fræðsla"}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}
             </p>
-            <p className="mt-1 text-lg font-bold leading-snug text-slate-900">{l.title}</p>
-            {l.subtitle && <p className="mt-1 text-sm text-slate-600">{l.subtitle}</p>}
+            <p className="mt-1 text-lg font-bold leading-snug text-hc-ink">{l.title}</p>
+            {l.subtitle && <p className="mt-1 text-sm text-hc-ink-2">{l.subtitle}</p>}
             {to && <p className="mt-3 text-sm font-semibold text-emerald-700">Opna fræðsluna →</p>}
           </>
         );
         return to
-          ? <a key={l.slug} href={to} className="block rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100 transition hover:ring-emerald-300">{body}</a>
-          : <div key={l.slug} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-emerald-100">{body}</div>;
+          ? <a key={l.slug} href={to} className="block rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-emerald-100 transition hover:ring-emerald-300">{body}</a>
+          : <div key={l.slug} className="rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-emerald-100">{body}</div>;
       })}
     </div>
   );
@@ -286,17 +286,17 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
         <h2 className="mt-1 text-2xl font-bold">{e.name}</h2>
         {e.goal && <p className="mt-1 text-white/90">{e.goal}</p>}
         <div className="mt-4 flex flex-wrap gap-2 text-sm">
-          <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{e.sessions.length || e.days_per_week} dagar í viku</span>
-          {e.session_minutes && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">um {e.session_minutes} mín.</span>}
-          <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{LEVEL[e.level] ?? e.level}</span>
-          {total > 0 && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{total} æfingar</span>}
+          <span className="rounded-full bg-hc-surface/20 px-3 py-1 font-semibold">{e.sessions.length || e.days_per_week} dagar í viku</span>
+          {e.session_minutes && <span className="rounded-full bg-hc-surface/20 px-3 py-1 font-semibold">um {e.session_minutes} mín.</span>}
+          <span className="rounded-full bg-hc-surface/20 px-3 py-1 font-semibold">{LEVEL[e.level] ?? e.level}</span>
+          {total > 0 && <span className="rounded-full bg-hc-surface/20 px-3 py-1 font-semibold">{total} æfingar</span>}
         </div>
         {byDay.size > 0 && (
           <div className="mt-5 grid grid-cols-7 gap-1.5">
             {WEEK.map((w, i) => {
               const s = byDay.get(i);
               return (
-                <div key={w.short} className={`rounded-xl px-1 py-2 text-center ${s ? "bg-white text-orange-700" : "bg-white/15 text-white/70"}`}>
+                <div key={w.short} className={`rounded-xl px-1 py-2 text-center ${s ? "bg-hc-surface text-orange-700" : "bg-hc-surface/15 text-white/70"}`}>
                   <p className="text-[11px] font-bold uppercase">{w.short}</p>
                   <p className="mt-0.5 truncate text-[10px] font-medium">{s ? s.title : "Hvíld"}</p>
                 </div>
@@ -306,14 +306,14 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
         )}
       </div>
 
-      {e.description && <p className="text-slate-600">{e.description}</p>}
+      {e.description && <p className="text-hc-ink-2">{e.description}</p>}
 
       {!!e.principles?.length && (
         <section>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-600">Af hverju þetta virkar</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-hc-ink-2">Af hverju þetta virkar</h3>
           <ol className="mt-2 grid gap-2 sm:grid-cols-2">
             {e.principles.map((p, i) => (
-              <li key={i} className="flex gap-3 rounded-2xl border border-orange-100 bg-white p-3 shadow-sm">
+              <li key={i} className="flex gap-3 rounded-2xl border border-orange-100 bg-hc-surface p-3 shadow-sm">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-700">{i + 1}</span>
                 <span className="text-sm text-slate-700">{p}</span>
               </li>
@@ -324,15 +324,15 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
 
       {!!e.progression?.length && (
         <section>
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-600">{currentStage !== null ? "Stigin" : "Næstu 12 vikur"}</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-hc-ink-2">{currentStage !== null ? "Stigin" : "Næstu 12 vikur"}</h3>
           <ol className={`mt-2 grid gap-2 ${e.progression.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
             {e.progression.map((p, i) => (
-              <li key={i} className={`relative rounded-2xl bg-white p-4 shadow-sm ring-1 ${currentStage === i ? "ring-2 ring-orange-500" : "ring-orange-100"}`}>
+              <li key={i} className={`relative rounded-2xl bg-hc-surface p-4 shadow-sm ring-1 ${currentStage === i ? "ring-2 ring-orange-500" : "ring-orange-100"}`}>
                 {currentStage === i && <span className="absolute right-3 top-3 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Núna</span>}
                 <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-orange-500" style={{ opacity: 0.35 + (0.65 * (i + 1)) / e.progression!.length }} />
                 <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{p.weeks}</p>
-                <p className="mt-0.5 font-semibold text-slate-900">{p.title}</p>
-                <p className="mt-1 text-sm text-slate-600">{p.text}</p>
+                <p className="mt-0.5 font-semibold text-hc-ink">{p.title}</p>
+                <p className="mt-1 text-sm text-hc-ink-2">{p.text}</p>
               </li>
             ))}
           </ol>
@@ -351,30 +351,30 @@ function SessionCard({ s, n }: { s: ExerciseSession; n: number }) {
     .map((key) => ({ key, items: s.items.filter((it) => (it.block ?? "main") === key) }))
     .filter((b) => b.items.length);
   return (
-    <div className="overflow-hidden rounded-3xl border border-orange-100 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-3xl border border-orange-100 bg-hc-surface shadow-sm">
       <div className="flex items-center gap-3 border-b border-orange-100 bg-orange-50/70 px-4 py-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-600 font-bold text-white">{n}</span>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{s.day}</p>
-          <p className="font-semibold text-hc-ink">{s.title}{s.focus ? <span className="font-normal text-slate-600"> · {s.focus}</span> : null}</p>
+          <p className="font-semibold text-hc-ink">{s.title}{s.focus ? <span className="font-normal text-hc-ink-2"> · {s.focus}</span> : null}</p>
         </div>
-        {s.minutes ? <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">{s.minutes} mín.</span> : null}
+        {s.minutes ? <span className="rounded-full bg-hc-surface px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">{s.minutes} mín.</span> : null}
       </div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-hc-hairline">
         {blocks.map((b) => (
           <div key={b.key} className="px-4 py-3">
-            {blocks.length > 1 && <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">{BLOCK_IS[b.key]}</p>}
+            {blocks.length > 1 && <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-hc-ink-3">{BLOCK_IS[b.key]}</p>}
             <ul className={b.key === "main" ? "space-y-3" : "flex flex-wrap gap-2"}>
               {b.items.map((it, j) => b.key === "main"
                 ? <ExerciseRow key={j} it={it} />
                 : (
-                  <li key={j} className="flex items-center gap-2 rounded-full bg-slate-50 py-1 pl-1 pr-3 text-sm ring-1 ring-hc-hairline">
+                  <li key={j} className="flex items-center gap-2 rounded-full bg-hc-sunken py-1 pl-1 pr-3 text-sm ring-1 ring-hc-hairline">
                     {it.image
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={it.image} alt="" className="h-7 w-7 rounded-full object-cover" />
                       : <span className="h-7 w-7 rounded-full bg-orange-100" />}
                     <span className="font-medium text-slate-800">{it.name}</span>
-                    {it.prescription && <span className="text-slate-600">{it.prescription}</span>}
+                    {it.prescription && <span className="text-hc-ink-2">{it.prescription}</span>}
                   </li>
                 ))}
             </ul>
@@ -399,15 +399,15 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
         </div>
         <div className="min-w-0 flex-1 py-0.5">
           <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold leading-tight text-slate-900">{it.name}</p>
+            <p className="font-semibold leading-tight text-hc-ink">{it.name}</p>
             <p className="shrink-0 rounded-lg bg-orange-50 px-2 py-0.5 text-sm font-bold text-orange-700">{it.prescription}</p>
           </div>
           {!!it.muscles?.length && (
             <p className="mt-1 flex flex-wrap gap-1">
-              {it.muscles.slice(0, 3).map((m) => <span key={m} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{muscleIs(m)}</span>)}
+              {it.muscles.slice(0, 3).map((m) => <span key={m} className="rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] text-hc-ink-2">{muscleIs(m)}</span>)}
             </p>
           )}
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-hc-ink-2">
             {it.rest ? `Hvíld ${it.rest}` : ""}
             {it.rest && it.equipment ? " · " : ""}
             {it.equipment ? EQUIPMENT_IS[it.equipment] ?? it.equipment : ""}
@@ -421,7 +421,7 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
         </div>
       </div>
       {open && (
-        <div className="space-y-3 border-t border-slate-100 p-3">
+        <div className="space-y-3 border-t border-hc-hairline p-3">
           {it.video && <video src={it.video} poster={it.image ?? undefined} controls playsInline preload="none" className="w-full max-w-md rounded-xl bg-black" />}
           {!!it.cues?.length && (
             <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
@@ -439,8 +439,8 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
   return (
     <div>
       <h2 className="text-xl font-bold text-hc-ink">{n.name}</h2>
-      {n.goal && <p className="mt-1 text-sm text-slate-600">{n.goal}</p>}
-      {n.description && <p className="mt-2 text-sm text-slate-600">{n.description}</p>}
+      {n.goal && <p className="mt-1 text-sm text-hc-ink-2">{n.goal}</p>}
+      {n.description && <p className="mt-2 text-sm text-hc-ink-2">{n.description}</p>}
       {n.principles.length > 0 && (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 print:grid-cols-2">
           {n.principles.map((p, i) => (
@@ -452,10 +452,10 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
       )}
       {n.day_example.length > 0 && (
         <div className="mt-6 break-inside-avoid">
-          <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-600">Dæmi um dag</h3>
+          <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">Dæmi um dag</h3>
           <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
             {n.day_example.map((d, i) => (
-              <div key={i} className="flex break-inside-avoid items-center gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-white p-2 shadow-sm">
+              <div key={i} className="flex break-inside-avoid items-center gap-3 overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface p-2 shadow-sm">
                 {d.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={d.image} alt="" loading="lazy" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
@@ -464,9 +464,9 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold uppercase tracking-wide text-lime-700">{d.meal}</p>
-                  <p className="font-semibold leading-tight text-slate-900">{d.example}</p>
+                  <p className="font-semibold leading-tight text-hc-ink">{d.example}</p>
                   {(d.protein != null || d.kcal != null) && (
-                    <p className="mt-0.5 text-xs text-slate-600">
+                    <p className="mt-0.5 text-xs text-hc-ink-2">
                       {[d.protein != null ? `${d.protein} g prótein` : null, d.kcal != null ? `${d.kcal} kcal` : null].filter(Boolean).join(" · ")}
                     </p>
                   )}
@@ -517,16 +517,16 @@ function PrintPage({ plan, clientName, author, byPillar }: {
           <p className="mt-2 text-[7.5pt] font-bold uppercase tracking-[0.2em] text-emerald-700">Aðgerðaáætlun</p>
         </div>
         <div className="text-right">
-          <p className="text-[14pt] font-bold text-slate-900">{clientName || ""}</p>
-          {by && <p className="text-[8.5pt] text-slate-600">Unnin af {by}</p>}
-          <p className="text-[8.5pt] text-slate-600">{start ? `${start}` : ""}{review ? ` – endurmat ${review}` : ""}</p>
+          <p className="text-[14pt] font-bold text-hc-ink">{clientName || ""}</p>
+          {by && <p className="text-[8.5pt] text-hc-ink-2">Unnin af {by}</p>}
+          <p className="text-[8.5pt] text-hc-ink-2">{start ? `${start}` : ""}{review ? ` – endurmat ${review}` : ""}</p>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <section className="mt-4 rounded-lg bg-slate-50 px-4 py-3">
-        <h1 className="text-[13pt] font-bold text-slate-900">{plan.headline || "Áætlun til næstu þriggja mánaða"}</h1>
-        {plan.summary && <p className={`mt-1 whitespace-pre-line text-[9pt] text-slate-600 ${dense ? "line-clamp-2" : "line-clamp-3"}`}>{clip(plan.summary, 420)}</p>}
+      <section className="mt-4 rounded-lg bg-hc-sunken px-4 py-3">
+        <h1 className="text-[13pt] font-bold text-hc-ink">{plan.headline || "Áætlun til næstu þriggja mánaða"}</h1>
+        {plan.summary && <p className={`mt-1 whitespace-pre-line text-[9pt] text-hc-ink-2 ${dense ? "line-clamp-2" : "line-clamp-3"}`}>{clip(plan.summary, 420)}</p>}
       </section>
 
       <section className="mt-3 grid grid-cols-2 gap-3">
@@ -538,20 +538,20 @@ function PrintPage({ plan, clientName, author, byPillar }: {
           return (
             <div key={p} className="overflow-hidden rounded-lg border px-3 py-2.5" style={{ borderColor: meta.ring, borderTopWidth: 4, borderTopColor: meta.color }}>
               <p className="text-[10.5pt] font-bold" style={{ color: meta.ink }}>{meta.label}</p>
-              {goal && <p className="mt-0.5 text-[9pt] font-semibold text-slate-900">{clip(goal.text, 140)}</p>}
-              {items.length === 0 && <p className="mt-1 text-[8.5pt] text-slate-500">Engar aðgerðir.</p>}
+              {goal && <p className="mt-0.5 text-[9pt] font-semibold text-hc-ink">{clip(goal.text, 140)}</p>}
+              {items.length === 0 && <p className="mt-1 text-[8.5pt] text-hc-ink-3">Engar aðgerðir.</p>}
               <ul className="mt-1.5 space-y-1.5">
                 {items.map((m) => (
                   <li key={m.uid} className="flex gap-2">
                     <span className="mt-[3px] inline-block h-3 w-3 shrink-0 rounded-sm border-[1.5px]" style={{ borderColor: meta.color }} />
                     <span className="min-w-0">
-                      <span className="font-semibold text-slate-900">{clip(m.title, 60)}</span>
-                      {m.frequency && <span className="text-slate-600"> · {m.frequency}</span>}
-                      {m.note && !dense && <span className="block text-[8pt] italic text-slate-600">{clip(m.note, 110)}</span>}
+                      <span className="font-semibold text-hc-ink">{clip(m.title, 60)}</span>
+                      {m.frequency && <span className="text-hc-ink-2"> · {m.frequency}</span>}
+                      {m.note && !dense && <span className="block text-[8pt] italic text-hc-ink-2">{clip(m.note, 110)}</span>}
                     </span>
                   </li>
                 ))}
-                {more > 0 && <li className="text-[8pt] text-slate-500">+ {more} til viðbótar á aðganginum</li>}
+                {more > 0 && <li className="text-[8pt] text-hc-ink-3">+ {more} til viðbótar á aðganginum</li>}
               </ul>
             </div>
           );
@@ -571,7 +571,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
                       <td className="py-1 text-slate-700">
                         <span className="font-semibold">{clip(s.title, 40)}</span>
                         {s.items.length ? (
-                          <span className={`block text-[8pt] text-slate-600 ${dense ? "line-clamp-1" : ""}`}>
+                          <span className={`block text-[8pt] text-hc-ink-2 ${dense ? "line-clamp-1" : ""}`}>
                             {clip(s.items.slice(0, 5).map((it) => (it.prescription ? `${it.name} ${it.prescription}` : it.name)).join(" · "), dense ? 90 : 150)}
                           </span>
                         ) : null}
@@ -601,7 +601,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
       )}
 
       </div>
-      <footer className="mt-3 flex shrink-0 justify-between border-t border-hc-hairline pt-1.5 text-[7.5pt] text-slate-500">
+      <footer className="mt-3 flex shrink-0 justify-between border-t border-hc-hairline pt-1.5 text-[7.5pt] text-hc-ink-3">
         <span>Lifeline Health ehf. · lifelinehealth.is</span>
         <span>Ítarleg útgáfa, æfingar og fræðsla á aðganginum þínum</span>
       </footer>

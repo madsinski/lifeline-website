@@ -152,18 +152,18 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
   const field = (k: keyof Macros, label: string, unit: string) => (
     <label className="flex-1 text-sm">
       <span className="font-medium text-slate-700">{label}</span>
-      <span className="mt-1 flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2">
+      <span className="mt-1 flex items-center gap-1 rounded-lg border border-slate-300 bg-hc-surface px-2">
         <input type="number" inputMode="numeric" min={0} value={macros?.[k] ?? 0}
           onChange={(e) => setMacros((m) => (m ? { ...m, [k]: Math.max(0, Number(e.target.value) || 0) } : m))}
-          className="w-full py-2 text-slate-900 outline-none" />
-        <span className="shrink-0 text-xs text-slate-600">{unit}</span>
+          className="w-full py-2 text-hc-ink outline-none" />
+        <span className="shrink-0 text-xs text-hc-ink-2">{unit}</span>
       </span>
     </label>
   );
 
   return (
     <div className="space-y-3 p-3">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-hc-ink-2">
         Skrifaðu hvað þú borðaðir — eða talaðu það inn — og við áætlum næringuna.
         Þetta kemur í staðinn fyrir <strong>{SLOT_IS[slot].toLowerCase()}</strong> í dag.
       </p>
@@ -171,18 +171,18 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
       <div className="relative">
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
           placeholder="T.d. kjúklingabringa með hrísgrjónum og salati úr mötuneytinu"
-          className="w-full rounded-2xl border border-slate-300 p-3 pr-12 text-slate-900 outline-none focus:ring-2 focus:ring-lime-600" />
+          className="w-full rounded-2xl border border-slate-300 p-3 pr-12 text-hc-ink outline-none focus:ring-2 focus:ring-lime-600" />
         {canHear && (
           <button type="button" onClick={listen}
             aria-label={listening ? "Stoppa upptöku" : "Talaðu máltíðina inn"}
             aria-pressed={listening}
             className={`absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full transition ${
-              listening ? "animate-pulse bg-rose-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+              listening ? "animate-pulse bg-rose-600 text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
             {listening ? <Square className="h-4 w-4" aria-hidden /> : <Mic className="h-4 w-4" aria-hidden />}
           </button>
         )}
       </div>
-      {listening && <p className="text-xs text-slate-600">Hlusta… talaðu máltíðina og ýttu svo á stopp.</p>}
+      {listening && <p className="text-xs text-hc-ink-2">Hlusta… talaðu máltíðina og ýttu svo á stopp.</p>}
 
       {!macros ? (
         <button type="button" onClick={() => void estimate()}
@@ -203,7 +203,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
           </div>
           {/* Said plainly, every time, because it is the whole caveat: a
               sentence read by a model is not a weighed plate. */}
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-hc-ink-2">
             Þetta er áætlun út frá textanum, ekki mæling. Breyttu tölunum ef þú veit betur.
           </p>
           <button type="button" onClick={() => void save()} disabled={busy === "save"}

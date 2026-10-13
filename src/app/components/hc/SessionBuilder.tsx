@@ -62,13 +62,13 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
   return (
     <Sheet title={`Æfingarnar í ${name}`} onClose={onClose}
       header={
-        <div className="flex items-center gap-3 border-b border-slate-100 p-4">
+        <div className="flex items-center gap-3 border-b border-hc-hairline p-4">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-bold text-slate-900">Æfingarnar þínar</p>
-            <p className="text-sm text-slate-600">{STRENGTH_FOCUS_IS[focus].label} · {items.length} æfingar</p>
+            <p className="truncate text-lg font-bold text-hc-ink">Æfingarnar þínar</p>
+            <p className="text-sm text-hc-ink-2">{STRENGTH_FOCUS_IS[focus].label} · {items.length} æfingar</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Loka"
-            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+            className="rounded-lg p-1 text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-5 w-5" /></button>
         </div>
       }>
 
@@ -82,7 +82,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
             </p>
           )}
 
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-hc-hairline">
             {keys.map((k, i) => {
               const slot = STRENGTH_SLOTS.find((x) => x.key === k);
               const it = items[i];
@@ -96,12 +96,12 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                   <span className="flex shrink-0 flex-col">
                     <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
                       aria-label={`Færa ${slot.label} upp`}
-                      className="rounded p-0.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25">
+                      className="rounded p-0.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700 disabled:opacity-25">
                       <ArrowUp className="h-4 w-4" aria-hidden />
                     </button>
                     <button type="button" onClick={() => move(i, 1)} disabled={i === keys.length - 1}
                       aria-label={`Færa ${slot.label} niður`}
-                      className="rounded p-0.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25">
+                      className="rounded p-0.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700 disabled:opacity-25">
                       <ArrowDown className="h-4 w-4" aria-hidden />
                     </button>
                   </span>
@@ -113,19 +113,19 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={it.image} alt="" loading="lazy"
                         className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-hc-hairline" />
-                    : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-300">
+                    : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-hc-sunken-2 text-slate-300">
                         <Dumbbell className="h-6 w-6" aria-hidden />
                       </span>}
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-slate-900">{it?.name ?? slot.label}</span>
-                    <span className="block text-sm text-slate-600">
+                    <span className="block font-semibold text-hc-ink">{it?.name ?? slot.label}</span>
+                    <span className="block text-sm text-hc-ink-2">
                       {GROUP_IS[slot.group]}
                       {it?.prescription ? ` · ${it.prescription}` : ""}
                     </span>
                   </span>
                   <button type="button" onClick={() => setKeys((x) => x.filter((_, j) => j !== i))}
                     aria-label={`Taka ${slot.label} út`}
-                    className="shrink-0 rounded-lg p-2 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600">
+                    className="shrink-0 rounded-lg p-2 text-hc-ink-3 transition hover:bg-rose-50 hover:text-rose-600">
                     <X className="h-4 w-4" aria-hidden />
                   </button>
                 </li>
@@ -139,13 +139,13 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                 <Plus className="h-4 w-4" aria-hidden /> Bæta við æfingu
               </button>
             ) : (
-              <div className="space-y-3 rounded-2xl bg-slate-50 p-3">
+              <div className="space-y-3 rounded-2xl bg-hc-sunken p-3">
                 {/* Grouped by what it trains, because that is the choice
                     being made — a session needs a pull, not specifically a
                     row. */}
                 {Object.entries(byGroup).map(([g, list]) => (
                   <div key={g}>
-                    <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-600">{GROUP_IS[g as keyof typeof GROUP_IS]}</p>
+                    <p className="mb-1 text-xs font-bold uppercase tracking-wide text-hc-ink-2">{GROUP_IS[g as keyof typeof GROUP_IS]}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {list.map((x) => {
                         const on = keys.includes(x.key);
@@ -153,7 +153,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                           <button key={x.key} type="button" disabled={on}
                             onClick={() => { setKeys((k) => [...k, x.key]); setAdding(false); }}
                             className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
-                              on ? "bg-slate-200 text-slate-500" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-brand/10 hover:text-hc-brand-dark"}`}>
+                              on ? "bg-slate-200 text-hc-ink-3" : "bg-hc-surface text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-brand/10 hover:text-hc-brand-dark"}`}>
                             {on && <Check className="mr-1 inline h-3 w-3" aria-hidden />}{x.label}
                           </button>
                         );
@@ -162,21 +162,21 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                   </div>
                 ))}
                 <button type="button" onClick={() => setAdding(false)}
-                  className="text-sm font-semibold text-slate-600 hover:text-slate-800">Hætta við</button>
+                  className="text-sm font-semibold text-hc-ink-2 hover:text-slate-800">Hætta við</button>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 border-t border-slate-100 p-3">
+        <div className="flex items-center gap-2 border-t border-hc-hairline p-3">
           {!isDefault && (
             <button type="button" onClick={() => setKeys(slotKeysFor(focus))}
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-800">
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-hc-ink-2 hover:text-slate-800">
               <RotateCcw className="h-4 w-4" aria-hidden /> Sjálfgefið
             </button>
           )}
           <span className="flex-1" />
-          <button type="button" onClick={onClose} className="px-3 text-sm font-semibold text-slate-600">Hætta við</button>
+          <button type="button" onClick={onClose} className="px-3 text-sm font-semibold text-hc-ink-2">Hætta við</button>
           <button type="button" onClick={() => onSave(keys)} disabled={!keys.length}
             className={`${hcBtn.primary} disabled:opacity-40`}>Vista</button>
         </div>

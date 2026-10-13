@@ -18,7 +18,7 @@ function Bar({ value, className, label }: { value: number; className: string; la
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
         <div className={`h-full rounded-full ${className}`} style={{ width: `${Math.max(4, (value / 10) * 100)}%` }} />
       </div>
-      <span className="w-7 shrink-0 text-right text-[11px] font-semibold tabular-nums text-slate-600">{n1(value)}</span>
+      <span className="w-7 shrink-0 text-right text-[11px] font-semibold tabular-nums text-hc-ink-2">{n1(value)}</span>
     </div>
   );
 }
@@ -39,7 +39,7 @@ export default function FitMeter({ fit, titles, rank }: {
         )}
         <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${band.chip}`}>{band.label}</span>
         {!fit.personalised && (
-          <span className="text-[11px] text-slate-600" title="Ekkert sem þessi aðgerð tekur á var mælt hjá þér.">óháð skýrslunni</span>
+          <span className="text-[11px] text-hc-ink-2" title="Ekkert sem þessi aðgerð tekur á var mælt hjá þér.">óháð skýrslunni</span>
         )}
       </div>
 
@@ -55,17 +55,17 @@ export default function FitMeter({ fit, titles, rank }: {
       )}
 
       <details className="mt-1 group">
-        <summary className="cursor-pointer list-none text-[11px] font-semibold text-slate-600 hover:text-slate-800">
+        <summary className="cursor-pointer list-none text-[11px] font-semibold text-hc-ink-2 hover:text-slate-800">
           Hvernig er þetta reiknað?
         </summary>
-        <div className="mt-1.5 space-y-1.5 rounded-lg bg-slate-50 p-2">
+        <div className="mt-1.5 space-y-1.5 rounded-lg bg-hc-sunken p-2">
           {fit.need != null
             ? <div><p className="text-[11px] font-semibold text-slate-700" title={FIT_IS.need.hint}>{FIT_IS.need.label}</p><Bar value={fit.need} className="bg-amber-400" label={FIT_IS.need.label} /></div>
-            : <p className="text-[11px] text-slate-600">{FIT_IS.need.label}: ekkert af því sem þetta tekur á var mælt.</p>}
+            : <p className="text-[11px] text-hc-ink-2">{FIT_IS.need.label}: ekkert af því sem þetta tekur á var mælt.</p>}
           {fit.bang != null
             ? <div><p className="text-[11px] font-semibold text-slate-700" title={FIT_IS.bang.hint}>{FIT_IS.bang.label}</p><Bar value={fit.bang} className="bg-sky-400" label={FIT_IS.bang.label} /></div>
-            : <p className="text-[11px] text-slate-600">{FIT_IS.bang.label}: aðgerðin hefur ekki verið metin.</p>}
-          <p className="text-[11px] leading-snug text-slate-600">{FIT_IS.fit.hint}</p>
+            : <p className="text-[11px] text-hc-ink-2">{FIT_IS.bang.label}: aðgerðin hefur ekki verið metin.</p>}
+          <p className="text-[11px] leading-snug text-hc-ink-2">{FIT_IS.fit.hint}</p>
         </div>
       </details>
     </div>

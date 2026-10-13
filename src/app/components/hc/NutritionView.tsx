@@ -25,7 +25,7 @@ type Api = (url: string, init?: RequestInit) => Promise<Response>;
  * Three levels of attention, and the contrast each one is allowed.
  *
  * The page had lime and slate applied by eye, and two of the results failed
- * WCAG AA outright: text-slate-500 on white is 2.6:1 where body text needs
+ * WCAG AA outright: text-hc-ink-3 on white is 2.6:1 where body text needs
  * 4.5, and white on lime-600 — which every solid block used — is 3.1:1. So
  * this is a correctness fix before it is a design one. lime-700 is 5.0:1 and
  * slate-500 is 4.8:1; both pass, and they are the darkest steps that still
@@ -45,9 +45,9 @@ const TONE = {
   act: "bg-lime-700 text-white",
   actRing: "ring-2 ring-lime-700",
   on: "bg-lime-50 ring-2 ring-lime-600",
-  off: "bg-white ring-1 ring-hc-hairline",
-  label: "text-slate-600",
-  quiet: "text-slate-600",
+  off: "bg-hc-surface ring-1 ring-hc-hairline",
+  label: "text-hc-ink-2",
+  quiet: "text-hc-ink-2",
 } as const;
 type PlanNutrition = NonNullable<ActionPlan["nutrition"]>;
 
@@ -204,7 +204,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
             A heading rather than a card header, because the card below is
             the thing and this is just its label. */}
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-sm font-bold uppercase tracking-wide text-slate-600">
+          <h3 className="text-sm font-bold uppercase tracking-wide text-hc-ink-2">
             {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
           </h3>
           {pickedDay !== null && pickedDay !== todayIdx && (
@@ -236,7 +236,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
            * the macros and the recipe text keep their contrast.
            */
           return (
-            <div className={`mt-4 overflow-hidden rounded-3xl bg-white transition ${
+            <div className={`mt-4 overflow-hidden rounded-3xl bg-hc-surface transition ${
               isToday ? TONE.actRing : "ring-1 ring-hc-hairline"}`}>
               {/* White header with a coloured tile, exactly as Æfingar's day
                   card has it. I had made this band solid to mark it as the
@@ -256,38 +256,38 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                   <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-lime-800">
                     {SLOT_IS[nextSlot]}{isToday ? " · í dag" : ` · ${WEEKDAYS[shownDay].toLowerCase()}`}
                   </span>
-                  <span className="block font-bold leading-tight text-slate-900">
+                  <span className="block font-bold leading-tight text-hc-ink">
                     {m ? mealName(m) : day ? "Engin máltíð valin" : "Hleð…"}
                   </span>
                   {m && (
-                    <span className="mt-0.5 block text-sm text-slate-600">
+                    <span className="mt-0.5 block text-sm text-hc-ink-2">
                       {[m.protein != null ? `${Math.round(Number(m.protein))} g prótein` : null,
                         mins ? `${mins} mín.` : null].filter(Boolean).join(" · ")}
                     </span>
                   )}
                 </span>
-                <ChevronDown className={`h-5 w-5 shrink-0 text-slate-600 transition ${headOpen ? "rotate-180" : ""}`} aria-hidden />
+                <ChevronDown className={`h-5 w-5 shrink-0 text-hc-ink-2 transition ${headOpen ? "rotate-180" : ""}`} aria-hidden />
               </button>
 
               {headOpen && m && (
-                <div className="border-t border-slate-100 bg-slate-50/60 px-4 pb-4 pt-3.5">
+                <div className="border-t border-hc-hairline bg-hc-sunken/60 px-4 pb-4 pt-3.5">
                   <div className="grid grid-cols-4 gap-2 text-center">
                     {([["Prótein", m.protein, "g"], ["Kolvetni", m.carbs, "g"],
                        ["Fita", m.fat, "g"], ["Orka", m.calories, "kkal"]] as const).map(([label, v, unit]) => (
-                      <div key={label} className="rounded-xl bg-white p-2 ring-1 ring-hc-hairline">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-600">{label}</p>
-                        <p className="text-sm font-bold tabular-nums text-slate-900">
-                          {v != null ? Math.round(Number(v)) : "—"}<span className="text-[10px] font-normal text-slate-600"> {unit}</span>
+                      <div key={label} className="rounded-xl bg-hc-surface p-2 ring-1 ring-hc-hairline">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-hc-ink-2">{label}</p>
+                        <p className="text-sm font-bold tabular-nums text-hc-ink">
+                          {v != null ? Math.round(Number(v)) : "—"}<span className="text-[10px] font-normal text-hc-ink-2"> {unit}</span>
                         </p>
                       </div>
                     ))}
                   </div>
                   {mealText(m).description && (
-                    <p className="mt-3 text-sm leading-relaxed text-slate-600">{mealText(m).description}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-hc-ink-2">{mealText(m).description}</p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold">
                     <button type="button" onClick={() => setRecipe(m)}
-                      className="rounded-full border border-hc-hairline bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50">
+                      className="rounded-full border border-hc-hairline bg-hc-surface px-3 py-1.5 text-slate-700 hover:bg-hc-sunken">
                       Uppskriftin
                     </button>
                     <button type="button" onClick={() => setSlotOpen(nextSlot)}
@@ -307,14 +307,14 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                   tick Thursday's dinner on a Sunday would either lie about
                   the date or quietly log the wrong day. */}
               {isToday && todayMeals && day?.[nextSlot] && (
-                <div className="space-y-2 border-t border-slate-100 p-3">
+                <div className="space-y-2 border-t border-hc-hairline p-3">
                   <MealLogger day={todayMeals} part="button" only={nextSlot} />
                   {/* The plan says one thing and work says another.
                       Secondary to the tick, because most days the planned
                       meal is what happened — but one tap away, because the
                       days it is not are the days the diary goes wrong. */}
                   <button type="button" onClick={() => setDescribe(nextSlot)}
-                    className="w-full rounded-2xl px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                    className="w-full rounded-2xl px-4 py-2 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-sunken">
                     Ég borðaði eitthvað annað
                   </button>
                 </div>
@@ -351,7 +351,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-lime-700">Áætlunin mín</p>
           <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <h2 className="min-w-0 text-2xl font-bold text-slate-900">{nutrition.name}</h2>
+            <h2 className="min-w-0 text-2xl font-bold text-hc-ink">{nutrition.name}</h2>
             {onChangeProgram && !onCustomise && (
               <button type="button" onClick={onChangeProgram} className="rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
             )}
@@ -389,7 +389,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                   className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase transition ${
                     i === shownDay ? "bg-lime-700 text-white"
                       : i === todayIdx ? "bg-lime-50 text-lime-800 ring-1 ring-lime-200"
-                      : "text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-50"}`}>
+                      : "text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken"}`}>
                   {lbl}
                 </button>
               ))}
@@ -409,12 +409,12 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 const low = band && protein < band.min;
                 return (
                   <div key={i} data-drop={`nday:${i}`}
-                    className={`w-full shrink-0 snap-center rounded-2xl p-2.5 ring-1 transition ${i === todayIdx ? "bg-lime-50/60 ring-lime-300" : "bg-white ring-hc-hairline"}`}>
+                    className={`w-full shrink-0 snap-center rounded-2xl p-2.5 ring-1 transition ${i === todayIdx ? "bg-lime-50/60 ring-lime-300" : "bg-hc-surface ring-hc-hairline"}`}>
                     <div className="mb-1.5 flex items-baseline justify-between">
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+                      <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">
                         {WEEKDAYS[i]}{i === todayIdx ? " · í dag" : ""}
                       </p>
-                      <p className={`text-xs font-bold tabular-nums ${low ? "text-amber-700" : "text-slate-600"}`}>
+                      <p className={`text-xs font-bold tabular-nums ${low ? "text-amber-700" : "text-hc-ink-2"}`}>
                         {protein} g prótein
                       </p>
                     </div>
@@ -453,7 +453,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                               <button type="button"
                                 onClick={() => { setPickedDay(i); setSlotOpen(sl); }}
                                 aria-label={`Skipta um ${SLOT_IS[sl].toLowerCase()} ${WEEKDAYS[i].toLowerCase()}`}
-                                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-hc-hairline text-slate-600 transition hover:border-lime-500 hover:bg-lime-50 hover:text-lime-700">
+                                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-hc-hairline text-hc-ink-2 transition hover:border-lime-500 hover:bg-lime-50 hover:text-lime-700">
                                 <ArrowLeftRight className="h-4 w-4" aria-hidden />
                               </button>
                               <button type="button"
@@ -461,13 +461,13 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                                 aria-pressed={on}
                                 className="min-w-0 flex-1 text-left"
                                 aria-label={`Sýna ${SLOT_IS[sl].toLowerCase()}${m ? `: ${mealName(m)}` : ""} í kortinu að ofan`}>
-                                <span className="block text-xs font-semibold uppercase tracking-wide text-slate-600">{SLOT_IS[sl]}</span>
-                                <span className={`block truncate font-semibold ${m ? "text-slate-900" : "text-slate-600"}`}>
+                                <span className="block text-xs font-semibold uppercase tracking-wide text-hc-ink-2">{SLOT_IS[sl]}</span>
+                                <span className={`block truncate font-semibold ${m ? "text-hc-ink" : "text-hc-ink-2"}`}>
                                   {m ? mealName(m) : "Engin máltíð"}
                                 </span>
                               </button>
                               {m && (
-                                <span className="shrink-0 text-right text-xs text-slate-600">
+                                <span className="shrink-0 text-right text-xs text-hc-ink-2">
                                   {m.protein != null && <span className="block font-semibold text-slate-700">{Math.round(Number(m.protein))} g</span>}
                                   {m.calories != null && <span className="block">{Math.round(Number(m.calories))} kkal</span>}
                                 </span>
@@ -484,12 +484,12 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                         that can disagree with what is on the plate. */}
                     {!d.snack2 ? (
                       <button type="button" onClick={() => { setPickedDay(i); setSlotOpen("snack2"); }}
-                        className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-lime-400 hover:text-lime-800">
+                        className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-[11px] font-semibold text-hc-ink-2 transition hover:border-lime-400 hover:text-lime-800">
                         <Plus className="h-3 w-3" aria-hidden /> Millimál
                       </button>
                     ) : (
                       <button type="button" onClick={() => onPick(pickKey(i, "snack2") as MealSlot, null)}
-                        className="mt-1.5 text-[11px] font-semibold text-slate-600 transition hover:text-slate-700">
+                        className="mt-1.5 text-[11px] font-semibold text-hc-ink-2 transition hover:text-slate-700">
                         Fjarlægja millimál 2
                       </button>
                     )}
@@ -540,13 +540,13 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
       {detail && week && (
         <Sheet title="Prógrammið" onClose={() => setDetail(false)} canvas>
           <div className="space-y-3 p-3">
-            <section className="rounded-2xl bg-white p-4 ring-1 ring-hc-hairline">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Áætlunin</p>
-              <h3 className="mt-0.5 text-lg font-bold text-slate-900">{nutrition.name}</h3>
+            <section className="rounded-2xl bg-hc-surface p-4 ring-1 ring-hc-hairline">
+              <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Áætlunin</p>
+              <h3 className="mt-0.5 text-lg font-bold text-hc-ink">{nutrition.name}</h3>
               {nutrition.principles?.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {nutrition.principles.map((pr, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-slate-600">
+                    <li key={i} className="flex gap-2 text-sm text-hc-ink-2">
                       <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-lime-600" aria-hidden />
                       <span>{pr}</span>
                     </li>
@@ -558,8 +558,8 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
             {/* The macro verdict. An average day across the seven, because
                 one day under is normal and a week under is the thing worth
                 knowing. */}
-            <section className="rounded-2xl bg-white p-4 ring-1 ring-hc-hairline">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Meðaldagur í vikunni</p>
+            <section className="rounded-2xl bg-hc-surface p-4 ring-1 ring-hc-hairline">
+              <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Meðaldagur í vikunni</p>
               {(() => {
                 const sum = week.reduce((t, d) => {
                   for (const sl of SLOTS) {
@@ -593,14 +593,14 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                         <div key={r.label}>
                           <div className="flex items-baseline justify-between text-sm">
                             <span className="font-semibold text-slate-700">{r.label}</span>
-                            <span className="tabular-nums text-slate-600">
-                              <strong className={under ? "text-amber-700" : over ? "text-slate-900" : "text-lime-700"}>{r.got}</strong>
-                              <span className="text-slate-600"> {r.unit}</span>
-                              {r.target && <span className="text-xs text-slate-600"> · mark {r.target.min}–{r.target.max}</span>}
+                            <span className="tabular-nums text-hc-ink-2">
+                              <strong className={under ? "text-amber-700" : over ? "text-hc-ink" : "text-lime-700"}>{r.got}</strong>
+                              <span className="text-hc-ink-2"> {r.unit}</span>
+                              {r.target && <span className="text-xs text-hc-ink-2"> · mark {r.target.min}–{r.target.max}</span>}
                             </span>
                           </div>
                           {pct != null && (
-                            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-hc-sunken-2">
                               <div className={`h-full rounded-full ${under ? "bg-amber-400" : "bg-lime-500"}`} style={{ width: `${pct}%` }} />
                             </div>
                           )}
@@ -620,7 +620,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                         (scripts/meal-fibre.py), not a laboratory figure, and
                         a handful of recipes could not be worked out at all —
                         so the week's total is a floor, not a verdict. */}
-                    <p className="mt-2 text-xs text-slate-600">
+                    <p className="mt-2 text-xs text-hc-ink-2">
                       Trefjar og næringargildi eru reiknuð út frá hráefnum uppskriftanna og eru því áætluð.
                       {sum.noFibre > 0 && " Nokkrar uppskriftir hafa ekki trefjagildi, svo talan getur verið lægri en raunin."}
                     </p>
@@ -630,11 +630,11 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                         coaching track, are never going to be taken. So it
                         asks instead. */}
                     {!weightKg && onSelfWeight && (
-                      <div className="mt-3 rounded-xl bg-slate-50 p-3">
+                      <div className="mt-3 rounded-xl bg-hc-sunken p-3">
                         <label className="block text-sm font-semibold text-slate-700" htmlFor="self-weight">
                           Próteinmarkið reiknast af þyngd
                         </label>
-                        <p className="mt-0.5 text-xs text-slate-600">
+                        <p className="mt-0.5 text-xs text-hc-ink-2">
                           Settu hana inn hér, eða láttu mælingarnar um það ef þú ferð í heilsufarsskoðun.
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -679,8 +679,8 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
               ];
               if (chips.length === 0) return null;
               return (
-                <section className="rounded-2xl bg-white p-4 ring-1 ring-hc-hairline">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Áherslur og það sem er sleppt</p>
+                <section className="rounded-2xl bg-hc-surface p-4 ring-1 ring-hc-hairline">
+                  <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Áherslur og það sem er sleppt</p>
                   <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
                     {chips.map((c) => (
                       <span key={c.key} className={`rounded-full px-2.5 py-1 font-semibold ring-1 ${c.cls}`}>{c.label}</span>
@@ -691,9 +691,9 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
             })()}
 
             {onCustomise && (
-              <section className="rounded-2xl bg-white p-4 ring-1 ring-hc-hairline">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Breyta</p>
-                <p className="mt-1 text-sm text-slate-600">Áherslur, mataræði og það sem þú vilt sleppa.</p>
+              <section className="rounded-2xl bg-hc-surface p-4 ring-1 ring-hc-hairline">
+                <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Breyta</p>
+                <p className="mt-1 text-sm text-hc-ink-2">Áherslur, mataræði og það sem þú vilt sleppa.</p>
                 <button type="button" onClick={() => { setDetail(false); onCustomise(); }}
                   className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
                   <Sliders className="h-3.5 w-3.5" aria-hidden /> Breyta áætluninni
@@ -703,7 +703,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
             {onChangeProgram && (
               <button type="button" onClick={() => { setDetail(false); onChangeProgram(); }}
-                className="w-full rounded-2xl border border-hc-hairline bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                className="w-full rounded-2xl border border-hc-hairline bg-hc-surface px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-hc-sunken">
                 Skipta um næringaráætlun
               </button>
             )}
@@ -742,14 +742,14 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                     <button key={k} type="button" onClick={() => setLibFilter(k)}
                       aria-pressed={libFilter === k}
                       className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                        libFilter === k ? "bg-hc-brand-dark text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-50"}`}>
+                        libFilter === k ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken"}`}>
                       {label}{k === "fav" && favourites.length > 0 ? ` (${favourites.length})` : ""}
                     </button>
                   ))}
                 </div>
 
                 {list.length === 0 && (
-                  <p className="rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-hc-hairline">
+                  <p className="rounded-2xl bg-hc-surface p-4 text-sm text-hc-ink-2 ring-1 ring-hc-hairline">
                     {libFilter === "fav"
                       ? "Þú hefur ekki merkt neina máltíð sem eftirlæti. Ýttu á stjörnuna við máltíð til að setja hana hér."
                       : "Engar aðrar máltíðir passa við skilyrðin."}
@@ -763,7 +763,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                     const rating = proteinRating(m, slotOpen, targetG);
                     return (
                       <li key={m.id}>
-                        <div className={`flex items-center gap-3 rounded-2xl bg-white p-2.5 ring-1 transition ${
+                        <div className={`flex items-center gap-3 rounded-2xl bg-hc-surface p-2.5 ring-1 transition ${
                           on ? "ring-2 ring-lime-600" : "ring-hc-hairline"}`}>
                           <button type="button"
                             onClick={() => { onPick(pickKey(shownDay, slotOpen) as MealSlot, m.id); setSlotOpen(null); }}
@@ -779,7 +779,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                             <span className="min-w-0 flex-1">
                               <span className="flex items-center gap-1.5">
                                 {on && <Check className="h-3.5 w-3.5 shrink-0 text-lime-600" aria-hidden />}
-                                <span className="truncate font-semibold leading-tight text-slate-900">{mealName(m)}</span>
+                                <span className="truncate font-semibold leading-tight text-hc-ink">{mealName(m)}</span>
                               </span>
                               <span className="mt-1 flex flex-wrap items-center gap-1.5">
                                 {rating && (
@@ -787,14 +787,14 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                                     {PROTEIN_RATING_IS[rating].label}
                                   </span>
                                 )}
-                                <span className="text-xs tabular-nums text-slate-600">
+                                <span className="text-xs tabular-nums text-hc-ink-2">
                                   {[m.protein != null ? `${Math.round(Number(m.protein))} g prótein` : null,
                                     m.calories != null ? `${Math.round(Number(m.calories))} kkal` : null,
                                     m.fibre_g != null ? `${Math.round(Number(m.fibre_g))} g trefjar` : null]
                                     .filter(Boolean).join(" · ")}
                                 </span>
                                 {near.has(m.id) && (
-                                  <span className="text-[10px] font-semibold text-slate-600">≈ svipað og núverandi</span>
+                                  <span className="text-[10px] font-semibold text-hc-ink-2">≈ svipað og núverandi</span>
                                 )}
                               </span>
                             </span>
@@ -805,7 +805,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                             aria-pressed={fav}
                             aria-label={fav ? `Taka ${mealName(m)} úr eftirlæti` : `Setja ${mealName(m)} í eftirlæti`}
                             className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${
-                              fav ? "text-amber-500 hover:bg-amber-50" : "text-slate-300 hover:bg-slate-100 hover:text-slate-600"}`}>
+                              fav ? "text-amber-500 hover:bg-amber-50" : "text-slate-300 hover:bg-hc-sunken-2 hover:text-hc-ink-2"}`}>
                             <Star className={`h-5 w-5 ${fav ? "fill-current" : ""}`} aria-hidden />
                           </button>
                         </div>
@@ -834,11 +834,11 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
 
       {recipe && <Recipe m={recipe} onClose={() => setRecipe(null)} />}
       {(nutrition.description || nutrition.goal || nutrition.principles.length > 0) && (
-        <details className="group rounded-2xl bg-white p-4 shadow-sm ring-1 ring-hc-hairline">
+        <details className="group rounded-2xl bg-hc-surface p-4 shadow-sm ring-1 ring-hc-hairline">
           <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-slate-800">
             <Info className="h-4 w-4 text-lime-700" aria-hidden />
             Um áætlunina — það sem skiptir mestu
-            <ChevronDown className="ml-auto h-4 w-4 text-slate-600 transition group-open:rotate-180" aria-hidden />
+            <ChevronDown className="ml-auto h-4 w-4 text-hc-ink-2 transition group-open:rotate-180" aria-hidden />
           </summary>
           <div className="mt-3 space-y-4">
             {nutrition.goal && <p className="text-sm font-medium text-slate-800">{nutrition.goal}</p>}
@@ -885,7 +885,7 @@ export function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
               so this is empty today — but a picture that needs a credit and
               does not carry one is a licence breach, not a missing nicety. */}
           {m.illustration_credit && (
-            <p className="px-4 pt-1 text-[11px] text-slate-600">Mynd: {m.illustration_credit}</p>
+            <p className="px-4 pt-1 text-[11px] text-hc-ink-2">Mynd: {m.illustration_credit}</p>
           )}
         </>
       )}
@@ -900,21 +900,21 @@ export function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
           ))}
         </div>
         {(m.prep_time_min || m.cook_time_min) && (
-          <p className="flex items-center gap-1.5 text-sm text-slate-600"><Clock className="h-4 w-4" aria-hidden />Undirbúningur {m.prep_time_min ?? 0} mín.{m.cook_time_min ? ` · eldun ${m.cook_time_min} mín.` : ""}</p>
+          <p className="flex items-center gap-1.5 text-sm text-hc-ink-2"><Clock className="h-4 w-4" aria-hidden />Undirbúningur {m.prep_time_min ?? 0} mín.{m.cook_time_min ? ` · eldun ${m.cook_time_min} mín.` : ""}</p>
         )}
         {t.ingredients.length > 0 && (
           <div>
-            <h4 className="font-semibold text-slate-900">Hráefni</h4>
+            <h4 className="font-semibold text-hc-ink">Hráefni</h4>
             <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-slate-700">{t.ingredients.map((x, i) => <li key={i}>{x}</li>)}</ul>
           </div>
         )}
         {t.instructions.length > 0 && (
           <div>
-            <h4 className="font-semibold text-slate-900">Aðferð</h4>
+            <h4 className="font-semibold text-hc-ink">Aðferð</h4>
             <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-slate-700">{t.instructions.map((x, i) => <li key={i}>{x}</li>)}</ol>
           </div>
         )}
-        <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-sm font-semibold text-slate-600"><ChevronLeft className="h-4 w-4" />Til baka</button>
+        <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-sm font-semibold text-hc-ink-2"><ChevronLeft className="h-4 w-4" />Til baka</button>
       </div>
     </Sheet>
   );

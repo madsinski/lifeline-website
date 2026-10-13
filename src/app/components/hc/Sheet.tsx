@@ -179,7 +179,7 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
           transition: dy > 0 && !closing ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
         className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl ${max} ${
-          canvas ? "bg-slate-50" : "bg-white"}`}>
+          canvas ? "bg-hc-sunken" : "bg-hc-surface"}`}>
 
         {/* The grab area, not the grab bar.
             The visible pill is 6px tall, and a 6px target is one you hunt
@@ -198,7 +198,7 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
           <div className="flex shrink-0 items-center gap-3 bg-inherit px-4 py-3">
             <p className="min-w-0 flex-1 truncate text-lg font-bold text-hc-ink">{title}</p>
             <button type="button" onClick={close} aria-label="Loka"
-              className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
+              className="rounded-lg p-1.5 text-hc-ink-3 transition hover:bg-hc-sunken-2 hover:text-slate-700">
               <X className="h-5 w-5" aria-hidden />
             </button>
           </div>

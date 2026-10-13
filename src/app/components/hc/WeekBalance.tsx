@@ -47,19 +47,19 @@ export default function WeekBalance({ score, stage, description, principles, onF
       {/* Where you are. The stage title is the headline — it is the one line
           that says this is a programme with a direction, not a list. */}
       {stage && (
-        <div className="border-b border-slate-100 px-4 py-3.5 sm:px-5">
+        <div className="border-b border-hc-hairline px-4 py-3.5 sm:px-5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <p className="font-bold text-hc-ink">{stage.title}</p>
-            <p className="text-sm tabular-nums text-slate-600">Vika {stage.week}</p>
+            <p className="text-sm tabular-nums text-hc-ink-2">Vika {stage.week}</p>
           </div>
           <div className="mt-2 flex gap-1" aria-hidden>
             {Array.from({ length: stage.count }, (_, i) => (
               <span key={i} className={`h-1 flex-1 rounded-full ${
-                i < stage.index ? "bg-hc-brand/40" : i === stage.index ? "bg-hc-brand" : "bg-slate-100"}`} />
+                i < stage.index ? "bg-hc-brand/40" : i === stage.index ? "bg-hc-brand" : "bg-hc-sunken-2"}`} />
             ))}
           </div>
           {stage.weeksToNext !== null && stage.nextTitle && (
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm text-hc-ink-2">
               Næst: {stage.nextTitle} eftir {stage.weeksToNext} {stage.weeksToNext === 1 ? "viku" : "vikur"}
             </p>
           )}
@@ -70,18 +70,18 @@ export default function WeekBalance({ score, stage, description, principles, onF
           wants. The label, the count and the bar — nothing else fits on a
           phone without one of the three getting cramped. */}
       <div className="px-4 py-3.5 sm:px-5">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Vikan</p>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-hc-ink-3">Vikan</p>
         <ul className="mt-2.5 space-y-2.5">
           {counted.map((m) => {
             const tone = SCORE_TONE(m.score);
             return (
               <li key={m.key} className="flex items-center gap-3">
                 <p className="w-24 shrink-0 text-sm font-semibold text-slate-800">{m.label}</p>
-                <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100">
+                <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-hc-sunken-2">
                   <span className={`block h-full rounded-full transition-all ${tone.bar}`}
                     style={{ width: `${Math.min(100, (m.have / m.target) * 100)}%` }} aria-hidden />
                 </span>
-                <p className="shrink-0 text-sm tabular-nums text-slate-600">
+                <p className="shrink-0 text-sm tabular-nums text-hc-ink-2">
                   <span className="font-bold text-slate-800">{num(m.have)}</span>/{num(m.target)}
                 </p>
               </li>
@@ -92,8 +92,8 @@ export default function WeekBalance({ score, stage, description, principles, onF
 
       {/* What to do about it, when there is something. A card that only ever
           reports is a card people stop reading. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-slate-100 px-4 py-3 sm:px-5">
-        <p className="min-w-0 flex-1 text-sm text-slate-600">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-hc-hairline px-4 py-3 sm:px-5">
+        <p className="min-w-0 flex-1 text-sm text-hc-ink-2">
           {gaps.length
             ? gaps.map((g) => `${g.label}: ${g.gap!.charAt(0).toLowerCase()}${g.gap!.slice(1)}`).join(" · ")
             : score.summary}
@@ -110,12 +110,12 @@ export default function WeekBalance({ score, stage, description, principles, onF
           means and why these three qualities is for the one visit where
           somebody wonders. */}
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 border-t border-slate-100 px-4 py-2.5 text-left text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:px-5">
+        className="flex w-full items-center justify-between gap-2 border-t border-hc-hairline px-4 py-2.5 text-left text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-sunken sm:px-5">
         Um áætlunina
         <ChevronDown className={`h-4 w-4 shrink-0 transition ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
       {open && (
-        <div className="space-y-4 border-t border-slate-100 px-4 py-3.5 text-sm text-slate-600 sm:px-5">
+        <div className="space-y-4 border-t border-hc-hairline px-4 py-3.5 text-sm text-hc-ink-2 sm:px-5">
           {stage && (
             <p><span className="font-semibold text-slate-800">{stage.title}.</span> {stage.text}</p>
           )}
@@ -152,7 +152,7 @@ export default function WeekBalance({ score, stage, description, principles, onF
             <ol className="space-y-1.5">
               {principles.map((x, i) => (
                 <li key={i} className="flex gap-2.5">
-                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-600">{i + 1}</span>
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-hc-sunken-2 text-[11px] font-bold text-hc-ink-2">{i + 1}</span>
                   <span className="min-w-0">{x}</span>
                 </li>
               ))}

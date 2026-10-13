@@ -18,7 +18,7 @@ const METHOD_BADGE: Record<ReadMethod, { label: string; title: string; className
   local: { label: "Lesið hjá okkur", title: "Lesið á okkar eigin vél — skráin fór hvergi.", className: "bg-emerald-50 text-emerald-800" },
   "ai-text": { label: "AI-lestur á texta", title: "Textinn úr skjalinu var sendur í AI-lestur án kennitölu, netfangs og símanúmers.", className: "bg-amber-50 text-amber-800" },
   "ai-document": { label: "AI-lestur á skjali", title: "Skjalið sjálft var sent í AI-lestur.", className: "bg-amber-100 text-amber-900" },
-  "needs-consent": { label: "Bíður samþykkis", title: "Skjalið var ekki lesið hér.", className: "bg-slate-100 text-slate-700" },
+  "needs-consent": { label: "Bíður samþykkis", title: "Skjalið var ekki lesið hér.", className: "bg-hc-sunken-2 text-slate-700" },
 };
 
 interface Identity { name: string | null; kennitala: string | null; kennitala_last4: string | null; sex?: "m" | "f" | null; email?: string | null; phone?: string | null }
@@ -102,7 +102,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); if (e.dataTransfer.files?.length) void read(e.dataTransfer.files); }}
-      className={`rounded-3xl border-2 border-dashed p-5 transition ${over ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-white"}`}
+      className={`rounded-3xl border-2 border-dashed p-5 transition ${over ? "border-emerald-500 bg-emerald-50" : "border-slate-300 bg-hc-surface"}`}
     >
       {/* Stacked or in a row, decided by the caller.
           My first attempt used sm:, which reads the viewport — and the
@@ -120,8 +120,8 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
             {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileUp className="h-6 w-6" />}
           </span>
           <div className={narrow ? "min-w-0" : "min-w-0 flex-1"}>
-            <p className="font-bold text-slate-900">{busy ? "Les skýrsluna…" : "Dragðu heilsufarsskýrslu hingað"}</p>
-            <p className="text-sm text-slate-600">
+            <p className="font-bold text-hc-ink">{busy ? "Les skýrsluna…" : "Dragðu heilsufarsskýrslu hingað"}</p>
+            <p className="text-sm text-hc-ink-2">
               PDF frá Medalia, blóðprufusvar eða myndir af þeim. Við finnum skjólstæðinginn — eða stofnum hann — og opnum vinnusvæðið hans.
             </p>
           </div>
@@ -139,11 +139,11 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
       {result && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-bold text-slate-900">
+            <p className="font-bold text-hc-ink">
               {result.identity.name || "Nafn fannst ekki í skýrslunni"}
-              {result.identity.kennitala_last4 && <span className="ml-2 font-normal text-slate-600">···{result.identity.kennitala_last4}</span>}
+              {result.identity.kennitala_last4 && <span className="ml-2 font-normal text-hc-ink-2">···{result.identity.kennitala_last4}</span>}
             </p>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+            <span className="rounded-full bg-hc-sunken-2 px-2.5 py-0.5 text-xs font-semibold text-hc-ink-2">
               {result.values.length} gildi{result.report?.date_iso ? ` · ${result.report.date_iso}` : ""}
             </span>
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${METHOD_BADGE[result.method ?? "local"].className}`}
@@ -151,7 +151,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
               {METHOD_BADGE[result.method ?? "local"].label}
             </span>
             <span className="flex-1" />
-            <button type="button" onClick={() => setResult(null)} className="text-sm font-semibold text-slate-600 hover:underline">Hætta við</button>
+            <button type="button" onClick={() => setResult(null)} className="text-sm font-semibold text-hc-ink-2 hover:underline">Hætta við</button>
           </div>
 
           {result.method === "needs-consent" && (
@@ -176,16 +176,16 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           {/* Who is this? */}
           {result.matches.length > 0 && !creating && (
             <div>
-              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Er þetta sami skjólstæðingur?</p>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-3">Er þetta sami skjólstæðingur?</p>
               <ul className="space-y-1.5">
                 {result.matches.map((m) => (
                   <li key={m.client_id} className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-2.5">
                     <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-slate-900">
+                      <span className="block font-semibold text-hc-ink">
                         {m.full_name}
                         {m.confident && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-800">kennitala stemmir</span>}
                       </span>
-                      <span className="block text-xs text-slate-600">
+                      <span className="block text-xs text-hc-ink-2">
                         {[m.email, m.kennitala_last4 ? `···${m.kennitala_last4}` : null, m.journey_id ? "á heilsuferð í gangi" : "engin heilsuferð"].filter(Boolean).join(" · ")}
                       </span>
                     </span>
@@ -196,7 +196,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
                   </li>
                 ))}
               </ul>
-              <button type="button" onClick={() => setCreating(true)} className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:underline">
+              <button type="button" onClick={() => setCreating(true)} className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-hc-ink-2 hover:underline">
                 <UserPlus className="h-4 w-4" /> Enginn þeirra — stofna nýjan
               </button>
             </div>
@@ -204,37 +204,37 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
 
           {creating && (
             <div>
-              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Nýr skjólstæðingur</p>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-3">Nýr skjólstæðingur</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 <label className="text-sm">
-                  <span className="text-slate-600">Nafn</span>
+                  <span className="text-hc-ink-2">Nafn</span>
                   <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })}
                     className="mt-0.5 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
                 </label>
                 <label className="text-sm">
-                  <span className="text-slate-600">Netfang</span>
+                  <span className="text-hc-ink-2">Netfang</span>
                   <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
                     placeholder="nafn@daemi.is" className="mt-0.5 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
                 </label>
                 <label className="text-sm">
-                  <span className="text-slate-600">Kennitala</span>
+                  <span className="text-hc-ink-2">Kennitala</span>
                   <input value={form.kennitala} onChange={(e) => setForm({ ...form, kennitala: e.target.value })}
                     inputMode="numeric" className="mt-0.5 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
                 </label>
                 <label className="text-sm">
-                  <span className="text-slate-600">Sími</span>
+                  <span className="text-hc-ink-2">Sími</span>
                   <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     inputMode="tel" className="mt-0.5 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm" />
                 </label>
               </div>
-              <p className="mt-1 text-xs text-slate-600">Skjólstæðingurinn fær boð í tölvupósti og kemst þá inn á aðganginn sinn.</p>
+              <p className="mt-1 text-xs text-hc-ink-2">Skjólstæðingurinn fær boð í tölvupósti og kemst þá inn á aðganginn sinn.</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button type="button" onClick={() => commit(null)} disabled={busy || !form.full_name.trim() || !form.email.trim()}
                   className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-hc-brand px-4 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Stofna og opna vinnusvæði
                 </button>
                 {result.matches.length > 0 && (
-                  <button type="button" onClick={() => setCreating(false)} className="text-sm font-semibold text-slate-600 hover:underline">Til baka í leitarniðurstöður</button>
+                  <button type="button" onClick={() => setCreating(false)} className="text-sm font-semibold text-hc-ink-2 hover:underline">Til baka í leitarniðurstöður</button>
                 )}
               </div>
             </div>
@@ -243,14 +243,14 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
           {/* The values we are about to keep */}
           {result.values.length > 0 && (
           <div>
-            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">Gildi úr skýrslunni</p>
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-3">Gildi úr skýrslunni</p>
             <ul className="grid gap-1 sm:grid-cols-2">
               {result.values.map((v, i) => (
                 <li key={`${v.code}-${i}`} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm ring-1 ring-hc-hairline">
                   <input type="checkbox" checked={!!take[i]} onChange={(e) => setTake({ ...take, [i]: e.target.checked })}
                     aria-label={`Vista ${v.label}`} className="h-4 w-4 accent-emerald-600" />
                   <span className="min-w-0 flex-1 truncate text-slate-700">{v.label}</span>
-                  <span className="shrink-0 font-semibold tabular-nums text-slate-900">
+                  <span className="shrink-0 font-semibold tabular-nums text-hc-ink">
                     {String(v.value).replace(".", ",")}{v.unit ? ` ${v.unit}` : ""}
                   </span>
                   {v.confidence !== "high" && <span className="shrink-0 text-[11px] text-amber-700">?</span>}

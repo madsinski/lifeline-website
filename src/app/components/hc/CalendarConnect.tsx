@@ -90,14 +90,14 @@ export function CalendarStatus({ api, onOpen }: { api: CalendarApi; onOpen: () =
   return (
     <div>
       {g?.connected ? (
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-hc-ink-2">
           <span className="font-semibold text-emerald-700">● Google tengt</span>{g.email ? ` · ${g.email}` : ""}
-          {g.lastError ? <span className="block text-red-600">{g.lastError}</span> : <span className="block text-slate-500">Samstillt {ago(g.lastSyncAt)}</span>}
+          {g.lastError ? <span className="block text-red-600">{g.lastError}</span> : <span className="block text-hc-ink-3">Samstillt {ago(g.lastSyncAt)}</span>}
         </p>
       ) : (
-        <p className="text-xs text-slate-600">Tímar birtast sjálfkrafa í dagatalinu þínu.</p>
+        <p className="text-xs text-hc-ink-2">Tímar birtast sjálfkrafa í dagatalinu þínu.</p>
       )}
-      <button onClick={onOpen} className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+      <button onClick={onOpen} className="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-hc-sunken">
         {g?.connected ? "Stillingar dagatals" : "Tengja dagatal"}
       </button>
     </div>
@@ -179,15 +179,15 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
     { key: "google", icon: <GoogleMark />, label: "Google", hint: "Samstillist strax" },
     { key: "apple", icon: <AppleMark />, label: "Apple / iPhone", hint: "Áskrift að dagatali" },
     { key: "outlook", icon: <Mail className="h-6 w-6 text-[#0a64c9]" />, label: "Outlook", hint: "Áskrift að dagatali" },
-    { key: "other", icon: <Calendar className="h-6 w-6 text-slate-600" />, label: "Annað", hint: "Persónulegur .ics-hlekkur" },
+    { key: "other", icon: <Calendar className="h-6 w-6 text-hc-ink-2" />, label: "Annað", hint: "Persónulegur .ics-hlekkur" },
   ];
 
   const linkRow = (
     <div className="mt-3 flex items-center gap-2">
-      <button onClick={() => void copy()} disabled={!ics} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+      <button onClick={() => void copy()} disabled={!ics} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-hc-surface px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken disabled:opacity-50">
         {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />} {copied ? "Afritað" : "Afrita hlekk"}
       </button>
-      <span className="text-[11px] text-slate-600">Hlekkurinn er persónulegur. Ekki deila honum.</span>
+      <span className="text-[11px] text-hc-ink-2">Hlekkurinn er persónulegur. Ekki deila honum.</span>
     </div>
   );
 
@@ -209,18 +209,18 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
 
   return createPortal(
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-900/60 sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="cal-title" onClick={close}>
-      <div className="max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[92vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-hc-surface p-5 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Dagatal</div>
-            <h2 id="cal-title" className="mt-0.5 text-xl font-bold text-slate-900">Tímarnir í dagatalið þitt</h2>
+            <h2 id="cal-title" className="mt-0.5 text-xl font-bold text-hc-ink">Tímarnir í dagatalið þitt</h2>
           </div>
-          <button onClick={close} aria-label="Loka" className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button>
+          <button onClick={close} aria-label="Loka" className="rounded-full p-1.5 text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-4 w-4" /></button>
         </div>
 
         {!choice && (
           <>
-            <p className="mt-2 text-sm text-slate-600">{intro}</p>
+            <p className="mt-2 text-sm text-hc-ink-2">{intro}</p>
             {g?.connected && (
               <div className="mt-3 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                 <b>Google er tengt</b>{g.email ? ` (${g.email})` : ""}. <button onClick={() => setChoice("google")} className="font-semibold underline">Stillingar</button>
@@ -230,9 +230,9 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
             <div className="mt-2 grid grid-cols-2 gap-2.5">
               {tiles.map((c) => (
                 <button key={c.key} type="button" onClick={() => setChoice(c.key)}
-                  className="flex flex-col items-start gap-2 rounded-2xl border border-hc-hairline bg-white p-3.5 text-left transition hover:border-emerald-400 hover:bg-emerald-50/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/30">
+                  className="flex flex-col items-start gap-2 rounded-2xl border border-hc-hairline bg-hc-surface p-3.5 text-left transition hover:border-emerald-400 hover:bg-emerald-50/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/30">
                   {c.icon}
-                  <span><span className="block text-sm font-bold text-slate-900">{c.label}</span><span className="block text-[11px] text-slate-600">{c.hint}</span></span>
+                  <span><span className="block text-sm font-bold text-hc-ink">{c.label}</span><span className="block text-[11px] text-hc-ink-2">{c.hint}</span></span>
                 </button>
               ))}
             </div>
@@ -241,7 +241,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
 
         {choice && (
           <div className="mt-3">
-            <button onClick={() => { setChoice(null); setMsg(""); }} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-700">
+            <button onClick={() => { setChoice(null); setMsg(""); }} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-hc-ink-2 hover:text-slate-700">
               <ArrowLeft className="h-3.5 w-3.5" /> Til baka
             </button>
 
@@ -273,7 +273,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                   </div>
                 ) : (
                   <>
-                    <p className="mt-1 text-sm text-slate-600">Við búum til sérstakt dagatal í Google-reikningnum þínum og setjum tímana þar inn. Breytingar birtast strax. Við sjáum ekkert annað í dagatalinu þínu.</p>
+                    <p className="mt-1 text-sm text-hc-ink-2">Við búum til sérstakt dagatal í Google-reikningnum þínum og setjum tímana þar inn. Breytingar birtast strax. Við sjáum ekkert annað í dagatalinu þínu.</p>
                     {googleReturn && googleReturn !== "connected" && (
                       <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">{GOOGLE_RETURN_TEXT[googleReturn] ?? "Tenging mistókst."}</p>
                     )}
@@ -293,13 +293,13 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
             {choice === "apple" && (
               <>
                 <h3 className="flex items-center gap-2 text-base font-bold"><AppleMark /> Apple-dagatal</h3>
-                <p className="mt-1 text-sm text-slate-600">Ýttu á hnappinn á iPhone eða Mac og veldu „Gerast áskrifandi“. Tímarnir uppfærast sjálfkrafa.</p>
-                {!ics ? <p className="mt-3 text-sm text-slate-600">Augnablik…</p> : (
+                <p className="mt-1 text-sm text-hc-ink-2">Ýttu á hnappinn á iPhone eða Mac og veldu „Gerast áskrifandi“. Tímarnir uppfærast sjálfkrafa.</p>
+                {!ics ? <p className="mt-3 text-sm text-hc-ink-2">Augnablik…</p> : (
                   <>
                     <a href={ics.webcal} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-hc-ink px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 sm:w-auto">Bæta við Apple-dagatal</a>
-                    <div className="mt-4 hidden items-center gap-4 rounded-2xl bg-slate-50 p-3 sm:flex">
+                    <div className="mt-4 hidden items-center gap-4 rounded-2xl bg-hc-sunken p-3 sm:flex">
                       <Qr value={ics.webcal} />
-                      <p className="text-xs text-slate-600">Á tölvu? Skannaðu kóðann með myndavélinni á iPhone.</p>
+                      <p className="text-xs text-hc-ink-2">Á tölvu? Skannaðu kóðann með myndavélinni á iPhone.</p>
                     </div>
                     {linkRow}
                   </>
@@ -310,8 +310,8 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
             {choice === "outlook" && (
               <>
                 <h3 className="flex items-center gap-2 text-base font-bold"><Mail className="h-6 w-6 text-[#0a64c9]" /> Outlook</h3>
-                <p className="mt-1 text-sm text-slate-600">Opnar Outlook á vefnum og bætir dagatalinu við. Það birtist líka í Outlook-appinu.</p>
-                {!ics ? <p className="mt-3 text-sm text-slate-600">Augnablik…</p> : (
+                <p className="mt-1 text-sm text-hc-ink-2">Opnar Outlook á vefnum og bætir dagatalinu við. Það birtist líka í Outlook-appinu.</p>
+                {!ics ? <p className="mt-3 text-sm text-hc-ink-2">Augnablik…</p> : (
                   <>
                     <a href={outlookUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0a64c9] px-4 py-3 text-sm font-semibold text-white hover:brightness-95 sm:w-auto">
                       <ExternalLink className="h-4 w-4" /> Bæta við Outlook
@@ -324,18 +324,18 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
 
             {choice === "other" && (
               <>
-                <h3 className="flex items-center gap-2 text-base font-bold"><Calendar className="h-6 w-6 text-slate-600" /> Annað dagatal</h3>
-                <p className="mt-1 text-sm text-slate-600">Bættu þessari slóð við sem áskrift í dagatalinu þínu — valkosturinn heitir „Gerast áskrifandi að dagatali“ og „Subscribe from URL“ í enskum viðmótum.</p>
-                {!ics ? <p className="mt-3 text-sm text-slate-600">Augnablik…</p> : (
+                <h3 className="flex items-center gap-2 text-base font-bold"><Calendar className="h-6 w-6 text-hc-ink-2" /> Annað dagatal</h3>
+                <p className="mt-1 text-sm text-hc-ink-2">Bættu þessari slóð við sem áskrift í dagatalinu þínu — valkosturinn heitir „Gerast áskrifandi að dagatali“ og „Subscribe from URL“ í enskum viðmótum.</p>
+                {!ics ? <p className="mt-3 text-sm text-hc-ink-2">Augnablik…</p> : (
                   <>
-                    <code className="mt-3 block break-all rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate-700">{ics.https}</code>
+                    <code className="mt-3 block break-all rounded-xl bg-hc-sunken px-3 py-2 text-[11px] text-slate-700">{ics.https}</code>
                     {linkRow}
                   </>
                 )}
               </>
             )}
 
-            {msg && <p className="mt-3 text-sm text-slate-600" role="status">{msg}</p>}
+            {msg && <p className="mt-3 text-sm text-hc-ink-2" role="status">{msg}</p>}
             <div className="mt-5 flex justify-end">
               <button onClick={close} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
                 Lokið <Check className="h-4 w-4" />

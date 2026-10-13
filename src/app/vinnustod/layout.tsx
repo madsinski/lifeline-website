@@ -6,5 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function VinnustodLayout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-screen bg-[#F4F7F6] text-slate-900">{children}</div>;
+  return <div className="min-h-screen bg-[#F4F7F6] text-hc-ink">{children}</div>;
 }

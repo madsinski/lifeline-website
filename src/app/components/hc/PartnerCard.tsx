@@ -123,7 +123,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
         <div className="min-w-0 flex-1">
           {/* The step above already says "Ábyrgðarfélagi"; saying it twice
               is how the nesting looked like a mistake. */}
-          {!bare && <p className={`${hcKicker} text-slate-600`}>Félagi</p>}
+          {!bare && <p className={`${hcKicker} text-hc-ink-2`}>Félagi</p>}
 
           {d.partner ? (
             <>
@@ -149,21 +149,21 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
               window — but not while choosing, when it is fourteen zeroes
               about a relationship that has not started. */}
           {!pick && (
-            <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
-              <span className="text-xs font-semibold text-slate-600">Þú</span>
+            <div className="mt-3 flex items-center gap-2 border-t border-hc-hairline pt-3">
+              <span className="text-xs font-semibold text-hc-ink-2">Þú</span>
               <Fortnight days={d.me.days} of={d.me.of} tone="me" />
               <span className="text-sm text-hc-ink-2">{d.me.days} af {d.me.of} dögum</span>
             </div>
           )}
 
           {!pick && d.watchedBy.length > 0 && (
-            <p className="mt-2 text-xs text-slate-600">
+            <p className="mt-2 text-xs text-hc-ink-2">
               {d.watchedBy.join(", ")} {d.watchedBy.length === 1 ? "fylgist" : "fylgjast"} með þér.
             </p>
           )}
 
           {/* Simpler, and the same promise: one number, nothing else. */}
-          <p className="mt-2 text-xs text-slate-600">
+          <p className="mt-2 text-xs text-hc-ink-2">
             Hann sér ekki skýrsluna þína, mælingar eða hvað þú valdir að gera.
           </p>
 
@@ -185,9 +185,9 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
           {/* Inviting by email, which is the only way the list ever fills.
               No search over members and no directory: that would disclose
               who is a Lifeline customer, which is not ours to tell. */}
-          <div className="mt-3 border-t border-slate-100 pt-3">
+          <div className="mt-3 border-t border-hc-hairline pt-3">
             {sent ? (
-              <p className="text-sm text-slate-600" role="status">
+              <p className="text-sm text-hc-ink-2" role="status">
                 Boðið er sent. Þú sérð hann í listanum þegar hann hefur samþykkt.{" "}
                 <button type="button" onClick={() => setSent(false)} className="font-semibold text-hc-brand-dark hover:underline">
                   Bjóða öðrum
@@ -195,7 +195,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
               </p>
             ) : (
               <>
-                <label className="block text-xs font-semibold text-slate-600" htmlFor="partner-email">
+                <label className="block text-xs font-semibold text-hc-ink-2" htmlFor="partner-email">
                   {none ? "Bjóddu einhverjum sem þú þekkir" : "Eða bjóddu einhverjum nýjum"}
                 </label>
                 <div className="mt-1.5 flex flex-wrap gap-2">
@@ -223,7 +223,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
             <div className="mt-3 space-y-1.5">
               {d.candidates.map((c) => (
                 <button key={c.id} type="button" disabled={busy} onClick={() => void choose(c.id)}
-                  className="flex w-full items-center justify-between rounded-hc-element border border-hc-hairline px-3 py-2.5 text-left text-sm font-semibold text-hc-ink transition hover:bg-slate-50 disabled:opacity-50">
+                  className="flex w-full items-center justify-between rounded-hc-element border border-hc-hairline px-3 py-2.5 text-left text-sm font-semibold text-hc-ink transition hover:bg-hc-sunken disabled:opacity-50">
                   {c.name}
                   {d.partner?.id === c.id && <span className="text-xs font-normal text-hc-brand-dark">núverandi</span>}
                 </button>

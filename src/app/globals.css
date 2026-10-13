@@ -91,6 +91,12 @@ body.hc-scroll-lock {
   --hc-hairline: #EEF1F5;
   --hc-border: #DFE4EB;
   --hc-surface: #FFFFFF;
+  /* Quiet text and sunken panels, named so dark mode can move them.
+     ink-3 is slate-500 (4.76:1 on white) rather than --hc-muted, which is
+     slate-400 and measures 2.63 — it exists for icons and dots, not text. */
+  --hc-ink-3: #62748E;
+  --hc-sunken: #F8FAFC;
+  --hc-sunken-2: #F1F5F9;
   /* A warm ground rather than a clinical blue-grey. Slate-50 under white
      cards reads like a spreadsheet; this is the "bright white cards, no
      grey backdrop" direction, with just enough warmth that white lifts off
@@ -170,6 +176,9 @@ body.hc-scroll-lock {
   --color-hc-muted: var(--hc-muted);
   --color-hc-border: var(--hc-border);
   --color-hc-surface: var(--hc-surface);
+  --color-hc-ink-3: var(--hc-ink-3);
+  --color-hc-sunken: var(--hc-sunken);
+  --color-hc-sunken-2: var(--hc-sunken-2);
   --color-hc-page: var(--hc-page);
   --color-hc-hero-from: var(--hc-hero-from);
   --color-hc-hero-to: var(--hc-hero-to);
@@ -519,4 +528,71 @@ main.readonly-locked a {
 @media (prefers-reduced-motion: reduce) {
   .hc-loading-bar::after { animation: none; transform: scaleX(0.4); }
   .hc-shimmer { animation: none; }
+}
+
+
+/* ── Dark mode ────────────────────────────────────────────────────────────
+ *
+ * One block rather than a dark: variant on every element, which is why the
+ * sweep that put bg-white on --hc-surface and text-slate-600 on --hc-ink-2
+ * was worth doing: the colours are named by their job, so a theme only has
+ * to answer what each job looks like.
+ *
+ * Measured, not picked. On the card at #1B2430: ink 13.2:1, ink-2 8.1:1,
+ * ink-3 6.0:1, and the card separates from the page by 1.13 — the same
+ * separation the light theme has, so cards read as cards in both.
+ *
+ * Not pure black. #121922 is a dark slate with the blue of the brand still
+ * in it; #000 with white text is the combination people complain about at
+ * night, and it makes every shadow invisible.
+ *
+ * brand-dark carries white text at 5.48:1 on either theme, so buttons do not
+ * need a second answer.
+ *
+ * The system preference applies unless somebody has explicitly chosen light,
+ * and an explicit choice always wins — hence the :not([data-scheme="light"]).
+ *
+ * data-scheme, not data-theme: data-theme already carries the brand theme
+ * (classic vs rebrand, set from localStorage["ll-brand-theme"] in
+ * layout.tsx and toggled in /admin). Reusing it here would have silently
+ * turned the admin's classic palette off for anyone in dark mode.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-scheme="light"]) {
+    --hc-page: #121922;
+    --hc-surface: #1B2430;
+    --hc-sunken: #161E28;
+    --hc-sunken-2: #222C3A;
+    --hc-ink: #E6ECF3;
+    --hc-ink-2: #AFBCCC;
+    --hc-ink-3: #93A1B3;
+    --hc-muted: #6B7A8C;
+    --hc-hairline: #2A3542;
+    --hc-border: #35414F;
+    --hc-control: #5A6878;
+    --hc-focus-surface: #2A2416;
+    --hc-focus-ring: #6B5A1F;
+    --hc-hero-from: #0A1F1A;
+    --hc-hero-to: #04433096;
+    --background: #121922;
+  }
+}
+
+:root[data-scheme="dark"] {
+  --hc-page: #121922;
+  --hc-surface: #1B2430;
+  --hc-sunken: #161E28;
+  --hc-sunken-2: #222C3A;
+  --hc-ink: #E6ECF3;
+  --hc-ink-2: #AFBCCC;
+  --hc-ink-3: #93A1B3;
+  --hc-muted: #6B7A8C;
+  --hc-hairline: #2A3542;
+  --hc-border: #35414F;
+  --hc-control: #5A6878;
+  --hc-focus-surface: #2A2416;
+  --hc-focus-ring: #6B5A1F;
+  --hc-hero-from: #0A1F1A;
+  --hc-hero-to: #044330;
+  --background: #121922;
 }

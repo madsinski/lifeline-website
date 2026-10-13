@@ -300,7 +300,7 @@ export default function CoachAsClient({ api, journeyId, only }: {
   }
   if (!d) {
     return (
-      <p className="flex items-center gap-2 p-4 text-sm text-slate-600">
+      <p className="flex items-center gap-2 p-4 text-sm text-hc-ink-2">
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Hleð áætluninni…
       </p>
     );
@@ -318,7 +318,7 @@ export default function CoachAsClient({ api, journeyId, only }: {
       ) : (
         <>
           {/* Said once, plainly: what happens here lands on their screen. */}
-          <p className={`px-1 text-xs text-slate-600 ${only ? "hidden" : ""}`}>
+          <p className={`px-1 text-xs text-hc-ink-2 ${only ? "hidden" : ""}`}>
             Þetta er áætlunin eins og skjólstæðingurinn sér hana. Breytingar sem þú gerir hér
             birtast hjá þeim og eru skráðar á þig.
           </p>
@@ -372,7 +372,7 @@ export default function CoachAsClient({ api, journeyId, only }: {
           )}
 
           {saving && (
-            <p className="flex items-center gap-2 px-1 text-xs text-slate-600">
+            <p className="flex items-center gap-2 px-1 text-xs text-hc-ink-2">
               <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> Vistar…
             </p>
           )}

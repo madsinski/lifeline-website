@@ -62,11 +62,11 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
     <>
       <Sheet title={mode === "replace" ? "Skipta um æfingu" : "Æfingasafn"} onClose={onClose} max="max-w-5xl"
         header={
-        <div className="border-b border-slate-100 p-4 sm:p-5">
+        <div className="border-b border-hc-hairline p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold text-hc-ink">{mode === "replace" ? "Skipta um æfingu" : "Æfingasafn"}</h2>
-              <p className="text-xs text-slate-600">Sama safn og í /admin/content. Mest fyrir minnst: stórar hreyfingar sem nota marga vöðvahópa.</p>
+              <p className="text-xs text-hc-ink-2">Sama safn og í /admin/content. Mest fyrir minnst: stórar hreyfingar sem nota marga vöðvahópa.</p>
             </div>
             <button type="button" onClick={onClose} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white">
               {mode === "add" && added.length ? `Klárt (${added.length})` : "Loka"}
@@ -79,14 +79,14 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
               {EQUIP.map((k) => <option key={k} value={k}>{k ? EQUIPMENT_IS[k] : "Allur búnaður"}</option>)}
             </select>
             <button type="button" aria-pressed={best} onClick={() => setBest(!best)}
-              className={`rounded-xl border px-3 py-2 text-sm font-semibold ${best ? "border-orange-300 bg-orange-50 text-orange-800" : "border-hc-hairline text-slate-600"}`}>
+              className={`rounded-xl border px-3 py-2 text-sm font-semibold ${best ? "border-orange-300 bg-orange-50 text-orange-800" : "border-hc-hairline text-hc-ink-2"}`}>
               ★ Mest fyrir minnst
             </button>
           </div>
           <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
             {CATS.map((k) => (
               <button key={k} type="button" aria-pressed={cat === k} onClick={() => setCat(k)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${cat === k ? "bg-orange-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${cat === k ? "bg-orange-600 text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                 {k ? CATEGORY_IS[k] : "Allt"}
               </button>
             ))}
@@ -94,15 +94,15 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
         </div>
         }>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain bg-slate-50 p-4 sm:p-5">
-          {rows === null && <p className="text-sm text-slate-600">Hleð…</p>}
-          {rows?.length === 0 && <p className="text-sm text-slate-600">Ekkert fannst. Prófaðu enskt heiti eða slökktu á „Mest fyrir minnst“.</p>}
+        <div className="flex-1 overflow-y-auto overscroll-contain bg-hc-sunken p-4 sm:p-5">
+          {rows === null && <p className="text-sm text-hc-ink-2">Hleð…</p>}
+          {rows?.length === 0 && <p className="text-sm text-hc-ink-2">Ekkert fannst. Prófaðu enskt heiti eða slökktu á „Mest fyrir minnst“.</p>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {rows?.map((ex) => {
               const isAdded = added.includes(ex.id);
               return (
-                <div key={ex.id} className={`flex flex-col overflow-hidden rounded-2xl border bg-white ${isAdded ? "border-emerald-400" : "border-hc-hairline"}`}>
-                  <button type="button" onClick={() => setOpen(ex)} className="relative aspect-[4/3] bg-slate-100" aria-label={`Nánar um ${ex.name_is || ex.name}`}>
+                <div key={ex.id} className={`flex flex-col overflow-hidden rounded-2xl border bg-hc-surface ${isAdded ? "border-emerald-400" : "border-hc-hairline"}`}>
+                  <button type="button" onClick={() => setOpen(ex)} className="relative aspect-[4/3] bg-hc-sunken-2" aria-label={`Nánar um ${ex.name_is || ex.name}`}>
                     {ex.illustration_url
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={ex.illustration_url} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -113,11 +113,11 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
                     </span>
                   </button>
                   <div className="flex flex-1 flex-col p-2.5">
-                    <p className="text-sm font-semibold leading-tight text-slate-900">{ex.name_is || ex.name}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-600">
+                    <p className="text-sm font-semibold leading-tight text-hc-ink">{ex.name_is || ex.name}</p>
+                    <p className="mt-0.5 text-[11px] text-hc-ink-2">
                       {[ex.category && CATEGORY_IS[ex.category], ex.equipment && EQUIPMENT_IS[ex.equipment]].filter(Boolean).join(" · ")}
                     </p>
-                    <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-500">{(ex.primary_muscles ?? []).map(muscleIs).join(", ")}</p>
+                    <p className="mt-0.5 line-clamp-1 text-[11px] text-hc-ink-3">{(ex.primary_muscles ?? []).map(muscleIs).join(", ")}</p>
                     <span className="flex-1" />
                     <button type="button" onClick={() => pick(ex)}
                       className={`mt-2 rounded-lg px-2 py-1.5 text-xs font-semibold ${isAdded ? "bg-emerald-50 text-emerald-700" : "bg-orange-600 text-white hover:bg-orange-700"}`}>
@@ -137,16 +137,16 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
           from. */}
       {open && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 p-4" onClick={(e) => { e.stopPropagation(); setOpen(null); }}>
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-hc-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <h3 className="text-lg font-bold text-hc-ink">{open.name_is || open.name}</h3>
-              <button type="button" onClick={() => setOpen(null)} className="text-slate-500 hover:text-slate-700" aria-label="Loka">✕</button>
+              <button type="button" onClick={() => setOpen(null)} className="text-hc-ink-3 hover:text-slate-700" aria-label="Loka">✕</button>
             </div>
             {open.video_url
               ? <video src={open.video_url} poster={open.illustration_url ?? undefined} controls playsInline className="mt-3 w-full rounded-2xl bg-black" />
               // eslint-disable-next-line @next/next/no-img-element
               : open.illustration_url ? <img src={open.illustration_url} alt="" className="mt-3 w-full rounded-2xl" /> : null}
-            <p className="mt-3 text-xs text-slate-600">{(open.primary_muscles ?? []).concat(open.secondary_muscles ?? []).map(muscleIs).join(" · ")}</p>
+            <p className="mt-3 text-xs text-hc-ink-2">{(open.primary_muscles ?? []).concat(open.secondary_muscles ?? []).map(muscleIs).join(" · ")}</p>
             {!!(open.instructions_is?.length ? open.instructions_is : open.instructions)?.length && (
               <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-slate-700">
                 {(open.instructions_is?.length ? open.instructions_is : open.instructions ?? []).map((s, i) => <li key={i}>{s}</li>)}

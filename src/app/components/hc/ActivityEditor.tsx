@@ -63,25 +63,25 @@ export default function ActivityEditor({ activities, onChange }: {
           {grouped.map((rows) => {
             const a = rows[0];
             return (
-              <li key={a.name} className="flex items-start gap-3 rounded-2xl bg-white p-3 ring-1 ring-hc-hairline">
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <li key={a.name} className="flex items-start gap-3 rounded-2xl bg-hc-surface p-3 ring-1 ring-hc-hairline">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-hc-sunken-2 text-hc-ink-2">
                   <ActivityIcon name={a.name} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-hc-ink">{a.name}</span>
                   <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
                     {rows.sort((x, y) => x.day - y.day).map((r) => (
-                      <span key={r.id} className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">
+                      <span key={r.id} className="rounded-md bg-hc-sunken-2 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">
                         {WEEKDAYS_SHORT[r.day]}{r.at ? ` ${r.at}` : ""}
                       </span>
                     ))}
-                    <span className="text-[11px] text-slate-600">{INTENSITY_IS[a.intensity]}</span>
+                    <span className="text-[11px] text-hc-ink-2">{INTENSITY_IS[a.intensity]}</span>
                   </span>
                   <CoverChips covers={a.covers} partial={a.partial} benefits={a.benefits} className="mt-1" />
                 </span>
                 <button type="button" aria-label={`Fjarlægja ${a.name}`}
                   onClick={() => onChange(activities.filter((x) => x.name !== a.name))}
-                  className="rounded-lg p-1 text-slate-500 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  className="rounded-lg p-1 text-hc-ink-3 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
               </li>
             );
           })}
@@ -93,11 +93,11 @@ export default function ActivityEditor({ activities, onChange }: {
           <Plus className="h-4 w-4" aria-hidden /> Bæta við því sem þú gerir
         </button>
       ) : (
-        <div className="space-y-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-hc-hairline">
+        <div className="space-y-3 rounded-2xl bg-hc-sunken p-4 ring-1 ring-hc-hairline">
           {/* 1 ─ which sport */}
           <div className="flex items-start justify-between gap-2">
-            <p className="font-semibold text-slate-900">{picked ?? "Hvað gerirðu?"}</p>
-            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-lg p-1 text-slate-500 hover:bg-slate-200"><X className="h-4 w-4" /></button>
+            <p className="font-semibold text-hc-ink">{picked ?? "Hvað gerirðu?"}</p>
+            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-lg p-1 text-hc-ink-3 hover:bg-slate-200"><X className="h-4 w-4" /></button>
           </div>
 
           {!picked && (
@@ -105,14 +105,14 @@ export default function ActivityEditor({ activities, onChange }: {
               <div className="flex flex-wrap gap-1.5">
                 {ACTIVITY_GROUPS.map((g) => (
                   <button key={g} type="button" onClick={() => setGroup(g)} aria-pressed={group === g}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-brand-dark text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline"}`}>{g}</button>
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-slate-700 ring-1 ring-hc-hairline"}`}>{g}</button>
                 ))}
               </div>
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {ACTIVITY_PRESETS.filter((x) => x.group === group).map((x) => (
                   <button key={x.name} type="button" onClick={() => setPicked(x.name)}
-                    className="flex gap-2.5 rounded-xl bg-white p-2.5 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-hc-brand">
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                    className="flex gap-2.5 rounded-xl bg-hc-surface p-2.5 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-hc-brand">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-hc-sunken-2 text-hc-ink-2">
                       <ActivityIcon name={x.name} className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -133,7 +133,7 @@ export default function ActivityEditor({ activities, onChange }: {
           {/* 2 ─ which days, as many as you like */}
           {name && (
             <>
-              {preset?.why && <p className="rounded-xl bg-white p-2.5 text-xs leading-snug text-slate-600 ring-1 ring-hc-hairline">{preset.why}</p>}
+              {preset?.why && <p className="rounded-xl bg-hc-surface p-2.5 text-xs leading-snug text-hc-ink-2 ring-1 ring-hc-hairline">{preset.why}</p>}
               <div>
                 <p className="mb-1.5 text-sm font-medium text-slate-700">Hvaða daga?</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -143,18 +143,18 @@ export default function ActivityEditor({ activities, onChange }: {
                       <button key={w} type="button" aria-pressed={on}
                         onClick={() => setDays(on ? days.filter((d) => d !== i) : [...days, i].sort((a2, b2) => a2 - b2))}
                         className={`inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold transition ${
-                          on ? "bg-hc-brand-dark text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:ring-slate-300"}`}>
+                          on ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-slate-700 ring-1 ring-hc-hairline hover:ring-slate-300"}`}>
                         {on && <Check className="h-3.5 w-3.5" aria-hidden />}{WEEKDAYS_SHORT[i]}
                       </button>
                     );
                   })}
                 </div>
               </div>
-              <label className="flex w-fit items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-hc-hairline">
-                <Clock className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
+              <label className="flex w-fit items-center gap-2 rounded-xl bg-hc-surface px-3 py-2 ring-1 ring-hc-hairline">
+                <Clock className="h-4 w-4 shrink-0 text-hc-ink-2" aria-hidden />
                 <input type="time" value={at} onChange={(e) => setAt(e.target.value)} aria-label="Klukkan"
                   className="bg-transparent text-sm outline-none" />
-                <span className="text-xs text-slate-600">valfrjálst</span>
+                <span className="text-xs text-hc-ink-2">valfrjálst</span>
               </label>
               <div className="flex gap-2">
                 <button type="button" onClick={add} disabled={days.length === 0} className={hcBtn.primary}>

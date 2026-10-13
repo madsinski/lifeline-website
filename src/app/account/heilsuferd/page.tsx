@@ -140,7 +140,7 @@ function Heilsuferd() {
   if (!data) {
     return (
       <Shell>
-        <div className="rounded-3xl bg-white p-10 text-center text-slate-500 shadow-sm">{error || "Hleð heilsuferðinni…"}</div>
+        <div className="rounded-3xl bg-hc-surface p-10 text-center text-hc-ink-3 shadow-sm">{error || "Hleð heilsuferðinni…"}</div>
       </Shell>
     );
   }
@@ -226,9 +226,9 @@ function Heilsuferd() {
             </>
           ) : current && !ours ? (
             <button type="button" onClick={() => { setOpen(current.key); setTimeout(() => document.getElementById(`step-${current.key}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
-              className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Halda áfram: {current.title} →</button>
+              className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Halda áfram: {current.title} →</button>
           ) : null}
-          {data.profile.company_name && <span className="rounded-full bg-white/10 px-3 py-1 text-xs">Í boði {data.profile.company_name}</span>}
+          {data.profile.company_name && <span className="rounded-full bg-hc-surface/10 px-3 py-1 text-xs">Í boði {data.profile.company_name}</span>}
         </div>
       </section>
 
@@ -266,7 +266,7 @@ function Heilsuferd() {
                   className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
                     on ? "bg-hc-ink text-white"
                       : st.state === "done" ? "bg-hc-brand/10 text-hc-brand-dark ring-1 ring-hc-brand/30"
-                      : "bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50"}`}>
+                      : "bg-hc-surface text-hc-ink-3 ring-1 ring-slate-200 hover:bg-hc-sunken"}`}>
                   {st.state === "done" && !on && <CheckIcon />}
                   {STEP_SHORT[st.key]}
                 </button>
@@ -282,7 +282,7 @@ function Heilsuferd() {
             return (
               <section className={`${hcCard.base} p-5 sm:p-6`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <p className={`${hcKicker} text-slate-500`}>
+                  <p className={`${hcKicker} text-hc-ink-3`}>
                     {phase?.title}{" · "}Skref {idx + 1} af {data.steps.length}
                   </p>
                   {shownStep.state === "done" && (
@@ -291,7 +291,7 @@ function Heilsuferd() {
                     </span>
                   )}
                   {shownStep.optional && shownStep.state !== "done" && (
-                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">Valfrjálst</span>
+                    <span className="rounded-full bg-hc-sunken-2 px-2.5 py-0.5 text-xs font-semibold text-hc-ink-2">Valfrjálst</span>
                   )}
                 </div>
                 <h2 className="mt-1 text-xl font-bold text-hc-ink sm:text-2xl">{shownStep.title}</h2>
@@ -303,10 +303,10 @@ function Heilsuferd() {
 
                 {/* Back and next by name rather than by arrow: knowing what
                     comes next is most of the value of a next button here. */}
-                <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                <div className="mt-5 flex items-center justify-between gap-3 border-t border-hc-hairline pt-4">
                   {prev ? (
                     <button type="button" onClick={() => setOpen(prev.key)}
-                      className="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-slate-500 hover:text-slate-800">
+                      className="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-hc-ink-3 hover:text-slate-800">
                       ← <span className="truncate">{STEP_SHORT[prev.key]}</span>
                     </button>
                   ) : <span />}
@@ -325,17 +325,17 @@ function Heilsuferd() {
         {/* Side */}
         <aside className="space-y-4">
           {healthOrder?.activation_code && (
-            <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-emerald-100 bg-hc-surface p-5 shadow-sm">
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Virkjunarkóði</p>
               <CodeBox code={healthOrder.activation_code} />
-              <p className="mt-2 text-xs text-slate-500">{healthOrder.activation_redeemed_at ? "Virkjaður í sjúklingagátt." : "Sláðu kóðann inn í sjúklingagáttina."}</p>
+              <p className="mt-2 text-xs text-hc-ink-3">{healthOrder.activation_redeemed_at ? "Virkjaður í sjúklingagátt." : "Sláðu kóðann inn í sjúklingagáttina."}</p>
             </div>
           )}
           {/* Fræðsla had its own card here. It has its own page in the
               navbar, and this page is for keeping track of the health
               check — which lectures are not a step of. */}
           <HistoryCard history={data.history ?? []} />
-          <Link href="/account/heilsuferd/adgangur" className="block rounded-2xl border border-slate-100 bg-white p-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">Aðgangur og greiðslur →</Link>
+          <Link href="/account/heilsuferd/adgangur" className="block rounded-2xl border border-hc-hairline bg-hc-surface p-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-hc-sunken">Aðgangur og greiðslur →</Link>
           <ClaimsCard claims={data.claims} reload={async () => { await load(true); }} />
           <SettingsCard />
           {/* break-words, because this is where the side scroll came from.
@@ -344,7 +344,7 @@ function Heilsuferd() {
               overflow-x:auto turned that into a scrollable page. Measured at
               every width from 320 to 430; the document reported no overflow
               because body absorbed it, which is why it took a hunt. */}
-          <p className="px-1 text-xs break-words text-slate-500">
+          <p className="px-1 text-xs break-words text-hc-ink-3">
             Spurningar? Skrifaðu á <a className="underline" href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.
           </p>
         </aside>
@@ -423,8 +423,8 @@ function StartJourney() {
           um svefn, hreyfingu, næringu og andlega líðan.
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
-          <Link href="/account/heilsuferd?start=1" className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Hefja heilsuferð →</Link>
-          <Link href="/account/heilsuferd/adgangur" className="inline-flex min-h-11 items-center rounded-hc-element bg-white/15 px-4 font-semibold text-white ring-1 ring-white/30 hover:bg-white/25">Stillingar</Link>
+          <Link href="/account/heilsuferd?start=1" className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Hefja heilsuferð →</Link>
+          <Link href="/account/heilsuferd/adgangur" className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface/15 px-4 font-semibold text-white ring-1 ring-white/30 hover:bg-hc-surface/25">Stillingar</Link>
         </div>
       </section>
     </Shell>
@@ -438,13 +438,13 @@ function FirstStep({ stadur }: { stadur: string }) {
       <div className="w-full max-w-md text-center">
         <LifelineLogo size="lg" />
         <h1 className="mt-6 text-2xl font-bold text-[#0F172A]">Taktu fyrsta skrefið</h1>
-        <p className="mt-2 text-slate-600">Stofnaðu frían aðgang og sjáðu valmöguleikana þína þaðan.</p>
+        <p className="mt-2 text-hc-ink-2">Stofnaðu frían aðgang og sjáðu valmöguleikana þína þaðan.</p>
         <div className="mt-6 space-y-3">
           <Link href={`/account/login?mode=signup&next=${encodeURIComponent(next)}`}
             className="block rounded-full bg-[#10B981] px-6 py-3 font-semibold text-white shadow-lg shadow-green-500/25 hover:bg-[#047857]">
             Stofna frían aðgang
           </Link>
-          <Link href={`/account/login?next=${encodeURIComponent(next)}`} className="block text-sm font-medium text-slate-600 hover:text-slate-900">
+          <Link href={`/account/login?next=${encodeURIComponent(next)}`} className="block text-sm font-medium text-hc-ink-2 hover:text-hc-ink">
             Ég á nú þegar aðgang
           </Link>
         </div>
@@ -479,7 +479,7 @@ function InterviewBooking({ j, portal }: { j: HcJourney; portal: string }) {
   if (!bloodDone || !measured) {
     const missing = [!measured ? "mælingarnar" : null, !bloodDone ? "blóðprufan" : null].filter(Boolean);
     return (
-      <p className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600">
+      <p className="rounded-xl bg-hc-sunken px-3 py-2 text-hc-ink-2">
         Viðtalið bókast þegar {missing.join(" og ")} {missing.length > 1 ? "eru" : "er"} búin.
         Eftir það líða {INTERVIEW_WAIT_DAYS} dagar á meðan niðurstöðurnar koma.
       </p>
@@ -487,7 +487,7 @@ function InterviewBooking({ j, portal }: { j: HcJourney; portal: string }) {
   }
   if (!ready && from) {
     return (
-      <p className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600">
+      <p className="rounded-xl bg-hc-sunken px-3 py-2 text-hc-ink-2">
         Niðurstöðurnar eru á leiðinni. Þú getur bókað viðtalið frá <strong>{fmtDate(from.toISOString())}</strong>.
       </p>
     );
@@ -503,8 +503,8 @@ function InterviewBooking({ j, portal }: { j: HcJourney; portal: string }) {
 /** One of the three things inside the tests step, ticked when it is done. */
 function TestTask({ n, title, done, children }: { n: number; title: string; done: boolean; children: React.ReactNode }) {
   return (
-    <div className={`rounded-xl border p-3 ${done ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200 bg-white"}`}>
-      <p className="flex items-center gap-2 font-semibold text-slate-900">
+    <div className={`rounded-xl border p-3 ${done ? "border-emerald-200 bg-emerald-50/50" : "border-slate-200 bg-hc-surface"}`}>
+      <p className="flex items-center gap-2 font-semibold text-hc-ink">
         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
           done ? "bg-emerald-500 text-white" : "bg-slate-900 text-white"}`}>
           {done ? "✓" : n}
@@ -543,8 +543,8 @@ function SubscriptionStep({ api, reload }: {
   if (state.subscription) {
     const until = state.subscription.current_period_end;
     return (
-      <div className="space-y-2 text-sm text-slate-600">
-        <p className="font-semibold text-slate-900">Áskriftin er aktív.</p>
+      <div className="space-y-2 text-sm text-hc-ink-2">
+        <p className="font-semibold text-hc-ink">Áskriftin er aktív.</p>
         {until && (
           <p>
             Næsta greiðsla {new Date(until).toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" })}.
@@ -564,7 +564,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
   const portal = loc?.patient_portal_url || "https://app.medalia.is";
   switch (step.key) {
     case "account":
-      return <p className="text-sm text-slate-600">Aðgangurinn þinn er á <strong>{data.profile.email}</strong>. Hér heldur þú utan um alla heilsuferðina.</p>;
+      return <p className="text-sm text-hc-ink-2">Aðgangurinn þinn er á <strong>{data.profile.email}</strong>. Hér heldur þú utan um alla heilsuferðina.</p>;
     case "profile":
       /*
        * The details, then the rest of the setup.
@@ -604,7 +604,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           {j.paid_at
             ? <PaidSummary order={healthOrder} />
             : <Checkout packages={data.packages.filter((p) => p.kind === "health_check")} profileComplete={data.profile.complete} reload={reload} />}
-          <p className="rounded-hc-element bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+          <p className="rounded-hc-element bg-hc-sunken px-3 py-2.5 text-xs text-hc-ink-2">
             Heilsufarsskoðunin er staðgreidd, eitt gjald. Appið — æfingar, næring og dagleg
             eftirfylgd — er sjálfstæð mánaðarleg áskrift og er ekki innifalin í þessu verði.{" "}
             <Link href="/account/heilsuferd/adgangur" className="font-semibold underline">Sjá áskriftina</Link>.
@@ -629,7 +629,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <a href={portal} target="_blank" rel="noreferrer"
-                    className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-white px-4 font-semibold text-slate-800 hover:bg-slate-50">
+                    className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-hc-surface px-4 font-semibold text-slate-800 hover:bg-hc-sunken">
                     Opna sjúklingagátt
                   </a>
                   {!j.protocol_activated_at && <CompleteButton label="Ég hef virkjað" action="confirm_activated" onDone={advance} />}
@@ -652,7 +652,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
                   done={!!(j.blood_test_done_at ?? j.blood_results_at)} portal={portal} reload={reload} />
               </TestTask>
 
-              <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              <p className="rounded-xl bg-hc-sunken px-3 py-2 text-xs text-hc-ink-2">
                 Viðtalið er bókað þegar bæði mælingar og blóðprufa eru búnar — og í fyrsta lagi
                 tveimur dögum síðar, svo niðurstöðurnar séu komnar þegar þið setjist niður.
               </p>
@@ -671,7 +671,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
        * it was generated here — is told so and asked for nothing.
        */
       return (
-        <div className="space-y-3 text-sm text-slate-600">
+        <div className="space-y-3 text-sm text-hc-ink-2">
           {j.own_report_at || j.report_imported_at || j.report_generated_at ? (
             <p>
               {j.own_report_at
@@ -687,7 +687,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
               {/* The location's own portal where it has one, which is what
                   the rest of this page already uses. */}
               <a href={portal} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-white px-4 font-semibold text-slate-800 hover:bg-slate-50">
+                className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-hc-surface px-4 font-semibold text-slate-800 hover:bg-hc-sunken">
                 Opna sjúklingagátt
               </a>
             </>
@@ -699,7 +699,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
       );
     case "report":
       return (
-        <div className="space-y-3 text-sm text-slate-600">
+        <div className="space-y-3 text-sm text-hc-ink-2">
           <p>
             {j.report_generated_at
               ? "Skýrslan þín hefur verið staðfest af lækni. Hún er aðgengileg í sjúklingagáttinni og þú ferð yfir hana með hjúkrunarfræðingi í viðtalinu."
@@ -710,7 +710,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           {(j.report_generated_at || j.own_report_at)
             ? (
               <div className="flex flex-wrap gap-2">
-                <Link href="/account/heilsuferd/aaetlun?tab=report" className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-white px-4 font-semibold text-slate-800 hover:bg-slate-50">Skoða niðurstöðurnar</Link>
+                <Link href="/account/heilsuferd/aaetlun?tab=report" className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-hc-surface px-4 font-semibold text-slate-800 hover:bg-hc-sunken">Skoða niðurstöðurnar</Link>
                 {!data.plan && <Link href="/account/heilsuferd/aaetlun?breyta=1" className="inline-flex min-h-10 items-center rounded-full bg-hc-brand px-4 font-semibold text-white hover:bg-hc-brand-dark">Búa til áætlun sjálf(ur)</Link>}
               </div>
             )
@@ -719,7 +719,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
       );
     case "interview":
       return (
-        <div className="space-y-2 text-sm text-slate-600">
+        <div className="space-y-2 text-sm text-hc-ink-2">
           <p>Í viðtalinu farið þið yfir svefn, hreyfingu, næringu og andlega líðan, mælingar og blóðprufur, og gerið saman áætlun til þriggja mánaða.</p>
           {j.interview_booked_for
             ? (
@@ -743,12 +743,12 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
             <p className="text-slate-700"><strong>{data.plan.headline || "Aðgerðaáætlunin þín"}</strong>{data.plan.review_date ? ` · endurmat ${fmtDate(data.plan.review_date)}` : ""}</p>
             <div className="flex flex-wrap gap-2">
               <Link href="/account/heilsuferd/aaetlun" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">Opna áætlunina</Link>
-              <Link href="/account/heilsuferd/aaetlun?breyta=1" className="inline-block rounded-full border border-slate-300 bg-white px-5 py-2.5 font-semibold text-slate-800 hover:bg-slate-50">Breyta áætluninni</Link>
+              <Link href="/account/heilsuferd/aaetlun?breyta=1" className="inline-block rounded-full border border-slate-300 bg-hc-surface px-5 py-2.5 font-semibold text-slate-800 hover:bg-hc-sunken">Breyta áætluninni</Link>
             </div>
           </div>
         )
         : (
-          <div className="space-y-3 text-sm text-slate-600">
+          <div className="space-y-3 text-sm text-hc-ink-2">
             <p>Hjúkrunarfræðingurinn gengur frá áætluninni eftir viðtalið. Hún birtist hér og þú færð tölvupóst.</p>
             {(j.report_generated_at || j.own_report_at) && (
               <Link href="/account/heilsuferd/aaetlun?breyta=1" className="inline-block rounded-full bg-hc-brand px-5 py-2.5 font-semibold text-white hover:bg-hc-brand-dark">Búa til áætlun sjálf(ur)</Link>
@@ -803,7 +803,7 @@ function CodeBox({ code }: { code: string }) {
       <span className="flex-1 rounded-xl bg-emerald-50 px-4 py-3 text-center font-mono text-xl font-bold tracking-[0.15em] text-emerald-900">{code}</span>
       <button
         onClick={async () => { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-        className="rounded-xl border border-slate-200 px-3 py-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+        className="rounded-xl border border-slate-200 px-3 py-3 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken"
       >
         {copied ? "Afritað" : "Afrita"}
       </button>
@@ -821,9 +821,9 @@ function ConsentCard({ reload }: { reload: () => Promise<unknown> }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   return (
-    <section className="mb-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-amber-200">
-      <p className="font-bold text-slate-900">Eitt atriði vantar: samþykki</p>
-      <p className="mt-1 text-sm text-slate-600">Áður en við förum lengra þurfum við upplýst samþykki þitt fyrir vinnslu heilsufarsupplýsinga.</p>
+    <section className="mb-4 rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-amber-200">
+      <p className="font-bold text-hc-ink">Eitt atriði vantar: samþykki</p>
+      <p className="mt-1 text-sm text-hc-ink-2">Áður en við förum lengra þurfum við upplýst samþykki þitt fyrir vinnslu heilsufarsupplýsinga.</p>
       <div className="mt-3"><ConsentBox checked={checked} onChange={setChecked} error={err || undefined} /></div>
       <button type="button" disabled={!checked || busy}
         onClick={async () => {
@@ -846,7 +846,7 @@ function ConsentCard({ reload }: { reload: () => Promise<unknown> }) {
 function WelcomeStep({ data }: { data: JourneyData }) {
   const welcome = data.lectures.find((l) => l.is_welcome);
   return (
-    <div className="space-y-3 text-sm text-slate-600">
+    <div className="space-y-3 text-sm text-hc-ink-2">
       <p>Stutt kynning á því sem framundan er og fjórum stoðum heilsu: svefni, hreyfingu, næringu og andlegri líðan.</p>
       {welcome
         ? <Link href={`/account/heilsuferd/fraedsla/${welcome.slug}`} className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">
@@ -872,14 +872,14 @@ function ContributionToggle({ on, onToggle, title, hint, disabled, children }: {
   on: boolean; onToggle: () => void; title: string; hint: string; disabled?: boolean; children?: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-2xl border transition ${on ? "border-[#10B981] bg-emerald-50/40 ring-2 ring-[#10B981]/20" : "border-slate-200 bg-white"} ${disabled ? "opacity-50" : ""}`}>
+    <div className={`rounded-2xl border transition ${on ? "border-[#10B981] bg-emerald-50/40 ring-2 ring-[#10B981]/20" : "border-slate-200 bg-hc-surface"} ${disabled ? "opacity-50" : ""}`}>
       <button type="button" aria-pressed={on} disabled={disabled} onClick={onToggle} className="flex w-full items-start gap-3 p-4 text-left disabled:cursor-not-allowed">
-        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${on ? "border-[#10B981] bg-[#10B981] text-white" : "border-slate-300 bg-white"}`}>
+        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${on ? "border-[#10B981] bg-[#10B981] text-white" : "border-slate-300 bg-hc-surface"}`}>
           {on && <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
         </span>
-        <span><span className="block text-sm font-semibold text-slate-800">{title}</span><span className="block text-xs text-slate-500">{hint}</span></span>
+        <span><span className="block text-sm font-semibold text-slate-800">{title}</span><span className="block text-xs text-hc-ink-3">{hint}</span></span>
       </button>
-      {on && children && <div className="border-t border-slate-100 px-4 pb-4 pt-3">{children}</div>}
+      {on && children && <div className="border-t border-hc-hairline px-4 pb-4 pt-3">{children}</div>}
     </div>
   );
 }
@@ -937,8 +937,8 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
     await reload();
   };
 
-  if (!profileComplete) return <p className="text-sm text-slate-600">Kláraðu fyrst skrefið „Upplýsingar um þig“. Þær þarf til að ganga frá kaupum.</p>;
-  if (!info) return <p className="text-sm text-slate-500">Hleð…</p>;
+  if (!profileComplete) return <p className="text-sm text-hc-ink-2">Kláraðu fyrst skrefið „Upplýsingar um þig“. Þær þarf til að ganga frá kaupum.</p>;
+  if (!info) return <p className="text-sm text-hc-ink-3">Hleð…</p>;
 
   const companyCovers = company ? (company.contribution_isk != null ? formatIsk(company.contribution_isk) : `${company.contribution_percent}%`) : "";
   const canPay = terms && !busy && !info.eligibility_error &&
@@ -951,7 +951,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
         <div className="grid gap-3 sm:grid-cols-2">
           {packages.map((p) => (
             <button key={p.key} type="button" aria-pressed={p.key === pkgKey} onClick={() => setPkgKey(p.key)} className={`rounded-2xl border p-4 text-left ${p.key === pkgKey ? "border-[#10B981] ring-2 ring-[#10B981]/30" : "border-slate-200"}`}>
-              <p className="font-semibold">{p.name}</p><p className="text-sm text-slate-500">{formatIsk(p.price_isk)}</p>
+              <p className="font-semibold">{p.name}</p><p className="text-sm text-hc-ink-3">{formatIsk(p.price_isk)}</p>
             </button>
           ))}
         </div>
@@ -962,8 +962,8 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
           <h3 className="text-lg font-bold text-[#0F172A]">{info.package.name}</h3>
           <span className="text-lg font-bold text-[#047857]">{formatIsk(info.package.price_isk)}</span>
         </div>
-        {info.package.tagline && <p className="text-sm font-medium text-slate-500">{info.package.tagline}</p>}
-        {info.package.description && <p className="mt-2 text-sm leading-relaxed text-slate-600">{info.package.description}</p>}
+        {info.package.tagline && <p className="text-sm font-medium text-hc-ink-3">{info.package.tagline}</p>}
+        {info.package.description && <p className="mt-2 text-sm leading-relaxed text-hc-ink-2">{info.package.description}</p>}
         <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
           {info.package.includes.map((x) => (
             <li key={x} className="flex gap-2 text-sm text-slate-700"><span className="text-[#10B981]">✓</span>{x}</li>
@@ -973,7 +973,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
 
       <div className="space-y-2">
         <p className="text-sm font-semibold text-slate-800">Tekur einhver þátt í kostnaðinum?</p>
-        <p className="text-xs text-slate-500">Veldu annað, bæði eða hvorugt. Án þátttöku greiðir þú sjálf(ur) með korti.</p>
+        <p className="text-xs text-hc-ink-3">Veldu annað, bæði eða hvorugt. Án þátttöku greiðir þú sjálf(ur) með korti.</p>
         <ContributionToggle on={useCompany} onToggle={() => setUseCompany((v) => !v)}
           title="Vinnuveitandinn minn tekur þátt" hint="Þú slærð inn persónulegan kóða frá fyrirtækinu þínu.">
           <label className="block text-sm font-medium text-slate-700" htmlFor="company-code">Kóði frá vinnuveitanda</label>
@@ -988,21 +988,21 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
           title="Stéttarfélagið mitt tekur þátt"
           hint={info.unions.length ? "Við reiknum endurgreiðsluna eftir reglum félagsins, af því sem þú greiðir sjálf(ur)." : "Ekkert félag er komið í samstarf enn."}>
           <label className="block text-sm font-medium text-slate-700" htmlFor="union-select">Stéttarfélag</label>
-          <select id="union-select" value={unionId} onChange={(e) => setUnionId(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5">
+          <select id="union-select" value={unionId} onChange={(e) => setUnionId(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-hc-surface px-3 py-2.5">
             <option value="">Veldu félag…</option>
             {info.unions.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
           {union && (
-            <div className="mt-2 text-sm text-slate-600">
+            <div className="mt-2 text-sm text-hc-ink-2">
               {q.explanation && <p>{q.explanation}</p>}
-              {union.rules_summary && <p className="text-xs text-slate-500">{union.rules_summary}</p>}
+              {union.rules_summary && <p className="text-xs text-hc-ink-3">{union.rules_summary}</p>}
               {union.settlement === "direct" ? (
                 <label className="mt-2 flex items-start gap-2 text-xs text-slate-700">
                   <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
                   Ég staðfesti aðild mína að {union.name} og heimila Lifeline Health að innheimta styrkinn beint hjá félaginu. Félagið fær nafn, kennitölu og lýsingu þjónustunnar, engar heilsufarsupplýsingar.
                 </label>
               ) : (
-                <p className="mt-2 text-xs text-slate-500">Þú færð tilbúna umsókn (PDF) sem þú getur sent félaginu beint héðan með einum smelli.</p>
+                <p className="mt-2 text-xs text-hc-ink-3">Þú færð tilbúna umsókn (PDF) sem þú getur sent félaginu beint héðan með einum smelli.</p>
               )}
             </div>
           )}
@@ -1021,7 +1021,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
           </>
         )}
         {useUnion && union && q.chargedIsk === 0 && q.employerIsk >= q.priceIsk && (
-          <p className="mt-2 text-xs text-slate-500">Vinnuveitandinn greiðir allt, svo ekkert er eftir til að sækja um hjá félaginu.</p>
+          <p className="mt-2 text-xs text-hc-ink-3">Vinnuveitandinn greiðir allt, svo ekkert er eftir til að sækja um hjá félaginu.</p>
         )}
       </div>
 
@@ -1040,17 +1040,17 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
 
 function Row({ label, value, strong, muted, accent }: { label: string; value: string; strong?: boolean; muted?: boolean; accent?: boolean }) {
   return (
-    <div className={`flex justify-between py-1 ${strong ? "font-semibold text-slate-900" : muted ? "text-slate-500" : "text-slate-700"} ${accent ? "border-t border-slate-100 pt-2 text-[#047857]" : ""}`}>
+    <div className={`flex justify-between py-1 ${strong ? "font-semibold text-hc-ink" : muted ? "text-hc-ink-3" : "text-slate-700"} ${accent ? "border-t border-hc-hairline pt-2 text-[#047857]" : ""}`}>
       <span>{label}</span><span className="tabular-nums">{value}</span>
     </div>
   );
 }
 
 function PaidSummary({ order }: { order: HcOrder | null }) {
-  if (!order) return <p className="text-sm text-slate-600">Greitt.</p>;
+  if (!order) return <p className="text-sm text-hc-ink-2">Greitt.</p>;
   const how = order.payment_route === "company_union" ? "Vinnuveitandi og stéttarfélag taka þátt" : order.payment_route === "company" ? "Vinnuveitandi greiðir" : order.payment_route === "union" ? "Með þátttöku stéttarfélags" : "Greitt með korti";
   return (
-    <div className="text-sm text-slate-600">
+    <div className="text-sm text-hc-ink-2">
       <p>{how} · {fmtDate(order.paid_at)}</p>
       {order.amount_charged_isk > 0 && <p>Greitt: {formatIsk(order.amount_charged_isk)}</p>}
       {order.union_reimbursement_isk > 0 && <p>Væntanleg endurgreiðsla frá félagi: {formatIsk(order.union_reimbursement_isk)} (sjá „Umsóknir til stéttarfélags“).</p>}
@@ -1073,21 +1073,21 @@ function TestStep({ kind, title, address, info, bookedFor, done, portal, reload 
     await reload();
   };
   return (
-    <div className="space-y-3 text-sm text-slate-600">
-      <div className="rounded-xl bg-slate-50 p-3">
+    <div className="space-y-3 text-sm text-hc-ink-2">
+      <div className="rounded-xl bg-hc-sunken p-3">
         <p className="font-semibold text-slate-800">{title}</p>
         {address && <p>{address}</p>}
-        {info && <p className="mt-1 text-slate-500">{info}</p>}
+        {info && <p className="mt-1 text-hc-ink-3">{info}</p>}
       </div>
       {done ? <p className="text-emerald-700">Lokið. Niðurstöður berast lækni sjálfkrafa.</p> : (
         <>
           <a href={portal} target="_blank" rel="noreferrer" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">Bóka í sjúklingagátt</a>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="text-xs font-medium text-slate-600">
+            <label className="text-xs font-medium text-hc-ink-2">
               Bókaður tími (fer í dagatalið þitt)
               <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm" />
             </label>
-            <button onClick={save} disabled={saving} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">{saving ? "Vistar…" : "Vista tíma"}</button>
+            <button onClick={save} disabled={saving} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">{saving ? "Vistar…" : "Vista tíma"}</button>
           </div>
         </>
       )}
@@ -1106,12 +1106,12 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
   const pkgs = data.packages.filter((p) => (kind === "followup_3m" ? p.kind === "followup_3m" : (p.kind === "reevaluation" && reevalOpen) || p.kind === "extra_followup"));
   const [buying, setBuying] = useState<string | null>(null);
 
-  if (kind === "followup_3m" && !j.interview_done_at) return <p className="text-sm text-slate-600">Eftirfylgd opnast eftir fyrsta viðtalið. Hún er ráðlögð en valfrjáls.</p>;
-  if (kind === "reevaluation" && !j.plan_published_at) return <p className="text-sm text-slate-600">Eftir ár býðst endurmat, eða aukaviðtal við hjúkrunarfræðing hvenær sem er.</p>;
+  if (kind === "followup_3m" && !j.interview_done_at) return <p className="text-sm text-hc-ink-2">Eftirfylgd opnast eftir fyrsta viðtalið. Hún er ráðlögð en valfrjáls.</p>;
+  if (kind === "reevaluation" && !j.plan_published_at) return <p className="text-sm text-hc-ink-2">Eftir ár býðst endurmat, eða aukaviðtal við hjúkrunarfræðing hvenær sem er.</p>;
 
   if (order) {
     return (
-      <div className="space-y-2 text-sm text-slate-600">
+      <div className="space-y-2 text-sm text-hc-ink-2">
         <p>Greitt. Virkjaðu eftirfylgdina í sjúklingagáttinni með kóðanum og bókaðu tíma:</p>
         {order.activation_code && <CodeBox code={order.activation_code} />}
         {j.followup_booked_for && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-900">Bókað: <strong>{fmtDateTime(j.followup_booked_for)}</strong></p>}
@@ -1121,7 +1121,7 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
   return (
     <div className="space-y-3">
       {kind === "reevaluation" && j.reevaluation_due_at && (
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-hc-ink-2">
           Endurmat er ráðlagt frá {fmtDate(j.reevaluation_due_at)}.{!reevalOpen && " Það opnast tveimur mánuðum fyrr; þangað til getur þú bókað aukaviðtal."}
         </p>
       )}
@@ -1129,13 +1129,13 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
         buying === p.key ? (
           <div key={p.key} className="rounded-2xl border border-slate-200 p-4">
             <Checkout packages={[p]} profileComplete={data.profile.complete} reload={async () => { setBuying(null); await reload(); }} />
-            <button onClick={() => setBuying(null)} className="mt-2 text-sm text-slate-500">Hætta við</button>
+            <button onClick={() => setBuying(null)} className="mt-2 text-sm text-hc-ink-3">Hætta við</button>
           </div>
         ) : (
           <div key={p.key} className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 p-4">
             <div className="flex-1">
               <p className="font-semibold text-slate-800">{p.name}</p>
-              <p className="text-sm text-slate-500">{p.description}</p>
+              <p className="text-sm text-hc-ink-3">{p.description}</p>
             </div>
             <span className="font-semibold text-[#047857]">{formatIsk(p.price_isk)}</span>
             <button onClick={() => setBuying(p.key)} className="rounded-full bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857]">Velja</button>
@@ -1153,12 +1153,12 @@ function HistoryCard({ history }: { history: NonNullable<JourneyData["history"]>
   const withPlan = history.filter((h) => h.plan_published_at);
   if (!withPlan.length) return null;
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-      <p className="font-bold text-slate-900">Fyrri heilsuferðir</p>
+    <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-5 shadow-sm">
+      <p className="font-bold text-hc-ink">Fyrri heilsuferðir</p>
       <ul className="mt-2 space-y-1.5">
         {withPlan.map((h) => (
           <li key={h.id}>
-            <Link href={`/account/heilsuferd/aaetlun?journey=${h.id}&tab=plan`} className="flex items-center justify-between rounded-xl px-3 py-2 text-sm ring-1 ring-slate-200 hover:bg-slate-50">
+            <Link href={`/account/heilsuferd/aaetlun?journey=${h.id}&tab=plan`} className="flex items-center justify-between rounded-xl px-3 py-2 text-sm ring-1 ring-slate-200 hover:bg-hc-sunken">
               <span className="text-slate-700">Áætlun frá {fmtDate(h.plan_published_at)}</span>
               <span className="text-emerald-700">Opna →</span>
             </Link>
@@ -1194,22 +1194,22 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
   };
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-5 shadow-sm">
       <p className="font-semibold text-[#0F172A]">Umsóknir til stéttarfélags</p>
       <div className="mt-3 space-y-3">
         {claims.map((c) => (
-          <div key={c.id} className="rounded-xl bg-slate-50 p-3 text-sm">
+          <div key={c.id} className="rounded-xl bg-hc-sunken p-3 text-sm">
             <p className="font-medium text-slate-800">{c.union_name}</p>
-            <p className="text-slate-500">Endurgreiðsla: {formatIsk(c.reimbursable_isk)}</p>
+            <p className="text-hc-ink-3">Endurgreiðsla: {formatIsk(c.reimbursable_isk)}</p>
             <p className="text-xs text-slate-400">{c.sent_at ? `Send ${fmtDate(c.sent_at)} á ${c.sent_to}` : "Ekki send"}</p>
             <div className="mt-2 flex gap-2">
-              <button type="button" onClick={() => download(c.order_id)} className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold">Sækja PDF</button>
+              <button type="button" onClick={() => download(c.order_id)} className="rounded-lg border border-slate-300 bg-hc-surface px-3 py-1.5 text-xs font-semibold">Sækja PDF</button>
               <button type="button" onClick={() => send(c.order_id, !!c.sent_at)} disabled={busy === c.order_id}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${c.sent_at ? "border border-slate-300 bg-white text-slate-700" : "bg-[#10B981] text-white"}`}>
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${c.sent_at ? "border border-slate-300 bg-hc-surface text-slate-700" : "bg-[#10B981] text-white"}`}>
                 {busy === c.order_id ? "Sendir…" : c.sent_at ? "Senda aftur" : "Senda á félagið"}
               </button>
             </div>
-            {msg[c.order_id] && <p className="mt-1 text-xs text-slate-600">{msg[c.order_id]}</p>}
+            {msg[c.order_id] && <p className="mt-1 text-xs text-hc-ink-2">{msg[c.order_id]}</p>}
           </div>
         ))}
       </div>

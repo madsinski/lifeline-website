@@ -181,7 +181,7 @@ export function NotificationBell({ unread, onOpen }: {
   const cls = `relative grid h-11 w-11 shrink-0 place-items-center rounded-full ring-1 shadow-sm transition active:scale-95 ${
     unread > 0
       ? "bg-red-600 text-white ring-red-700/40 hover:bg-red-700"
-      : "bg-white text-hc-brand-dark ring-hc-brand/25 hover:bg-hc-brand-surface"}`;
+      : "bg-hc-surface text-hc-brand-dark ring-hc-brand/25 hover:bg-hc-brand-surface"}`;
   const label = unread ? `Tilkynningar, ${unread} ný` : "Tilkynningar";
   /* Defined here rather than as a wrapper component: a component created
      during render is a new type every render, so React unmounts and
@@ -244,12 +244,12 @@ export function NotificationSheet({ items, upcoming, onClose, onNavigate }: {
       <div className="space-y-5 p-4">
         {upcoming && (
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Á döfinni</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-hc-ink-3">Á döfinni</p>
             {upcoming}
           </div>
         )}
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tilkynningar</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-hc-ink-3">Tilkynningar</p>
           <NotificationList items={shown} onNavigate={onNavigate}
             onOpened={(id) => setShown((xs) => xs.map((x) => (x.id === id ? { ...x, unread: false } : x)))}
             onDismiss={(id) => setShown((xs) => xs.filter((x) => x.id !== id))} />
@@ -277,7 +277,7 @@ export function NotificationList({ items, onNavigate, onOpened, onDismiss }: {
   onNavigate?: (href: string) => boolean;
 }) {
   if (items.length === 0) {
-    return <p className={`${hcCard.base} p-6 text-center text-sm text-slate-600`}>Ekkert nýtt í bili.</p>;
+    return <p className={`${hcCard.base} p-6 text-center text-sm text-hc-ink-2`}>Ekkert nýtt í bili.</p>;
   }
   return (
     <div className="space-y-2">
@@ -285,8 +285,8 @@ export function NotificationList({ items, onNavigate, onOpened, onDismiss }: {
         const Icon = ICON[n.kind] ?? Zap;
         const inner = (
           <>
-            <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full ${n.unread ? "bg-emerald-50" : "bg-slate-100"}`}>
-              <Icon className={`h-4 w-4 ${n.unread ? "text-hc-brand-dark" : "text-slate-600"}`} aria-hidden />
+            <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full ${n.unread ? "bg-emerald-50" : "bg-hc-sunken-2"}`}>
+              <Icon className={`h-4 w-4 ${n.unread ? "text-hc-brand-dark" : "text-hc-ink-2"}`} aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-2">
@@ -301,7 +301,7 @@ export function NotificationList({ items, onNavigate, onOpened, onDismiss }: {
                 )}
               </span>
               {n.body && <span className="mt-0.5 block text-xs leading-snug text-hc-ink-2">{n.body}</span>}
-              <span className="mt-0.5 block text-[11px] text-slate-500">
+              <span className="mt-0.5 block text-[11px] text-hc-ink-3">
                 {whenIs(n.at)}
                 {/* Say how many are behind the row, so the newest message
                     showing alone does not look like the only one. */}

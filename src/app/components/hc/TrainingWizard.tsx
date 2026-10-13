@@ -70,7 +70,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
   const last = step === STEPS.length - 1;
 
   const card = (on: boolean) =>
-    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-emerald-50 ring-2 ring-hc-brand" : "bg-white ring-hc-hairline hover:ring-slate-300"}`;
+    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-emerald-50 ring-2 ring-hc-brand" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`;
 
   return (
     <section className={`${hcCard.base} p-5 sm:p-6`} aria-label="Uppsetning æfingaáætlunar">
@@ -79,7 +79,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-1.5">
             <span className={`flex h-6 items-center gap-1.5 rounded-full px-2.5 ${
-              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-600"}`}>
+              i === step ? "bg-hc-brand-dark text-white" : i < step ? "bg-emerald-100 text-emerald-900" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
               {i < step ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}{label}
             </span>
             {i < STEPS.length - 1 && <span className="h-px w-3 bg-slate-200" aria-hidden />}
@@ -156,16 +156,16 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
                 <button key={w} type="button" onClick={() => toggleDay(i)} aria-pressed={on}
                   title={busy ? (s.activities ?? []).filter((a) => a.day === i).map((a) => a.name).join(", ") : wanted ? wanted.why : undefined}
                   className={`relative min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
-                    on ? "bg-hc-brand-dark text-white" : wanted ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                    on ? "bg-hc-brand-dark text-white" : wanted ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
                   <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span><span className="hidden sm:inline">{w}</span>
-                  {busy && <span className={`ml-1.5 text-xs font-normal ${on ? "text-white/70" : "text-slate-600"}`}>•</span>}
+                  {busy && <span className={`ml-1.5 text-xs font-normal ${on ? "text-white/70" : "text-hc-ink-2"}`}>•</span>}
                 </button>
               );
             })}
           </div>
           <p className={`text-sm ${s.days.length >= 2 ? "text-hc-ink-2" : "text-amber-800"}`}>
             {s.days.length >= 2 ? `${s.days.length} dagar valdir.` : "Veldu að minnsta kosti tvo daga."}
-            {(s.activities ?? []).length > 0 && <span className="text-slate-600"> Punktur merkir dag sem þú ert þegar á ferðinni.</span>}
+            {(s.activities ?? []).length > 0 && <span className="text-hc-ink-2"> Punktur merkir dag sem þú ert þegar á ferðinni.</span>}
           </p>
 
           {/* What the week is short of, and where it would sit. The setup
@@ -220,7 +220,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
           </div>
 
           <div>
-            <p className={`${hcKicker} mb-2 text-slate-600`}>Þol og hjarta</p>
+            <p className={`${hcKicker} mb-2 text-hc-ink-2`}>Þol og hjarta</p>
             <div className="space-y-2">
               {(["full", "easy", "limited"] as CardioLimit[]).map((c) => (
                 <button key={c} type="button" onClick={() => set({ cardio: c })} aria-pressed={s.cardio === c} className={card(s.cardio === c)}>
@@ -232,17 +232,17 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
           </div>
 
           <div>
-            <p className={`${hcKicker} mb-2 text-slate-600`}>Stoðkerfi</p>
+            <p className={`${hcKicker} mb-2 text-hc-ink-2`}>Stoðkerfi</p>
             <p className="mb-2 text-sm text-hc-ink-2">Veldu það sem er viðkvæmt. Hver æfing sem reynir á það skiptist út fyrir mildari útgáfu.</p>
             <div className="flex flex-wrap gap-2">
               {REGIONS.map((r) => (
                 <button key={r} type="button" onClick={() => toggleRegion(r)} aria-pressed={s.injuries.includes(r)}
                   className={`min-h-11 rounded-xl px-4 text-sm font-semibold transition ${
-                    s.injuries.includes(r) ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                    s.injuries.includes(r) ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
                   {REGION_IS[r].label}
                 </button>
               ))}
-              {s.injuries.length === 0 && <span className="self-center text-sm text-slate-600">Ekkert valið — ekkert skipt út.</span>}
+              {s.injuries.length === 0 && <span className="self-center text-sm text-hc-ink-2">Ekkert valið — ekkert skipt út.</span>}
             </div>
           </div>
         </div>
@@ -252,7 +252,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
       {step === 5 && <WeekPreview s={s} planStart={planStart} />}
 
       {/* Moving through */}
-      <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+      <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-hc-hairline pt-4">
         {step > 0 && (
           <button type="button" onClick={() => setStep(step - 1)} className={hcBtn.ghost}>
             <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
@@ -281,7 +281,7 @@ function ScoreBars({ s, planStart }: { s: TrainingSettings; planStart: string | 
   const { score } = previewWeek(s, planStart);
   if (s.activities.length === 0) return null;
   return (
-    <div className="rounded-2xl bg-white p-4 ring-1 ring-hc-hairline">
+    <div className="rounded-2xl bg-hc-surface p-4 ring-1 ring-hc-hairline">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-semibold text-hc-ink">Vikan þín í dag</p>
         <p className="text-sm text-hc-ink-2">{score.overall}/10 · {score.summary}</p>
@@ -293,7 +293,7 @@ function ScoreBars({ s, planStart }: { s: TrainingSettings; planStart: string | 
             <div key={m.key}>
               <div className="flex items-baseline justify-between gap-2">
                 <dt className="text-sm font-medium text-slate-700">{m.label}</dt>
-                <dd className="text-xs font-semibold tabular-nums text-slate-600">
+                <dd className="text-xs font-semibold tabular-nums text-hc-ink-2">
                   {m.target === 0 ? "ekki á dagskrá enn" : `${m.have} af ${m.target}`}
                 </dd>
               </div>
@@ -325,7 +325,7 @@ function WeekPreview({ s, planStart }: { s: TrainingSettings; planStart: string 
         : <p className="text-sm text-hc-ink-2">Áætlunin bætir þessu við:</p>}
       <ol className="space-y-2">
         {sessions.map((x, i) => (
-          <li key={i} className="flex items-baseline gap-3 rounded-xl bg-slate-50 p-3">
+          <li key={i} className="flex items-baseline gap-3 rounded-xl bg-hc-sunken p-3">
             <span className="w-24 shrink-0 text-sm font-semibold text-hc-ink">{x.day}</span>
             <span className="min-w-0 flex-1">
               <span className="block font-semibold text-hc-ink">{x.title}</span>
@@ -337,7 +337,7 @@ function WeekPreview({ s, planStart }: { s: TrainingSettings; planStart: string 
       {!hiit.on && hiit.why && (
         <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">{hiit.why}</p>
       )}
-      <p className="text-xs text-slate-600">Þú getur fært æfingarnar á aðra daga og skipt út einstökum æfingum eftir á.</p>
+      <p className="text-xs text-hc-ink-2">Þú getur fært æfingarnar á aðra daga og skipt út einstökum æfingum eftir á.</p>
     </div>
   );
 }

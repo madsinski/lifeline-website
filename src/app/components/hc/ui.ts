@@ -19,8 +19,8 @@ export const hcBtn = {
   dark: `${base} bg-hc-brand-dark text-white hover:bg-emerald-800`,
   /* hc-control, not slate-300: a button's edge identifies the control,
      so 1.4.11 asks 3:1 and slate-300 gives 1.48. */
-  secondary: `${base} border border-hc-control bg-hc-surface text-slate-700 hover:bg-slate-50`,
-  ghost: `${base} text-slate-600 hover:bg-slate-100`,
+  secondary: `${base} border border-hc-control bg-hc-surface text-hc-ink-2 hover:bg-hc-sunken`,
+  ghost: `${base} text-hc-ink-2 hover:bg-hc-sunken-2`,
 };
 
 /**
@@ -95,7 +95,7 @@ export const hcTabs = {
     `shrink-0 grow basis-auto whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
       active
         ? "bg-hc-brand-dark text-white shadow-hc-card"
-        : "text-slate-600 hover:bg-hc-brand-surface hover:text-hc-brand-dark"}`,
+        : "text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-dark"}`,
 };
 
 /** Kicker above a heading ("NÆSTI TÍMI"). */

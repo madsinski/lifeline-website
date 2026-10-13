@@ -138,20 +138,20 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
   return (
     <Sheet title={heading ?? `Skipta út: ${title}`} onClose={onClose} max="max-w-lg"
       header={
-        <div className="flex items-start gap-3 border-b border-slate-100 p-4">
+        <div className="flex items-start gap-3 border-b border-hc-hairline p-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wide text-slate-600">{heading ? "Bæta við" : "Skipta út"}</p>
-            <p className="truncate font-bold text-slate-900">{heading ?? title}</p>
-            {!!muscles.length && <p className="mt-0.5 truncate text-xs text-slate-600">{muscles.map(muscleIs).join(", ")}</p>}
+            <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">{heading ? "Bæta við" : "Skipta út"}</p>
+            <p className="truncate font-bold text-hc-ink">{heading ?? title}</p>
+            {!!muscles.length && <p className="mt-0.5 truncate text-xs text-hc-ink-2">{muscles.map(muscleIs).join(", ")}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-5 w-5" /></button>
         </div>
       }>
 
         {/* 1 ─ why */}
         {!why && (
           <div className="space-y-2 p-4">
-            <p className="font-semibold text-slate-900">Af hverju viltu skipta?</p>
+            <p className="font-semibold text-hc-ink">Af hverju viltu skipta?</p>
             {known && (
               <p className="rounded-xl bg-sky-50 p-3 text-xs text-sky-900 ring-1 ring-sky-200">
                 Við vitum af {injuries.map((r) => REGION_IS[r].gen).join(" og ")} úr uppsetningunni þinni og sleppum
@@ -160,9 +160,9 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
             )}
             {WHY.map((w) => (
               <button key={w.key} type="button" onClick={() => setWhy(w.key)}
-                className="w-full rounded-2xl bg-white p-3.5 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-orange-400">
-                <span className="block font-semibold text-slate-900">{w.label}</span>
-                <span className="mt-0.5 block text-xs text-slate-600">{w.hint}</span>
+                className="w-full rounded-2xl bg-hc-surface p-3.5 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-orange-400">
+                <span className="block font-semibold text-hc-ink">{w.label}</span>
+                <span className="mt-0.5 block text-xs text-hc-ink-2">{w.hint}</span>
               </button>
             ))}
           </div>
@@ -174,16 +174,16 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
             <button type="button" onClick={() => setWhy(null)} className={`${hcBtn.ghost} mb-1`}>
               <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
             </button>
-            <p className="font-semibold text-slate-900">Hvað er að?</p>
+            <p className="font-semibold text-hc-ink">Hvað er að?</p>
             <div className="grid gap-2">
               {REGIONS.map((r) => (
                 <button key={r} type="button" onClick={() => setRegion(r)}
-                  className="rounded-2xl bg-white p-3 text-left font-semibold text-slate-900 ring-1 ring-hc-hairline hover:ring-2 hover:ring-orange-400">
+                  className="rounded-2xl bg-hc-surface p-3 text-left font-semibold text-hc-ink ring-1 ring-hc-hairline hover:ring-2 hover:ring-orange-400">
                   {REGION_IS[r].label}
                 </button>
               ))}
               <button type="button" onClick={() => setRegion("back")}
-                className="rounded-2xl bg-white p-3 text-left text-slate-700 ring-1 ring-hc-hairline hover:ring-2 hover:ring-orange-400">
+                className="rounded-2xl bg-hc-surface p-3 text-left text-slate-700 ring-1 ring-hc-hairline hover:ring-2 hover:ring-orange-400">
                 Annað — sýndu mér mildari æfingar
               </button>
             </div>
@@ -193,37 +193,37 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
         {/* 3 ─ the suggestions */}
         {why && (why !== "limitation" || region) && (
           <>
-            <div className="border-b border-slate-100 px-4 pb-3">
+            <div className="border-b border-hc-hairline px-4 pb-3">
               <button type="button" onClick={() => { setWhy(null); setRegion(null); setShowAll(false); setQ(""); }} className={hcBtn.ghost}>
                 <ArrowLeft className="h-4 w-4" aria-hidden /> Velja aðra ástæðu
               </button>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-hc-ink-2">
                 {why === "lighter" ? "Léttari æfingar á sömu vöðva."
                   : why === "harder" ? "Þyngri æfingar á sömu vöðva."
                   : why === "limitation" ? `Mildari æfingar sem hlífa ${region ? REGION_IS[region].gen : "svæðinu"}.`
                   : "Aðrar æfingar á sömu vöðva."}
               </p>
               {showAll && (
-                <label className="mt-2 flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2">
-                  <Search className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
+                <label className="mt-2 flex items-center gap-2 rounded-xl bg-hc-sunken-2 px-3 py-2">
+                  <Search className="h-4 w-4 shrink-0 text-hc-ink-2" aria-hidden />
                   <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita í safninu"
                     className="w-full bg-transparent text-sm outline-none" />
                 </label>
               )}
             </div>
-            <ul className="divide-y divide-slate-100">
-              {all === null && <li className="p-4 text-sm text-slate-600">Hleð æfingum…</li>}
-              {all !== null && suggestions.length === 0 && <li className="p-4 text-sm text-slate-600">Engin æfing fannst.</li>}
+            <ul className="divide-y divide-hc-hairline">
+              {all === null && <li className="p-4 text-sm text-hc-ink-2">Hleð æfingum…</li>}
+              {all !== null && suggestions.length === 0 && <li className="p-4 text-sm text-hc-ink-2">Engin æfing fannst.</li>}
               {suggestions.map((e) => (
                 <li key={e.id}>
                   <button type="button" onClick={() => onPick(e)} className="flex w-full items-center gap-3 p-3 text-left hover:bg-orange-50">
                     {e.illustration_url
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={e.illustration_url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
-                      : <span className="h-12 w-12 shrink-0 rounded-lg bg-slate-100" />}
+                      : <span className="h-12 w-12 shrink-0 rounded-lg bg-hc-sunken-2" />}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold text-slate-900">{e.name_is || e.name}</span>
-                      <span className="block truncate text-xs text-slate-600">
+                      <span className="block truncate font-semibold text-hc-ink">{e.name_is || e.name}</span>
+                      <span className="block truncate text-xs text-hc-ink-2">
                         {[(e.primary_muscles ?? []).slice(0, 2).map(muscleIs).join(", "), e.equipment ? EQUIPMENT_IS[e.equipment] ?? e.equipment : null].filter(Boolean).join(" · ")}
                       </span>
                     </span>
@@ -234,7 +234,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
             </ul>
             {!showAll && all !== null && (
               <button type="button" onClick={() => setShowAll(true)}
-                className="border-t border-slate-100 p-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                className="border-t border-hc-hairline p-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
                 <ChevronDown className="mr-1 inline h-4 w-4" aria-hidden /> Sjá allt safnið og leita
               </button>
             )}

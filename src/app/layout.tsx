@@ -108,7 +108,10 @@ export default async function RootLayout({
       <body className="min-h-screen flex flex-col font-sans" style={{ overflow: "auto" }}>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("ll-brand-theme")==="classic")document.documentElement.dataset.theme="classic"}catch(e){}`,
+            /* Both before paint. The scheme has to be here rather than in a
+               component: React mounts after the first paint, so a dark-mode
+               reader would get a white flash on every navigation. */
+            __html: `try{if(localStorage.getItem("ll-brand-theme")==="classic")document.documentElement.dataset.theme="classic";var s=localStorage.getItem("ll-scheme");if(s==="dark"||s==="light")document.documentElement.dataset.scheme=s}catch(e){}`,
           }}
         />
         <I18nProvider>

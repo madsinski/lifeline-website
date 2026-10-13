@@ -49,7 +49,7 @@ export default function DayExampleEditor({ value, onChange, api }: {
   return (
     <div className="space-y-2">
       {value.map((d, i) => (
-        <div key={i} className="flex items-start gap-2 rounded-xl border border-slate-100 p-2">
+        <div key={i} className="flex items-start gap-2 rounded-xl border border-hc-hairline p-2">
           <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-lime-50">
             {d.image
               // eslint-disable-next-line @next/next/no-img-element
@@ -66,7 +66,7 @@ export default function DayExampleEditor({ value, onChange, api }: {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
               {d.meal_id
                 ? <span className="font-semibold text-lime-700">✓ Úr safni{d.protein != null ? ` · ${d.protein} g prótein` : ""}{d.kcal != null ? ` · ${d.kcal} kcal` : ""}</span>
-                : <span className="text-slate-500">Frjáls texti</span>}
+                : <span className="text-hc-ink-3">Frjáls texti</span>}
               <button type="button" onClick={() => setPicking(i)} className="font-semibold text-lime-700 hover:underline">
                 {d.meal_id ? "Skipta um máltíð" : "Velja úr safni"}
               </button>

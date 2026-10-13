@@ -97,20 +97,20 @@ function Sketch({ platform }: { platform: Platform }) {
 
   return (
     <figure className="m-0">
-      <div className="overflow-hidden rounded-2xl border border-hc-hairline bg-slate-100 p-3">
+      <div className="overflow-hidden rounded-2xl border border-hc-hairline bg-hc-sunken-2 p-3">
         {/* The bit of browser chrome you press first. */}
-        <div className="mb-2 flex items-center gap-2 rounded-xl bg-white px-2.5 py-2 shadow-sm">
-          <span className="truncate text-[11px] text-slate-500">lifelinehealth.is</span>
+        <div className="mb-2 flex items-center gap-2 rounded-xl bg-hc-surface px-2.5 py-2 shadow-sm">
+          <span className="truncate text-[11px] text-hc-ink-3">lifelinehealth.is</span>
           <span className="flex-1" />
           <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-bold ${
-            r.chrome === "bar" ? "bg-hc-brand text-white ring-2 ring-hc-brand/30" : "bg-slate-100 text-slate-600"}`} aria-hidden>
+            r.chrome === "bar" ? "bg-hc-brand text-white ring-2 ring-hc-brand/30" : "bg-hc-sunken-2 text-hc-ink-2"}`} aria-hidden>
             {r.chrome === "share" ? "⇪" : r.chrome === "menu" ? "⋮" : "⤓"}
           </span>
         </div>
 
         {/* The sheet or menu it opens, with the row to tap. */}
         {r.chrome !== "bar" && (
-          <div className="rounded-xl bg-white p-1.5 shadow-sm">
+          <div className="rounded-xl bg-hc-surface p-1.5 shadow-sm">
             {r.before.map((x) => (
               <div key={x} className="flex items-center justify-between px-2 py-1.5 text-[11px] text-slate-300">
                 <span>{x}</span><span aria-hidden>▢</span>
@@ -128,10 +128,10 @@ function Sketch({ platform }: { platform: Platform }) {
           </div>
         )}
         {r.chrome === "bar" && (
-          <p className="rounded-xl bg-white px-2.5 py-2 text-[11px] font-bold text-hc-brand-dark shadow-sm">{r.target}</p>
+          <p className="rounded-xl bg-hc-surface px-2.5 py-2 text-[11px] font-bold text-hc-brand-dark shadow-sm">{r.target}</p>
         )}
       </div>
-      <figcaption className="mt-1.5 text-[11px] text-slate-500">
+      <figcaption className="mt-1.5 text-[11px] text-hc-ink-3">
         Einfölduð mynd — hnappurinn getur heitið örlítið annað eftir útgáfu.
       </figcaption>
     </figure>
@@ -167,22 +167,22 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
       : "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-hairline print:hidden"}>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
         className="flex w-full items-center gap-3 p-4 text-left">
-        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${installed ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-slate-100 text-slate-600"}`}>
+        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${installed ? "bg-hc-brand-surface text-hc-brand-dark" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
           {installed ? <Check className="h-5 w-5" aria-hidden /> : <MonitorDown className="h-5 w-5" aria-hidden />}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold text-hc-ink">Lifeline sem app</span>
-          <span className="block text-sm text-slate-600">
+          <span className="block text-sm text-hc-ink-2">
             {installed
               ? "Uppsett á þessu tæki — tilkynningar virka."
               : "Settu Lifeline á heimaskjáinn til að fá tilkynningar"}
           </span>
         </span>
-        <ChevronDown className={`h-5 w-5 shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+        <ChevronDown className={`h-5 w-5 shrink-0 text-hc-ink-3 transition ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>
 
       {open && (
-        <div className="space-y-3 border-t border-slate-100 p-4">
+        <div className="space-y-3 border-t border-hc-hairline p-4">
           {installed && (
             <p className="rounded-hc-element bg-hc-brand-surface px-3 py-2 text-sm font-medium text-hc-brand-dark">
               Þetta tæki er þegar með Lifeline uppsett. Leiðbeiningarnar hér fyrir neðan eru fyrir næsta tæki.
@@ -194,7 +194,7 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
             {(Object.keys(STEPS) as Platform[]).map((k) => (
               <button key={k} type="button" onClick={() => setPick(k)} aria-pressed={pick === k}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                  pick === k ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-white text-slate-700 ring-hc-hairline hover:bg-slate-50"}`}>
+                  pick === k ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-hc-surface text-slate-700 ring-hc-hairline hover:bg-hc-sunken"}`}>
                 {STEPS[k].label}
               </button>
             ))}
@@ -206,7 +206,7 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
           <ol className="space-y-2">
             {cur.steps.map((t, i) => (
               <li key={i} className="flex gap-2.5 text-sm text-hc-ink">
-                <span aria-hidden className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-slate-100 text-[11px] font-bold text-slate-600">
+                <span aria-hidden className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-hc-sunken-2 text-[11px] font-bold text-hc-ink-2">
                   {i + 1}
                 </span>
                 <span className="min-w-0">{t}</span>

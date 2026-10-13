@@ -105,13 +105,13 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
               have to answer two questions to say it — and a form that
               insists is a form people stop using. */}
           <button type="button" onClick={() => { setKind("help"); setTopic("other"); }}
-            className="flex items-center gap-2 rounded-2xl border border-dashed border-hc-control bg-white px-4 py-3 text-left text-sm font-semibold text-hc-ink transition hover:border-hc-brand hover:bg-hc-brand-surface">
-            <MessageCircle className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
+            className="flex items-center gap-2 rounded-2xl border border-dashed border-hc-control bg-hc-surface px-4 py-3 text-left text-sm font-semibold text-hc-ink transition hover:border-hc-brand hover:bg-hc-brand-surface">
+            <MessageCircle className="h-4 w-4 shrink-0 text-hc-ink-2" aria-hidden />
             Skrifa skilaboð beint
           </button>
           {REQUEST_KINDS.map((k) => (
             <button key={k} type="button" onClick={() => setKind(k)}
-              className="rounded-2xl border border-hc-hairline bg-white px-4 py-3 text-left transition hover:border-hc-brand">
+              className="rounded-2xl border border-hc-hairline bg-hc-surface px-4 py-3 text-left transition hover:border-hc-brand">
               <span className="flex items-center gap-2 font-semibold text-hc-ink">
                 <span className={`h-2 w-2 rounded-full ${REQUEST_IS[k].dot}`} aria-hidden />
                 {REQUEST_IS[k].label}
@@ -124,7 +124,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
         <div className="mt-3 space-y-3 rounded-2xl border border-hc-hairline p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="font-semibold text-hc-ink">{REQUEST_IS[kind].label}</p>
-            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
+            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-full p-1 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700">
               <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
@@ -139,7 +139,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
                     onClick={() => setTopic(o.key)}
                     className={`rounded-full px-3 py-1.5 text-sm transition ${
                       topic === o.key ? "bg-hc-brand-dark font-semibold text-white"
-                                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                                      : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
                     {o.label}
                   </button>
                 ))}
@@ -181,9 +181,9 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
                 return (
                   <button key={m.key} type="button" aria-pressed={on}
                     onClick={() => setPicked(on ? picked.filter((x) => x !== m.key) : [...picked, m.key])}
-                    className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-emerald-500 bg-emerald-50 font-semibold text-emerald-900" : "border-hc-hairline bg-white hover:border-slate-300"}`}>
+                    className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-emerald-500 bg-emerald-50 font-semibold text-emerald-900" : "border-hc-hairline bg-hc-surface hover:border-slate-300"}`}>
                     {m.label}
-                    <span className="block text-xs font-normal text-slate-600">{m.hint}</span>
+                    <span className="block text-xs font-normal text-hc-ink-2">{m.hint}</span>
                   </button>
                 );
               })}
@@ -194,7 +194,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
             <div className="flex flex-wrap gap-1.5">
               {MEETING_WAYS.map((w) => (
                 <button key={w.key} type="button" aria-pressed={way === w.key} onClick={() => setWay(w.key)}
-                  className={`rounded-full px-3 py-1.5 text-sm transition ${way === w.key ? "bg-hc-ink font-semibold text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                  className={`rounded-full px-3 py-1.5 text-sm transition ${way === w.key ? "bg-hc-ink font-semibold text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
                   {w.label}
                 </button>
               ))}
@@ -205,7 +205,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
             <div className="flex flex-wrap gap-1.5">
               {PILLARS.map((p) => (
                 <button key={p.key} type="button" aria-pressed={pillar === p.key} onClick={() => setPillar(p.key)}
-                  className={`rounded-full px-3 py-1.5 text-sm transition ${pillar === p.key ? "bg-hc-ink font-semibold text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                  className={`rounded-full px-3 py-1.5 text-sm transition ${pillar === p.key ? "bg-hc-ink font-semibold text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
                   {p.label}
                 </button>
               ))}
@@ -229,7 +229,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
 
       {open.length > 0 && (
         <div className="mt-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Í vinnslu</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Í vinnslu</p>
           <ul className="mt-1.5 space-y-2">
             {open.map((r) => (
               <li key={r.id} className={`rounded-xl px-3 py-2 text-sm ring-1 ${REQUEST_IS[r.kind].cls}`}>
@@ -254,15 +254,15 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
           <summary className="cursor-pointer text-sm font-semibold text-slate-700">Fyrri erindi ({past.length})</summary>
           <ul className="mt-2 space-y-2">
             {past.map((r) => (
-              <li key={r.id} className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
+              <li key={r.id} className="rounded-xl bg-hc-sunken px-3 py-2 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-semibold text-slate-800">{requestSummary(r.kind, r.detail)}</span>
-                  <span className="text-xs text-slate-600">{STATUS_IS[r.status]} · {fmt(r.created_at)}</span>
+                  <span className="text-xs text-hc-ink-2">{STATUS_IS[r.status]} · {fmt(r.created_at)}</span>
                 </div>
-                {r.body && <p className="mt-0.5 text-slate-600">{r.body}</p>}
+                {r.body && <p className="mt-0.5 text-hc-ink-2">{r.body}</p>}
                 {r.reply && (
-                  <p className="mt-1.5 rounded-lg bg-white p-2 text-slate-800 ring-1 ring-hc-hairline">
-                    <span className="block text-xs font-semibold text-slate-600">
+                  <p className="mt-1.5 rounded-lg bg-hc-surface p-2 text-slate-800 ring-1 ring-hc-hairline">
+                    <span className="block text-xs font-semibold text-hc-ink-2">
                       Svar{r.replied_by ? ` frá ${r.replied_by}` : ""}
                     </span>
                     {r.reply}

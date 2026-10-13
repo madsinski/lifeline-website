@@ -142,21 +142,21 @@ export default function SetupFlow({ api, place = "onboarding" }: {
   const settings = place === "settings";
 
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6">
+    <section className="rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">
             {settings ? "Uppsetningin þín" : "Komdu þér af stað"}
           </p>
-          <h3 className="mt-0.5 text-xl font-bold text-slate-900">
+          <h3 className="mt-0.5 text-xl font-bold text-hc-ink">
             {settings
               ? (all ? "Allt er uppsett" : "Fjögur atriði, ein mínúta hvert")
               : "Fjögur atriði, ein mínúta hvert"}
           </h3>
         </div>
-        <p className="text-sm font-semibold tabular-nums text-slate-600">{count}/{rows.length}</p>
+        <p className="text-sm font-semibold tabular-nums text-hc-ink-2">{count}/{rows.length}</p>
       </div>
-      <p className="mt-1.5 text-sm text-slate-600">
+      <p className="mt-1.5 text-sm text-hc-ink-2">
         {settings
           ? (all
             ? "Þú getur breytt hverju sem er hér — þjálfara, dagatali, ábyrgðarfélaga og áminningum."
@@ -178,13 +178,13 @@ export default function SetupFlow({ api, place = "onboarding" }: {
           const Icon = row.icon;
           const ok = done[row.key];
           return (
-            <li key={row.key} className="flex items-center gap-3 border-b border-slate-100 p-3 last:border-b-0">
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-slate-100 text-slate-600"}`}>
+            <li key={row.key} className="flex items-center gap-3 border-b border-hc-hairline p-3 last:border-b-0">
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
                 {ok ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-semibold leading-tight text-slate-900">{row.title}</span>
-                <span className="block text-xs leading-snug text-slate-600">{row.why}</span>
+                <span className="block font-semibold leading-tight text-hc-ink">{row.title}</span>
+                <span className="block text-xs leading-snug text-hc-ink-2">{row.why}</span>
               </span>
             </li>
           );
@@ -251,7 +251,7 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
 
   if (all.length === 0) {
     return (
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-hc-ink-2">
         Þjálfari er úthlutaður þegar áætlunin þín er gerð. Þú þarft ekki að gera neitt hér.
       </p>
     );
@@ -259,7 +259,7 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
 
   return (
     <div>
-      <p className="mb-2 text-sm text-slate-600">
+      <p className="mb-2 text-sm text-hc-ink-2">
         {all.length === 1
           ? "Þessi fer yfir áætlunina með þér."
           : "Veldu þann sem þú vilt að fylgi þér."}
@@ -271,7 +271,7 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
           return (
             <li key={c.id}
               className={`overflow-hidden rounded-xl border transition ${
-                on ? "border-hc-brand bg-hc-brand/5" : "border-hc-hairline bg-white"}`}>
+                on ? "border-hc-brand bg-hc-brand/5" : "border-hc-hairline bg-hc-surface"}`}>
               {/* A row, not a button wrapping a button.
                   The card used to be one big <button aria-pressed>, and a
                   bio toggle inside it would have been a button inside a
@@ -290,8 +290,8 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
                     </span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold leading-tight text-slate-900">{c.name ?? "Þjálfari"}</span>
-                    {c.role && <span className="block text-xs text-slate-600">{ROLE_IS[c.role] ?? c.role}</span>}
+                    <span className="block text-sm font-semibold leading-tight text-hc-ink">{c.name ?? "Þjálfari"}</span>
+                    {c.role && <span className="block text-xs text-hc-ink-2">{ROLE_IS[c.role] ?? c.role}</span>}
                   </span>
                 </button>
                 {on && (
@@ -301,16 +301,16 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
                   <button type="button" onClick={() => setBioOpen(openBio ? null : c.id)}
                     aria-expanded={openBio}
                     aria-label={`Um ${c.name ?? "þjálfarann"}`}
-                    className="shrink-0 rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
+                    className="shrink-0 rounded-full p-1.5 text-hc-ink-3 transition hover:bg-hc-sunken-2 hover:text-slate-700">
                     <ChevronDown className={`h-4 w-4 transition ${openBio ? "rotate-180" : ""}`} aria-hidden />
                   </button>
                 )}
               </div>
 
               {openBio && c.bio && (
-                <div className="border-t border-slate-100 bg-white/70 px-3 py-2.5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Um þjálfarann</p>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-600">{c.bio}</p>
+                <div className="border-t border-hc-hairline bg-hc-surface/70 px-3 py-2.5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-3">Um þjálfarann</p>
+                  <p className="mt-1 text-sm leading-relaxed text-hc-ink-2">{c.bio}</p>
                 </div>
               )}
             </li>

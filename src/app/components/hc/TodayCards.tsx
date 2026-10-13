@@ -80,8 +80,8 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
   const row = (label: string, st: Stats | null, tone: string) => (
     <div className="flex items-center gap-3">
       <span className="w-20 shrink-0 truncate text-xs font-semibold" style={{ color: tone }}>{label}</span>
-      {st ? <Dots days={st.days14} of={14} tone={tone} /> : <span className="text-xs text-slate-500">engin virkni</span>}
-      {st && <span className="ml-auto text-xs font-bold tabular-nums text-slate-600">{st.days14} af 14</span>}
+      {st ? <Dots days={st.days14} of={14} tone={tone} /> : <span className="text-xs text-hc-ink-3">engin virkni</span>}
+      {st && <span className="ml-auto text-xs font-bold tabular-nums text-hc-ink-2">{st.days14} af 14</span>}
     </div>
   );
 
@@ -89,7 +89,7 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
     <div className={`${hcCard.base} p-4 sm:p-5`}>
       {/* The day. */}
       <div className="flex items-baseline justify-between gap-3">
-        <span className={`${hcKicker} text-slate-600`}>Dagurinn</span>
+        <span className={`${hcKicker} text-hc-ink-2`}>Dagurinn</span>
         <span className="text-sm font-bold tabular-nums text-hc-ink">
           {ofToday === 0 ? "—" : doneToday === ofToday ? "Kláraður" : `${doneToday} af ${ofToday}`}
         </span>
@@ -102,8 +102,8 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
       {/* The two of you, same measure, one above the other.
           Labelled, because "12/14" on its own is a number without a noun —
           it could be sets, actions, anything. */}
-      <div className="mt-4 border-t border-slate-100 pt-3">
-        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+      <div className="mt-4 border-t border-hc-hairline pt-3">
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-hc-ink-3">
           Dagar með virkni · síðustu 14
         </p>
         <div className="space-y-2">
@@ -113,10 +113,10 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
       </div>
 
       {next && (
-        <p className="mt-3 flex items-baseline gap-2 border-t border-slate-100 pt-3 text-xs">
-          <span className="font-semibold text-slate-600">Næst</span>
+        <p className="mt-3 flex items-baseline gap-2 border-t border-hc-hairline pt-3 text-xs">
+          <span className="font-semibold text-hc-ink-2">Næst</span>
           <span className="min-w-0 flex-1 truncate text-hc-ink">{next.title}</span>
-          <span className="shrink-0 text-slate-500">
+          <span className="shrink-0 text-hc-ink-3">
             {next.kind === "appointment" ? when(next.at) : ""}
           </span>
         </p>
@@ -124,9 +124,9 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
 
       {msg && <p className="mt-2 text-xs font-semibold text-hc-brand-dark">{msg}</p>}
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-hc-hairline pt-3">
         <button type="button" onClick={() => setMore(!more)} aria-expanded={more}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-700">
+          className="inline-flex items-center gap-1 text-xs font-semibold text-hc-ink-2 hover:text-slate-700">
           Nánar <ChevronDown className={`h-3.5 w-3.5 transition ${more ? "rotate-180" : ""}`} aria-hidden />
         </button>
         {d.partner?.canNudge && !sending && (
@@ -143,29 +143,29 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
       </div>
 
       {more && (
-        <dl className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3">
-          <p className="col-span-3 -mb-1 text-[10px] text-slate-500">
+        <dl className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-hc-sunken p-3">
+          <p className="col-span-3 -mb-1 text-[10px] text-hc-ink-3">
             Allt talið í dögum þar sem eitthvað var merkt — ekki fjölda aðgerða.
           </p>
           {([["Daga í röð", mine ? `${mine.streak}` : "—", theirs ? `${theirs.streak}` : "—"],
              ["Af síðustu 7", mine ? `${mine.days7}` : "—", theirs ? `${theirs.days7}` : "—"],
              ["Af síðustu 28", mine ? `${mine.days28}` : "—", theirs ? `${theirs.days28}` : "—"]] as const).map(([k, a, b]) => (
             <div key={k}>
-              <dt className="text-[10px] uppercase tracking-wide text-slate-500">{k}</dt>
+              <dt className="text-[10px] uppercase tracking-wide text-hc-ink-3">{k}</dt>
               <dd className="text-sm font-bold tabular-nums text-hc-ink">{a}</dd>
-              {d.partner && <dd className="text-xs tabular-nums text-slate-600">{b}</dd>}
+              {d.partner && <dd className="text-xs tabular-nums text-hc-ink-2">{b}</dd>}
             </div>
           ))}
         </dl>
       )}
 
       {sending && (
-        <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+        <div className="mt-3 space-y-2 border-t border-hc-hairline pt-3">
           <div className="grid gap-1.5 sm:grid-cols-2">
             {[["cheer", "Áfram þú!"], ["proud", "Vel gert"],
               ["missing", "Sakna þín í vikunni"], ["together", "Eigum við að æfa saman?"]].map(([k, label]) => (
               <button key={k} type="button" disabled={busy} onClick={() => void send(k)}
-                className="rounded-xl border border-hc-hairline px-3 py-2 text-left text-xs font-semibold text-hc-ink transition hover:bg-slate-50 disabled:opacity-50">
+                className="rounded-xl border border-hc-hairline px-3 py-2 text-left text-xs font-semibold text-hc-ink transition hover:bg-hc-sunken disabled:opacity-50">
                 {label}
               </button>
             ))}
@@ -177,7 +177,7 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
             <button type="button" disabled={busy || !note.trim()} onClick={() => void send("cheer", note)}
               className="shrink-0 rounded-xl bg-hc-brand px-3 text-xs font-bold text-white disabled:opacity-40">Senda</button>
           </div>
-          <button type="button" onClick={() => setSending(false)} className="text-xs text-slate-600 hover:underline">Hætta við</button>
+          <button type="button" onClick={() => setSending(false)} className="text-xs text-hc-ink-2 hover:underline">Hætta við</button>
         </div>
       )}
     </div>

@@ -205,20 +205,20 @@ export default function CoachView({ api, startOn, focusNewest = false, portalUrl
     if (!ok) setDraft((d) => d || text);
   };
 
-  if (!data) return <div className="h-40 animate-pulse rounded-hc-card bg-white/70" aria-hidden />;
+  if (!data) return <div className="h-40 animate-pulse rounded-hc-card bg-hc-surface/70" aria-hidden />;
 
   return (
     <div className="space-y-4">
       {/* Two tabs. The segmented control uses the brand green when active
           rather than near-black: this page is the warm one in the journey,
           and ink on a chat surface reads as a disabled state. */}
-      <nav aria-label="Þjálfari" className="flex rounded-hc-element bg-white p-1 shadow-hc-card ring-1 ring-hc-hairline">
+      <nav aria-label="Þjálfari" className="flex rounded-hc-element bg-hc-surface p-1 shadow-hc-card ring-1 ring-hc-hairline">
         {[{ key: "talk" as const, label: "Skilaboð", Icon: MessageCircle },
           { key: "book" as const, label: "Bóka", Icon: CalendarPlus }].map((t) => (
           <button key={t.key} type="button" onClick={() => setTab(t.key)}
             aria-current={tab === t.key ? "page" : undefined}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold transition ${
-              tab === t.key ? "bg-hc-brand text-white shadow-sm" : "text-slate-600 hover:bg-slate-50"}`}>
+              tab === t.key ? "bg-hc-brand text-white shadow-sm" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
             <span className="relative">
               <t.Icon className="h-4 w-4" aria-hidden />
               {t.key === "talk" && data.unread > 0 && (
@@ -330,11 +330,11 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           {c?.photo_url
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={c.photo_url} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/40" />
-            : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/15 ring-1 ring-white/30"><UserRound className="h-5 w-5" aria-hidden /></span>}
+            : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-surface/15 ring-1 ring-white/30"><UserRound className="h-5 w-5" aria-hidden /></span>}
           <p className="min-w-0 flex-1 truncate font-bold">{c?.name ?? "Þjálfarinn þinn"}</p>
             <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               aria-label="Upp á toppinn"
-              className="shrink-0 rounded-full p-1 text-white/80 transition hover:bg-white/15 hover:text-white">
+              className="shrink-0 rounded-full p-1 text-white/80 transition hover:bg-hc-surface/15 hover:text-white">
               <ChevronDown className="h-5 w-5 rotate-180" aria-hidden />
             </button>
           </div>
@@ -350,7 +350,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           {c?.photo_url
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={c.photo_url} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-white/40" />
-            : <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white/15 ring-2 ring-white/30"><UserRound className="h-8 w-8" aria-hidden /></span>}
+            : <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-hc-surface/15 ring-2 ring-white/30"><UserRound className="h-8 w-8" aria-hidden /></span>}
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/70">Þjálfarinn þinn</p>
             <p className="text-lg font-bold leading-tight">{c?.name ?? "Ekki kominn enn"}</p>
@@ -364,7 +364,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-5">
             {(c?.bio || !!c?.specialties?.length) && (
               <button type="button" onClick={() => setAbout(!about)} aria-expanded={about}
-                className="flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-800">
+                className="flex items-center gap-1 text-sm font-semibold text-hc-ink-2 hover:text-slate-800">
                 Um {first}
                 <ChevronDown className={`h-4 w-4 transition ${about ? "rotate-180" : ""}`} aria-hidden />
               </button>
@@ -376,7 +376,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           </div>
         )}
         {about && (
-          <div className="space-y-2 border-t border-slate-100 px-4 py-3 sm:px-5">
+          <div className="space-y-2 border-t border-hc-hairline px-4 py-3 sm:px-5">
             {c?.bio && <p className="text-sm leading-relaxed text-slate-700">{c.bio}</p>}
             {!!c?.specialties?.length && (
               <ul className="flex flex-wrap gap-1.5">
@@ -388,16 +388,16 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           </div>
         )}
         {switching && (
-          <ul className="divide-y divide-slate-100 border-t border-slate-100">
+          <ul className="divide-y divide-hc-hairline border-t border-hc-hairline">
             {data.coaches.map((w) => (
               <li key={w.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
                 {w.photo_url
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={w.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-hc-hairline" />
-                  : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><UserRound className="h-5 w-5" aria-hidden /></span>}
+                  : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-sunken-2 text-hc-ink-3"><UserRound className="h-5 w-5" aria-hidden /></span>}
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-hc-ink">{w.name}</p>
-                  <p className="truncate text-sm text-slate-600">
+                  <p className="truncate text-sm text-hc-ink-2">
                     {[w.role ? ROLE_IS[w.role] ?? w.role : null, w.credentials].filter(Boolean).join(" · ")}
                   </p>
                 </div>
@@ -426,15 +426,15 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
             the last few messages render; the rest are one tap away, which
             is also the right default for reading a conversation you already
             know the beginning of. */}
-        <div className="space-y-2 bg-slate-50/60 p-4">
+        <div className="space-y-2 bg-hc-sunken/60 p-4">
           {data.thread.length > shownCount && (
             <button type="button" onClick={() => setShownCount((n) => n + STEP)}
-              className="mx-auto block rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-hc-hairline transition hover:bg-slate-50">
+              className="mx-auto block rounded-full bg-hc-surface px-3 py-1.5 text-xs font-semibold text-hc-ink-2 ring-1 ring-hc-hairline transition hover:bg-hc-sunken">
               Sjá eldri skilaboð ({Math.min(STEP, data.thread.length - shownCount)})
             </button>
           )}
           {data.thread.length === 0 && (
-            <p className="py-6 text-center text-sm text-slate-600">
+            <p className="py-6 text-center text-sm text-hc-ink-2">
               Skrifaðu {first} hvað sem er. Svarið kemur hingað.
             </p>
           )}
@@ -445,7 +445,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
                   ? "bg-hc-brand text-white"
                   : m.kind === "nudge"
                     ? "bg-amber-50 text-amber-950 ring-1 ring-amber-200"
-                    : "bg-white text-slate-900 ring-1 ring-hc-hairline"}`}>
+                    : "bg-hc-surface text-hc-ink ring-1 ring-hc-hairline"}`}>
                 {m.author_kind === "coach" && (
                   <p className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide opacity-60">
                     {m.kind === "nudge" && <Sparkles className="h-3 w-3" aria-hidden />}
@@ -453,7 +453,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
                   </p>
                 )}
                 <p className="whitespace-pre-wrap leading-snug">{m.body}</p>
-                <p className={`mt-1 text-[10px] ${m.author_kind === "client" ? "text-white/70" : "text-slate-500"}`}>{when(m.created_at)}</p>
+                <p className={`mt-1 text-[10px] ${m.author_kind === "client" ? "text-white/70" : "text-hc-ink-3"}`}>{when(m.created_at)}</p>
               </div>
             </div>
           ))}
@@ -500,10 +500,10 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
 {host && createPortal(
         <div className="fixed inset-x-0 z-30"
           style={{ bottom: keyboard.open ? keyboard.inset : "var(--hc-dock-offset)" }}>
-          <div className="mx-auto flex max-w-4xl items-end gap-2 border-t border-hc-hairline bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
+          <div className="mx-auto flex max-w-4xl items-end gap-2 border-t border-hc-hairline bg-hc-surface/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
             <button type="button" onClick={() => setPrompts(true)}
               aria-label="Tilbúin skilaboð"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-600 ring-1 ring-hc-hairline transition hover:bg-slate-50 hover:text-hc-brand-dark">
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-2 ring-1 ring-hc-hairline transition hover:bg-hc-sunken hover:text-hc-brand-dark">
               <MessageSquarePlus className="h-5 w-5" aria-hidden />
             </button>
             <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
@@ -582,8 +582,8 @@ function Book({ data, busy, onPost }: {
           first thing you want when you came to book something, and the last
           thing you want in the middle of a conversation. */}
   {data.bookings.length > 0 && (
-          <section className={`${hcCard.base} divide-y divide-slate-100`}>
-            <p className="px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bókað</p>
+          <section className={`${hcCard.base} divide-y divide-hc-hairline`}>
+            <p className="px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-hc-ink-3">Bókað</p>
             {/* The whole row opens. Cancel used to be the only thing you
                 could do to a booking, and it sat on the row as a small x —
                 the one irreversible action, one mis-tap away, with no way
@@ -591,7 +591,7 @@ function Book({ data, busy, onPost }: {
                 cancelling is behind a confirmation. */}
             {data.bookings.map((b) => (
               <button key={b.id} type="button" onClick={() => setOpenBooking(b)}
-                className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 p-4 text-left transition hover:bg-slate-50">
+                className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 p-4 text-left transition hover:bg-hc-sunken">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark">
                   {b.kind === "video" ? <Video className="h-5 w-5" aria-hidden /> : <Activity className="h-5 w-5" aria-hidden />}
                 </span>
@@ -600,7 +600,7 @@ function Book({ data, busy, onPost }: {
                     {b.kind === "video" ? "Myndsímtal"
                       : (b.items ?? []).map((k) => MEASURE_LABEL.get(k) ?? k).join(" + ") || "Mælingar"}
                   </p>
-                  <p className="text-sm text-slate-600">{longWhen(b.starts_at)} · {b.minutes} mín.</p>
+                  <p className="text-sm text-hc-ink-2">{longWhen(b.starts_at)} · {b.minutes} mín.</p>
                 </div>
                 <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" aria-hidden />
               </button>
@@ -622,54 +622,54 @@ function Book({ data, busy, onPost }: {
             className="flex flex-col items-start gap-1 rounded-hc-card bg-hc-brand/5 p-5 text-left shadow-hc-card ring-1 ring-hc-brand/25 transition hover:bg-hc-brand/10 hover:shadow-hc-raised disabled:opacity-50 disabled:hover:bg-hc-brand/5 disabled:hover:shadow-hc-card">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark"><Video className="h-5 w-5" aria-hidden /></span>
             <span className="mt-1 font-bold text-hc-ink">Myndsímtal</span>
-            <span className="text-sm text-slate-600">30 mínútur með þjálfaranum.</span>
+            <span className="text-sm text-hc-ink-2">30 mínútur með þjálfaranum.</span>
             <span className="mt-2 flex items-center gap-1.5" aria-label={`${left} af ${allowance} eftir í þessum mánuði`}>
               {Array.from({ length: allowance }, (_, i) => (
                 <span key={i} className={`h-2.5 w-2.5 rounded-full ${i < left ? "bg-hc-brand" : "bg-slate-200"}`} aria-hidden />
               ))}
               <span className="ml-1 text-sm font-bold tabular-nums text-slate-700">{left}/{allowance}</span>
-              <span className="text-xs text-slate-600">í mánuðinum</span>
+              <span className="text-xs text-hc-ink-2">í mánuðinum</span>
             </span>
-            {left <= 0 && <span className="text-xs font-semibold text-slate-600">Búin — næsti mánuður opnast 1.</span>}
+            {left <= 0 && <span className="text-xs font-semibold text-hc-ink-2">Búin — næsti mánuður opnast 1.</span>}
           </button>
 
           <button type="button" onClick={() => setChoice("measurement")}
             className="flex flex-col items-start gap-1 rounded-hc-card bg-hc-brand/5 p-5 text-left shadow-hc-card ring-1 ring-hc-brand/25 transition hover:bg-hc-brand/10 hover:shadow-hc-raised">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-dark"><Activity className="h-5 w-5" aria-hidden /></span>
             <span className="mt-1 font-bold text-hc-ink">Mælingar</span>
-            <span className="text-sm text-slate-600">Veldu eina eða fleiri — tíminn leggst saman.</span>
-            <span className="mt-2 text-xs text-slate-600">{MEASURES.map((m) => m.label).join(" · ")}</span>
+            <span className="text-sm text-hc-ink-2">Veldu eina eða fleiri — tíminn leggst saman.</span>
+            <span className="mt-2 text-xs text-hc-ink-2">{MEASURES.map((m) => m.label).join(" · ")}</span>
           </button>
         </div>
       )}
 
       {choice && (
         <section className={`${hcCard.base} overflow-hidden`}>
-          <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 sm:px-5">
+          <div className="flex items-center gap-2 border-b border-hc-hairline px-4 py-3 sm:px-5">
             <p className="min-w-0 flex-1 font-bold text-hc-ink">{choice === "video" ? "Myndsímtal" : "Hvað á að mæla?"}</p>
             <button type="button" onClick={() => { setChoice(null); setPicked([]); }}
-              aria-label="Til baka" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" aria-hidden /></button>
+              aria-label="Til baka" className="rounded-lg p-1.5 text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-4 w-4" aria-hidden /></button>
           </div>
 
           {choice === "measurement" && (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-hc-hairline">
               {MEASURES.map((m) => {
                 const on = picked.includes(m.key);
                 return (
                   <li key={m.key}>
                     <button type="button" aria-pressed={on}
                       onClick={() => setPicked((p) => (on ? p.filter((x) => x !== m.key) : [...p, m.key]))}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50 sm:px-5">
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-hc-sunken sm:px-5">
                       <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border-2 transition ${
                         on ? "border-hc-brand bg-hc-brand text-white" : "border-slate-300"}`}>
                         {on && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />}
                       </span>
-                      <m.Icon className={`h-5 w-5 shrink-0 ${on ? "text-hc-brand-dark" : "text-slate-500"}`} aria-hidden />
+                      <m.Icon className={`h-5 w-5 shrink-0 ${on ? "text-hc-brand-dark" : "text-hc-ink-3"}`} aria-hidden />
                       <span className="min-w-0 flex-1">
                         <span className="block font-semibold text-hc-ink">{m.label}</span>
-                        <span className="block text-sm text-slate-600">{m.hint}</span>
+                        <span className="block text-sm text-hc-ink-2">{m.hint}</span>
                       </span>
-                      <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-600">{m.minutes} mín.</span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-hc-ink-2">{m.minutes} mín.</span>
                     </button>
                   </li>
                 );
@@ -687,7 +687,7 @@ function Book({ data, busy, onPost }: {
             </>
           )}
           {choice === "measurement" && minutes === 0 && (
-            <p className="px-4 py-4 text-sm text-slate-600 sm:px-5">Veldu það sem þú vilt láta mæla og þá birtast tímarnir.</p>
+            <p className="px-4 py-4 text-sm text-hc-ink-2 sm:px-5">Veldu það sem þú vilt láta mæla og þá birtast tímarnir.</p>
           )}
         </section>
       )}
@@ -737,7 +737,7 @@ function Slots({ minutes, busy, onBook }: {
   return (
     <div className="space-y-3 px-4 py-3.5 sm:px-5">
       <div>
-        <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">Dagur</p>
+        <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Dagur</p>
         {/* Wider cards and a hidden scrollbar. The strip is a horizontal
             list on a surface that already scrolls vertically, and a visible
             bar under it reads as a second thing to drag. The fade on the
@@ -748,7 +748,7 @@ function Slots({ minutes, busy, onBook }: {
             return (
               <button key={d.toISOString()} type="button" onClick={() => setDay(d)}
                 className={`flex w-16 shrink-0 flex-col items-center gap-0.5 rounded-xl px-2 py-2.5 text-center transition ${
-                  on ? "bg-hc-brand text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                  on ? "bg-hc-brand text-white shadow-sm" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
                 <span className="text-[11px] font-bold uppercase opacity-70">{DAY_SHORT[d.getDay()]}</span>
                 <span className="text-xl font-bold leading-none tabular-nums">{d.getDate()}</span>
                 <span className="text-[11px] opacity-70">{MO[d.getMonth()]}</span>
@@ -760,17 +760,17 @@ function Slots({ minutes, busy, onBook }: {
 
       {day && (
         <div>
-          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">Klukkan</p>
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Klukkan</p>
           <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
             {slots.map((t) => (
               <button key={t.toISOString()} type="button" disabled={busy}
                 onClick={() => void onBook(t.toISOString())}
-                className="rounded-lg bg-slate-100 py-2 text-sm font-semibold tabular-nums text-slate-800 transition hover:bg-hc-brand hover:text-white disabled:opacity-40">
+                className="rounded-lg bg-hc-sunken-2 py-2 text-sm font-semibold tabular-nums text-slate-800 transition hover:bg-hc-brand hover:text-white disabled:opacity-40">
                 {hhmm(t)}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-slate-600">
+          <p className="mt-2 text-xs text-hc-ink-2">
             Þjálfarinn staðfestir tímann. Þú fær skilaboð ef hann þarf að færa hann.
           </p>
         </div>
@@ -819,7 +819,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
       <div className="space-y-4 p-4">
         {/* The Sheet's own header already says what this is, so only the
             when-and-how-long goes here. */}
-        <p className="text-sm text-slate-600">{longWhen(booking.starts_at)} · {booking.minutes} mín.</p>
+        <p className="text-sm text-hc-ink-2">{longWhen(booking.starts_at)} · {booking.minutes} mín.</p>
 
         {/* First, because when it matters it matters more than anything
             else on this sheet. */}
@@ -830,7 +830,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
           </a>
         )}
         {isVideo && !booking.meeting_url && (
-          <p className="rounded-hc-element bg-slate-50 px-3 py-2.5 text-xs text-slate-600 ring-1 ring-hc-hairline">
+          <p className="rounded-hc-element bg-hc-sunken px-3 py-2.5 text-xs text-hc-ink-2 ring-1 ring-hc-hairline">
             Hlekkurinn á fundinn birtist hér þegar þjálfarinn hefur staðfest tímann.
           </p>
         )}
@@ -838,23 +838,23 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
         {/* Where, and what to know. Only for a measurement — a video call
             happens wherever you are. */}
         {!isVideo && (place?.site || place?.address || place?.info || prep.length > 0) && (
-          <section className="rounded-hc-card bg-slate-50 p-3.5 ring-1 ring-hc-hairline">
+          <section className="rounded-hc-card bg-hc-sunken p-3.5 ring-1 ring-hc-hairline">
             {(place?.site || place?.address) && (
               <>
-                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
                   <MapPin className="h-3.5 w-3.5" aria-hidden /> Hvar
                 </p>
                 {place?.site && <p className="mt-1 text-sm font-semibold text-hc-ink">{place.site}</p>}
-                {place?.address && <p className="text-sm text-slate-600">{place.address}</p>}
+                {place?.address && <p className="text-sm text-hc-ink-2">{place.address}</p>}
               </>
             )}
-            {place?.info && <p className="mt-2 text-sm text-slate-600">{place.info}</p>}
+            {place?.info && <p className="mt-2 text-sm text-hc-ink-2">{place.info}</p>}
             {prep.length > 0 && (
               <>
-                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-600">Gott að vita</p>
+                <p className="mt-3 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Gott að vita</p>
                 <ul className="mt-1 space-y-1">
                   {prep.map((line) => (
-                    <li key={line} className="flex gap-1.5 text-sm text-slate-600">
+                    <li key={line} className="flex gap-1.5 text-sm text-hc-ink-2">
                       <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-400" />
                       {line}
                     </li>
@@ -869,10 +869,10 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
             and the rules are the ones that applied the first time. */}
         {moving ? (
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">Nýr tími</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Nýr tími</p>
             <Slots minutes={booking.minutes} busy={busy} onBook={move} />
             <button type="button" onClick={() => setMoving(false)}
-              className="mt-2 w-full text-center text-xs font-semibold text-slate-600 hover:text-slate-800 hover:underline">
+              className="mt-2 w-full text-center text-xs font-semibold text-hc-ink-2 hover:text-slate-800 hover:underline">
               Hætta við að færa
             </button>
           </div>
@@ -902,14 +902,14 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
                 Afbóka
               </button>
               <button type="button" onClick={() => setConfirming(false)}
-                className="flex-1 rounded-hc-element bg-white px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-300 transition hover:bg-slate-50">
+                className="flex-1 rounded-hc-element bg-hc-surface px-3 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-300 transition hover:bg-hc-sunken">
                 Nei
               </button>
             </div>
           </div>
         ) : (
           <button type="button" onClick={() => setConfirming(true)}
-            className="w-full text-center text-xs font-semibold text-slate-600 underline-offset-2 hover:text-rose-700 hover:underline">
+            className="w-full text-center text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-rose-700 hover:underline">
             Afbóka tímann
           </button>
         )}

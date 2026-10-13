@@ -90,18 +90,18 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
     return (
       <Shell onClose={onClose} title="Hvernig var hún?">
         <div className="space-y-4 p-4">
-          <p className="text-sm text-slate-600">{minutes} mín. · {session.title}</p>
+          <p className="text-sm text-hc-ink-2">{minutes} mín. · {session.title}</p>
           <div>
             <p className="text-sm font-semibold text-slate-800">Hversu erfið fannst þér æfingin?</p>
             <div className="mt-2 grid grid-cols-5 gap-1.5">
               {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <button key={n} type="button" onClick={() => setRpe(n)} aria-pressed={rpe === n}
-                  className={`rounded-xl py-2.5 text-sm font-bold transition ${rpe === n ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                  className={`rounded-xl py-2.5 text-sm font-bold transition ${rpe === n ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
                   {n}
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-center text-sm text-slate-600">{RPE_IS[rpe]}</p>
+            <p className="mt-1.5 text-center text-sm text-hc-ink-2">{RPE_IS[rpe]}</p>
           </div>
           <button type="button" onClick={() => onDone({ minutes, rpe })} className={`${hcBtn.primary} w-full`}>
             Vista æfinguna
@@ -114,13 +114,13 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
   return (
     <Shell onClose={onClose} title={session.title}>
       {/* Where you are */}
-      <div className="border-b border-slate-100 px-4 pb-3">
+      <div className="border-b border-hc-hairline px-4 pb-3">
         <div className="flex gap-1" role="img" aria-label={`Æfing ${idx + 1} af ${items.length}`}>
           {items.map((_, i) => (
             <span key={i} className={`h-1.5 flex-1 rounded-full ${i < idx ? "bg-emerald-400" : i === idx ? "bg-hc-ink" : "bg-slate-200"}`} />
           ))}
         </div>
-        <p className="mt-1.5 text-xs font-semibold text-slate-600">{idx + 1} af {items.length}</p>
+        <p className="mt-1.5 text-xs font-semibold text-hc-ink-2">{idx + 1} af {items.length}</p>
       </div>
 
       {/* The panel scrolls, not the page, so moving on has to reset it:
@@ -130,10 +130,10 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
         {current && <ExercisePanel key={`${current.name}-${idx}`} it={current} onSwap={onSwap} body={body} />}
       </div>
 
-      <div className="flex items-center gap-2 border-t border-slate-100 p-3">
+      <div className="flex items-center gap-2 border-t border-hc-hairline p-3">
         <button type="button" onClick={() => go(Math.max(0, idx - 1))} disabled={idx === 0}
           className={`${hcBtn.ghost} disabled:opacity-30`}><ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri</button>
-        <button type="button" onClick={finish} className="text-xs font-semibold text-slate-600 hover:text-slate-800">Ljúka hér</button>
+        <button type="button" onClick={finish} className="text-xs font-semibold text-hc-ink-2 hover:text-slate-800">Ljúka hér</button>
         <span className="flex-1" />
         {idx < items.length - 1
           ? <button type="button" onClick={() => go(idx + 1)} className={hcBtn.primary}>Næsta <ChevronRight className="h-4 w-4" aria-hidden /></button>
@@ -171,12 +171,12 @@ function ExercisePanel({ it, onSwap, body }: { it: ExerciseItem; onSwap?: (slot:
       )}
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-bold text-slate-900">{it.name}</h3>
+          <h3 className="text-lg font-bold text-hc-ink">{it.name}</h3>
           <p className="font-semibold text-orange-700">{it.prescription}</p>
         </div>
         {onSwap && it.slot && (
           <button type="button" onClick={() => onSwap(it.slot!, it)}
-            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+            className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-hc-sunken">
             <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta
           </button>
         )}
@@ -184,16 +184,16 @@ function ExercisePanel({ it, onSwap, body }: { it: ExerciseItem; onSwap?: (slot:
       {it.note && <p className="text-sm text-slate-700">{it.note}</p>}
       {!!it.cues?.length && (
         <ul className="space-y-1">
-          {it.cues.map((c, i) => <li key={i} className="flex gap-2 text-sm text-slate-600"><span className="text-orange-500">•</span>{c}</li>)}
+          {it.cues.map((c, i) => <li key={i} className="flex gap-2 text-sm text-hc-ink-2"><span className="text-orange-500">•</span>{c}</li>)}
         </ul>
       )}
       {!!it.muscles?.length && (
         <p className="flex flex-wrap gap-1">
-          {it.muscles.slice(0, 4).map((m) => <span key={m} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{muscleIs(m)}</span>)}
+          {it.muscles.slice(0, 4).map((m) => <span key={m} className="rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] text-hc-ink-2">{muscleIs(m)}</span>)}
         </p>
       )}
       {isLoggable(it) ? <SetTracker it={it} body={body} /> : (
-        <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+        <p className="rounded-xl bg-hc-sunken p-3 text-sm text-hc-ink-2">
           {/^hiit/i.test(it.name) ? "Taktu lotuna eftir lýsingunni hér að ofan." : "Hér eru engin sett skráð."}
         </p>
       )}
@@ -400,7 +400,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   };
 
   return (
-    <div className="space-y-3 rounded-2xl bg-slate-50 p-3">
+    <div className="space-y-3 rounded-2xl bg-hc-sunken p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-semibold text-slate-800">Skrá sett</p>
         <div className="flex items-center gap-3">
@@ -409,13 +409,13 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
               Met: {pr.weight} kg{pr.reps ? ` × ${pr.reps}` : ""}
             </p>
           )}
-          <p className="text-xs text-slate-600">{today.length} af {target} í dag</p>
+          <p className="text-xs text-hc-ink-2">{today.length} af {target} í dag</p>
           {speechAvailable() && (
             <button type="button"
               onClick={() => { const v = !voice; setVoice(v); setVoiceEnabled(v); if (!v) stopSpeaking(); }}
               aria-pressed={voice}
               title={voice ? "Raddleiðbeiningar í hvíld: á" : "Raddleiðbeiningar í hvíld: af"}
-              className={`rounded-lg p-1 ${voice ? "text-orange-700" : "text-slate-500"}`}>
+              className={`rounded-lg p-1 ${voice ? "text-orange-700" : "text-hc-ink-3"}`}>
               {voice ? <Volume2 className="h-4 w-4" aria-hidden /> : <VolumeX className="h-4 w-4" aria-hidden />}
               <span className="sr-only">Raddleiðbeiningar</span>
             </button>
@@ -427,8 +427,8 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
           set by set — rather than averaged, because the shape of the session
           is what you are repeating. */}
       {prev && prev.sets.length > 0 && (
-        <p className="-mt-1 flex flex-wrap items-baseline gap-x-2 text-xs text-slate-600">
-          <span className="font-semibold text-slate-600">Síðast {shortDate(prev.date)}:</span>
+        <p className="-mt-1 flex flex-wrap items-baseline gap-x-2 text-xs text-hc-ink-2">
+          <span className="font-semibold text-hc-ink-2">Síðast {shortDate(prev.date)}:</span>
           <span className="tabular-nums">
             {prev.sets.slice(0, 5).map((r, i) => (
               <span key={i}>
@@ -493,15 +493,15 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
           {/* Set it before the set, not only while the clock is running —
               otherwise the only way to change it is to be resting already. */}
           {prescribedRest > 0 && (
-            <div className="flex items-center justify-center gap-2 text-sm text-slate-600">
+            <div className="flex items-center justify-center gap-2 text-sm text-hc-ink-2">
               <span>Hvíld</span>
               <button type="button" onClick={() => changeRest(restSec - 15)} aria-label="Stytta hvíld um 15 sekúndur"
-                className="h-7 w-7 rounded-lg font-bold text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-100">−</button>
+                className="h-7 w-7 rounded-lg font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2">−</button>
               <span className="min-w-14 text-center font-bold tabular-nums text-slate-800">
                 {restSec >= 60 ? `${Math.floor(restSec / 60)}:${String(restSec % 60).padStart(2, "0")}` : `${restSec} sek.`}
               </span>
               <button type="button" onClick={() => changeRest(restSec + 15)} aria-label="Lengja hvíld um 15 sekúndur"
-                className="h-7 w-7 rounded-lg font-bold text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-100">+</button>
+                className="h-7 w-7 rounded-lg font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2">+</button>
               {restSec !== prescribedRest && (
                 <button type="button" onClick={() => { try { window.localStorage.removeItem(restKey); } catch { /* private mode */ } setRestSec(prescribedRest); }}
                   className="font-semibold text-hc-brand-dark hover:underline">Sjálfgefið</button>
@@ -512,7 +512,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
       )}
 
       {suggested && !fromHistory && (
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-hc-ink-2">
           Tillaga {BASIS_IS[suggested.basis]}. Stilltu hana þar til síðustu endurtekningarnar eru erfiðar.
         </p>
       )}
@@ -520,7 +520,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
       {today.length > 0 && (
         <ul className="flex flex-wrap gap-1.5">
           {today.map((s, i) => (
-            <li key={s.id ?? i} className="flex items-center gap-1 rounded-lg bg-white py-1 pl-2 pr-1 text-xs font-medium text-slate-700 ring-1 ring-hc-hairline">
+            <li key={s.id ?? i} className="flex items-center gap-1 rounded-lg bg-hc-surface py-1 pl-2 pr-1 text-xs font-medium text-slate-700 ring-1 ring-hc-hairline">
               <span className="tabular-nums">{s.weight != null ? `${s.weight} kg × ` : ""}{s.reps}{timed ? " sek." : ""}</span>
               {/* A mistyped weight is the common case and it used to be
                   permanent — it would then feed the suggestion for next
@@ -528,7 +528,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
               {s.id && (
                 <button type="button" onClick={() => void removeSet(s.id!)} disabled={removing === s.id}
                   aria-label={`Eyða setti ${i + 1}`}
-                  className="grid h-5 w-5 place-items-center rounded text-slate-500 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
+                  className="grid h-5 w-5 place-items-center rounded text-hc-ink-3 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
                   <X className="h-3 w-3" aria-hidden />
                 </button>
               )}

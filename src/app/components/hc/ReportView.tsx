@@ -173,7 +173,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
           The boxes use CHIP now, the exact classes every pill further down
           the page uses, which means the hero cannot be dark: a green chip
           needs a light ground to be green on. */}
-      <section className="overflow-hidden rounded-3xl bg-white p-5 shadow-hc-card ring-1 ring-hc-hairline sm:p-6">
+      <section className="overflow-hidden rounded-3xl bg-hc-surface p-5 shadow-hc-card ring-1 ring-hc-hairline sm:p-6">
         {/* The score sits at the right edge, the size of what it is.
             It was inside the heading — "Lífstílseinkunn 7,4" as one line of
             text — which made the number the same weight as the word in
@@ -186,7 +186,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
             <h2 className="mt-1 text-2xl font-bold text-hc-ink sm:text-3xl">
               {overall ? "Lífstílseinkunn" : "Niðurstöður"}
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-hc-ink-2">
               {report.reportDate ? `Skýrsla ${longDateIs(report.reportDate)}` : "Úr heilsufarsskoðuninni"}
               {report.patient.name && audience === "staff" ? ` · ${report.patient.name}` : ""}
             </p>
@@ -245,7 +245,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
             findable without competing. */}
         {onUpload && (
           <button type="button" onClick={onUpload}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 ring-1 ring-hc-hairline transition hover:bg-slate-200">
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-hc-sunken-2 px-4 py-2 text-xs font-semibold text-slate-700 ring-1 ring-hc-hairline transition hover:bg-slate-200">
             <Upload className="h-3.5 w-3.5 shrink-0" aria-hidden />
             Ertu með nýrri skýrslu? Hlaða upp
           </button>
@@ -253,7 +253,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
       </section>
 
       {only && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-hc-element bg-slate-100 px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-hc-element bg-hc-sunken-2 px-4 py-2.5">
           <p className="min-w-0 flex-1 text-sm font-semibold text-slate-700">
             Sýni aðeins: {SIGNAL_LABEL[only].toLowerCase()} ({counts[only]})
           </p>
@@ -276,7 +276,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
               return (
                 <li key={item.key} className="rounded-2xl bg-red-50 px-4 py-3 ring-1 ring-red-200">
                   <p className="flex items-baseline gap-2">
-                    <span className="font-bold text-slate-900">{item.title}</span>
+                    <span className="font-bold text-hc-ink">{item.title}</span>
                     <span className="ml-auto shrink-0 font-bold tabular-nums text-red-700">
                       {fmt(item.value)}{item.unit ? ` ${item.unit}` : ""}
                     </span>
@@ -309,7 +309,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
         const off = rows.filter((r) => r.signal === "red").length;
         return (
           <section key={s.key}
-            className="overflow-hidden rounded-2xl border border-hc-hairline bg-white"
+            className="overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface"
             style={{ borderLeftWidth: 3, borderLeftColor: s.accent }}>
             {/* A wash of the section's own colour behind the heading. Enough
                 to break the page into blocks, not enough to compete with the
@@ -329,7 +329,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
               {avg !== undefined && (
                 <span className={`flex items-baseline gap-1 ${s.pillar && s.key === weakest ? "" : "ml-auto"}`}>
                   <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: s.accent }}>{fmt1(avg)}</span>
-                  <span className="text-xs font-semibold text-slate-600">af 10</span>
+                  <span className="text-xs font-semibold text-hc-ink-2">af 10</span>
                 </span>
               )}
               {/* Only the red one survives. The amber chip and "Allt í lagi"
@@ -341,9 +341,9 @@ export default function ReportView({ report, signals, reference, sex, audience =
               )}
               {/* order-last keeps the subtext under the whole line, so the
                   score sits beside the title rather than after a sentence. */}
-              {s.blurb && <p className="order-last w-full text-xs font-normal normal-case tracking-normal text-slate-600">{s.blurb}</p>}
+              {s.blurb && <p className="order-last w-full text-xs font-normal normal-case tracking-normal text-hc-ink-2">{s.blurb}</p>}
             </div>
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-hc-hairline">
               {shown.map(({ item, signal }) => (
                 <Row key={item.key} item={item} signal={signal} entry={reference?.[item.key]} sex={sex ?? null} />
               ))}
@@ -383,11 +383,11 @@ function Row({ item, signal, entry, sex }: {
   return (
     <li>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50">
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hc-sunken">
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${signal ? DOT[signal] : "bg-slate-300"}`} aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block font-semibold text-slate-900">{item.title}</span>
-          <span className="block text-xs text-slate-600">
+          <span className="block font-semibold text-hc-ink">{item.title}</span>
+          <span className="block text-xs text-hc-ink-2">
             {signal ? SIGNAL_LABEL[signal] : "Engin viðmið"}
             {disagrees ? ` · skýrslan segir „${item.label}“` : ""}
             {/* A good score can sit on top of several habits that are missing:
@@ -402,19 +402,19 @@ function Row({ item, signal, entry, sex }: {
           </span>
         </span>
         {item.trend.length > 0 && (
-          <span className={`hidden items-center gap-1 text-xs sm:flex ${move > 0 ? "text-emerald-700" : move < 0 ? "text-slate-600" : "text-slate-500"}`}>
+          <span className={`hidden items-center gap-1 text-xs sm:flex ${move > 0 ? "text-emerald-700" : move < 0 ? "text-hc-ink-2" : "text-hc-ink-3"}`}>
             {move > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : move < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
             {move !== 0 ? `${move > 0 ? "+" : ""}${fmt(move)}` : "óbreytt"}
           </span>
         )}
-        <span className={`shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${signal ? CHIP[signal] : "bg-slate-50 text-slate-700 ring-hc-hairline"}`}>
+        <span className={`shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${signal ? CHIP[signal] : "bg-hc-sunken text-slate-700 ring-hc-hairline"}`}>
           {fmt(item.value)}{item.unit ? ` ${item.unit}` : ""}
         </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-4 w-4 shrink-0 text-hc-ink-3 transition ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div className="space-y-4 border-t border-slate-100 bg-slate-50/70 px-4 py-4">
+        <div className="space-y-4 border-t border-hc-hairline bg-hc-sunken/70 px-4 py-4">
           {entry && entry.bands.length > 0 && (
             <BandScale bands={entry.bands} value={item.value} unit={item.unit || entry.unit} sex={sex} />
           )}
@@ -432,7 +432,7 @@ function Row({ item, signal, entry, sex }: {
                   </li>
                 ))}
               </ul>
-              <p className="mt-1.5 text-[11px] text-slate-600">
+              <p className="mt-1.5 text-[11px] text-hc-ink-2">
                 Úr ráðleggingum skýrslunnar. Rauður punktur er forgangur 1, gulur forgangur 2.
               </p>
             </Block>
@@ -504,7 +504,7 @@ function Row({ item, signal, entry, sex }: {
               </ul>
             </Block>
           )}
-          {item.review && <p className="text-xs text-slate-600">{item.review}</p>}
+          {item.review && <p className="text-xs text-hc-ink-2">{item.review}</p>}
         </div>
       )}
     </li>
@@ -514,7 +514,7 @@ function Row({ item, signal, entry, sex }: {
 function Block({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">{title}</p>
+      <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-2">{title}</p>
       {children}
     </div>
   );
@@ -552,7 +552,7 @@ function BandScale({ bands, value, unit, sex }: {
 
   return (
     <div>
-      <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
+      <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
         Viðmið Lifeline{sex ? (sex === "m" ? " · karlar" : " · konur") : ""}
       </p>
       <div className="relative pt-6">
@@ -571,14 +571,14 @@ function BandScale({ bands, value, unit, sex }: {
       </div>
       <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1">
         {ordered.map((b, i) => (
-          <li key={i} className="flex items-center gap-1.5 text-xs text-slate-600">
+          <li key={i} className="flex items-center gap-1.5 text-xs text-hc-ink-2">
             <span className={`h-2 w-2 shrink-0 rounded-full ${TONE_BAR[b.tone]}`} aria-hidden />
             <span className="font-semibold text-slate-800">{b.label}</span>
             <span className="tabular-nums">{rangeText(b, unit)}</span>
           </li>
         ))}
       </ul>
-      {note && <p className="mt-1.5 text-xs text-slate-600">{note}</p>}
+      {note && <p className="mt-1.5 text-xs text-hc-ink-2">{note}</p>}
     </div>
   );
 }
@@ -610,7 +610,7 @@ function Trend({ item }: { item: ReportItem }) {
         <path d={d} fill="none" stroke="#10B981" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
         <circle cx={w} cy={h - ((item.value - min) / span) * h} r={2.5} fill="#10B981" />
       </svg>
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-hc-ink-2">
         {points[0].date} · {fmt(points[0].value)} → {item.date} · {fmt(item.value)}
       </p>
     </div>

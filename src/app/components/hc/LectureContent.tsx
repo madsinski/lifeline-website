@@ -23,7 +23,7 @@ const themeFor = (p?: string | null) => THEMES[(p ?? "general") as keyof typeof 
 function Refs({ refs, light }: { refs?: string[]; light?: boolean }) {
   if (!refs?.length) return null;
   return (
-    <p className={`mt-6 flex items-start gap-1.5 text-xs leading-snug ${light ? "text-slate-600" : "text-white/60"}`}>
+    <p className={`mt-6 flex items-start gap-1.5 text-xs leading-snug ${light ? "text-hc-ink-2" : "text-white/60"}`}>
       <BookOpen className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
       <span>{refs.join(" · ")}</span>
     </p>
@@ -73,8 +73,8 @@ export function Markdown({ text }: { text: string }) {
           return (
             <figure key={i} className="my-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img[2]} alt={img[1]} className="w-full rounded-2xl border border-slate-100 bg-white shadow-sm" loading="lazy" />
-              {img[1] && <figcaption className="mt-2 text-center text-sm text-slate-600">{img[1]}</figcaption>}
+              <img src={img[2]} alt={img[1]} className="w-full rounded-2xl border border-hc-hairline bg-hc-surface shadow-sm" loading="lazy" />
+              {img[1] && <figcaption className="mt-2 text-center text-sm text-hc-ink-2">{img[1]}</figcaption>}
             </figure>
           );
         }
@@ -83,7 +83,7 @@ export function Markdown({ text }: { text: string }) {
           return (
             <figure key={i} className="my-2">
               <VideoEmbed url={vid[1]} title={vid[2] || "Myndband"} />
-              {vid[2] && <figcaption className="mt-2 text-center text-sm text-slate-600">{vid[2]}</figcaption>}
+              {vid[2] && <figcaption className="mt-2 text-center text-sm text-hc-ink-2">{vid[2]}</figcaption>}
             </figure>
           );
         }
@@ -145,7 +145,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
           <div className="grid min-h-[340px] items-center gap-6 p-7 sm:p-10 md:grid-cols-[1fr_1.15fr]">
             <div>{eyebrow}<h2 className="mt-3 text-2xl font-bold sm:text-3xl">{slide.title}</h2>{body}{refs}</div>
             {slide.image_url
-              ? <div className="rounded-2xl bg-white/95 p-2 shadow-inner">
+              ? <div className="rounded-2xl bg-hc-surface/95 p-2 shadow-inner">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={slide.image_url} alt={slide.title} className="h-auto w-full rounded-xl" />
                 </div>
@@ -155,16 +155,16 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
       );
     case "fullimage":
       return (
-        <figure className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-hc-hairline">
+        <figure className="overflow-hidden rounded-3xl bg-hc-surface shadow-lg ring-1 ring-hc-hairline">
           {slide.image_url
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={slide.image_url} alt={slide.caption || slide.title} className="h-auto w-full" />
-            : <div className="flex aspect-video items-center justify-center bg-slate-100 text-sm text-slate-600">Engin mynd valin</div>}
+            : <div className="flex aspect-video items-center justify-center bg-hc-sunken-2 text-sm text-hc-ink-2">Engin mynd valin</div>}
           {(slide.title || slide.caption) && (
             <figcaption className="px-6 py-4">
               {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">{counter}</p>}
               {slide.title && <p className="mt-1 text-lg font-bold text-hc-ink">{slide.title}</p>}
-              {slide.caption && <p className="text-sm text-slate-600">{slide.caption}</p>}
+              {slide.caption && <p className="text-sm text-hc-ink-2">{slide.caption}</p>}
             </figcaption>
           )}
         </figure>
@@ -243,12 +243,12 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
       );
     case "sources":
       return (
-        <div className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-hc-hairline">
+        <div className="overflow-hidden rounded-3xl bg-hc-surface shadow-lg ring-1 ring-hc-hairline">
           <div className="min-h-[340px] p-7 sm:p-10">
-            {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-600">{counter}</p>}
-            <h2 className="mt-2 flex items-center gap-2 text-2xl font-bold text-hc-ink"><BookOpen className="h-6 w-6 text-slate-500" aria-hidden />{slide.title || "Heimildir"}</h2>
-            {slide.body && <p className="mt-2 text-sm text-slate-600">{slide.body}</p>}
-            <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm leading-snug text-slate-700 marker:text-slate-500">
+            {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-hc-ink-2">{counter}</p>}
+            <h2 className="mt-2 flex items-center gap-2 text-2xl font-bold text-hc-ink"><BookOpen className="h-6 w-6 text-hc-ink-3" aria-hidden />{slide.title || "Heimildir"}</h2>
+            {slide.body && <p className="mt-2 text-sm text-hc-ink-2">{slide.body}</p>}
+            <ol className="mt-5 list-decimal space-y-2 pl-5 text-sm leading-snug text-slate-700 marker:text-hc-ink-3">
               {(slide.items ?? []).filter(Boolean).map((it, i) => <li key={i} className="break-words pl-1">{linkify(it)}</li>)}
             </ol>
           </div>
@@ -289,7 +289,7 @@ export function SlideDeck({ slides, onLastSlide, start = 0, pillar }: { slides: 
     return () => window.removeEventListener("keydown", onKey);
   }, [last]);
 
-  if (!slides.length) return <p className="rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-600">Engar glærur enn.</p>;
+  if (!slides.length) return <p className="rounded-2xl bg-hc-sunken p-8 text-center text-sm text-hc-ink-2">Engar glærur enn.</p>;
 
   return (
     <ThemeCtx.Provider value={themeFor(pillar)}>
@@ -310,7 +310,7 @@ export function SlideDeck({ slides, onLastSlide, start = 0, pillar }: { slides: 
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
         <button type="button" onClick={() => setI(Math.max(0, idx - 1))} disabled={idx === 0}
-          className="inline-flex min-h-11 items-center gap-1 rounded-full border border-hc-hairline bg-white px-4 font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-30">
+          className="inline-flex min-h-11 items-center gap-1 rounded-full border border-hc-hairline bg-hc-surface px-4 font-semibold text-slate-700 shadow-sm hover:bg-hc-sunken disabled:opacity-30">
           <ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri
         </button>
         <div className="hidden flex-wrap justify-center gap-1.5 sm:flex" role="tablist" aria-label="Glærur">

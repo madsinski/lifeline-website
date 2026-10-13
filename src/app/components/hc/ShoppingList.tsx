@@ -85,7 +85,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
 
   const chip = (on: boolean, extra = "") =>
     `rounded-full px-2.5 py-1.5 text-xs font-bold transition ${
-      on ? `bg-lime-700 text-white ${extra}` : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`;
+      on ? `bg-lime-700 text-white ${extra}` : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline"}`;
 
   return (
     <Sheet title="Innkaupalisti" onClose={onClose} canvas>
@@ -96,7 +96,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             onClick={() => setDays(allWeek ? new Set([todayIdx]) : new Set([0, 1, 2, 3, 4, 5, 6]))}
             aria-pressed={allWeek}
             className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              allWeek ? "bg-hc-brand-dark text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
+              allWeek ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline"}`}>
             Vikan öll
           </button>
           {WEEKDAYS_SHORT.map((lbl, i) => (
@@ -111,13 +111,13 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
 
         {/* Slots. Separated from the days by a label, because two rows of
             chips with nothing between them read as one broken row. */}
-        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-slate-600">Máltíðir dagsins</p>
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wide text-hc-ink-2">Máltíðir dagsins</p>
         <div className="mt-1 flex flex-wrap gap-1.5">
           <button type="button"
             onClick={() => setCats(allCats ? new Set<SlotCat>(["breakfast"]) : new Set(SLOT_CATS))}
             aria-pressed={allCats}
             className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              allCats ? "bg-hc-brand-dark text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
+              allCats ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline"}`}>
             Allar
           </button>
           {SLOT_CATS.map((c) => (
@@ -129,7 +129,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
         </div>
 
         {inScope.length === 0 ? (
-          <p className="mt-3 rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-hc-hairline">
+          <p className="mt-3 rounded-2xl bg-hc-surface p-4 text-sm text-hc-ink-2 ring-1 ring-hc-hairline">
             Engin máltíð valin. Veldu dag og máltíð til að sjá hvað þarf að kaupa.
           </p>
         ) : (
@@ -138,21 +138,21 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
                 trips do not need it, but when you need it nothing else will
                 do. */}
             <button type="button" onClick={() => setMealsOpen((v) => !v)} aria-expanded={mealsOpen}
-              className="mt-3 flex w-full items-center gap-2 rounded-2xl bg-white p-3 text-left ring-1 ring-hc-hairline">
-              <span className="min-w-0 flex-1 text-sm font-semibold text-slate-900">
+              className="mt-3 flex w-full items-center gap-2 rounded-2xl bg-hc-surface p-3 text-left ring-1 ring-hc-hairline">
+              <span className="min-w-0 flex-1 text-sm font-semibold text-hc-ink">
                 {picked.length} af {inScope.length} máltíðum
               </span>
-              <span className="shrink-0 text-xs font-semibold text-slate-600">Velja</span>
-              <ChevronDown className={`h-4 w-4 shrink-0 text-slate-600 transition ${mealsOpen ? "rotate-180" : ""}`} aria-hidden />
+              <span className="shrink-0 text-xs font-semibold text-hc-ink-2">Velja</span>
+              <ChevronDown className={`h-4 w-4 shrink-0 text-hc-ink-2 transition ${mealsOpen ? "rotate-180" : ""}`} aria-hidden />
             </button>
 
             {mealsOpen && (
-              <ul className="mt-1.5 overflow-hidden rounded-2xl bg-white ring-1 ring-hc-hairline">
+              <ul className="mt-1.5 overflow-hidden rounded-2xl bg-hc-surface ring-1 ring-hc-hairline">
                 {inScope.map((p) => {
                   const key = plannedKey(p);
                   const on = !dropped.has(key);
                   return (
-                    <li key={key} className="border-b border-slate-100 last:border-b-0">
+                    <li key={key} className="border-b border-hc-hairline last:border-b-0">
                       <button type="button" onClick={() => setDropped((prev) => toggleIn(prev, key))}
                         aria-pressed={on} className="flex w-full items-center gap-3 p-3 text-left">
                         <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 transition ${
@@ -160,10 +160,10 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
                           <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className={`block truncate text-sm font-semibold ${on ? "text-slate-900" : "text-slate-500"}`}>
+                          <span className={`block truncate text-sm font-semibold ${on ? "text-hc-ink" : "text-hc-ink-3"}`}>
                             {mealName(p.meal)}
                           </span>
-                          <span className="block text-[11px] text-slate-600">
+                          <span className="block text-[11px] text-hc-ink-2">
                             {WEEKDAYS[p.dayIdx]} · {SLOT_IS[p.slot]}
                           </span>
                         </span>
@@ -175,28 +175,28 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             )}
 
             <div className="mt-3 flex items-baseline justify-between gap-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">
+              <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">
                 {lines.length} {lines.length === 1 ? "lína" : "línur"}
                 {ticked.size > 0 ? ` · ${ticked.size} í körfunni` : ""}
               </p>
               <button type="button" onClick={() => void copy()}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900">
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink">
                 {copied ? <Check className="h-3.5 w-3.5 text-lime-700" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
                 {copied ? "Afritað" : "Afrita"}
               </button>
             </div>
 
             {lines.length === 0 ? (
-              <p className="mt-2 rounded-2xl bg-white p-4 text-sm text-slate-600 ring-1 ring-hc-hairline">
+              <p className="mt-2 rounded-2xl bg-hc-surface p-4 text-sm text-hc-ink-2 ring-1 ring-hc-hairline">
                 Engin máltíð valin af þeim sem eru í boði.
               </p>
             ) : (
-              <ul className="mt-2 overflow-hidden rounded-2xl bg-white ring-1 ring-hc-hairline">
+              <ul className="mt-2 overflow-hidden rounded-2xl bg-hc-surface ring-1 ring-hc-hairline">
                 {lines.map((l) => {
                   const key = `${l.text}|${l.unit ?? ""}`;
                   const on = ticked.has(key);
                   return (
-                    <li key={key} className="border-b border-slate-100 last:border-b-0">
+                    <li key={key} className="border-b border-hc-hairline last:border-b-0">
                       {/* Ticking is for the shop and nothing else: it is not
                           saved, because a basket is a half-hour's state and
                           storing it would mean clearing it later. */}
@@ -208,12 +208,12 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
                           <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className={`block font-semibold ${on ? "text-slate-500 line-through" : "text-slate-900"}`}>
+                          <span className={`block font-semibold ${on ? "text-hc-ink-3 line-through" : "text-hc-ink"}`}>
                             {formatQty(l.qty, l.unit)} {l.text}
                           </span>
                           {/* Which meals wanted it, so a surprising amount can
                               be traced without opening every recipe. */}
-                          <span className="block truncate text-xs text-slate-600">úr {l.from.join(", ")}</span>
+                          <span className="block truncate text-xs text-hc-ink-2">úr {l.from.join(", ")}</span>
                         </span>
                       </button>
                     </li>
@@ -223,7 +223,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             )}
 
             {/* The honest caveats, once, at the foot. */}
-            <p className="mt-2 px-1 text-xs text-slate-600">
+            <p className="mt-2 px-1 text-xs text-hc-ink-2">
               Magn er eins og það stendur í uppskriftunum — uppskrift fyrir tvo gefur tvo skammta.
               Sumt er ekki talið í magni, eins og salt og olía, og stendur þá eins og það er skrifað.
             </p>

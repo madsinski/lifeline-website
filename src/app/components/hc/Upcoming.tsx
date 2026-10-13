@@ -132,13 +132,13 @@ export function UpcomingSoon({ items, onDismiss }: {
 export function UpcomingList({ items, onNavigate }: { items: Upcoming[]; onNavigate?: (href: string) => boolean }) {
   if (!items.length) {
     return (
-      <p className="rounded-hc-card bg-hc-surface px-4 py-6 text-center text-sm text-slate-600 ring-1 ring-hc-hairline">
+      <p className="rounded-hc-card bg-hc-surface px-4 py-6 text-center text-sm text-hc-ink-2 ring-1 ring-hc-hairline">
         Ekkert bókað eins og er.
       </p>
     );
   }
   return (
-    <ul className={`${hcCard.base} divide-y divide-slate-100 overflow-hidden`}>
+    <ul className={`${hcCard.base} divide-y divide-hc-hairline overflow-hidden`}>
       {items.map((x) => <Row key={x.id} x={x} onNavigate={onNavigate} />)}
     </ul>
   );
@@ -170,7 +170,7 @@ function Row({ x, urgent = false, onNavigate }: {
 }) {
   const video = !!x.meetingUrl;
   return (
-    <li className="relative flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 transition hover:bg-slate-50 sm:px-5">
+    <li className="relative flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 transition hover:bg-hc-sunken sm:px-5">
       {/* Stretched over the row rather than wrapping it, so the "Fara á
           fundinn" button stays a separate target instead of being a link
           inside a link — which is invalid and behaves differently across
@@ -182,13 +182,13 @@ function Row({ x, urgent = false, onNavigate }: {
       </span>
       <span className="pointer-events-none relative z-10 min-w-0 flex-1">
         <span className="block font-semibold text-hc-ink">{x.title}</span>
-        <span className="block text-sm text-slate-600">
+        <span className="block text-sm text-hc-ink-2">
           {whenIs(x.start)}
           {x.minutes ? ` · ${x.minutes} mín.` : ""}
         </span>
         {/* A place, but never a URL: the link is the button beside it. */}
         {x.location && !video && (
-          <span className="mt-0.5 flex items-center gap-1 text-xs text-slate-600">
+          <span className="mt-0.5 flex items-center gap-1 text-xs text-hc-ink-2">
             <MapPin className="h-3 w-3 shrink-0" aria-hidden />{x.location}
           </span>
         )}

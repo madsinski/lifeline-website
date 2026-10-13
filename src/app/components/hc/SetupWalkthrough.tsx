@@ -168,8 +168,8 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
             <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-hc-brand text-white">
               <Check className="h-6 w-6" aria-hidden />
             </span>
-            <h3 className="mt-3 text-xl font-bold text-slate-900">Það er allt</h3>
-            <p className="mx-auto mt-1 max-w-xs text-sm text-slate-600">
+            <h3 className="mt-3 text-xl font-bold text-hc-ink">Það er allt</h3>
+            <p className="mx-auto mt-1 max-w-xs text-sm text-hc-ink-2">
               Þetta er það sem nýr þátttakandi fer í gegnum. Þú getur alltaf breytt hverju sem er í stillingum.
             </p>
             {/* A way back from the end.
@@ -182,7 +182,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
                 Loka
               </button>
               <button type="button" onClick={() => setI(steps.length - 1)}
-                className="inline-flex items-center gap-1 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800">
+                className="inline-flex items-center gap-1 rounded-full px-4 py-2.5 text-sm font-semibold text-hc-ink-2 hover:text-slate-800">
                 <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
               </button>
             </div>
@@ -192,8 +192,8 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
             <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">
               Skref {i + 1} af {steps.length}
             </p>
-            <h3 className="mt-0.5 text-xl font-bold text-slate-900">{row.title}</h3>
-            <p className="mt-1 text-sm text-slate-600">{row.why}</p>
+            <h3 className="mt-0.5 text-xl font-bold text-hc-ink">{row.title}</h3>
+            <p className="mt-1 text-sm text-hc-ink-2">{row.why}</p>
 
             <div className="mt-4">
               {row.key === "track" && (
@@ -208,7 +208,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
               )}
               {row.key === "calendar" && (
                 <div>
-                  <p className="mb-2 text-sm text-slate-600">
+                  <p className="mb-2 text-sm text-hc-ink-2">
                     {calConnected
                       ? "Dagatalið er tengt. Tímar og myndsímtöl birtast þar sjálfkrafa."
                       : "Tengdu Google-dagatalið þitt. Myndsímtöl fá hlekk á fundinn og staðsetning fylgir bókuðum tímum."}
@@ -237,8 +237,8 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
                   {iosNeedsInstall ? (
                     <>
                       <InstallGuide bare defaultOpen />
-                      <div className="rounded-2xl bg-slate-50 p-3">
-                        <p className="text-xs text-slate-600">
+                      <div className="rounded-2xl bg-hc-sunken p-3">
+                        <p className="text-xs text-hc-ink-2">
                           Þegar Lifeline er á heimaskjánum opnarðu appið þaðan og velur áminningu hér.
                         </p>
                         <div className="mt-2 opacity-60"><NudgeSettings api={api} /></div>
@@ -257,9 +257,9 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
         )}
 
         {!last && (
-          <div className="mt-5 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-hc-hairline pt-4">
             <button type="button" disabled={i === 0} onClick={() => setI((n) => Math.max(0, n - 1))}
-              className="inline-flex items-center gap-1 text-sm font-semibold text-slate-600 disabled:opacity-40">
+              className="inline-flex items-center gap-1 text-sm font-semibold text-hc-ink-2 disabled:opacity-40">
               <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
             </button>
             {/* "Sleppa" and "Næsta" do the same thing on purpose. Nothing

@@ -137,7 +137,7 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
                 white, opaque, pressable, opening Æfingar. */}
             {todayItems.length ? todayItems.map((x) => (
               <button key={x.key} type="button" onClick={() => onOpenExercise(x.sessionId)}
-                className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-white px-3.5 py-3 text-left text-orange-950 shadow-md transition active:scale-[0.99] hover:bg-orange-50">
+                className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-hc-surface px-3.5 py-3 text-left text-orange-950 shadow-md transition active:scale-[0.99] hover:bg-orange-50">
                 <ActivityIcon name={x.title} className="h-5 w-5 shrink-0 text-orange-700" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold leading-tight">{x.title}</span>
@@ -183,10 +183,10 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
       </div>
 
       {(plan.goals?.length ?? 0) > 0 && (
-        <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-hc-hairline sm:p-5">
+        <section className="rounded-3xl bg-hc-surface p-4 shadow-sm ring-1 ring-hc-hairline sm:p-5">
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-hc-brand-dark" aria-hidden />
-            <p className="flex-1 font-semibold text-slate-900">Markmiðin mín</p>
+            <p className="flex-1 font-semibold text-hc-ink">Markmiðin mín</p>
             <button type="button" onClick={onEdit} className="text-sm font-semibold text-hc-brand-dark hover:underline">Breyta</button>
           </div>
           <ul className="mt-2 grid gap-2 sm:grid-cols-2">

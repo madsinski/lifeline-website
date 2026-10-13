@@ -63,7 +63,7 @@ export default function PinPad({ value, onChange, onComplete, disabled, error, a
               onClick={() => press(k)}
               disabled={disabled}
               aria-label={k === "back" ? "Eyða" : k}
-              className="flex h-16 items-center justify-center rounded-2xl bg-white text-2xl font-semibold text-slate-800 shadow-sm ring-1 ring-hc-hairline transition active:scale-95 active:bg-slate-100 disabled:opacity-50"
+              className="flex h-16 items-center justify-center rounded-2xl bg-hc-surface text-2xl font-semibold text-slate-800 shadow-sm ring-1 ring-hc-hairline transition active:scale-95 active:bg-hc-sunken-2 disabled:opacity-50"
             >
               {k === "back" ? "⌫" : k}
             </button>

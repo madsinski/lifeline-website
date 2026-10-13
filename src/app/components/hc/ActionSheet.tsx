@@ -48,21 +48,21 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
   return (
     <Sheet title={a.title} onClose={onClose}
       header={
-        <div className="flex items-start gap-3 border-b border-slate-100 p-4" style={{ background: meta.soft }}>
+        <div className="flex items-start gap-3 border-b border-hc-hairline p-4" style={{ background: meta.soft }}>
           <PillarIcon pillar={a.pillar} />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-wide" style={{ color: meta.ink }}>{meta.label}</p>
-            <p className="font-bold text-slate-900">{a.title}</p>
-            {a.frequency && <p className="text-xs text-slate-600">{a.frequency}</p>}
+            <p className="font-bold text-hc-ink">{a.title}</p>
+            {a.frequency && <p className="text-xs text-hc-ink-2">{a.frequency}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-slate-600 hover:bg-white/60"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-hc-ink-2 hover:bg-hc-surface/60"><X className="h-5 w-5" /></button>
         </div>
       }>
 
 
         <div className="space-y-4 p-4">
           {a.summary && <p className="text-sm text-slate-700">{a.summary}</p>}
-          {a.details && <p className="whitespace-pre-line text-sm text-slate-600">{a.details}</p>}
+          {a.details && <p className="whitespace-pre-line text-sm text-hc-ink-2">{a.details}</p>}
           {a.note && <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm italic text-emerald-900">{a.note}</p>}
 
           {/* An exact time, if they want one.
@@ -72,22 +72,22 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
               if it helps them — optional, and clearable, because a habit
               with a time you keep missing is worse than one without. */}
           {onTime && (
-            <div className="flex flex-wrap items-center gap-2 rounded-hc-element bg-slate-50 p-3 ring-1 ring-hc-hairline">
+            <div className="flex flex-wrap items-center gap-2 rounded-hc-element bg-hc-sunken p-3 ring-1 ring-hc-hairline">
               <label className="flex items-center gap-2 text-sm font-semibold text-hc-ink">
-                <Clock className="h-4 w-4 text-slate-600" aria-hidden />
+                <Clock className="h-4 w-4 text-hc-ink-2" aria-hidden />
                 Tími
                 <input type="time" value={atTime ?? ""} onChange={(e) => onTime(e.target.value || null)}
                   aria-label={`Tími fyrir ${a.title}`}
-                  className="rounded-hc-element border border-hc-control bg-white px-2.5 py-1.5 text-sm text-hc-ink outline-none focus:border-hc-brand" />
+                  className="rounded-hc-element border border-hc-control bg-hc-surface px-2.5 py-1.5 text-sm text-hc-ink outline-none focus:border-hc-brand" />
               </label>
               {atTime
                 ? (
                   <button type="button" onClick={() => onTime(null)}
-                    className="text-xs font-semibold text-slate-600 underline-offset-2 hover:text-slate-800 hover:underline">
+                    className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-slate-800 hover:underline">
                     Hreinsa
                   </button>
                 )
-                : <span className="text-xs text-slate-600">Valfrjálst</span>}
+                : <span className="text-xs text-hc-ink-2">Valfrjálst</span>}
             </div>
           )}
 
@@ -95,13 +95,13 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
               Both used to sit on the row in Í dag, which made every row six
               things deep. They belong to one habit, so they belong here. */}
           {week && today && doneOn && onToggle && (
-            <div className="rounded-hc-element bg-slate-50 p-3 ring-1 ring-hc-hairline">
+            <div className="rounded-hc-element bg-hc-sunken p-3 ring-1 ring-hc-hairline">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Vikan</p>
-                <p className="text-sm text-slate-600">
+                <p className="text-xs font-semibold uppercase tracking-wide text-hc-ink-2">Vikan</p>
+                <p className="text-sm text-hc-ink-2">
                   {a.frequency || "Daglega"}
                   {target < 7 && (
-                    <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-slate-500"}>
+                    <span className={thisWeek >= target ? "font-semibold text-emerald-700" : "text-hc-ink-3"}>
                       {" "}· {thisWeek} af {target}
                     </span>
                   )}
@@ -121,7 +121,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
                       aria-label={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : ""}: ${future ? "ekki komið" : on ? "búið" : "ekki búið"}`}
                       title={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : future ? " (framundan)" : ""}`}
                       className={`grid h-9 flex-1 place-items-center rounded-lg text-xs font-bold transition disabled:opacity-30 ${
-                        on ? "text-white" : "bg-white text-slate-500 ring-1 ring-hc-hairline"} ${d === today && !on ? "ring-2 ring-slate-400" : ""}`}
+                        on ? "text-white" : "bg-hc-surface text-hc-ink-3 ring-1 ring-hc-hairline"} ${d === today && !on ? "ring-2 ring-slate-400" : ""}`}
                       style={on ? { background: meta.color } : undefined}>
                       {WEEKDAY_SHORT[wd]}
                     </button>
@@ -144,10 +144,10 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
             <div className="flex flex-wrap gap-2">
               {links.go && (
                 <button type="button" onClick={() => { links.go!.onClick(); onClose(); }}
-                  className="inline-flex min-h-9 items-center rounded-full border border-hc-hairline px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">{links.go.label}</button>
+                  className="inline-flex min-h-9 items-center rounded-full border border-hc-hairline px-3 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">{links.go.label}</button>
               )}
               {links.lecture && (
-                <a href={links.lecture.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-hc-hairline px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <a href={links.lecture.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-hc-hairline px-3 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">
                   <BookOpen className="h-4 w-4" aria-hidden /> {links.lecture.title}
                 </a>
               )}
@@ -155,15 +155,15 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
           )}
 
           <label className="block">
-            <span className="text-xs font-semibold text-slate-600">Athugasemd til þjálfara</span>
+            <span className="text-xs font-semibold text-hc-ink-2">Athugasemd til þjálfara</span>
             <textarea value={v} onChange={(e) => setV(e.target.value)} rows={2} maxLength={300}
               onBlur={() => v.trim() !== note && onNote(v.trim())}
               placeholder="T.d. hvað gekk vel eða hvað var erfitt"
               className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500" />
           </label>
 
-          <div className="space-y-2 border-t border-slate-100 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Breyta</p>
+          <div className="space-y-2 border-t border-hc-hairline pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-hc-ink-2">Breyta</p>
             <button type="button" onClick={() => { onEditPillar(a.pillar); onClose(); }}
               className={`${hcBtn.secondary} w-full justify-start`}>
               <Pencil className="h-4 w-4" aria-hidden /> Breyta {meta.label.toLowerCase()}-aðgerðunum mínum

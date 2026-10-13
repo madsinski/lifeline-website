@@ -61,7 +61,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
 
   return (
     <section>
-      <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-600">
+      <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">
         {/* Red and pulsing, like the tab badge, because these are people
             waiting on a reply — the same thing an unread message is. A
             count in neutral ink said "there are some" where this has to say
@@ -77,7 +77,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
           </span>
         </span>
       </h2>
-      <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-hc-hairline bg-white">
+      <ul className="divide-y divide-hc-hairline overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface">
         {rows.map((r) => (
           <li key={r.id} className="px-4 py-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -85,11 +85,11 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
                 <span className={`h-1.5 w-1.5 rounded-full ${REQUEST_IS[r.kind].dot}`} aria-hidden />
                 {requestSummary(r.kind, r.detail)}
               </span>
-              <span className="font-semibold text-slate-900">{r.name ?? "—"}</span>
-              <span className="text-xs text-slate-600">beið í {waited(r.created_at)} · {STATUS_IS[r.status]}</span>
+              <span className="font-semibold text-hc-ink">{r.name ?? "—"}</span>
+              <span className="text-xs text-hc-ink-2">beið í {waited(r.created_at)} · {STATUS_IS[r.status]}</span>
               {onOpen && (
                 <button type="button" onClick={() => onOpen(r.journey_id)}
-                  className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900">
+                  className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-hc-ink-2 hover:text-hc-ink">
                   Opna <ChevronRight className="h-4 w-4" aria-hidden />
                 </button>
               )}
@@ -112,7 +112,7 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
                     Svara, held áfram
                   </button>
                   <button type="button" onClick={() => { setOpenId(null); setReply(""); }}
-                    className="min-h-9 px-2 text-sm text-slate-600">Hætta við</button>
+                    className="min-h-9 px-2 text-sm text-hc-ink-2">Hætta við</button>
                 </div>
               </div>
             ) : (

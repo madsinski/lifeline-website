@@ -92,11 +92,11 @@ export default function Caseload({ api, onOpen }: {
    */
   if (!clients.length) {
     return (
-      <section className="rounded-2xl bg-white p-4 ring-1 ring-hc-hairline">
+      <section className="rounded-2xl bg-hc-surface p-4 ring-1 ring-hc-hairline">
         <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-          <Users className="h-4 w-4 text-slate-500" aria-hidden /> Mínir skjólstæðingar
+          <Users className="h-4 w-4 text-hc-ink-3" aria-hidden /> Mínir skjólstæðingar
         </p>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-1 text-sm text-hc-ink-2">
           Enginn er skráður á þig. Þú birtist hér þegar þjálfari er valinn í heilsuferð einhvers.
         </p>
       </section>
@@ -106,11 +106,11 @@ export default function Caseload({ api, onOpen }: {
   const waiting = clients.filter((c) => c.needs_reply).length;
 
   return (
-    <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-hc-hairline">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-slate-100 p-4">
-        <p className="flex items-center gap-2 font-semibold text-slate-900">
-          <Users className="h-4 w-4 text-slate-500" aria-hidden /> Mínir skjólstæðingar
-          <span className="font-normal text-slate-600">{clients.length}</span>
+    <section className="overflow-hidden rounded-2xl bg-hc-surface ring-1 ring-hc-hairline">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-hc-hairline p-4">
+        <p className="flex items-center gap-2 font-semibold text-hc-ink">
+          <Users className="h-4 w-4 text-hc-ink-3" aria-hidden /> Mínir skjólstæðingar
+          <span className="font-normal text-hc-ink-2">{clients.length}</span>
         </p>
         {waiting > 0 && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-900 ring-1 ring-rose-200">
@@ -124,30 +124,30 @@ export default function Caseload({ api, onOpen }: {
         {clients.map((c) => {
           const tone = weekTone(c.days_7);
           return (
-            <li key={c.journey_id} className="border-b border-slate-100 last:border-b-0">
+            <li key={c.journey_id} className="border-b border-hc-hairline last:border-b-0">
               <button type="button" onClick={() => onOpen(c.journey_id)}
-                className="flex w-full items-start gap-3 p-4 text-left transition hover:bg-slate-50">
+                className="flex w-full items-start gap-3 p-4 text-left transition hover:bg-hc-sunken">
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-semibold text-slate-900">{c.name ?? "Án nafns"}</span>
+                    <span className="font-semibold text-hc-ink">{c.name ?? "Án nafns"}</span>
                     {c.entry && (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                      <span className="rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] font-semibold text-hc-ink-2">
                         {TRACK_IS[c.entry] ?? c.entry}
                       </span>
                     )}
                     {!c.has_plan && (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">Engin áætlun</span>
+                      <span className="rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] font-semibold text-hc-ink-2">Engin áætlun</span>
                     )}
                   </span>
 
                   {/* The last thing they said, because that is usually the
                       reason to open somebody. */}
                   {c.last_message ? (
-                    <span className={`mt-1 block truncate text-sm ${c.needs_reply ? "font-semibold text-rose-900" : "text-slate-600"}`}>
+                    <span className={`mt-1 block truncate text-sm ${c.needs_reply ? "font-semibold text-rose-900" : "text-hc-ink-2"}`}>
                       {c.last_message.fromClient ? "" : "Þú: "}{c.last_message.body}
                     </span>
                   ) : (
-                    <span className="mt-1 block text-sm text-slate-500">Engin skilaboð</span>
+                    <span className="mt-1 block text-sm text-hc-ink-3">Engin skilaboð</span>
                   )}
                 </span>
 
@@ -155,7 +155,7 @@ export default function Caseload({ api, onOpen }: {
                   <span className={`block rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ${tone.cls}`}>
                     {tone.label}
                   </span>
-                  <span className="mt-1 block text-[11px] tabular-nums text-slate-600">
+                  <span className="mt-1 block text-[11px] tabular-nums text-hc-ink-2">
                     {c.days_7}/{window_.short} dagar · {c.days_28}/{window_.long}
                   </span>
                 </span>

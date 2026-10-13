@@ -128,8 +128,8 @@ export default function BookVideo({ api, journey, onBooked }: {
   };
 
   return (
-    <div className="rounded-xl bg-slate-50 p-3 ring-1 ring-hc-hairline">
-      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
+    <div className="rounded-xl bg-hc-sunken p-3 ring-1 ring-hc-hairline">
+      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
         <Video className="h-3.5 w-3.5" aria-hidden /> Bóka myndsímtal
       </p>
 
@@ -140,12 +140,12 @@ export default function BookVideo({ api, journey, onBooked }: {
             disabled={k === "followup" && !journey.plan_published_at && !journey.followup_booked_for}
             title={k === "followup" && !journey.plan_published_at ? "Eftirfylgd bókast eftir að áætlun er birt" : KIND_IS[k].blurb}
             className={`flex-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition disabled:opacity-40 ${
-              kind === k ? "bg-hc-brand-dark text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:bg-slate-100"}`}>
+              kind === k ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-sunken-2"}`}>
             {KIND_IS[k].label}
           </button>
         ))}
       </div>
-      <p className="mt-1 text-[11px] text-slate-600">{KIND_IS[kind].blurb} · {KIND_IS[kind].minutes} mín.</p>
+      <p className="mt-1 text-[11px] text-hc-ink-2">{KIND_IS[kind].blurb} · {KIND_IS[kind].minutes} mín.</p>
 
       {/* Already booked */}
       {booked && !done && (
@@ -158,7 +158,7 @@ export default function BookVideo({ api, journey, onBooked }: {
         </p>
       )}
       {done && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-600">
+        <p className="mt-2 flex items-center gap-1.5 text-xs text-hc-ink-2">
           <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden /> Lokið {dayLabel(new Date(done))}.
         </p>
       )}
@@ -170,7 +170,7 @@ export default function BookVideo({ api, journey, onBooked }: {
         const from = interviewEligibleFrom(journey as Parameters<typeof interviewEligibleFrom>[0]);
         if (!from) {
           return (
-            <p className="mt-2 rounded-lg bg-slate-100 px-2 py-1.5 text-[11px] leading-snug text-slate-600">
+            <p className="mt-2 rounded-lg bg-hc-sunken-2 px-2 py-1.5 text-[11px] leading-snug text-hc-ink-2">
               Mælingar eða blóðprufa eru ekki búnar. Viðtalið er venjulega bókað eftir að hvort tveggja liggur fyrir.
             </p>
           );
@@ -194,10 +194,10 @@ export default function BookVideo({ api, journey, onBooked }: {
           return (
             <button key={d.toISOString()} type="button" onClick={() => setOffset(on ? null : i)}
               className={`shrink-0 rounded-lg px-2 py-1.5 text-center transition ${
-                on ? "bg-hc-brand-dark text-white" : "bg-white ring-1 ring-hc-hairline hover:bg-slate-100"}`}>
+                on ? "bg-hc-brand-dark text-white" : "bg-hc-surface ring-1 ring-hc-hairline hover:bg-hc-sunken-2"}`}>
               <span className="block text-[10px] leading-tight opacity-70">{WEEKDAYS_IS[d.getDay()]}</span>
               <span className="block text-sm font-bold leading-tight">{d.getDate()}</span>
-              <span className={`block text-[9px] leading-tight ${on ? "opacity-70" : free ? "text-emerald-700" : "text-slate-500"}`}>
+              <span className={`block text-[9px] leading-tight ${on ? "opacity-70" : free ? "text-emerald-700" : "text-hc-ink-3"}`}>
                 {free ? `${free} laus` : "fullt"}
               </span>
             </button>
@@ -214,8 +214,8 @@ export default function BookVideo({ api, journey, onBooked }: {
               <li key={t}>
                 <button type="button" disabled={no || saving} onClick={() => void save(iso)}
                   className={`w-full rounded-lg py-1 text-xs font-semibold transition ${
-                    no ? "cursor-not-allowed bg-slate-100 text-slate-300 line-through"
-                       : "bg-white text-slate-800 ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300"}`}>
+                    no ? "cursor-not-allowed bg-hc-sunken-2 text-slate-300 line-through"
+                       : "bg-hc-surface text-slate-800 ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300"}`}>
                   {t}
                 </button>
               </li>
@@ -224,9 +224,9 @@ export default function BookVideo({ api, journey, onBooked }: {
         </ul>
       )}
 
-      {saving && <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-600"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Bóka…</p>}
+      {saving && <p className="mt-2 flex items-center gap-1.5 text-xs text-hc-ink-2"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Bóka…</p>}
       {msg && <p role="status" className="mt-2 text-xs text-emerald-800">{msg}</p>}
-      <p className="mt-2 text-[11px] leading-snug text-slate-500">
+      <p className="mt-2 text-[11px] leading-snug text-hc-ink-3">
         Bókunin fer í dagatalið sjálfkrafa — í Google innan sekúndna, og í Apple eða Outlook um áskriftarslóðina.
       </p>
     </div>

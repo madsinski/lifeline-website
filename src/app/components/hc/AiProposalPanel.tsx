@@ -114,7 +114,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
         </button>
       </div>
       {!proposal && (
-        <p className="mt-1 text-xs text-slate-600">
+        <p className="mt-1 text-xs text-hc-ink-2">
           Mæligildin eru borin saman við viðmið Lifeline og tillaga að aðgerðum gerð út frá þeim. Þú velur svo hvað fer í áætlunina.
         </p>
       )}
@@ -124,7 +124,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
           says, and they are already on the report above. Folded away. */}
       {flagged && flagged.length > 0 && (
         <details className="mt-2 text-xs">
-          <summary className="cursor-pointer font-semibold text-slate-600">Gildin sem liggja að baki ({flagged.length})</summary>
+          <summary className="cursor-pointer font-semibold text-hc-ink-2">Gildin sem liggja að baki ({flagged.length})</summary>
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {flagged.map((f) => (
               <li key={f.slug} className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ring-1 ${SIGNAL_RING[f.signal]}`}>
@@ -141,27 +141,27 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
           {/* 1 ── the scope. The first real decision, so it comes first and
                   says what it means rather than needing a hover. */}
           <div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-600">1. Veldu umfang</p>
-            <div className="flex gap-1 rounded-xl bg-white p-1 ring-1 ring-hc-hairline">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-hc-ink-2">1. Veldu umfang</p>
+            <div className="flex gap-1 rounded-xl bg-hc-surface p-1 ring-1 ring-hc-hairline">
               {PRESETS.map((pr) => (
                 <button key={pr.key} type="button" onClick={() => preset(pr.key)}
                   aria-pressed={scope === pr.key}
                   className={`flex-1 rounded-lg px-2 py-1.5 text-sm font-semibold transition ${
-                    scope === pr.key ? "bg-hc-brand-dark text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+                    scope === pr.key ? "bg-hc-brand-dark text-white" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
                   {pr.label}
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-xs text-slate-600">{PRESETS.find((x) => x.key === scope)?.hint}</p>
+            <p className="mt-1 text-xs text-hc-ink-2">{PRESETS.find((x) => x.key === scope)?.hint}</p>
           </div>
 
           {/* 2 ── the actions. One line each; the reasoning opens on demand. */}
           <div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-600">
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
               2. Hakaðu við það sem fer í áætlunina
-              <span className="ml-1.5 font-normal normal-case tracking-normal text-slate-500">{chosen.length} af {proposal.actions.length} valin</span>
+              <span className="ml-1.5 font-normal normal-case tracking-normal text-hc-ink-3">{chosen.length} af {proposal.actions.length} valin</span>
             </p>
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl bg-white ring-1 ring-hc-hairline">
+            <ul className="divide-y divide-hc-hairline overflow-hidden rounded-xl bg-hc-surface ring-1 ring-hc-hairline">
               {proposal.actions.map((a, i) => {
                 const meta = PILLAR_META[a.pillar];
                 const open = why === i;
@@ -172,8 +172,8 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
                         aria-label={`Taka með: ${a.title}`} className="h-4 w-4 shrink-0 accent-emerald-600" />
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden title={meta.label} />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-slate-900">{a.title}</span>
-                        <span className="block truncate text-xs text-slate-600">
+                        <span className="block truncate text-sm font-semibold text-hc-ink">{a.title}</span>
+                        <span className="block truncate text-xs text-hc-ink-2">
                           {a.frequency || meta.label}
                           {/* Which recommendation in the report asked for this.
                               The nurse is choosing among the doctor's own
@@ -186,18 +186,18 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
                           )}
                         </span>
                       </span>
-                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{TIER_IS[a.tier]}</span>
+                      <span className="shrink-0 rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] font-semibold text-hc-ink-2">{TIER_IS[a.tier]}</span>
                       <button type="button" onClick={() => setWhy(open ? null : i)} aria-expanded={open}
                         aria-label={`Af hverju: ${a.title}`}
-                        className="shrink-0 rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700">
+                        className="shrink-0 rounded p-1 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-slate-700">
                         <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
                       </button>
                     </div>
                     {open && (
-                      <div className="border-t border-slate-100 bg-slate-50/70 px-3 py-2">
+                      <div className="border-t border-hc-hairline bg-hc-sunken/70 px-3 py-2">
                         <p className="text-sm text-slate-700">{a.detail}</p>
-                        {a.why && <p className="mt-1 text-xs italic text-slate-600">{a.why}</p>}
-                        {!a.module_key && <p className="mt-1 text-[11px] text-slate-500">Ný aðgerð — ekki úr aðgerðasafninu.</p>}
+                        {a.why && <p className="mt-1 text-xs italic text-hc-ink-2">{a.why}</p>}
+                        {!a.module_key && <p className="mt-1 text-[11px] text-hc-ink-3">Ný aðgerð — ekki úr aðgerðasafninu.</p>}
                       </div>
                     )}
                   </li>
@@ -215,16 +215,16 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
             </button>
             {/* The prose the model wrote: useful once, not worth a screen. */}
             <details className="text-xs">
-              <summary className="cursor-pointer font-semibold text-slate-600">Forsendur tillögunnar</summary>
-              <div className="mt-1.5 max-w-prose rounded-xl bg-white p-3">
-                <p className="font-semibold text-slate-900">{proposal.headline}</p>
-                <p className="mt-0.5 text-sm text-slate-600">{proposal.summary}</p>
+              <summary className="cursor-pointer font-semibold text-hc-ink-2">Forsendur tillögunnar</summary>
+              <div className="mt-1.5 max-w-prose rounded-xl bg-hc-surface p-3">
+                <p className="font-semibold text-hc-ink">{proposal.headline}</p>
+                <p className="mt-0.5 text-sm text-hc-ink-2">{proposal.summary}</p>
                 {proposal.focus.length > 0 && (
                   <ul className="mt-2 space-y-1">
                     {proposal.focus.map((f, k) => (
                       <li key={k} className="flex gap-2 text-sm">
                         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: PILLAR_META[f.pillar].color }} aria-hidden />
-                        <span><span className="font-semibold text-slate-800">{PILLAR_META[f.pillar].label}:</span> <span className="text-slate-600">{f.why}</span></span>
+                        <span><span className="font-semibold text-slate-800">{PILLAR_META[f.pillar].label}:</span> <span className="text-hc-ink-2">{f.why}</span></span>
                       </li>
                     ))}
                   </ul>
@@ -232,7 +232,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
               </div>
             </details>
           </div>
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-hc-ink-2">
             Þú getur dregið aðgerðir til, breytt þeim og bætt við úr safninu eftir að tillagan er sett inn.
           </p>
         </div>

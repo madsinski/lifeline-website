@@ -165,7 +165,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
            from, and choosing anything at all is done with it. */
         onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
         className={mobile
-          ? `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${on ? "text-hc-brand-dark" : "text-slate-600"}`
+          ? `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${on ? "text-hc-brand-dark" : "text-hc-ink-2"}`
           : `${hcTabs.tab(on)} flex items-center justify-center gap-2`}>
         <span className="relative">
           <i.Icon className={mobile ? "h-6 w-6" : "h-4 w-4"} strokeWidth={on && mobile ? 2.4 : 2} aria-hidden />
@@ -192,10 +192,10 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
               Meira
             </button>
             {more && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-hc-hairline">
+              <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl bg-hc-surface shadow-xl ring-1 ring-hc-hairline">
                 {rest.map((i) => (
                   <Link key={i.key} href={i.href} onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
-                    className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-700 hover:bg-slate-50"}`}>
+                    className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-700 hover:bg-hc-sunken"}`}>
                     <i.Icon className="h-5 w-5" aria-hidden />{i.label}
                     {i.key === "notifications" && count > 0 && (
                       <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{count > 9 ? "9+" : count}</span>
@@ -229,7 +229,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
          */
         const bar = (
           <nav aria-label="Heilsuferðin" hidden={keyboard.open}
-            className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hc-hairline bg-white/95 backdrop-blur sm:hidden print:hidden"
+            className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hc-hairline bg-hc-surface/95 backdrop-blur sm:hidden print:hidden"
             /* Height from the shared token, so a sticky dock can offset
                itself by exactly this and stay correct if it changes. */
             style={{ height: "var(--hc-nav-h)", paddingBottom: "env(safe-area-inset-bottom)", boxSizing: "content-box" }}>
@@ -237,7 +237,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
             {spill.length > 0 && (
               <div className="relative flex flex-1">
                 <button type="button" onClick={() => setMore(!more)} aria-expanded={more}
-                  className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${spillActive ? "text-hc-brand-dark" : "text-slate-600"}`}>
+                  className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${spillActive ? "text-hc-brand-dark" : "text-hc-ink-2"}`}>
                   <span className="relative">
                     <MoreHorizontal className="h-6 w-6" aria-hidden />
                     {spillUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${count} ný`} />}
@@ -245,10 +245,10 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
                   Meira
                 </button>
                 {more && (
-                  <div className="absolute bottom-full right-1 mb-2 w-48 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-hc-hairline">
+                  <div className="absolute bottom-full right-1 mb-2 w-48 overflow-hidden rounded-2xl bg-hc-surface shadow-xl ring-1 ring-hc-hairline">
                     {spill.map((i) => (
                       <Link key={i.key} href={i.href} onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
-                        className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-700 hover:bg-slate-50"}`}>
+                        className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-700 hover:bg-hc-sunken"}`}>
                         <i.Icon className="h-5 w-5" aria-hidden />{i.label}
                       </Link>
                     ))}

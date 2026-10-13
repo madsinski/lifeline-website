@@ -111,7 +111,7 @@ function Fraedsla() {
         )}
 
         {lectures !== null && lectures.length === 0 && (
-          <p className={`${hcCard.base} p-6 text-center text-sm text-slate-500`}>
+          <p className={`${hcCard.base} p-6 text-center text-sm text-hc-ink-3`}>
             Fræðsla bætist við áætlunina þegar hún er sett upp.
           </p>
         )}
@@ -146,17 +146,17 @@ function Fraedsla() {
                 style={meta ? { background: meta.soft, color: meta.ink } : { background: "#F1F5F9", color: "#475569" }}>
                 {meta ? meta.label : "Almennt"}
               </p>
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-hc-hairline">
                 {rows.map((l) => (
                   <li key={l.slug}>
                     <Link href={`/account/heilsuferd/fraedsla/${l.slug}`}
-                      className="flex items-center gap-3 px-4 py-3 transition hover:bg-slate-50">
+                      className="flex items-center gap-3 px-4 py-3 transition hover:bg-hc-sunken">
                       {l.completed
                         ? <CheckCircle2 className="h-6 w-6 shrink-0 text-hc-brand-dark" aria-label="Lokið" />
                         : <span className="h-6 w-6 shrink-0 rounded-full border-2 border-slate-200" aria-hidden />}
                       <span className="min-w-0 flex-1">
                         <span className={`block font-semibold ${l.completed ? "text-slate-400" : "text-hc-ink"}`}>{l.title}</span>
-                        {l.subtitle && <span className="mt-0.5 block truncate text-sm text-slate-500">{l.subtitle}</span>}
+                        {l.subtitle && <span className="mt-0.5 block truncate text-sm text-hc-ink-3">{l.subtitle}</span>}
                       </span>
                       {l.duration_min ? <span className="shrink-0 text-sm tabular-nums text-slate-400">{l.duration_min} mín.</span> : null}
                     </Link>

@@ -76,11 +76,11 @@ export default function ClientThread({ api, journeyId, onRead }: {
   return (
     <div className="space-y-2">
       {msgs.length === 0 ? (
-        <p className="rounded-2xl bg-white p-3 text-sm text-slate-600 ring-1 ring-hc-hairline">
+        <p className="rounded-2xl bg-hc-surface p-3 text-sm text-hc-ink-2 ring-1 ring-hc-hairline">
           Ekkert samtal enn. Það sem þú skrifar hér birtist í appinu hjá skjólstæðingnum.
         </p>
       ) : (
-        <div className="max-h-80 space-y-2 overflow-y-auto rounded-2xl bg-white p-3 ring-1 ring-hc-hairline">
+        <div className="max-h-80 space-y-2 overflow-y-auto rounded-2xl bg-hc-surface p-3 ring-1 ring-hc-hairline">
           {msgs.map((m) => {
             const mine = m.author_kind === "coach";
             return (
@@ -90,9 +90,9 @@ export default function ClientThread({ api, journeyId, onRead }: {
                      behalf, not something they typed, so it does not get to
                      look like their own words. */
                   m.kind === "nudge" ? "bg-amber-50 text-amber-900 ring-1 ring-amber-200"
-                    : mine ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-900"}`}>
+                    : mine ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink"}`}>
                   {m.body}
-                  <span className={`mt-1 block text-[10px] ${mine && m.kind !== "nudge" ? "text-white/60" : "text-slate-600"}`}>
+                  <span className={`mt-1 block text-[10px] ${mine && m.kind !== "nudge" ? "text-white/60" : "text-hc-ink-2"}`}>
                     {m.kind === "nudge" ? "Hvatning · " : ""}{when(m.created_at)}
                   </span>
                 </div>

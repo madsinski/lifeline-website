@@ -45,19 +45,19 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
   if (!g) return null;
 
   return (
-    <div className={headless ? "" : "border-t border-slate-100"}>
+    <div className={headless ? "" : "border-t border-hc-hairline"}>
       {!headless && <button type="button" onClick={() => setOpen(!openLocal)} aria-expanded={open}
         className="flex w-full items-center gap-2 px-4 py-2.5 text-left">
-        <Sparkles className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+        <Sparkles className="h-4 w-4 shrink-0 text-hc-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block text-xs font-semibold text-slate-700">
             {g.tag} · {g.trains}
           </span>
-          <span className="block truncate text-[11px] text-slate-600">
+          <span className="block truncate text-[11px] text-hc-ink-2">
             Mest á: {g.loads.join(", ")}
           </span>
         </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+        <ChevronDown className={`h-4 w-4 shrink-0 text-hc-ink-3 transition ${open ? "rotate-180" : ""}`} aria-hidden />
       </button>}
 
       {open && (
@@ -68,8 +68,8 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
             </p>
             <ul className="mt-1 space-y-1">
               {g.common.map((c) => (
-                <li key={c.area} className="text-xs leading-snug text-slate-600">
-                  <strong className="text-slate-900">{c.area}</strong> — {c.note}
+                <li key={c.area} className="text-xs leading-snug text-hc-ink-2">
+                  <strong className="text-hc-ink">{c.area}</strong> — {c.note}
                 </li>
               ))}
             </ul>
@@ -82,7 +82,7 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
               </p>
               <ul className="mt-1 space-y-0.5">
                 {g.warmup.map((w, i) => (
-                  <li key={i} className="text-xs leading-snug text-slate-600">· {w}</li>
+                  <li key={i} className="text-xs leading-snug text-hc-ink-2">· {w}</li>
                 ))}
               </ul>
             </div>
@@ -96,25 +96,25 @@ export default function SessionGuide({ name, modality, open: openProp, headless 
               </p>
               <ul className="mt-1 space-y-0.5">
                 {g.cooldown.map((c, i) => (
-                  <li key={i} className="text-xs leading-snug text-slate-600">· {c}</li>
+                  <li key={i} className="text-xs leading-snug text-hc-ink-2">· {c}</li>
                 ))}
               </ul>
             </div>
           </div>
 
           {/* What the evidence actually supports, including where it is thin. */}
-          <p className="rounded-xl bg-slate-50 p-3 text-[11px] leading-snug text-slate-600">
+          <p className="rounded-xl bg-hc-sunken p-3 text-[11px] leading-snug text-hc-ink-2">
             {g.evidence}
           </p>
 
-          <p className="text-[10px] leading-snug text-slate-500">
+          <p className="text-[10px] leading-snug text-hc-ink-3">
             Tölurnar lýsa hópum í rannsóknunum hér að neðan, ekki þér. Þetta er fræðsla, ekki
             sjúkdómsgreining eða meðferð — ræddu við þjálfarann eða lækni ef eitthvað er viðvarandi.
             {" "}
             {g.sources.map((s, i) => (
               <span key={s.url}>
                 {i > 0 ? " · " : ""}
-                <a href={s.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">{s.label}</a>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-hc-ink-2">{s.label}</a>
               </span>
             ))}
           </p>

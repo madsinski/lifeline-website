@@ -119,27 +119,27 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
   const soon = live.filter((b) => new Date(b.starts_at).getTime() >= asOf);
 
   const row = (b: Booking, dim: boolean) => (
-    <li key={b.id} className="border-b border-slate-100 p-3 last:border-b-0">
+    <li key={b.id} className="border-b border-hc-hairline p-3 last:border-b-0">
       <div className="flex items-start gap-3">
         <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${
           b.kind === "video" ? "bg-sky-50 text-sky-700" : "bg-emerald-50 text-emerald-700"}`}>
           {b.kind === "video" ? <Video className="h-4 w-4" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
         </span>
         <div className="min-w-0 flex-1">
-          <p className={`font-semibold ${dim ? "text-slate-500" : "text-slate-900"}`}>
+          <p className={`font-semibold ${dim ? "text-hc-ink-3" : "text-hc-ink"}`}>
             {bookingLabel(b.kind, b.items)}
           </p>
           {/* The date leads, and today and tomorrow are named, because the
               question a coach is holding is "is that soon?" — which
               "miðvikudagur, 14. október" makes you work out. */}
           <p className="text-sm">
-            <span className={`font-semibold ${dim ? "text-slate-500" : "text-slate-900"}`}>
+            <span className={`font-semibold ${dim ? "text-hc-ink-3" : "text-hc-ink"}`}>
               {whenLabel(b.starts_at, asOf).lead}
             </span>
-            <span className="text-slate-600"> · {whenLabel(b.starts_at, asOf).rest}
+            <span className="text-hc-ink-2"> · {whenLabel(b.starts_at, asOf).rest}
               {b.minutes ? ` · ${b.minutes} mín.` : ""}</span>
           </p>
-          {b.note && <p className="mt-1 text-sm text-slate-600">{b.note}</p>}
+          {b.note && <p className="mt-1 text-sm text-hc-ink-2">{b.note}</p>}
           {/* The join link, when Google has given us one. */}
           {b.meeting_url && !dim && (
             <a href={b.meeting_url} target="_blank" rel="noopener noreferrer"
@@ -151,7 +151,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
         {!dim && (
           <button type="button" onClick={() => void patch(b.id, { cancel: true })}
             disabled={busy === b.id} aria-label={`Afboða ${bookingLabel(b.kind, b.items)}`}
-            className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-50 hover:text-rose-600 disabled:opacity-50">
+            className="shrink-0 rounded-lg p-2 text-hc-ink-3 hover:bg-hc-sunken hover:text-rose-600 disabled:opacity-50">
             {busy === b.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <X className="h-4 w-4" aria-hidden />}
           </button>
         )}
@@ -167,7 +167,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
    * than from this page.
    */
   const form = adding && (
-        <div className="space-y-3 rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
+        <div className="space-y-3 rounded-2xl border border-hc-hairline bg-hc-sunken/60 p-3">
           {adding === "measurement" && (
             <div className="flex flex-wrap gap-1.5">
               {Object.keys(MEASURE_MINUTES).map((k) => {
@@ -176,7 +176,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
                   <button key={k} type="button" aria-pressed={on}
                     onClick={() => setItems((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))}
                     className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                      on ? "bg-emerald-700 text-white" : "bg-slate-50 text-slate-600 ring-1 ring-hc-hairline"}`}>
+                      on ? "bg-emerald-700 text-white" : "bg-hc-sunken text-hc-ink-2 ring-1 ring-hc-hairline"}`}>
                     {MEASURE_IS[k]} <span className="font-normal opacity-70">{MEASURE_MINUTES[k]} mín.</span>
                   </button>
                 );
@@ -189,12 +189,12 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
               <span className="font-medium text-slate-700">Dagur</span>
               <input type="date" value={day} onChange={(e) => setDay(e.target.value)}
                 min={asOf ? new Date(asOf).toISOString().slice(0, 10) : undefined}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" />
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-hc-ink" />
             </label>
             <label className="text-sm">
               <span className="font-medium text-slate-700">Tími</span>
               <select value={time} onChange={(e) => setTime(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900">
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-hc-ink">
                 {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </label>
@@ -203,7 +203,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           {/* The length comes from the shared table, not from this page —
               and saying it here means the coach sees the same number the
               diary will block out. */}
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-hc-ink-2">
             {adding === "measurement" && items.length === 0
               ? "Veldu mælingar til að sjá lengdina."
               : `${bookingMinutes(adding, items)} mínútur í dagbókinni.`}
@@ -218,7 +218,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
               {busy === "new" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Bóka
             </button>
             <button type="button" onClick={() => { setAdding(null); setErr(null); setItems([]); }}
-              className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
               Hætta við
             </button>
           </div>
@@ -238,13 +238,13 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
     const mine = { soon: soon.filter((b) => b.kind === kind), past: past.filter((b) => b.kind === kind) };
     const open = adding === kind;
     return (
-      <section className="rounded-2xl border border-hc-hairline bg-white p-3">
+      <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-3">
         <div className="mb-2 flex items-center gap-2">
           <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
             kind === "video" ? "bg-sky-50 text-sky-700" : "bg-emerald-50 text-emerald-700"}`}>
             {icon}
           </span>
-          <h3 className="flex-1 font-bold text-slate-900">{title}</h3>
+          <h3 className="flex-1 font-bold text-hc-ink">{title}</h3>
           {!open && (
             <button type="button" onClick={() => { setAdding(kind); setErr(null); }}
               className="shrink-0 rounded-full bg-hc-ink px-3 py-1.5 text-xs font-bold text-white">
@@ -254,14 +254,14 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
         </div>
 
         {mine.soon.length === 0 && mine.past.length === 0 && !open && (
-          <p className="px-1 pb-1 text-sm text-slate-600">
+          <p className="px-1 pb-1 text-sm text-hc-ink-2">
             {kind === "video" ? "Ekkert myndsímtal bókað." : "Engin mæling bókuð."}
           </p>
         )}
         {mine.soon.length > 0 && <ul className="overflow-hidden rounded-xl ring-1 ring-hc-hairline">{mine.soon.map((b) => row(b, false))}</ul>}
         {mine.past.length > 0 && (
           <>
-            <p className="mt-2 px-1 text-[11px] font-bold uppercase tracking-wide text-slate-600">Liðið</p>
+            <p className="mt-2 px-1 text-[11px] font-bold uppercase tracking-wide text-hc-ink-2">Liðið</p>
             <ul className="mt-1 overflow-hidden rounded-xl ring-1 ring-hc-hairline">{mine.past.map((b) => row(b, true))}</ul>
           </>
         )}

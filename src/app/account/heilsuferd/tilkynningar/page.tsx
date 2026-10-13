@@ -73,14 +73,14 @@ function Tilkynningar() {
         </h1>
         {ready
           ? <UpcomingList items={upcoming} />
-          : <div className="h-28 animate-pulse rounded-hc-card bg-white" aria-hidden />}
+          : <div className="h-28 animate-pulse rounded-hc-card bg-hc-surface" aria-hidden />}
 
         <h2 className="mb-4 mt-8 flex items-center gap-2 text-2xl font-bold text-hc-ink sm:text-3xl">
           <Zap className="h-6 w-6 shrink-0 text-slate-400" aria-hidden />Tilkynningar
         </h2>
         {ready
           ? <NotificationList items={items} />
-          : <div className="h-40 animate-pulse rounded-hc-card bg-white" aria-hidden />}
+          : <div className="h-40 animate-pulse rounded-hc-card bg-hc-surface" aria-hidden />}
       </div>
     </div>
   );

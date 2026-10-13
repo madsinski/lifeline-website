@@ -65,10 +65,10 @@ export default function ClientsView({ api, onOpenClient }: {
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-lg bg-slate-100 p-0.5">
+        <div className="flex rounded-lg bg-hc-sunken-2 p-0.5">
           {(["all", "groups"] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTab(t)}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${tab === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`}>
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${tab === t ? "bg-hc-surface text-hc-ink shadow-sm" : "text-hc-ink-2"}`}>
               {t === "all" ? <Users className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
               {t === "all" ? `Allir${rows ? ` · ${rows.length}` : ""}` : `Hópar${groups ? ` · ${groups.length}` : ""}`}
             </button>
@@ -83,62 +83,62 @@ export default function ClientsView({ api, onOpenClient }: {
         )}
       </div>
 
-      <label className="flex items-center gap-2 rounded-2xl border border-slate-300 bg-white px-4">
-        <Search className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+      <label className="flex items-center gap-2 rounded-2xl border border-slate-300 bg-hc-surface px-4">
+        <Search className="h-4 w-4 shrink-0 text-hc-ink-3" aria-hidden />
         <input value={q} onChange={(e) => setQ(e.target.value)}
           placeholder={tab === "all" ? "Leita að skjólstæðingi — nafn eða sími" : "Leita að hópi eða starfsmanni"}
           className="min-h-11 w-full bg-transparent text-sm outline-none" />
       </label>
 
-      {rows === null && <p className="flex items-center gap-2 text-sm text-slate-600"><Loader2 className="h-4 w-4 animate-spin" /> Hleð…</p>}
+      {rows === null && <p className="flex items-center gap-2 text-sm text-hc-ink-2"><Loader2 className="h-4 w-4 animate-spin" /> Hleð…</p>}
 
       {tab === "all" && rows !== null && (
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-hc-hairline bg-white">
+        <ul className="divide-y divide-hc-hairline overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface">
           {people.map((r) => (
             <li key={r.id}>
               <button type="button" onClick={() => onOpenClient(r.id)}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50">
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-hc-sunken">
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-slate-900">{r.client_name}</span>
-                  <span className="block text-xs text-slate-600">{r.client_phone ?? "—"}</span>
+                  <span className="block truncate font-semibold text-hc-ink">{r.client_name}</span>
+                  <span className="block text-xs text-hc-ink-2">{r.client_phone ?? "—"}</span>
                 </span>
                 {r.stage && (
-                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                  <span className="shrink-0 rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] font-semibold text-hc-ink-2">
                     {STAGE_IS[r.stage] ?? r.stage}
                   </span>
                 )}
               </button>
             </li>
           ))}
-          {!people.length && <li className="px-4 py-3 text-sm text-slate-600">Enginn fannst.</li>}
+          {!people.length && <li className="px-4 py-3 text-sm text-hc-ink-2">Enginn fannst.</li>}
         </ul>
       )}
 
       {tab === "groups" && groups !== null && (
         <ul className="space-y-2">
           {shownGroups.map((g) => (
-            <li key={g.id} className="overflow-hidden rounded-2xl border border-hc-hairline bg-white">
+            <li key={g.id} className="overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface">
               <button type="button" onClick={() => setOpen(open === g.id ? null : g.id)}
                 aria-expanded={open === g.id}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hc-sunken">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-hc-sunken-2 text-hc-ink-2">
                   <Building2 className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-bold text-slate-900">{g.name}</span>
-                  <span className="block truncate text-xs text-slate-600">
+                  <span className="block truncate font-bold text-hc-ink">{g.name}</span>
+                  <span className="block truncate text-xs text-hc-ink-2">
                     {[g.members.length ? `${g.members.length} starfsmenn` : "engir starfsmenn skráðir", g.contact, g.phone].filter(Boolean).join(" · ")}
                   </span>
                 </span>
                 {g.status === "draft" && (
                   <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200">óútfyllt</span>
                 )}
-                <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition ${open === g.id ? "rotate-180" : ""}`} />
+                <ChevronDown className={`h-4 w-4 shrink-0 text-hc-ink-3 transition ${open === g.id ? "rotate-180" : ""}`} />
               </button>
               {open === g.id && (
-                <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3">
+                <div className="border-t border-hc-hairline bg-hc-sunken/60 px-4 py-3">
                   {g.members.length === 0 ? (
-                    <p className="text-sm text-slate-600">Engir starfsmenn tengdir þessum hópi enn þá.</p>
+                    <p className="text-sm text-hc-ink-2">Engir starfsmenn tengdir þessum hópi enn þá.</p>
                   ) : (
                     <ul className="grid gap-1 sm:grid-cols-2">
                       {g.members.map((m) => {
@@ -146,23 +146,23 @@ export default function ClientsView({ api, onOpenClient }: {
                         return (
                           <li key={m.id}>
                             <button type="button" disabled={!j} onClick={() => j && onOpenClient(j)}
-                              className="w-full truncate rounded-lg bg-white px-2.5 py-1.5 text-left text-sm text-slate-800 ring-1 ring-hc-hairline enabled:hover:bg-emerald-50 disabled:opacity-60">
+                              className="w-full truncate rounded-lg bg-hc-surface px-2.5 py-1.5 text-left text-sm text-slate-800 ring-1 ring-hc-hairline enabled:hover:bg-emerald-50 disabled:opacity-60">
                               {m.full_name ?? "—"}
-                              {!j && <span className="ml-1 text-xs text-slate-500">(engin heilsuferð)</span>}
+                              {!j && <span className="ml-1 text-xs text-hc-ink-3">(engin heilsuferð)</span>}
                             </button>
                           </li>
                         );
                       })}
                     </ul>
                   )}
-                  <p className="mt-2 text-[11px] text-slate-600">
+                  <p className="mt-2 text-[11px] text-hc-ink-2">
                     Samningar, verð og umferðir eru í <span className="font-semibold">/admin/business</span>.
                   </p>
                 </div>
               )}
             </li>
           ))}
-          {!shownGroups.length && <li className="rounded-2xl border border-hc-hairline bg-white px-4 py-3 text-sm text-slate-600">Enginn hópur fannst.</li>}
+          {!shownGroups.length && <li className="rounded-2xl border border-hc-hairline bg-hc-surface px-4 py-3 text-sm text-hc-ink-2">Enginn hópur fannst.</li>}
         </ul>
       )}
 
@@ -187,7 +187,7 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
 
   const field = (k: keyof typeof f, label: string, type = "text") => (
     <label className="block text-sm">
-      <span className="text-slate-600">{label}</span>
+      <span className="text-hc-ink-2">{label}</span>
       <input type={type} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })}
         className="mt-0.5 min-h-10 w-full rounded-lg border border-slate-300 px-2.5 text-sm" />
     </label>
@@ -196,8 +196,8 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
   return (
     <Sheet title="Nýr hópur" onClose={onClose} max="max-w-md">
       <div className="p-4 pt-0">
-        <p className="font-bold text-slate-900">Nýr hópur</p>
-        <p className="mt-0.5 text-sm text-slate-600">
+        <p className="font-bold text-hc-ink">Nýr hópur</p>
+        <p className="mt-0.5 text-sm text-hc-ink-2">
           Vinnustaður eða félag. Samningar og verð eru fyllt út í /admin/business á eftir.
         </p>
         <div className="mt-3 grid gap-2">
@@ -215,7 +215,7 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
             className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-hc-brand px-3 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Stofna hóp
           </button>
-          <button type="button" onClick={onClose} className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Hætta við</button>
+          <button type="button" onClick={onClose} className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">Hætta við</button>
         </div>
       </div>
     </Sheet>

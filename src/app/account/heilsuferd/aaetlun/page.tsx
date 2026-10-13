@@ -604,7 +604,7 @@ function PlanPageInner() {
   const next = appointments[0] ?? null;
 
   return (
-    <div className={`${hcPage.participant} print:bg-white`}>
+    <div className={`${hcPage.participant} print:bg-hc-surface`}>
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8 print:max-w-none print:p-0">
         {/* The way back. "Aðgangur" is the sixth slot in JourneyNav, which on a
             phone puts it behind "Meira", and /account bounces a participant
@@ -754,7 +754,7 @@ function PlanPageInner() {
                       session: { id: sx.id, title: sx.title, modality: sx.modality, weekday: sx.weekday },
                     })} />
                   <button type="button" onClick={() => setEditing(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-4 py-4 text-sm font-semibold text-slate-700 hover:border-hc-brand hover:text-hc-brand-dark">
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-300 bg-hc-surface/60 px-4 py-4 text-sm font-semibold text-slate-700 hover:border-hc-brand hover:text-hc-brand-dark">
                     <Pencil className="h-4 w-4" aria-hidden /> Bæta við, taka út eða raða aðgerðum
                   </button>
                 </div>
@@ -887,7 +887,7 @@ function PlanPageInner() {
                         <p className="text-lg font-bold">Búðu til áætlunina þína</p>
                         <p className="text-sm text-emerald-100">Tillögur byggðar á skýrslunni. Þú velur, raðar og breytir, og hjúkrunarfræðingurinn fer yfir hana með þér í viðtalinu.</p>
                       </div>
-                      <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center rounded-hc-element bg-white px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Byrja →</button>
+                      <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-emerald-50">Byrja →</button>
                     </div>
                   )}
 
@@ -899,7 +899,7 @@ function PlanPageInner() {
                   {data.compare && <BeforeAfter c={data.compare} />}
                   <ReportView onUpload={() => setUploadOpen(true)} report={data.report.report} signals={data.report.signals}
                     reference={data.report.reference} sex={data.report.sex} audience="client" />
-                  <p className="mt-4 px-1 text-xs leading-relaxed text-slate-500">
+                  <p className="mt-4 px-1 text-xs leading-relaxed text-hc-ink-3">
                     Þetta er heilsufarsskýrslan þín í einfaldaðri mynd. Læknir fer yfir niðurstöðurnar með þér og
                     fullbúna skýrslan er í sjúklingagáttinni.
                   </p>
@@ -923,15 +923,15 @@ function PlanPageInner() {
                       there by somebody else should be told so and have a way
                       to say it is wrong. */}
                   {data.report?.source && data.report.source !== "self" && (
-                    <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm ring-1 ring-slate-200">
-                      <Info className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                    <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-hc-sunken px-4 py-3 text-sm ring-1 ring-slate-200">
+                      <Info className="h-4 w-4 shrink-0 text-hc-ink-3" aria-hidden />
                       <span className="text-slate-700">
                         {data.report.source === "staff_on_behalf"
                           ? "Starfsmaður Lifeline setti þessa skýrslu inn að þinni beiðni."
                           : "Starfsmaður Lifeline las þessa skýrslu inn fyrir viðtalið þitt."}
                       </span>
                       <button type="button" onClick={() => setTab("coach")}
-                        className="ml-auto rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                        className="ml-auto rounded-full border border-slate-300 bg-hc-surface px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-hc-sunken">
                         Þetta er ekki rétt
                       </button>
                     </div>

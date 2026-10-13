@@ -78,7 +78,7 @@ function Rating({ m }: { m: Rated }) {
       <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${band.className}`} title={band.label}>
         {String(score).replace(".", ",")}
       </span>
-      <span className="text-[11px] text-slate-600">
+      <span className="text-[11px] text-hc-ink-2">
         áhrif {m.effect} · auðvelt {m.ease}
       </span>
       {grade && (
@@ -86,7 +86,7 @@ function Rating({ m }: { m: Rated }) {
           {grade.label}
         </span>
       )}
-      {time && <span className="text-[11px] text-slate-500">{time}</span>}
+      {time && <span className="text-[11px] text-hc-ink-3">{time}</span>}
     </div>
   );
 }
@@ -105,13 +105,13 @@ const WIZARD_STEPS = ["Tillaga", "Aðgerðir", "Æfingar", "Næring", "Fræðsla
 
 function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) {
   return (
-    <nav className="flex gap-1 overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-hc-hairline" aria-label="Skref áætlunarinnar">
+    <nav className="flex gap-1 overflow-x-auto rounded-xl bg-hc-surface p-1 ring-1 ring-hc-hairline" aria-label="Skref áætlunarinnar">
       {WIZARD_STEPS.map((label, i) => (
         <button key={label} type="button" onClick={() => onGo(i)} aria-current={step === i ? "step" : undefined}
           className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
-            step === i ? "bg-hc-brand-dark text-white" : "text-slate-600 hover:bg-slate-50"}`}>
+            step === i ? "bg-hc-brand-dark text-white" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
           <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
-            step === i ? "bg-white/20" : i < step ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
+            step === i ? "bg-hc-surface/20" : i < step ? "bg-emerald-100 text-emerald-800" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
             {i < step ? "✓" : i + 1}
           </span>
           {label}
@@ -127,10 +127,10 @@ function WizardFooter({ step, onGo }: { step: number; onGo: (n: number) => void 
   return (
     <div className="flex items-center gap-2 border-t border-hc-hairline pt-3">
       <button type="button" disabled={step === 0} onClick={() => onGo(step - 1)}
-        className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">
+        className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken disabled:opacity-40">
         Til baka
       </button>
-      <span className="flex-1 text-center text-xs text-slate-500">Skref {step + 1} af {WIZARD_STEPS.length}</span>
+      <span className="flex-1 text-center text-xs text-hc-ink-3">Skref {step + 1} af {WIZARD_STEPS.length}</span>
       {/* The button says where it goes. "Næsta" makes you guess; "Næsta:
           Æfingar" does not, and that is the whole job of this control. */}
       {next ? (
@@ -139,7 +139,7 @@ function WizardFooter({ step, onGo }: { step: number; onGo: (n: number) => void 
           Næsta: {next} <ArrowRight className="h-4 w-4" />
         </button>
       ) : (
-        <span className="px-4 py-2 text-xs text-slate-500">Síðasta skrefið</span>
+        <span className="px-4 py-2 text-xs text-hc-ink-3">Síðasta skrefið</span>
       )}
     </div>
   );
@@ -429,7 +429,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   }, [preview, printAfter]);
 
   if (!draft || !lib) {
-    return <div className="rounded-2xl border border-hc-hairline bg-white p-8 text-center text-sm text-slate-600">{msg?.text ?? "Hleð áætlun…"}</div>;
+    return <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-8 text-center text-sm text-hc-ink-2">{msg?.text ?? "Hleð áætlun…"}</div>;
   }
 
   if (preview) {
@@ -443,7 +443,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       <div>
         <div className="mb-4 flex items-center justify-between rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 print:hidden">
           <span>Forskoðun: svona sér skjólstæðingurinn áætlunina.</span>
-          <button onClick={() => setPreview(false)} className="rounded-full bg-white px-4 py-1.5 font-semibold ring-1 ring-amber-200">Til baka í ritil</button>
+          <button onClick={() => setPreview(false)} className="rounded-full bg-hc-surface px-4 py-1.5 font-semibold ring-1 ring-amber-200">Til baka í ritil</button>
         </div>
         <PlanView plan={asPlan} clientName={clientName} author={author}
           lectures={draft.lecture_slugs.map((k) => lib.lectures?.find((l) => l.slug === k)).filter((l): l is NonNullable<typeof l> => !!l)}
@@ -473,29 +473,29 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           coach needs to know whether what they are looking at is live.
           Everything that acts goes behind the disclosure. */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
           {status === "published" ? (dirty ? "Birt · óvistaðar breytingar" : "Birt") : dirty ? "Óvistað" : status === "draft" ? "Drög" : "Ný"}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm text-slate-600">{clientName || "Skjólstæðingur"}</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-hc-ink-2">{clientName || "Skjólstæðingur"}</span>
         <button type="button" onClick={() => setTools((v) => !v)} aria-expanded={tools}
-          className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100">
+          className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken-2">
           Sniðmát og útgáfa {tools ? "▴" : "▾"}
         </button>
       </div>
 
       {tools && (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-hc-hairline bg-hc-sunken/60 p-3">
           <select
             value=""
             onChange={(e) => e.target.value && applyTemplate(e.target.value)}
-            className="shrink-0 rounded-xl border border-hc-control bg-white px-3 py-2 text-sm"
+            className="shrink-0 rounded-xl border border-hc-control bg-hc-surface px-3 py-2 text-sm"
             aria-label="Byrja út frá sniðmáti"
           >
             <option value="">Byrja út frá sniðmáti…</option>
             {lib.templates.map((t) => <option key={t.key} value={t.key}>{t.name}{t.scenario ? ` — ${t.scenario}` : ""}</option>)}
           </select>
-          <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-hc-hairline bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
-          <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className="rounded-xl border border-hc-hairline bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Prenta</button>
+          <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-hc-hairline bg-hc-surface px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">Forskoða</button>
+          <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className="rounded-xl border border-hc-hairline bg-hc-surface px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">Prenta</button>
           <button onClick={() => void save()} disabled={busy} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Vista drög</button>
           <button onClick={publish} disabled={busy || draft.modules.length === 0} className="rounded-xl bg-hc-brand px-4 py-2 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
             {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
@@ -512,19 +512,19 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       <div className={`grid gap-4 lg:grid-cols-[320px_1fr] ${step === 1 ? "" : "hidden"}`}>
         {/* Library */}
         <aside
-          className={`h-fit rounded-2xl border bg-white p-4 lg:sticky lg:top-4 ${dragOver === "out" ? "border-red-300 bg-red-50/40" : "border-hc-hairline"}`}
+          className={`h-fit rounded-2xl border bg-hc-surface p-4 lg:sticky lg:top-4 ${dragOver === "out" ? "border-red-300 bg-red-50/40" : "border-hc-hairline"}`}
           onDragOver={(e) => { e.preventDefault(); setDragOver("out"); }}
           onDragLeave={() => setDragOver(null)}
           onDrop={onDropOut}
           aria-label="Aðgerðasafn"
         >
           <p className="text-sm font-bold text-hc-ink">Aðgerðasafn</p>
-          <p className="mb-3 text-xs text-slate-600">Dragðu aðgerð inn í áætlunina, eða úr henni hingað til að fjarlægja.</p>
+          <p className="mb-3 text-xs text-hc-ink-2">Dragðu aðgerð inn í áætlunina, eða úr henni hingað til að fjarlægja.</p>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Leita…" className="mb-2 w-full rounded-lg border border-hc-control px-3 py-1.5 text-sm" />
           <div className="mb-3 flex flex-wrap gap-1">
             {(["all", ...PILLARS] as const).map((p) => (
               <button key={p} onClick={() => setFilter(p)}
-                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${filter === p ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-600"}`}>
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${filter === p ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
                 {p === "all" ? "Allt" : PILLAR_META[p].label}
               </button>
             ))}
@@ -544,10 +544,10 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                   <div className="flex items-start gap-2">
                     <div className="flex-1">
                       <p className="font-semibold text-hc-ink">{m.title}</p>
-                      <p className="text-xs text-slate-600">{m.summary}</p>
+                      <p className="text-xs text-hc-ink-2">{m.summary}</p>
                       {fit ? <FitMeter fit={fit} titles={markerTitles} rank={i + 1} /> : <Rating m={m} />}
                     </div>
-                    <button onClick={() => addModule(m.key)} className="rounded-lg bg-white px-2 py-0.5 text-xs font-bold text-slate-700 ring-1 ring-hc-hairline" aria-label={`Bæta við ${m.title}`}>+</button>
+                    <button onClick={() => addModule(m.key)} className="rounded-lg bg-hc-surface px-2 py-0.5 text-xs font-bold text-slate-700 ring-1 ring-hc-hairline" aria-label={`Bæta við ${m.title}`}>+</button>
                   </div>
                 </div>
               );
@@ -557,7 +557,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
 
         {/* Plan */}
         <div className="space-y-4">
-          <div className="grid gap-3 rounded-2xl border border-hc-hairline bg-white p-4 sm:grid-cols-2">
+          <div className="grid gap-3 rounded-2xl border border-hc-hairline bg-hc-surface p-4 sm:grid-cols-2">
             <label className="sm:col-span-2 text-sm">
               <span className="font-semibold text-slate-700">Fyrirsögn</span>
               <input value={draft.headline} onChange={(e) => update({ headline: e.target.value })} placeholder="T.d. Betri svefn og meiri orka" className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2" />
@@ -582,7 +582,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                   onDragOver={(e) => { e.preventDefault(); setDragOver(p); }}
                   onDragLeave={() => setDragOver((d) => (d === p ? null : d))}
                   onDrop={(e) => onDrop(e, p, null)}
-                  className="rounded-2xl border-2 bg-white p-4 transition"
+                  className="rounded-2xl border-2 bg-hc-surface p-4 transition"
                   style={{ borderColor: dragOver === p ? meta.color : meta.ring }}
                   aria-label={meta.label}
                   data-pillar={p}
@@ -591,7 +591,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                     <PillarIcon pillar={p} size="sm" />
                     <h3 className="font-bold text-hc-ink">{meta.label}</h3>
                     <span className="flex-1" />
-                    <button onClick={() => addCustom(p)} className="text-xs font-semibold text-slate-600 hover:text-slate-800">+ Eigin aðgerð</button>
+                    <button onClick={() => addCustom(p)} className="text-xs font-semibold text-hc-ink-2 hover:text-slate-800">+ Eigin aðgerð</button>
                   </div>
                   <input
                     value={goalFor(p)}
@@ -601,7 +601,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                     style={{ background: meta.soft }}
                   />
                   {items.length === 0 && (
-                    <p className="rounded-xl border border-dashed border-hc-hairline p-4 text-center text-xs text-slate-500">Dragðu aðgerðir hingað</p>
+                    <p className="rounded-xl border border-dashed border-hc-hairline p-4 text-center text-xs text-hc-ink-3">Dragðu aðgerðir hingað</p>
                   )}
                   {/* One line per action, opened only when being edited.
                       Every item used to keep all four fields permanently
@@ -623,7 +623,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={(e) => onDrop(e, p, m.uid)}
                           data-uid={m.uid}
-                          className={`rounded-xl border bg-white shadow-sm transition ${
+                          className={`rounded-xl border bg-hc-surface shadow-sm transition ${
                             carry?.uid === m.uid ? "opacity-50" : ""} ${open ? "border-slate-300" : "border-hc-hairline"}`}
                         >
                           <div className="flex items-start gap-2 p-2">
@@ -676,17 +676,17 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                                     own line the name always has the full row
                                     and the frequency is still visible at a
                                     glance. */}
-                                {m.frequency && <span className="block truncate text-xs text-slate-600">{m.frequency}</span>}
+                                {m.frequency && <span className="block truncate text-xs text-hc-ink-2">{m.frequency}</span>}
                               </span>
-                              <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`} aria-hidden />
+                              <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 text-hc-ink-3 transition ${open ? "rotate-180" : ""}`} aria-hidden />
                             </button>
-                            <button onClick={() => removeItem(m.uid)} className="shrink-0 text-slate-500 hover:text-red-500" aria-label={`Fjarlægja ${m.title}`}>×</button>
+                            <button onClick={() => removeItem(m.uid)} className="shrink-0 text-hc-ink-3 hover:text-red-500" aria-label={`Fjarlægja ${m.title}`}>×</button>
                           </div>
                           {open && (
-                            <div className="space-y-1 border-t border-slate-100 p-2">
-                              <input value={m.title} onChange={(e) => patchItem(m.uid, { title: e.target.value })} className="w-full rounded px-1 font-semibold text-hc-ink hover:bg-slate-50" aria-label="Heiti" />
-                              <input value={m.summary} onChange={(e) => patchItem(m.uid, { summary: e.target.value })} placeholder="Lýsing" className="w-full rounded px-1 text-sm text-slate-600 hover:bg-slate-50" aria-label="Lýsing" />
-                              <input value={m.frequency ?? ""} onChange={(e) => patchItem(m.uid, { frequency: e.target.value || null })} placeholder="Tíðni" className="w-40 rounded bg-slate-50 px-2 py-0.5 text-xs text-slate-600" aria-label="Tíðni" />
+                            <div className="space-y-1 border-t border-hc-hairline p-2">
+                              <input value={m.title} onChange={(e) => patchItem(m.uid, { title: e.target.value })} className="w-full rounded px-1 font-semibold text-hc-ink hover:bg-hc-sunken" aria-label="Heiti" />
+                              <input value={m.summary} onChange={(e) => patchItem(m.uid, { summary: e.target.value })} placeholder="Lýsing" className="w-full rounded px-1 text-sm text-hc-ink-2 hover:bg-hc-sunken" aria-label="Lýsing" />
+                              <input value={m.frequency ?? ""} onChange={(e) => patchItem(m.uid, { frequency: e.target.value || null })} placeholder="Tíðni" className="w-40 rounded bg-hc-sunken px-2 py-0.5 text-xs text-hc-ink-2" aria-label="Tíðni" />
                               <textarea
                                 value={m.note ?? ""}
                                 onChange={(e) => patchItem(m.uid, { note: e.target.value || null })}
@@ -732,8 +732,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
             this page where a coach could reasonably be confused, so the
             heading says which is which. */}
         {draft.exercise && (
-          <section className="rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">
+          <section className="rounded-2xl border border-hc-hairline bg-hc-sunken/60 p-3">
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
               Eins og skjólstæðingurinn sér það
             </h3>
             <CoachAsClient api={api} journeyId={journeyId} only="exercise" />
@@ -756,8 +756,8 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
             the rules mean is to look. Almost no overlap here — the editor
             configures, this shows. */}
         {draft.nutrition && (
-          <section className="rounded-2xl border border-hc-hairline bg-slate-50/60 p-3">
-            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">
+          <section className="rounded-2xl border border-hc-hairline bg-hc-sunken/60 p-3">
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
               Máltíðirnar sem þetta gefur
             </h3>
             <CoachAsClient api={api} journeyId={journeyId} only="nutrition" />
@@ -768,19 +768,19 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       {step === 4 && (
         <div className="space-y-4">
           {!!lib.lectures?.length && (
-            <div className="rounded-2xl border border-hc-hairline bg-white p-4 text-sm">
+            <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 text-sm">
               <p className="font-semibold text-slate-700">Fræðsla</p>
-              <p className="text-xs text-slate-600">Birtist undir „Fræðsla“ í áætlun skjólstæðings.</p>
+              <p className="text-xs text-hc-ink-2">Birtist undir „Fræðsla“ í áætlun skjólstæðings.</p>
               <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
                 {lib.lectures.map((l) => {
                   const on = draft.lecture_slugs.includes(l.slug);
                   return (
-                    <label key={l.slug} className={`flex cursor-pointer items-start gap-2 rounded-xl px-3 py-2 ring-1 ${on ? "bg-emerald-50 ring-emerald-300" : "ring-hc-hairline hover:bg-slate-50"}`}>
+                    <label key={l.slug} className={`flex cursor-pointer items-start gap-2 rounded-xl px-3 py-2 ring-1 ${on ? "bg-emerald-50 ring-emerald-300" : "ring-hc-hairline hover:bg-hc-sunken"}`}>
                       <input type="checkbox" className="mt-1" checked={on}
                         onChange={(e) => update({ lecture_slugs: e.target.checked ? [...draft.lecture_slugs, l.slug] : draft.lecture_slugs.filter((x) => x !== l.slug) })} />
                       <span>
                         <span className="block font-medium text-slate-800">{l.title}</span>
-                        {l.subtitle && <span className="block text-xs text-slate-600">{l.subtitle}</span>}
+                        {l.subtitle && <span className="block text-xs text-hc-ink-2">{l.subtitle}</span>}
                       </span>
                     </label>
                   );
@@ -788,17 +788,17 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
               </div>
             </div>
           )}
-          <label className="block rounded-2xl border border-hc-hairline bg-white p-4 text-sm">
+          <label className="block rounded-2xl border border-hc-hairline bg-hc-surface p-4 text-sm">
             <span className="font-semibold text-slate-700">Skilaboð til skjólstæðings</span>
             <textarea value={draft.nurse_note} onChange={(e) => update({ nurse_note: e.target.value })} rows={4} placeholder="Birtist efst á yfirlitinu." className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2" />
           </label>
-          <div className="rounded-2xl border border-hc-hairline bg-white p-4">
+          <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-4">
             <p className="font-bold text-hc-ink">Tilbúið?</p>
-            <p className="mt-0.5 text-sm text-slate-600">
+            <p className="mt-0.5 text-sm text-hc-ink-2">
               {draft.modules.length} aðgerðir · {draft.exercise ? "æfingaáætlun" : "engin æfingaáætlun"} · {draft.nutrition ? "næringaráætlun" : "engin næringaráætlun"} · {draft.lecture_slugs.length ? `${draft.lecture_slugs.length} fræðsla` : "engin fræðsla"}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-hc-hairline px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
+              <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-hc-hairline px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">Forskoða</button>
               <button onClick={publish} disabled={busy || draft.modules.length === 0}
                 className="rounded-xl bg-hc-brand px-4 py-2 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
                 {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
@@ -857,12 +857,12 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {busy ? "Set saman…" : "Láta AI setja saman"}
         </button>
-        {disabled && <span className="text-xs text-slate-600">Veldu sniðmát fyrst.</span>}
+        {disabled && <span className="text-xs text-hc-ink-2">Veldu sniðmát fyrst.</span>}
         {msg && <span className="text-xs text-emerald-800">{msg}</span>}
       </div>
       {open && !disabled && (
-        <div className="mt-2 rounded-xl bg-slate-50 p-3">
-          <label className="block text-xs font-semibold text-slate-600">
+        <div className="mt-2 rounded-xl bg-hc-sunken p-3">
+          <label className="block text-xs font-semibold text-hc-ink-2">
             Eitthvað sem á að taka mið af? Verkir, búnaður, hvað viðkomandi gerir í raun.
             <textarea value={constraints} onChange={(e) => setConstraints(e.target.value)} rows={2}
               placeholder="T.d. verkur í hægra hné, engin lóð heima, kemst tvisvar í viku"
@@ -890,7 +890,7 @@ function AdaptiveSettings({ api, journeyId }: { api: Api; journeyId: string }) {
       setS(r.ok && j.settings ? j.settings : DEFAULT_TRAINING);
     })();
   }, [api, journeyId]);
-  if (!s) return <p className="text-sm text-slate-500">Hleð stillingum…</p>;
+  if (!s) return <p className="text-sm text-hc-ink-3">Hleð stillingum…</p>;
   const change = async (next: TrainingSettings) => {
     const prev = s;
     setS(next); setSaving(true); setErr(null);
@@ -923,7 +923,7 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
   const edit = (patch: Partial<NonNullable<ActionPlan["exercise"]>>) =>
     value && onChange({ ...value, ...patch, key: `${value.key.replace(/-custom$/, "")}-custom` });
   return (
-    <div className="rounded-2xl border border-orange-100 bg-white p-4">
+    <div className="rounded-2xl border border-orange-100 bg-hc-surface p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-bold text-hc-ink">Æfingaáætlun</h3>
         <span className="flex-1" />
@@ -935,7 +935,7 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
       </div>
       {value && isAdaptive(value.key) && (
         <div className="mt-3 space-y-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-hc-ink-2">
             Þessi áætlun lagar sig að skjólstæðingnum: byrjunarstigi (aðlögun eða beint á stig 1), álagi og meiðslum.
             Skjólstæðingurinn getur líka breytt stillingunum sjálf/ur í áætluninni sinni.
           </p>
@@ -944,16 +944,16 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
       )}
       {value && !isAdaptive(value.key) && (
         <div className="mt-3 space-y-3">
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-hc-ink-2">
             Æfingar úr æfingasafninu fylgja með mynd, myndbandi og leiðbeiningum. Skiptu um æfingu ef eitthvað hentar ekki, t.d. vegna verkja eða búnaðar.
           </p>
           <ComposeButton api={api} journeyId={journeyId} kind="exercise" templateKey={value.key ?? null}
             onDone={(r) => r.sessions && edit({ sessions: r.sessions, days_per_week: r.sessions.length || value.days_per_week })} />
           <ExerciseSessionsEditor api={api} sessions={value.sessions} onChange={(sessions) => edit({ sessions, days_per_week: sessions.length || value.days_per_week })} />
           {!!value.principles?.length && (
-            <details className="rounded-xl border border-slate-100 p-3 text-sm">
+            <details className="rounded-xl border border-hc-hairline p-3 text-sm">
               <summary className="cursor-pointer font-semibold text-slate-700">Meginreglur og stigvaxandi álag</summary>
-              <label className="mt-2 block text-xs text-slate-600">Meginreglur (ein lína á reglu)
+              <label className="mt-2 block text-xs text-hc-ink-2">Meginreglur (ein lína á reglu)
                 <textarea value={value.principles.join("\n")} rows={4}
                   onChange={(e) => edit({ principles: e.target.value.split("\n") })}
                   className="mt-1 w-full rounded-lg border border-hc-control px-2 py-1.5 text-sm text-slate-800" />
@@ -981,7 +981,7 @@ function NutritionEditor({ value, templates, onChange, api, journeyId, weightKg 
     if (t) onChange(stripActive(t));
   };
   return (
-    <div className="rounded-2xl border border-lime-100 bg-white p-4">
+    <div className="rounded-2xl border border-lime-100 bg-hc-surface p-4">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-bold text-hc-ink">Næringaráætlun</h3>
         <span className="flex-1" />
@@ -997,14 +997,14 @@ function NutritionEditor({ value, templates, onChange, api, journeyId, weightKg 
               <input value={p} aria-label="Meginregla"
                 onChange={(e) => onChange({ ...value, principles: value.principles.map((x, j) => (j === i ? e.target.value : x)) })}
                 className="flex-1 rounded-lg border border-hc-control px-2 py-1 text-sm" />
-              <button aria-label="Fjarlægja" className="px-1 text-slate-500 hover:text-red-500"
+              <button aria-label="Fjarlægja" className="px-1 text-hc-ink-3 hover:text-red-500"
                 onClick={() => onChange({ ...value, principles: value.principles.filter((_, j) => j !== i) })}>×</button>
             </div>
           ))}
           <button className="text-xs font-semibold text-lime-700" onClick={() => onChange({ ...value, principles: [...value.principles, ""] })}>+ Bæta við reglu</button>
-          <div className="mt-3 rounded-xl border border-slate-100 p-3">
+          <div className="mt-3 rounded-xl border border-hc-hairline p-3">
             <p className="text-sm font-semibold text-slate-700">Dæmi um dag</p>
-            <p className="mb-2 mt-0.5 text-xs text-slate-600">Veldu máltíðir úr safninu til að fá mynd og næringargildi með í áætlunina.</p>
+            <p className="mb-2 mt-0.5 text-xs text-hc-ink-2">Veldu máltíðir úr safninu til að fá mynd og næringargildi með í áætlunina.</p>
             <ComposeButton api={api} journeyId={journeyId} kind="nutrition" templateKey={value.key ?? null}
               onDone={(r) => r.day_example && onChange({ ...value, day_example: r.day_example })} />
             <DayExampleEditor api={api} value={value.day_example ?? []} onChange={(day_example) => onChange({ ...value, day_example })} />
@@ -1017,7 +1017,7 @@ function NutritionEditor({ value, templates, onChange, api, journeyId, weightKg 
           there is no week, and saying so is the useful thing to show. My
           first attempt nested it inside, where its own empty state could
           never render — invisible exactly when it had something to say. */}
-      <div className="mt-3 rounded-xl border border-slate-100 p-3">
+      <div className="mt-3 rounded-xl border border-hc-hairline p-3">
         <CoachMealWeek api={api} journeyId={journeyId} programKey={value?.key ?? null} weightKg={weightKg} />
       </div>
     </div>

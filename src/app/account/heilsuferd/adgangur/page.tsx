@@ -26,7 +26,7 @@ export default function AdgangurPage() {
   return <Suspense><Adgangur /></Suspense>;
 }
 
-const card = "rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6";
+const card = "rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-slate-200 sm:p-6";
 
 function Adgangur() {
   const router = useRouter();
@@ -63,7 +63,7 @@ function Adgangur() {
         <JourneyHeader />
         {hasPlan && <JourneyNav active="account" />}
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="flex-1 text-2xl font-bold text-slate-900 sm:text-3xl">Stillingar</h1>
+          <h1 className="flex-1 text-2xl font-bold text-hc-ink sm:text-3xl">Stillingar</h1>
           {userId && <SignOutButton />}
         </div>
 
@@ -81,7 +81,7 @@ function Adgangur() {
         <ProfileCard />
 
         <section className={card} aria-labelledby="acc-login">
-          <h2 id="acc-login" className="text-lg font-bold text-slate-900">Innskráning</h2>
+          <h2 id="acc-login" className="text-lg font-bold text-hc-ink">Innskráning</h2>
           <div className="mt-3 space-y-4">
             <PasswordCard />
           </div>
@@ -107,19 +107,19 @@ function Adgangur() {
           heading="Hlaða upp skýrslu"
           blurb="Sóttu Grunnheilsa-skýrsluna þína í sjúklingagáttina og settu hana hér inn. Þú getur gert þetta hvenær sem er, líka eftir endurmat." />
         <section className={card} aria-labelledby="acc-pay">
-          <h2 id="acc-pay" className="mb-3 text-lg font-bold text-slate-900">Greiðslur og kvittanir</h2>
+          <h2 id="acc-pay" className="mb-3 text-lg font-bold text-hc-ink">Greiðslur og kvittanir</h2>
           <BillingPanel ownerType="client" ownerId={userId} />
         </section>
 
         <section className={card} aria-labelledby="acc-docs">
-          <h2 id="acc-docs" className="mb-3 text-lg font-bold text-slate-900">Undirrituð skjöl</h2>
+          <h2 id="acc-docs" className="mb-3 text-lg font-bold text-hc-ink">Undirrituð skjöl</h2>
           <SignedDocumentsList />
         </section>
 
         <section className={card} aria-labelledby="acc-privacy">
-          <h2 id="acc-privacy" className="mb-3 text-lg font-bold text-slate-900">Persónuvernd</h2>
+          <h2 id="acc-privacy" className="mb-3 text-lg font-bold text-hc-ink">Persónuvernd</h2>
           <DataPrivacyPanel userId={userId} />
-          <div className="mt-5 border-t border-slate-100 pt-4"><DeleteAccountCard /></div>
+          <div className="mt-5 border-t border-hc-hairline pt-4"><DeleteAccountCard /></div>
         </section>
 
         <ContextSwitcher current="personal" />

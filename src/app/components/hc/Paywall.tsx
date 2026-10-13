@@ -92,14 +92,14 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
   };
 
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6">
-      <span className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 text-slate-600">
+    <section className="rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6">
+      <span className="grid h-11 w-11 place-items-center rounded-full bg-hc-sunken-2 text-hc-ink-2">
         <Lock className="h-5 w-5" aria-hidden />
       </span>
-      <h2 className="mt-3 text-xl font-bold text-slate-900">
+      <h2 className="mt-3 text-xl font-bold text-hc-ink">
         {trialEndsAt ? "Prufutímabilinu er lokið" : "Áskrift þarf fyrir þennan hluta"}
       </h2>
-      <p className="mt-1.5 text-sm text-slate-600">
+      <p className="mt-1.5 text-sm text-hc-ink-2">
         {pkg.description
           ?? "Áætlunin þín í símanum: æfingar, máltíðir vikunnar og daglegur gátlisti."}
       </p>
@@ -116,12 +116,12 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
       ) : null}
 
       {/* The price, before the button rather than after it. */}
-      <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-slate-100 pt-4">
+      <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-hc-hairline pt-4">
         {applied && applied.price !== pkg.price_isk && (
-          <span className="text-sm text-slate-600 line-through">{kr(pkg.price_isk)}</span>
+          <span className="text-sm text-hc-ink-2 line-through">{kr(pkg.price_isk)}</span>
         )}
-        <span className="text-2xl font-bold tabular-nums text-slate-900">{kr(price)}</span>
-        <span className="text-sm text-slate-600">
+        <span className="text-2xl font-bold tabular-nums text-hc-ink">{kr(price)}</span>
+        <span className="text-sm text-hc-ink-2">
           á mánuði{applied?.monthsFree ? ` · ${applied.monthsFree === 1 ? "fyrsti mánuður frír" : `${applied.monthsFree} mánuðir fríir`}` : ""}
         </span>
       </div>
@@ -129,7 +129,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
 
       {/* The code. */}
       <div className="mt-3">
-        <label htmlFor="disc" className="block text-xs font-semibold text-slate-600">Afsláttarkóði</label>
+        <label htmlFor="disc" className="block text-xs font-semibold text-hc-ink-2">Afsláttarkóði</label>
         <div className="mt-1 flex flex-wrap gap-2">
           <input id="disc" value={code}
             onChange={(e) => { setCode(e.target.value); setApplied(null); setCodeMsg(null); }}
@@ -137,11 +137,11 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
             placeholder="KÓÐI"
             className="min-w-0 flex-1 rounded-hc-element border border-slate-300 px-3 py-2 text-sm uppercase outline-none focus:ring-2 focus:ring-hc-brand/30" />
           <button type="button" onClick={() => void tryCode()} disabled={busy !== null || !code.trim()}
-            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-40">
+            className="rounded-full border border-slate-300 bg-hc-surface px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-40">
             {busy === "code" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : "Nota kóða"}
           </button>
         </div>
-        {codeMsg && <p className="mt-1 text-sm text-slate-600" role="status">{codeMsg}</p>}
+        {codeMsg && <p className="mt-1 text-sm text-hc-ink-2" role="status">{codeMsg}</p>}
       </div>
 
       <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm text-slate-700">
@@ -162,7 +162,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
         {price === 0 ? "Hefja áskrift" : `Hefja áskrift — ${kr(price)}/mán.`}
       </button>
 
-      <p className="mt-2 text-xs text-slate-600">
+      <p className="mt-2 text-xs text-hc-ink-2">
         Skýrslan þín, þjálfarinn og heilsuferðin eru áfram opin, hvort sem þú ert með áskrift eða ekki.
       </p>
     </section>

@@ -69,7 +69,7 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
             Staðfestu að skýrslan sé þín og að þú hafir beðið um að hún færi hér inn. Þá birtist hún
             á þínum síðum og áætlunin þín byggir á henni.
           </p>
-          <p className="mt-2 text-xs text-slate-600">
+          <p className="mt-2 text-xs text-hc-ink-2">
             Skjalið sjálft er ekki geymt — aðeins niðurstöðurnar, dulkóðaðar. Frumritið er áfram í
             sjúklingagáttinni. Svarið þitt er skráð með tímasetningu.
           </p>
@@ -89,7 +89,7 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
             </button>
           </div>
           {/* Nobody should have to wonder whether saying no costs them care. */}
-          <p className="mt-2 text-xs text-slate-600">
+          <p className="mt-2 text-xs text-hc-ink-2">
             Þótt þú takir hana út heldur þjónustan áfram. Hjúkrunarfræðingurinn þinn hefur áfram
             aðgang að niðurstöðunum vegna meðferðarinnar.
           </p>

@@ -51,13 +51,13 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
       {sessions.map((s, si) => {
         const open = openDay === si;
         return (
-          <div key={si} className="overflow-hidden rounded-2xl border border-orange-100 bg-white">
+          <div key={si} className="overflow-hidden rounded-2xl border border-orange-100 bg-hc-surface">
             <button type="button" onClick={() => setOpenDay(open ? -1 : si)} aria-expanded={open}
               className="flex w-full items-center gap-3 bg-orange-50/60 px-3 py-2.5 text-left">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-600 text-xs font-bold text-white">{si + 1}</span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-slate-900">{s.day || "Dagur"} · {s.title || "Æfing"}</span>
-                <span className="block text-xs text-slate-600">{s.items.length} æfingar{s.minutes ? ` · ${s.minutes} mín.` : ""}{s.focus ? ` · ${s.focus}` : ""}</span>
+                <span className="block truncate text-sm font-semibold text-hc-ink">{s.day || "Dagur"} · {s.title || "Æfing"}</span>
+                <span className="block text-xs text-hc-ink-2">{s.items.length} æfingar{s.minutes ? ` · ${s.minutes} mín.` : ""}{s.focus ? ` · ${s.focus}` : ""}</span>
               </span>
               <span className="flex -space-x-2">
                 {s.items.filter((it) => it.image).slice(0, 4).map((it, i) => (
@@ -65,7 +65,7 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
                   <img key={i} src={it.image!} alt="" className="h-8 w-8 rounded-full border-2 border-white object-cover" />
                 ))}
               </span>
-              <span className="text-slate-500">{open ? "▴" : "▾"}</span>
+              <span className="text-hc-ink-3">{open ? "▴" : "▾"}</span>
             </button>
 
             {open && (
@@ -81,8 +81,8 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
 
                 <ul className="space-y-2">
                   {s.items.map((it, ii) => (
-                    <li key={ii} className="flex gap-2 rounded-xl border border-slate-100 p-2">
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                    <li key={ii} className="flex gap-2 rounded-xl border border-hc-hairline p-2">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-hc-sunken-2">
                         {it.image
                           // eslint-disable-next-line @next/next/no-img-element
                           ? <img src={it.image} alt="" className="h-full w-full object-cover" />
@@ -97,16 +97,16 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
                             {(Object.keys(BLOCK_IS) as ExerciseBlock[]).map((b) => <option key={b} value={b}>{BLOCK_IS[b]}</option>)}
                           </select>
                         </div>
-                        <input value={it.note ?? ""} onChange={(e) => setItem(si, ii, { note: e.target.value || null })} placeholder="Persónuleg athugasemd (t.d. „notaðu stól ef hnéð kvartar“)" aria-label="Athugasemd" className="w-full rounded-lg border border-slate-100 px-2 py-1 text-xs" />
+                        <input value={it.note ?? ""} onChange={(e) => setItem(si, ii, { note: e.target.value || null })} placeholder="Persónuleg athugasemd (t.d. „notaðu stól ef hnéð kvartar“)" aria-label="Athugasemd" className="w-full rounded-lg border border-hc-hairline px-2 py-1 text-xs" />
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                           {it.exercise_id
                             ? <span className="font-semibold text-emerald-700">✓ Úr safni{it.video ? " · myndband" : ""}</span>
-                            : <span className="text-slate-500">Frjáls lína</span>}
+                            : <span className="text-hc-ink-3">Frjáls lína</span>}
                           <button type="button" onClick={() => setPicker({ si, replace: ii })} className="font-semibold text-orange-700 hover:underline">
                             {it.exercise_id ? "Skipta um æfingu" : "Tengja við safn"}
                           </button>
-                          <button type="button" onClick={() => move(si, ii, -1)} disabled={ii === 0} className="text-slate-600 disabled:opacity-30" aria-label="Færa upp">↑</button>
-                          <button type="button" onClick={() => move(si, ii, 1)} disabled={ii === s.items.length - 1} className="text-slate-600 disabled:opacity-30" aria-label="Færa niður">↓</button>
+                          <button type="button" onClick={() => move(si, ii, -1)} disabled={ii === 0} className="text-hc-ink-2 disabled:opacity-30" aria-label="Færa upp">↑</button>
+                          <button type="button" onClick={() => move(si, ii, 1)} disabled={ii === s.items.length - 1} className="text-hc-ink-2 disabled:opacity-30" aria-label="Færa niður">↓</button>
                           <button type="button" onClick={() => setItems(si, s.items.filter((_, j) => j !== ii))} className="text-red-600 hover:underline">Fjarlægja</button>
                         </div>
                       </div>
@@ -115,7 +115,7 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
                 </ul>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setPicker({ si, replace: null })} className="rounded-xl bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700">+ Úr æfingasafni</button>
-                  <button type="button" onClick={() => setItems(si, [...s.items, { name: "", prescription: "", block: "main" }])} className="rounded-xl border border-hc-hairline px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">+ Frjáls lína</button>
+                  <button type="button" onClick={() => setItems(si, [...s.items, { name: "", prescription: "", block: "main" }])} className="rounded-xl border border-hc-hairline px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">+ Frjáls lína</button>
                 </div>
               </div>
             )}

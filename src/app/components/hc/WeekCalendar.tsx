@@ -138,43 +138,43 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1">
           <button type="button" aria-label="Fyrri vika" onClick={() => setWeek(addDays(week, -7))}
-            className="rounded-lg border border-slate-300 bg-white p-1.5 hover:bg-slate-50"><ChevronLeft className="h-4 w-4" /></button>
+            className="rounded-lg border border-slate-300 bg-hc-surface p-1.5 hover:bg-hc-sunken"><ChevronLeft className="h-4 w-4" /></button>
           <button type="button" onClick={() => setWeek(monday(new Date()))}
-            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold hover:bg-slate-50">Þessi vika</button>
+            className="rounded-lg border border-slate-300 bg-hc-surface px-2.5 py-1.5 text-xs font-semibold hover:bg-hc-sunken">Þessi vika</button>
           <button type="button" aria-label="Næsta vika" onClick={() => setWeek(addDays(week, 7))}
-            className="rounded-lg border border-slate-300 bg-white p-1.5 hover:bg-slate-50"><ChevronRight className="h-4 w-4" /></button>
+            className="rounded-lg border border-slate-300 bg-hc-surface p-1.5 hover:bg-hc-sunken"><ChevronRight className="h-4 w-4" /></button>
         </div>
-        <p className="text-sm font-bold text-slate-900">{label}</p>
+        <p className="text-sm font-bold text-hc-ink">{label}</p>
         <span className="flex-1" />
-        <div className="flex rounded-lg bg-slate-100 p-0.5">
+        <div className="flex rounded-lg bg-hc-sunken-2 p-0.5">
           {(["mine", "all"] as const).map((s) => (
             <button key={s} type="button" onClick={() => setScope(s)}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${scope === s ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"}`}>
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${scope === s ? "bg-hc-surface text-hc-ink shadow-sm" : "text-hc-ink-2"}`}>
               {s === "mine" ? "Mínar" : "Allar"}
             </button>
           ))}
         </div>
         <button type="button" onClick={onConnect}
-          className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+          className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-hc-surface px-2.5 text-xs font-semibold text-slate-700 hover:bg-hc-sunken">
           <Link2 className="h-3.5 w-3.5" /> Tengja við dagatal
         </button>
-        {loading && <Loader2 className="h-4 w-4 animate-spin text-slate-500" />}
+        {loading && <Loader2 className="h-4 w-4 animate-spin text-hc-ink-3" />}
       </div>
 
       {/* Legend: three kinds, nothing else. */}
       <div className="flex flex-wrap items-center gap-3">
         {APPT_KINDS.map((k) => (
-          <span key={k} className="inline-flex items-center gap-1.5 text-xs text-slate-600">
+          <span key={k} className="inline-flex items-center gap-1.5 text-xs text-hc-ink-2">
             <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: APPT_IS[k].color }} aria-hidden />
             {APPT_IS[k].label} · {APPT_MINUTES[k]} mín.
           </span>
         ))}
-        <span className="text-xs text-slate-500">Dragðu tíma á annan stað til að færa hann.</span>
+        <span className="text-xs text-hc-ink-3">Dragðu tíma á annan stað til að færa hann.</span>
       </div>
 
       {msg && <p role="status" className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{msg}</p>}
 
-      <div className="overflow-x-auto rounded-2xl border border-hc-hairline bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-hc-hairline bg-hc-surface">
         <div className="min-w-[46rem]">
           {/* day header */}
           <div className="grid border-b border-hc-hairline" style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, 1fr)` }}>
@@ -191,16 +191,16 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
           </div>
           {/* slots */}
           {SLOTS.map((slot) => (
-            <div key={slot} className="grid border-b border-slate-100 last:border-0"
+            <div key={slot} className="grid border-b border-hc-hairline last:border-0"
               style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, 1fr)` }}>
-              <span className="border-r border-slate-100 px-1 py-1 text-right text-[10px] text-slate-500">{slot.endsWith("00") ? slot : ""}</span>
+              <span className="border-r border-hc-hairline px-1 py-1 text-right text-[10px] text-hc-ink-3">{slot.endsWith("00") ? slot : ""}</span>
               {days.map((d) => {
                 const here = at(d, slot);
                 return (
                   <div key={d.toISOString() + slot}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => onDrop(e, d, slot)}
-                    className="min-h-9 border-r border-slate-100 p-0.5 last:border-0">
+                    className="min-h-9 border-r border-hc-hairline p-0.5 last:border-0">
                     {here.length === 0 ? (
                       <button type="button" onClick={() => setBooking({ at: isoAt(d, slot) })}
                         aria-label={`Bóka ${slot}`}
@@ -287,8 +287,8 @@ function BookDialog({ api, at, onClose, onBooked }: {
     <Sheet title="Bóka tíma" onClose={onClose} max="max-w-md"
       header={
         <div className="px-4 pb-1">
-          <p className="font-bold text-slate-900">Bóka tíma</p>
-          <p className="mt-0.5 text-sm text-slate-600">{when}</p>
+          <p className="font-bold text-hc-ink">Bóka tíma</p>
+          <p className="mt-0.5 text-sm text-hc-ink-2">{when}</p>
         </div>
       }>
       <div className="p-4 pt-2">
@@ -296,7 +296,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
         <div className="mt-3 flex gap-1">
           {APPT_KINDS.map((k) => (
             <button key={k} type="button" onClick={() => setKind(k)}
-              className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${kind === k ? "text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}
+              className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${kind === k ? "text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}
               style={kind === k ? { backgroundColor: APPT_IS[k].color } : undefined}>
               {APPT_IS[k].label}
             </button>
@@ -307,7 +307,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
           <div className="mt-2 flex gap-1" role="group" aria-label="Hvar fer viðtalið fram">
             {([["video", "Myndsímtal"], ["in_person", "Á staðnum"]] as const).map(([m, label]) => (
               <button key={m} type="button" onClick={() => setMode(m)} aria-pressed={mode === m}
-                className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${mode === m ? "bg-hc-brand-dark text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>
+                className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold transition ${mode === m ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-slate-700 hover:bg-slate-200"}`}>
                 {label}
               </button>
             ))}
@@ -315,9 +315,9 @@ function BookDialog({ api, at, onClose, onBooked }: {
         )}
 
         <label className="mt-3 block">
-          <span className="text-xs font-semibold text-slate-600">Skjólstæðingur</span>
+          <span className="text-xs font-semibold text-hc-ink-2">Skjólstæðingur</span>
           <span className="mt-1 flex items-center gap-2 rounded-xl border border-slate-300 px-3">
-            <Search className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+            <Search className="h-4 w-4 shrink-0 text-hc-ink-3" aria-hidden />
             <input value={q} onChange={(e) => setQ(e.target.value)} autoFocus placeholder="Nafn eða sími"
               className="min-h-10 w-full bg-transparent text-sm outline-none" />
           </span>
@@ -328,16 +328,16 @@ function BookDialog({ api, at, onClose, onBooked }: {
             <li key={c.journey_id}>
               <button type="button" disabled={busy} onClick={() => book(c)}
                 className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300 disabled:opacity-50">
-                <span className="truncate font-semibold text-slate-900">{c.name ?? "—"}</span>
-                <span className="shrink-0 text-xs text-slate-600">Bóka</span>
+                <span className="truncate font-semibold text-hc-ink">{c.name ?? "—"}</span>
+                <span className="shrink-0 text-xs text-hc-ink-2">Bóka</span>
               </button>
             </li>
           ))}
-          {q.trim().length >= 2 && !hits.length && <li className="px-1 text-sm text-slate-600">Enginn fannst.</li>}
+          {q.trim().length >= 2 && !hits.length && <li className="px-1 text-sm text-hc-ink-2">Enginn fannst.</li>}
         </ul>
 
         {msg && <p className="mt-2 text-sm text-red-700">{msg}</p>}
-        <button type="button" onClick={onClose} className="mt-3 w-full rounded-xl border border-slate-300 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Loka</button>
+        <button type="button" onClick={onClose} className="mt-3 w-full rounded-xl border border-slate-300 py-2 text-sm font-semibold text-slate-700 hover:bg-hc-sunken">Loka</button>
       </div>
     </Sheet>
   );

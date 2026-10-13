@@ -146,20 +146,20 @@ export default function CoachInbox({ api, onRead }: {
     return failed ? (
       <div className={`${hcCard.base} px-4 py-8 text-center`}>
         <p className="text-sm font-semibold text-hc-ink">Náði ekki í skilaboðin.</p>
-        <p className="mt-1 text-xs text-slate-600">Athugaðu netsambandið.</p>
+        <p className="mt-1 text-xs text-hc-ink-2">Athugaðu netsambandið.</p>
         <button type="button" onClick={() => { setFailed(false); void loadList(); }}
           className={`${hcBtn.secondary} mt-3`}>Reyna aftur</button>
       </div>
-    ) : <div className="h-40 animate-pulse rounded-hc-card bg-white" aria-hidden />;
+    ) : <div className="h-40 animate-pulse rounded-hc-card bg-hc-surface" aria-hidden />;
   }
 
   // ── One conversation ──────────────────────────────────────────────────
   if (open) {
     return (
       <section className={`${hcCard.base} flex flex-col overflow-hidden`}>
-        <div className="flex items-center gap-3 border-b border-slate-100 p-3">
+        <div className="flex items-center gap-3 border-b border-hc-hairline p-3">
           <button type="button" onClick={() => { setOpen(null); setMsgs([]); }}
-            aria-label="Til baka" className="rounded-lg p-1.5 text-slate-600 hover:bg-slate-100">
+            aria-label="Til baka" className="rounded-lg p-1.5 text-hc-ink-2 hover:bg-hc-sunken-2">
             <ArrowLeft className="h-5 w-5" aria-hidden />
           </button>
           <p className="min-w-0 flex-1 truncate font-bold text-hc-ink">{open.name}</p>
@@ -170,20 +170,20 @@ export default function CoachInbox({ api, onRead }: {
             page this list is 52vh of the screen, so containing the
             scroll stranded the page: a thumb over the conversation could not
             move it at all. Reaching the end now hands the scroll onward. */}
-        <div className="max-h-[52vh] min-h-32 flex-1 space-y-2 overflow-y-auto bg-slate-50/60 p-4">
+        <div className="max-h-[52vh] min-h-32 flex-1 space-y-2 overflow-y-auto bg-hc-sunken/60 p-4">
           {msgs.map((m) => (
             <div key={m.id} className={`flex ${m.author_kind === "coach" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${m.pending ? "opacity-60" : ""} ${
                 m.author_kind === "coach"
                   ? m.kind === "nudge" ? "bg-amber-100 text-amber-950" : "bg-hc-brand text-white"
-                  : "bg-white text-slate-900 ring-1 ring-hc-hairline"}`}>
+                  : "bg-hc-surface text-hc-ink ring-1 ring-hc-hairline"}`}>
                 {m.author_kind === "coach" && m.author_name && (
                   <p className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide opacity-60">
                     {m.kind === "nudge" && <Sparkles className="h-3 w-3" aria-hidden />}{m.author_name}
                   </p>
                 )}
                 <p className="whitespace-pre-wrap leading-snug">{m.body}</p>
-                <p className={`mt-1 text-[10px] ${m.author_kind === "coach" && m.kind !== "nudge" ? "text-white/70" : "text-slate-500"}`}>
+                <p className={`mt-1 text-[10px] ${m.author_kind === "coach" && m.kind !== "nudge" ? "text-white/70" : "text-hc-ink-3"}`}>
                   {m.pending ? "Sendi…" : ago(m.created_at)}
                 </p>
               </div>
@@ -203,7 +203,7 @@ export default function CoachInbox({ api, onRead }: {
             anything they asked. Picking one still sends it, as the chips
             did; the button is a different door to the same act. */}
         {nudgesOpen && (
-          <div className="flex flex-wrap gap-1.5 border-t border-slate-100 px-3 pt-3">
+          <div className="flex flex-wrap gap-1.5 border-t border-hc-hairline px-3 pt-3">
             {NUDGES.map((n, i) => (
               <button key={i} type="button" disabled={busy}
                 onClick={() => { setNudgesOpen(false); void send(n, true); }}
@@ -224,7 +224,7 @@ export default function CoachInbox({ api, onRead }: {
             aria-label="Tillögur" aria-expanded={nudgesOpen} title="Tillögur"
             className={`grid h-11 w-11 shrink-0 place-items-center rounded-hc-element border transition ${
               nudgesOpen ? "border-amber-300 bg-amber-50 text-amber-900"
-                         : "border-hc-control bg-white text-slate-600 hover:bg-amber-50 hover:text-amber-900"}`}>
+                         : "border-hc-control bg-hc-surface text-hc-ink-2 hover:bg-amber-50 hover:text-amber-900"}`}>
             <Sparkles className="h-4 w-4" aria-hidden />
           </button>
           <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
@@ -243,24 +243,24 @@ export default function CoachInbox({ api, onRead }: {
   // ── The list ──────────────────────────────────────────────────────────
   if (!threads.length) {
     return (
-      <p className={`${hcCard.base} px-4 py-8 text-center text-sm text-slate-600`}>
+      <p className={`${hcCard.base} px-4 py-8 text-center text-sm text-hc-ink-2`}>
         Engin skilaboð enn. Þegar einhver skrifar úr heilsuferðinni birtist það hér.
       </p>
     );
   }
   return (
-    <ul className={`${hcCard.base} divide-y divide-slate-100 overflow-hidden`}>
+    <ul className={`${hcCard.base} divide-y divide-hc-hairline overflow-hidden`}>
       {threads.map((t) => (
         <li key={t.journeyId}>
           <button type="button" onClick={() => { setOpen(t); void loadThread(t); }}
-            className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50">
+            className="flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-hc-sunken">
             <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${t.unread ? "bg-red-500" : "bg-transparent"}`} aria-hidden />
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-2">
                 <span className={`min-w-0 flex-1 truncate ${t.unread ? "font-bold text-hc-ink" : "font-semibold text-slate-700"}`}>{t.name}</span>
-                <span className="shrink-0 text-xs text-slate-500">{ago(t.lastAt)}</span>
+                <span className="shrink-0 text-xs text-hc-ink-3">{ago(t.lastAt)}</span>
               </span>
-              <span className={`mt-0.5 block truncate text-sm ${t.unread ? "text-slate-700" : "text-slate-600"}`}>
+              <span className={`mt-0.5 block truncate text-sm ${t.unread ? "text-slate-700" : "text-hc-ink-2"}`}>
                 {t.lastFrom === "coach" ? "Þú: " : ""}{t.last}
               </span>
             </span>

@@ -15,7 +15,7 @@ export default function BeforeAfter({ c }: { c: Comparison }) {
   const better = c.rows.filter((r) => r.better === true).length;
   const worse = c.rows.filter((r) => r.better === false).length;
   return (
-    <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-hc-hairline" aria-label="Þá og nú">
+    <section className="overflow-hidden rounded-3xl bg-hc-surface shadow-sm ring-1 ring-hc-hairline" aria-label="Þá og nú">
       <div className="bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-5 text-white">
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-300">Þá og nú</p>
         <p className="mt-1 text-lg font-bold">{d(c.beforeDate)} → {d(c.afterDate)}</p>
@@ -23,27 +23,27 @@ export default function BeforeAfter({ c }: { c: Comparison }) {
           {better} {better === 1 ? "gildi" : "gildi"} í rétta átt{worse ? ` · ${worse} í ranga átt` : ""} · {c.rows.length} borin saman
         </p>
       </div>
-      <ul className="divide-y divide-slate-100">
+      <ul className="divide-y divide-hc-hairline">
         {c.rows.map((r) => {
           const Icon = r.better === true ? (r.after > r.before ? ArrowUpRight : ArrowDownRight) : r.better === false ? (r.after > r.before ? ArrowUpRight : ArrowDownRight) : Minus;
-          const tone = r.better === true ? "text-emerald-700 bg-emerald-50" : r.better === false ? "text-red-700 bg-red-50" : "text-slate-600 bg-slate-100";
+          const tone = r.better === true ? "text-emerald-700 bg-emerald-50" : r.better === false ? "text-red-700 bg-red-50" : "text-hc-ink-2 bg-hc-sunken-2";
           return (
             <li key={r.marker} className="flex items-center gap-3 px-4 py-3">
               <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tone}`}><Icon className="h-4 w-4" aria-hidden /></span>
               <span className="min-w-0 flex-1 font-medium text-slate-800">{r.title}</span>
-              <span className="flex items-center gap-1.5 text-sm tabular-nums text-slate-600">
+              <span className="flex items-center gap-1.5 text-sm tabular-nums text-hc-ink-2">
                 {r.signalBefore && <span className={`h-2 w-2 rounded-full ${DOT[r.signalBefore]}`} aria-hidden />}{num(r.before)}
               </span>
               <span className="text-slate-300" aria-hidden>→</span>
-              <span className="flex items-center gap-1.5 text-sm font-bold tabular-nums text-slate-900">
+              <span className="flex items-center gap-1.5 text-sm font-bold tabular-nums text-hc-ink">
                 {r.signalAfter && <span className={`h-2 w-2 rounded-full ${DOT[r.signalAfter]}`} aria-hidden />}{num(r.after)}
-                {r.unit && <span className="font-normal text-slate-500">{r.unit}</span>}
+                {r.unit && <span className="font-normal text-hc-ink-3">{r.unit}</span>}
               </span>
             </li>
           );
         })}
       </ul>
-      <p className="px-4 pb-4 pt-2 text-xs text-slate-600">Litirnir sýna hvar gildið lenti miðað við viðmið Lifeline. Læknir og hjúkrunarfræðingur fara yfir breytingarnar með þér.</p>
+      <p className="px-4 pb-4 pt-2 text-xs text-hc-ink-2">Litirnir sýna hvar gildið lenti miðað við viðmið Lifeline. Læknir og hjúkrunarfræðingur fara yfir breytingarnar með þér.</p>
     </section>
   );
 }

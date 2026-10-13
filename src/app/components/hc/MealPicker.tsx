@@ -50,11 +50,11 @@ export default function MealPicker({ api, category, onPick, onClose }: {
   return (
     <Sheet title="Máltíðasafn" onClose={onClose} max="max-w-4xl"
       header={
-        <div className="border-b border-slate-100 p-4 sm:p-5">
+        <div className="border-b border-hc-hairline p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold text-hc-ink">Máltíðasafn</h2>
-              <p className="text-xs text-slate-600">Sama safn og í /admin/content. Raðað eftir próteini.</p>
+              <p className="text-xs text-hc-ink-2">Sama safn og í /admin/content. Raðað eftir próteini.</p>
             </div>
             <button type="button" onClick={onClose} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white">Loka</button>
           </div>
@@ -71,28 +71,28 @@ export default function MealPicker({ api, category, onPick, onClose }: {
         </div>
       }>
 
-        <div className="flex-1 bg-slate-50 p-4 sm:p-5">
-          {rows === null && <p className="text-sm text-slate-600">Hleð…</p>}
-          {rows?.length === 0 && <p className="text-sm text-slate-600">Ekkert fannst.</p>}
+        <div className="flex-1 bg-hc-sunken p-4 sm:p-5">
+          {rows === null && <p className="text-sm text-hc-ink-2">Hleð…</p>}
+          {rows?.length === 0 && <p className="text-sm text-hc-ink-2">Ekkert fannst.</p>}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {rows?.map((m) => (
               <button key={m.id} type="button" onClick={() => { onPick(m); onClose(); }}
-                className="flex flex-col overflow-hidden rounded-2xl border border-hc-hairline bg-white text-left hover:border-lime-400">
-                <span className="block aspect-[4/3] bg-slate-100">
+                className="flex flex-col overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface text-left hover:border-lime-400">
+                <span className="block aspect-[4/3] bg-hc-sunken-2">
                   {m.illustration_url
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={m.illustration_url} alt="" loading="lazy" className="h-full w-full object-cover" />
                     : <span className="flex h-full items-center justify-center text-3xl text-slate-300">🍽️</span>}
                 </span>
                 <span className="flex flex-1 flex-col p-2.5">
-                  <span className="text-sm font-semibold leading-tight text-slate-900">{m.name}</span>
-                  <span className="mt-0.5 text-[11px] text-slate-600">
+                  <span className="text-sm font-semibold leading-tight text-hc-ink">{m.name}</span>
+                  <span className="mt-0.5 text-[11px] text-hc-ink-2">
                     {[m.category && CATEGORY_IS[m.category], m.prep_time_min ? `${m.prep_time_min} mín` : null].filter(Boolean).join(" · ")}
                   </span>
                   <span className="flex-1" />
                   <span className="mt-1.5 flex flex-wrap gap-1 text-[11px] font-semibold">
                     {m.protein != null && <span className="rounded-full bg-lime-50 px-2 py-0.5 text-lime-800">{m.protein} g prótein</span>}
-                    {m.calories != null && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">{m.calories} kcal</span>}
+                    {m.calories != null && <span className="rounded-full bg-hc-sunken-2 px-2 py-0.5 text-hc-ink-2">{m.calories} kcal</span>}
                   </span>
                 </span>
               </button>
