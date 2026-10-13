@@ -18,6 +18,8 @@ import { supabase } from "@/lib/supabase";
 import PlanView from "@/app/components/hc/PlanView";
 import MyActions from "@/app/components/hc/MyActions";
 import SuggestedProgram from "@/app/components/hc/SuggestedProgram";
+import HelpCard from "@/app/components/hc/HelpCard";
+import { portalFor } from "@/lib/hc/portal";
 import Paywall from "@/app/components/hc/Paywall";
 import ResultSignals, { type FlaggedValue } from "@/app/components/hc/ResultSignals";
 import ResultsCard, { type HcResult } from "@/app/components/hc/ResultsCard";
@@ -779,6 +781,18 @@ function PlanPageInner() {
                       page is now the conversation, the coach and the diary,
                       with the request form kept inside the first of them. */}
                   <CoachView api={api} startOn={coachSub} focusNewest={coachFocus} />
+                  {/* Beiðnir, under the conversation.
+                      HelpCard is the only thing that writes to
+                      /api/hc/requests and nothing had mounted it, so the
+                      Beiðnir panel in the workstation could never receive
+                      anything — hc_requests had one row in total. The chat
+                      above handles a question; this is for the things that
+                      need a decision and an answer: a new measurement, a
+                      programme that does not fit, an injury. They are
+                      tracked with a status, which a message is not. */}
+                  <div className="mt-6">
+                    <HelpCard api={api} portalUrl={portalFor(null)} />
+                  </div>
                 </div>
               )}
               {tab === "exercise" && plan && baseExercise && (!access || access.ok) && (

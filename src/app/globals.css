@@ -570,60 +570,27 @@ main.readonly-locked a {
  * brand-dark carries white text at 5.48:1 on either theme, so buttons do not
  * need a second answer.
  *
- * The system preference applies unless somebody has explicitly chosen light,
- * and an explicit choice always wins — hence the :not([data-scheme="light"]).
+ * Scoped to the workstation, and only on an explicit choice.
+ *
+ * It was on :root behind a prefers-color-scheme media query, which turned
+ * the participant's heilsuferð — and the marketing site — dark for anyone
+ * whose phone was in dark mode. That was never asked for, and a health
+ * journey that changes appearance because of an OS setting is a support
+ * question nobody needs. The toggle in Stillingar is a workstation setting,
+ * so this is a workstation theme.
  *
  * data-scheme, not data-theme: data-theme already carries the brand theme
  * (classic vs rebrand, set from localStorage["ll-brand-theme"] in
  * layout.tsx and toggled in /admin). Reusing it here would have silently
  * turned the admin's classic palette off for anyone in dark mode.
  */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-scheme="light"]) {
-    --hc-page: #121922;
-    --hc-surface: #1B2430;
-    --hc-sunken: #161E28;
-    --hc-sunken-2: #222C3A;
-    --hc-ink: #E6ECF3;
-    --hc-ink-2: #AFBCCC;
-    --hc-ink-3: #93A1B3;
-    --hc-brand-text: #34D399;   /* 8.14:1 on the card */
-  --hc-ok-surface: #112A20;  --hc-ok-ink: #34D399;
-  --hc-warn-surface: #2A2211;  --hc-warn-ink: #FBBF24;
-  --hc-info-surface: #102534;  --hc-info-ink: #38BDF8;
-  --hc-bad-surface: #2C161B;   --hc-bad-ink: #FB7185;
-  --hc-brand-surface: #112A20;
-  --hc-sleep-soft: #1D1B2A;   --hc-sleep-ink: #A79FD4;
-  --hc-exercise-soft: #2A1A10;  --hc-exercise-ink: #FB923C;
-  --hc-nutrition-soft: #1C2410; --hc-nutrition-ink: #A3E635;
-  --hc-mental-soft: #102534;  --hc-mental-ink: #38BDF8;
-    --hc-ok-surface: #112A20;    --hc-ok-ink: #34D399;
-    --hc-warn-surface: #2A2211;  --hc-warn-ink: #FBBF24;
-    --hc-info-surface: #102534;  --hc-info-ink: #38BDF8;
-    --hc-bad-surface: #2C161B;   --hc-bad-ink: #FB7185;
-  --hc-brand-surface: #112A20;
-  --hc-sleep-soft: #1D1B2A;   --hc-sleep-ink: #A79FD4;
-  --hc-exercise-soft: #2A1A10;  --hc-exercise-ink: #FB923C;
-  --hc-nutrition-soft: #1C2410; --hc-nutrition-ink: #A3E635;
-  --hc-mental-soft: #102534;  --hc-mental-ink: #38BDF8;
-    --hc-brand-surface: #112A20;
-    --hc-sleep-soft: #1D1B2A;     --hc-sleep-ink: #A79FD4;
-    --hc-exercise-soft: #2A1A10;  --hc-exercise-ink: #FB923C;
-    --hc-nutrition-soft: #1C2410; --hc-nutrition-ink: #A3E635;
-    --hc-mental-soft: #102534;    --hc-mental-ink: #38BDF8;
-    --hc-muted: #6B7A8C;
-    --hc-hairline: #2A3542;
-    --hc-border: #35414F;
-    --hc-control: #5A6878;
-    --hc-focus-surface: #2A2416;
-    --hc-focus-ring: #6B5A1F;
-    --hc-hero-from: #0A1F1A;
-    --hc-hero-to: #04433096;
-    --background: #121922;
-  }
+
+html[data-scheme="dark"] .hc-ws-scope,
+html[data-scheme="dark"] .hc-ws-scope * {
+  color-scheme: dark;
 }
 
-:root[data-scheme="dark"] {
+html[data-scheme="dark"] .hc-ws-scope {
   --hc-page: #121922;
   --hc-surface: #1B2430;
   --hc-sunken: #161E28;

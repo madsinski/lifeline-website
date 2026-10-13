@@ -311,7 +311,7 @@ export function WorkstationApp({ mode }: { mode: "worker" | "staff" }) {
   if (me === null) {
     return mode === "worker" ? <Login onDone={load} /> : (
       <div className="p-10 text-center text-hc-ink-2">
-        Vinnustöðin er opin starfsfólki Lifeline með tveggja þátta staðfestingu.
+        Coaching er opið starfsfólki Lifeline með tveggja þátta staðfestingu.
       </div>
     );
   }
@@ -395,7 +395,10 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
   ];
 
   return (
-    <div className={hcPage.staff}>
+    /* hc-ws-scope: dark mode is a workstation setting, so the dark tokens
+       apply inside this subtree and nowhere else. The participant's
+       heilsuferð keeps its own light palette regardless of the toggle. */
+    <div className={`hc-ws-scope ${hcPage.staff}`}>
       <WsHeader name={me.name} role={me.role === "doctor" ? "læknir" : me.role === "admin" ? "stjórnandi" : "hjúkrunarfræðingur"} items={menu} />
 
       {/* max-w-6xl, not 5xl: the home screen is two columns now, and a

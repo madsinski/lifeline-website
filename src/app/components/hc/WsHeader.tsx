@@ -33,7 +33,11 @@ export default function WsHeader({ name, role, items }: { name: string; role: st
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <LifelineLogo size="sm" />
-          <span className="hidden text-[11px] font-bold uppercase tracking-[0.18em] text-hc-ok-ink sm:block">Vinnustöð</span>
+          {/* "Coaching", not "Vinnustöð". The route stays /vinnustod so
+              existing links, bookmarks and the partner workstations keep
+              working — this is what the screen is called, not where it
+              lives. */}
+          <span className="hidden text-[11px] font-bold uppercase tracking-[0.18em] text-hc-ok-ink sm:block">Coaching</span>
         </div>
 
         <div className="relative">

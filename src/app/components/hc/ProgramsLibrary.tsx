@@ -26,6 +26,7 @@ import { Check, Loader2, Pencil, Plus, Send, Trash2, X } from "lucide-react";
 import { hcBtn, hcTabs } from "./ui";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import DayExampleEditor from "./DayExampleEditor";
+import { isAdaptive } from "@/lib/hc/adaptive-program";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type Kind = "exercise" | "nutrition";
@@ -179,7 +180,10 @@ function Row({ p, kind, api, people, onEdit, onToggle, onDelete }: {
         <span className="min-w-0 flex-1">
           <span className="block font-semibold text-hc-ink">{p.name}</span>
           <span className="block text-xs text-hc-ink-2">
-            {[p.goal, p.level, p.days_per_week ? `${p.days_per_week}× í viku` : null]
+            {[p.goal, p.level, p.days_per_week ? `${p.days_per_week}× í viku` : null,
+              kind === "exercise"
+                ? (isAdaptive(p.key) ? "reiknað" : `${(p.sessions ?? []).length} æfingadagar`)
+                : `${(p.day_example ?? []).length} máltíðir`]
               .filter(Boolean).join(" · ") || "—"}
           </span>
         </span>
@@ -296,7 +300,21 @@ function Editor({ kind, value, api, onCancel, onSave }: {
           the sessions came from whoever seeded the table. Both editors own
           their own pickers, so the exercise library and the meal library
           arrive with them. */}
-      {kind === "exercise" ? (
+      {kind === "exercise" && isAdaptive(p.key) ? (
+        /* The adaptive programme has no stored sessions, and an empty
+           session editor says "this programme is blank" when what is true
+           is "this programme is computed". hiit-styrkur is the only ACTIVE
+           exercise programme, so this empty box was the one every coach
+           saw — the ten with real sessions are all switched off. */
+        <div className="rounded-xl bg-hc-info-surface p-3 ring-1 ring-hc-info-ink/25">
+          <p className="text-sm font-semibold text-hc-info-ink">Æfingarnar eru reiknaðar fyrir hvern skjólstæðing</p>
+          <p className="mt-1 text-xs leading-snug text-hc-ink-2">
+            Þetta prógramm geymir ekki fastar æfingar. Þær eru settar saman eftir byrjunarstigi,
+            álagi og meiðslum hvers og eins, og skjólstæðingurinn getur stillt þær sjálf/ur.
+            Til að breyta uppbyggingunni þarf að breyta reglunum, ekki listanum hér.
+          </p>
+        </div>
+      ) : kind === "exercise" ? (
         <div>
           <p className="mb-1.5 text-xs font-semibold text-hc-ink-2">Æfingar í prógramminu</p>
           <ExerciseSessionsEditor api={api}
