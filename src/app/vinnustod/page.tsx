@@ -894,7 +894,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
            * thing here with indefinite length, so it gets the column and the
            * status cards size to their own content.
            */
-          <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
             <div className="space-y-4">
               {/* Heilsufarsskoðun, compressed when there is nothing to say.
                   Three ticks, all done, all the same date was using 186px to
@@ -1512,7 +1512,7 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
             <button type="button" onClick={() => setOpen(true)} className={btnPrimary}><Bell className="h-4 w-4" /> Skrifa skilaboð</button>
           </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
             <div className="space-y-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Sniðmát</p>
@@ -1776,7 +1776,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+    <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
       {/* Stepper */}
       <nav aria-label="Skref viðtals" className="lg:sticky lg:top-20 lg:self-start">
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600">{isFollowup ? "Eftirfylgdarviðtal" : "Viðtal"}</p>
