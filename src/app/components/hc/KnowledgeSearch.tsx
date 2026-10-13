@@ -132,7 +132,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
           {([["m", "Karlar"], ["f", "Konur"]] as const).map(([k, label]) => {
             const b = bandForValue(e, value, k);
             return (
-              <div key={k} className={`rounded-2xl px-4 py-3 ring-1 ${b ? TONE_CLASS[b.tone] : "bg-slate-50 text-slate-700 ring-slate-200"}`}>
+              <div key={k} className={`rounded-2xl px-4 py-3 ring-1 ${b ? TONE_CLASS[b.tone] : "bg-slate-50 text-slate-700 ring-hc-hairline"}`}>
                 <p className="text-xs font-bold uppercase tracking-wide opacity-70">{label}</p>
                 <p className="text-sm font-semibold">
                   {value.toString().replace(".", ",")}{e.unit ? ` ${e.unit}` : ""} → {b ? `${b.label.replace(/\s*\((karlar|konur)\)$/i, "")} (${TONE_IS[b.tone]})` : "utan bila"}
@@ -143,7 +143,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
           })}
         </div>
       ) : (
-        <div className={`rounded-2xl px-4 py-3 ring-1 ${hit ? TONE_CLASS[hit.tone] : "bg-slate-50 text-slate-700 ring-slate-200"}`}>
+        <div className={`rounded-2xl px-4 py-3 ring-1 ${hit ? TONE_CLASS[hit.tone] : "bg-slate-50 text-slate-700 ring-hc-hairline"}`}>
           <p className="text-sm font-semibold">
             {value.toString().replace(".", ",")}{e.unit ? ` ${e.unit}` : ""} → {hit ? `${hit.label} (${TONE_IS[hit.tone]})` : "utan skilgreindra bila"}
           </p>

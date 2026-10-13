@@ -173,7 +173,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
           The boxes use CHIP now, the exact classes every pill further down
           the page uses, which means the hero cannot be dark: a green chip
           needs a light ground to be green on. */}
-      <section className="overflow-hidden rounded-3xl bg-white p-5 shadow-hc-card ring-1 ring-slate-200 sm:p-6">
+      <section className="overflow-hidden rounded-3xl bg-white p-5 shadow-hc-card ring-1 ring-hc-hairline sm:p-6">
         {/* The score sits at the right edge, the size of what it is.
             It was inside the heading — "Lífstílseinkunn 7,4" as one line of
             text — which made the number the same weight as the word in
@@ -245,7 +245,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
             findable without competing. */}
         {onUpload && (
           <button type="button" onClick={onUpload}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-200">
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 ring-1 ring-hc-hairline transition hover:bg-slate-200">
             <Upload className="h-3.5 w-3.5 shrink-0" aria-hidden />
             Ertu með nýrri skýrslu? Hlaða upp
           </button>
@@ -309,7 +309,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
         const off = rows.filter((r) => r.signal === "red").length;
         return (
           <section key={s.key}
-            className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            className="overflow-hidden rounded-2xl border border-hc-hairline bg-white"
             style={{ borderLeftWidth: 3, borderLeftColor: s.accent }}>
             {/* A wash of the section's own colour behind the heading. Enough
                 to break the page into blocks, not enough to compete with the
@@ -407,7 +407,7 @@ function Row({ item, signal, entry, sex }: {
             {move !== 0 ? `${move > 0 ? "+" : ""}${fmt(move)}` : "óbreytt"}
           </span>
         )}
-        <span className={`shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${signal ? CHIP[signal] : "bg-slate-50 text-slate-700 ring-slate-200"}`}>
+        <span className={`shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${signal ? CHIP[signal] : "bg-slate-50 text-slate-700 ring-hc-hairline"}`}>
           {fmt(item.value)}{item.unit ? ` ${item.unit}` : ""}
         </span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} />

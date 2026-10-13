@@ -92,7 +92,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt }: {
   };
 
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6">
+    <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6">
       <span className="grid h-11 w-11 place-items-center rounded-full bg-slate-100 text-slate-500">
         <Lock className="h-5 w-5" aria-hidden />
       </span>

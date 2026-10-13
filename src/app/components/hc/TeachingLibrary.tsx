@@ -44,12 +44,12 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
     return (
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setOpen(null)} className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold ring-1 ring-slate-200">← Til baka</button>
+          <button type="button" onClick={() => setOpen(null)} className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold ring-1 ring-hc-hairline">← Til baka</button>
           <span className="flex-1" />
           {lecture.kind === "slides" && (
             <button type="button" onClick={() => void stage.current?.requestFullscreen?.()} className="rounded-full bg-hc-ink px-4 py-1.5 text-sm font-semibold text-white">Kynna á skjá</button>
           )}
-          {canEdit && <a href="/admin/lectures" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold ring-1 ring-slate-200">Breyta í stjórnborði</a>}
+          {canEdit && <a href="/admin/lectures" className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold ring-1 ring-hc-hairline">Breyta í stjórnborði</a>}
         </div>
         <div>
           <h2 className="text-xl font-bold text-slate-900">{lecture.title}</h2>
@@ -68,7 +68,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
   if (program) {
     return (
       <div className="space-y-3">
-        <button type="button" onClick={() => setOpen(null)} className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold ring-1 ring-slate-200">← Til baka</button>
+        <button type="button" onClick={() => setOpen(null)} className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold ring-1 ring-hc-hairline">← Til baka</button>
         {isAdaptive(program.key) && (
           <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Prufustillingar: breytingar hér vistast ekki. Stillingar skjólstæðings eru í áætlun hans, skrefinu Hreyfing.
@@ -87,7 +87,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {lectures.map((l) => (
             <button key={l.slug} type="button" onClick={() => setOpen({ kind: "lecture", slug: l.slug })}
-              className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition hover:ring-emerald-300">
+              className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-hc-hairline transition hover:ring-emerald-300">
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
                 {KIND_IS[l.kind] ?? "Fræðsla"}{l.kind === "slides" ? ` · ${l.slides.length} glærur` : ""}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}
               </p>
@@ -105,7 +105,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {programs.map((p) => (
             <button key={p.key} type="button" onClick={() => setOpen({ kind: "program", key: p.key })}
-              className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition hover:ring-orange-300">
+              className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-hc-hairline transition hover:ring-orange-300">
               <p className="text-xs font-bold uppercase tracking-wide text-orange-700">
                 {p.days_per_week} dagar í viku{p.session_minutes ? ` · um ${p.session_minutes} mín.` : ""}{isAdaptive(p.key) ? " · aðlagast" : ""}
               </p>

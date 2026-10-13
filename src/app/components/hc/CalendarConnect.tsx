@@ -230,7 +230,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
             <div className="mt-2 grid grid-cols-2 gap-2.5">
               {tiles.map((c) => (
                 <button key={c.key} type="button" onClick={() => setChoice(c.key)}
-                  className="flex flex-col items-start gap-2 rounded-2xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-emerald-400 hover:bg-emerald-50/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/30">
+                  className="flex flex-col items-start gap-2 rounded-2xl border border-hc-hairline bg-white p-3.5 text-left transition hover:border-emerald-400 hover:bg-emerald-50/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/30">
                   {c.icon}
                   <span><span className="block text-sm font-bold text-slate-900">{c.label}</span><span className="block text-[11px] text-slate-500">{c.hint}</span></span>
                 </button>

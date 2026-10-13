@@ -63,7 +63,7 @@ export default function ActivityEditor({ activities, onChange }: {
           {grouped.map((rows) => {
             const a = rows[0];
             return (
-              <li key={a.name} className="flex items-start gap-3 rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+              <li key={a.name} className="flex items-start gap-3 rounded-2xl bg-white p-3 ring-1 ring-hc-hairline">
                 <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
                   <ActivityIcon name={a.name} />
                 </span>
@@ -93,7 +93,7 @@ export default function ActivityEditor({ activities, onChange }: {
           <Plus className="h-4 w-4" aria-hidden /> Bæta við því sem þú gerir
         </button>
       ) : (
-        <div className="space-y-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200">
+        <div className="space-y-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-hc-hairline">
           {/* 1 ─ which sport */}
           <div className="flex items-start justify-between gap-2">
             <p className="font-semibold text-slate-900">{picked ?? "Hvað gerirðu?"}</p>
@@ -105,13 +105,13 @@ export default function ActivityEditor({ activities, onChange }: {
               <div className="flex flex-wrap gap-1.5">
                 {ACTIVITY_GROUPS.map((g) => (
                   <button key={g} type="button" onClick={() => setGroup(g)} aria-pressed={group === g}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>{g}</button>
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline"}`}>{g}</button>
                 ))}
               </div>
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {ACTIVITY_PRESETS.filter((x) => x.group === group).map((x) => (
                   <button key={x.name} type="button" onClick={() => setPicked(x.name)}
-                    className="flex gap-2.5 rounded-xl bg-white p-2.5 text-left ring-1 ring-slate-200 transition hover:ring-2 hover:ring-hc-brand">
+                    className="flex gap-2.5 rounded-xl bg-white p-2.5 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-hc-brand">
                     <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
                       <ActivityIcon name={x.name} className="h-4 w-4" />
                     </span>
@@ -133,7 +133,7 @@ export default function ActivityEditor({ activities, onChange }: {
           {/* 2 ─ which days, as many as you like */}
           {name && (
             <>
-              {preset?.why && <p className="rounded-xl bg-white p-2.5 text-xs leading-snug text-slate-600 ring-1 ring-slate-200">{preset.why}</p>}
+              {preset?.why && <p className="rounded-xl bg-white p-2.5 text-xs leading-snug text-slate-600 ring-1 ring-hc-hairline">{preset.why}</p>}
               <div>
                 <p className="mb-1.5 text-sm font-medium text-slate-700">Hvaða daga?</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -143,14 +143,14 @@ export default function ActivityEditor({ activities, onChange }: {
                       <button key={w} type="button" aria-pressed={on}
                         onClick={() => setDays(on ? days.filter((d) => d !== i) : [...days, i].sort((a2, b2) => a2 - b2))}
                         className={`inline-flex min-h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold transition ${
-                          on ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-300"}`}>
+                          on ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:ring-slate-300"}`}>
                         {on && <Check className="h-3.5 w-3.5" aria-hidden />}{WEEKDAYS_SHORT[i]}
                       </button>
                     );
                   })}
                 </div>
               </div>
-              <label className="flex w-fit items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200">
+              <label className="flex w-fit items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-hc-hairline">
                 <Clock className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
                 <input type="time" value={at} onChange={(e) => setAt(e.target.value)} aria-label="Klukkan"
                   className="bg-transparent text-sm outline-none" />

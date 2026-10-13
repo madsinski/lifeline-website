@@ -128,7 +128,7 @@ export default function BookVideo({ api, journey, onBooked }: {
   };
 
   return (
-    <div className="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
+    <div className="rounded-xl bg-slate-50 p-3 ring-1 ring-hc-hairline">
       <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-600">
         <Video className="h-3.5 w-3.5" aria-hidden /> Bóka myndsímtal
       </p>
@@ -140,7 +140,7 @@ export default function BookVideo({ api, journey, onBooked }: {
             disabled={k === "followup" && !journey.plan_published_at && !journey.followup_booked_for}
             title={k === "followup" && !journey.plan_published_at ? "Eftirfylgd bókast eftir að áætlun er birt" : KIND_IS[k].blurb}
             className={`flex-1 rounded-lg px-2 py-1 text-[11px] font-semibold transition disabled:opacity-40 ${
-              kind === k ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100"}`}>
+              kind === k ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:bg-slate-100"}`}>
             {KIND_IS[k].label}
           </button>
         ))}
@@ -194,7 +194,7 @@ export default function BookVideo({ api, journey, onBooked }: {
           return (
             <button key={d.toISOString()} type="button" onClick={() => setOffset(on ? null : i)}
               className={`shrink-0 rounded-lg px-2 py-1.5 text-center transition ${
-                on ? "bg-hc-ink text-white" : "bg-white ring-1 ring-slate-200 hover:bg-slate-100"}`}>
+                on ? "bg-hc-ink text-white" : "bg-white ring-1 ring-hc-hairline hover:bg-slate-100"}`}>
               <span className="block text-[10px] leading-tight opacity-70">{WEEKDAYS_IS[d.getDay()]}</span>
               <span className="block text-sm font-bold leading-tight">{d.getDate()}</span>
               <span className={`block text-[9px] leading-tight ${on ? "opacity-70" : free ? "text-emerald-700" : "text-slate-400"}`}>
@@ -215,7 +215,7 @@ export default function BookVideo({ api, journey, onBooked }: {
                 <button type="button" disabled={no || saving} onClick={() => void save(iso)}
                   className={`w-full rounded-lg py-1 text-xs font-semibold transition ${
                     no ? "cursor-not-allowed bg-slate-100 text-slate-300 line-through"
-                       : "bg-white text-slate-800 ring-1 ring-slate-200 hover:bg-emerald-50 hover:ring-emerald-300"}`}>
+                       : "bg-white text-slate-800 ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300"}`}>
                   {t}
                 </button>
               </li>

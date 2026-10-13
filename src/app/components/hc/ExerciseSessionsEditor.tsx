@@ -71,10 +71,10 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
             {open && (
               <div className="space-y-3 p-3">
                 <div className="grid gap-2 sm:grid-cols-[120px_1fr_1fr_90px_auto]">
-                  <input value={s.day} onChange={(e) => setSession(si, { day: e.target.value })} placeholder="Dagur" aria-label="Dagur" className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-                  <input value={s.title} onChange={(e) => setSession(si, { title: e.target.value })} placeholder="Heiti æfingar" aria-label="Heiti æfingar" className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm font-semibold" />
-                  <input value={s.focus ?? ""} onChange={(e) => setSession(si, { focus: e.target.value })} placeholder="Áhersla" aria-label="Áhersla" className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-                  <input type="number" value={s.minutes ?? ""} onChange={(e) => setSession(si, { minutes: Number(e.target.value) || null })} placeholder="Mín." aria-label="Mínútur" className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
+                  <input value={s.day} onChange={(e) => setSession(si, { day: e.target.value })} placeholder="Dagur" aria-label="Dagur" className="rounded-lg border border-hc-control px-2 py-1.5 text-sm" />
+                  <input value={s.title} onChange={(e) => setSession(si, { title: e.target.value })} placeholder="Heiti æfingar" aria-label="Heiti æfingar" className="rounded-lg border border-hc-control px-2 py-1.5 text-sm font-semibold" />
+                  <input value={s.focus ?? ""} onChange={(e) => setSession(si, { focus: e.target.value })} placeholder="Áhersla" aria-label="Áhersla" className="rounded-lg border border-hc-control px-2 py-1.5 text-sm" />
+                  <input type="number" value={s.minutes ?? ""} onChange={(e) => setSession(si, { minutes: Number(e.target.value) || null })} placeholder="Mín." aria-label="Mínútur" className="rounded-lg border border-hc-control px-2 py-1.5 text-sm" />
                   <button type="button" onClick={() => { if (confirm("Eyða þessum æfingadegi?")) onChange(sessions.filter((_, i) => i !== si)); }}
                     className="rounded-lg px-2 text-sm text-red-600 hover:bg-red-50">Eyða degi</button>
                 </div>
@@ -90,10 +90,10 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
                       </div>
                       <div className="min-w-0 flex-1 space-y-1.5">
                         <div className="flex flex-wrap gap-1.5">
-                          <input value={it.name} onChange={(e) => setItem(si, ii, { name: e.target.value })} aria-label="Æfing" className="min-w-[140px] flex-1 rounded-lg border border-slate-200 px-2 py-1 text-sm font-semibold" />
-                          <input value={it.prescription} onChange={(e) => setItem(si, ii, { prescription: e.target.value })} placeholder="3 x 10" aria-label="Magn" className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-sm" />
-                          <input value={it.rest ?? ""} onChange={(e) => setItem(si, ii, { rest: e.target.value || null })} placeholder="Hvíld" aria-label="Hvíld" className="w-24 rounded-lg border border-slate-200 px-2 py-1 text-sm" />
-                          <select value={it.block ?? "main"} onChange={(e) => setItem(si, ii, { block: e.target.value as ExerciseBlock })} aria-label="Hluti" className="rounded-lg border border-slate-200 px-1.5 py-1 text-xs">
+                          <input value={it.name} onChange={(e) => setItem(si, ii, { name: e.target.value })} aria-label="Æfing" className="min-w-[140px] flex-1 rounded-lg border border-hc-control px-2 py-1 text-sm font-semibold" />
+                          <input value={it.prescription} onChange={(e) => setItem(si, ii, { prescription: e.target.value })} placeholder="3 x 10" aria-label="Magn" className="w-24 rounded-lg border border-hc-control px-2 py-1 text-sm" />
+                          <input value={it.rest ?? ""} onChange={(e) => setItem(si, ii, { rest: e.target.value || null })} placeholder="Hvíld" aria-label="Hvíld" className="w-24 rounded-lg border border-hc-control px-2 py-1 text-sm" />
+                          <select value={it.block ?? "main"} onChange={(e) => setItem(si, ii, { block: e.target.value as ExerciseBlock })} aria-label="Hluti" className="rounded-lg border border-hc-control px-1.5 py-1 text-xs">
                             {(Object.keys(BLOCK_IS) as ExerciseBlock[]).map((b) => <option key={b} value={b}>{BLOCK_IS[b]}</option>)}
                           </select>
                         </div>
@@ -115,7 +115,7 @@ export default function ExerciseSessionsEditor({ sessions, onChange, api }: {
                 </ul>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setPicker({ si, replace: null })} className="rounded-xl bg-orange-600 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-700">+ Úr æfingasafni</button>
-                  <button type="button" onClick={() => setItems(si, [...s.items, { name: "", prescription: "", block: "main" }])} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">+ Frjáls lína</button>
+                  <button type="button" onClick={() => setItems(si, [...s.items, { name: "", prescription: "", block: "main" }])} className="rounded-xl border border-hc-hairline px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">+ Frjáls lína</button>
                 </div>
               </div>
             )}

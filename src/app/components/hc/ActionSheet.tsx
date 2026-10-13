@@ -72,13 +72,13 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
               if it helps them — optional, and clearable, because a habit
               with a time you keep missing is worse than one without. */}
           {onTime && (
-            <div className="flex flex-wrap items-center gap-2 rounded-hc-element bg-slate-50 p-3 ring-1 ring-slate-200">
+            <div className="flex flex-wrap items-center gap-2 rounded-hc-element bg-slate-50 p-3 ring-1 ring-hc-hairline">
               <label className="flex items-center gap-2 text-sm font-semibold text-hc-ink">
                 <Clock className="h-4 w-4 text-slate-500" aria-hidden />
                 Tími
                 <input type="time" value={atTime ?? ""} onChange={(e) => onTime(e.target.value || null)}
                   aria-label={`Tími fyrir ${a.title}`}
-                  className="rounded-hc-element border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-hc-ink outline-none focus:border-hc-brand" />
+                  className="rounded-hc-element border border-hc-control bg-white px-2.5 py-1.5 text-sm text-hc-ink outline-none focus:border-hc-brand" />
               </label>
               {atTime
                 ? (
@@ -95,7 +95,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
               Both used to sit on the row in Í dag, which made every row six
               things deep. They belong to one habit, so they belong here. */}
           {week && today && doneOn && onToggle && (
-            <div className="rounded-hc-element bg-slate-50 p-3 ring-1 ring-slate-200">
+            <div className="rounded-hc-element bg-slate-50 p-3 ring-1 ring-hc-hairline">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vikan</p>
                 <p className="text-sm text-slate-600">
@@ -121,7 +121,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
                       aria-label={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : ""}: ${future ? "ekki komið" : on ? "búið" : "ekki búið"}`}
                       title={`${WEEKDAY_LONG[wd]}${d === today ? " (í dag)" : future ? " (framundan)" : ""}`}
                       className={`grid h-9 flex-1 place-items-center rounded-lg text-xs font-bold transition disabled:opacity-30 ${
-                        on ? "text-white" : "bg-white text-slate-400 ring-1 ring-slate-200"} ${d === today && !on ? "ring-2 ring-slate-400" : ""}`}
+                        on ? "text-white" : "bg-white text-slate-400 ring-1 ring-hc-hairline"} ${d === today && !on ? "ring-2 ring-slate-400" : ""}`}
                       style={on ? { background: meta.color } : undefined}>
                       {WEEKDAY_SHORT[wd]}
                     </button>
@@ -144,10 +144,10 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
             <div className="flex flex-wrap gap-2">
               {links.go && (
                 <button type="button" onClick={() => { links.go!.onClick(); onClose(); }}
-                  className="inline-flex min-h-9 items-center rounded-full border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">{links.go.label}</button>
+                  className="inline-flex min-h-9 items-center rounded-full border border-hc-hairline px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">{links.go.label}</button>
               )}
               {links.lecture && (
-                <a href={links.lecture.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <a href={links.lecture.href} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-hc-hairline px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                   <BookOpen className="h-4 w-4" aria-hidden /> {links.lecture.title}
                 </a>
               )}
@@ -159,7 +159,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
             <textarea value={v} onChange={(e) => setV(e.target.value)} rows={2} maxLength={300}
               onBlur={() => v.trim() !== note && onNote(v.trim())}
               placeholder="T.d. hvað gekk vel eða hvað var erfitt"
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500" />
+              className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500" />
           </label>
 
           <div className="space-y-2 border-t border-slate-100 pt-3">

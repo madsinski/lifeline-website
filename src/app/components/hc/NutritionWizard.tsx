@@ -46,7 +46,7 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
   const last = step === STEPS.length - 1;
 
   const card = (on: boolean) =>
-    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-emerald-50 ring-2 ring-hc-brand" : "bg-white ring-slate-200 hover:ring-slate-300"}`;
+    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-emerald-50 ring-2 ring-hc-brand" : "bg-white ring-hc-hairline hover:ring-slate-300"}`;
 
   return (
     <section className={`${hcCard.base} p-5 sm:p-6`} aria-label="Uppsetning næringaráætlunar">
@@ -86,7 +86,7 @@ export default function NutritionWizard({ prefs, signals, meals, saving, onSave,
               return (
                 <button key={a.key} type="button" onClick={() => toggleAvoid(a.key)} aria-pressed={on}
                   className={`rounded-xl border px-3 py-2 text-left text-sm transition ${
-                    on ? "border-rose-500 bg-rose-50 font-semibold text-rose-900" : "border-slate-200 bg-white text-hc-ink hover:border-slate-300"}`}>
+                    on ? "border-rose-500 bg-rose-50 font-semibold text-rose-900" : "border-hc-hairline bg-white text-hc-ink hover:border-slate-300"}`}>
                   {a.label}
                 </button>
               );

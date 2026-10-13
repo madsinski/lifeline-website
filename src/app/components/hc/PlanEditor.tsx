@@ -203,7 +203,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
 
   /** One save writes the whole plan, so the bar is the same in both steps. */
   const saveBar = (
-    <div className="sticky bottom-20 z-10 flex flex-wrap items-center gap-3 rounded-hc-card bg-white/95 p-3 shadow-hc-overlay ring-1 ring-slate-200 backdrop-blur sm:bottom-4">
+    <div className="sticky bottom-20 z-10 flex flex-wrap items-center gap-3 rounded-hc-card bg-white/95 p-3 shadow-hc-overlay ring-1 ring-hc-hairline backdrop-blur sm:bottom-4">
       <button type="button" onClick={() => void save()} disabled={busy || rows.length === 0} className={hcBtn.primary}>
         {busy ? "Vista…" : d.plan ? "Vista breytingar" : "Vista áætlunina"}
       </button>
@@ -326,7 +326,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         </nav>
       </div>
 
-      <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200">
+      <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-hc-hairline">
         <div className="flex flex-wrap items-center gap-2 px-4 py-3"
           style={pillar ? { background: PILLAR_META[pillar].soft } : undefined}>
           {pillar && <PillarIcon pillar={pillar} size="sm" />}
@@ -360,7 +360,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                     {r.summary && <p className="mt-0.5 line-clamp-2 text-sm text-hc-ink-2">{r.summary}</p>}
                     <input value={r.note} onChange={(e) => { mark(focus); setRows((rs) => rs.map((x, k) => (k === i ? { ...x, note: e.target.value } : x))); }}
                       placeholder="Mín athugasemd (t.d. „á þriðjudögum eftir vinnu“)" maxLength={300}
-                      className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm focus:border-hc-brand focus:bg-white focus:outline-none" />
+                      className="mt-2 w-full rounded-lg border border-hc-control bg-slate-50 px-2 py-1.5 text-sm focus:border-hc-brand focus:bg-white focus:outline-none" />
                   </div>
                   <div className="flex shrink-0 flex-col gap-1">
                     <button type="button" aria-label="Færa upp" disabled={pos === 0} onClick={() => { mark(focus); nudge(pos, -1); }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
@@ -394,7 +394,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                 {goals.map((g, i) => (g.pillar === pillar ? (
                   <div key={i} className={`${hcCard.base} flex items-center gap-2 p-2`}>
                     <input value={g.text} maxLength={160} onChange={(e) => { mark(focus); setGoals((gs) => gs.map((x, k) => (k === i ? { ...x, text: e.target.value } : x))); }}
-                      placeholder="t.d. „Sofa 7 tíma flestar nætur“" className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
+                      placeholder="t.d. „Sofa 7 tíma flestar nætur“" className="min-w-0 flex-1 rounded-lg border border-hc-control px-2 py-1.5 text-sm" />
                     <button type="button" aria-label="Eyða markmiði" onClick={() => { mark(focus); setGoals((gs) => gs.filter((_, k) => k !== i)); }} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"><X className="h-4 w-4" /></button>
                   </div>
                 ) : null))}

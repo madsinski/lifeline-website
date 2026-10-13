@@ -142,7 +142,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
                   says what it means rather than needing a hover. */}
           <div>
             <p className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">1. Veldu umfang</p>
-            <div className="flex gap-1 rounded-xl bg-white p-1 ring-1 ring-slate-200">
+            <div className="flex gap-1 rounded-xl bg-white p-1 ring-1 ring-hc-hairline">
               {PRESETS.map((pr) => (
                 <button key={pr.key} type="button" onClick={() => preset(pr.key)}
                   aria-pressed={scope === pr.key}
@@ -161,7 +161,7 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
               2. Hakaðu við það sem fer í áætlunina
               <span className="ml-1.5 font-normal normal-case tracking-normal text-slate-400">{chosen.length} af {proposal.actions.length} valin</span>
             </p>
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl bg-white ring-1 ring-slate-200">
+            <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl bg-white ring-1 ring-hc-hairline">
               {proposal.actions.map((a, i) => {
                 const meta = PILLAR_META[a.pillar];
                 const open = why === i;

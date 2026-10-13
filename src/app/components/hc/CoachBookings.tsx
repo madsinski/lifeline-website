@@ -176,7 +176,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
                   <button key={k} type="button" aria-pressed={on}
                     onClick={() => setItems((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))}
                     className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                      on ? "bg-emerald-700 text-white" : "bg-slate-50 text-slate-600 ring-1 ring-slate-200"}`}>
+                      on ? "bg-emerald-700 text-white" : "bg-slate-50 text-slate-600 ring-1 ring-hc-hairline"}`}>
                     {MEASURE_IS[k]} <span className="font-normal opacity-70">{MEASURE_MINUTES[k]} mín.</span>
                   </button>
                 );

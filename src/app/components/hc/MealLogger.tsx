@@ -264,9 +264,9 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                     <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
                       aria-pressed={done}
                       className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition ${
-                        done ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-white ring-slate-200 hover:ring-slate-300"}`}>
+                        done ? "bg-emerald-50 ring-2 ring-emerald-500" : "bg-white ring-hc-hairline hover:ring-slate-300"}`}>
                       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${
-                        done ? "border-transparent bg-emerald-600 text-white" : "border-slate-200 text-transparent"}`}>
+                        done ? "border-transparent bg-emerald-600 text-white" : "border-hc-hairline text-transparent"}`}>
                         {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : <Check className="h-5 w-5" strokeWidth={3} />}
                       </span>
                       <span className="min-w-0 flex-1">

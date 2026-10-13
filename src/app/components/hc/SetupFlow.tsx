@@ -142,7 +142,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
   const settings = place === "settings";
 
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6">
+    <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">
@@ -173,7 +173,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
 
           What stays here is the summary — which of them are done — because
           that is the one thing a list is better at than a flow. */}
-      <ul className="mt-4 overflow-hidden rounded-2xl ring-1 ring-slate-200">
+      <ul className="mt-4 overflow-hidden rounded-2xl ring-1 ring-hc-hairline">
         {rows.map((row) => {
           const Icon = row.icon;
           const ok = done[row.key];
@@ -271,7 +271,7 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
           return (
             <li key={c.id}
               className={`overflow-hidden rounded-xl border transition ${
-                on ? "border-hc-brand bg-hc-brand/5" : "border-slate-200 bg-white"}`}>
+                on ? "border-hc-brand bg-hc-brand/5" : "border-hc-hairline bg-white"}`}>
               {/* A row, not a button wrapping a button.
                   The card used to be one big <button aria-pressed>, and a
                   bio toggle inside it would have been a button inside a

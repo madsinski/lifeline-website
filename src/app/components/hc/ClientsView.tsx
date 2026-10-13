@@ -93,7 +93,7 @@ export default function ClientsView({ api, onOpenClient }: {
       {rows === null && <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Hleð…</p>}
 
       {tab === "all" && rows !== null && (
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-hc-hairline bg-white">
           {people.map((r) => (
             <li key={r.id}>
               <button type="button" onClick={() => onOpenClient(r.id)}
@@ -117,7 +117,7 @@ export default function ClientsView({ api, onOpenClient }: {
       {tab === "groups" && groups !== null && (
         <ul className="space-y-2">
           {shownGroups.map((g) => (
-            <li key={g.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <li key={g.id} className="overflow-hidden rounded-2xl border border-hc-hairline bg-white">
               <button type="button" onClick={() => setOpen(open === g.id ? null : g.id)}
                 aria-expanded={open === g.id}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50">
@@ -146,7 +146,7 @@ export default function ClientsView({ api, onOpenClient }: {
                         return (
                           <li key={m.id}>
                             <button type="button" disabled={!j} onClick={() => j && onOpenClient(j)}
-                              className="w-full truncate rounded-lg bg-white px-2.5 py-1.5 text-left text-sm text-slate-800 ring-1 ring-slate-200 enabled:hover:bg-emerald-50 disabled:opacity-60">
+                              className="w-full truncate rounded-lg bg-white px-2.5 py-1.5 text-left text-sm text-slate-800 ring-1 ring-hc-hairline enabled:hover:bg-emerald-50 disabled:opacity-60">
                               {m.full_name ?? "—"}
                               {!j && <span className="ml-1 text-xs text-slate-400">(engin heilsuferð)</span>}
                             </button>
@@ -162,7 +162,7 @@ export default function ClientsView({ api, onOpenClient }: {
               )}
             </li>
           ))}
-          {!shownGroups.length && <li className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">Enginn hópur fannst.</li>}
+          {!shownGroups.length && <li className="rounded-2xl border border-hc-hairline bg-white px-4 py-3 text-sm text-slate-500">Enginn hópur fannst.</li>}
         </ul>
       )}
 

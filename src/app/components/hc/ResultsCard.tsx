@@ -221,7 +221,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   const pick = (v: boolean) => { setOnBehalf(v); setAsking(false); fileRef.current?.click(); };
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+    <section className="rounded-2xl border border-hc-hairline bg-white p-4 sm:p-5">
       {/* Stated, not assumed. Reading the report is lawful either way under
           9. gr. (2)(h) — this records which it was, so the participant can
           see it in their own account and say if it is wrong. */}
@@ -300,7 +300,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
         <div className="mt-3 rounded-2xl border border-slate-900/10 bg-slate-50 p-3">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-slate-900">Úr skýrslunni{foundDate ? ` · ${foundDate}` : ""}</p>
-            <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">{found.length} gildi fundust</span>
+            <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-hc-hairline">{found.length} gildi fundust</span>
             <span className="flex-1" />
             <button type="button" onClick={() => setFound(null)} className="text-sm font-semibold text-slate-500 hover:underline">Hætta við</button>
           </div>
@@ -323,7 +323,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                       ].filter(Boolean).join(" · ") || v.label}
                     </span>
                   </span>
-                  <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-slate-50 text-slate-700 ring-slate-200"}`}>
+                  <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-slate-50 text-slate-700 ring-hc-hairline"}`}>
                     {String(v.value).replace(".", ",")}{v.unit ? ` ${v.unit}` : ""}
                   </span>
                 </li>
@@ -357,7 +357,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             const unknown = sexUnknown(e, sex);
             const b = unknown ? null : bandForValue(e, v, sex);
             return (
-              <li key={e.slug} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-slate-200">
+              <li key={e.slug} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-hc-hairline">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-slate-900">{e.title}</span>
                   <span className="block text-xs text-slate-500">
@@ -366,7 +366,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                       : b ? `${b.label.replace(/\s*\((karlar|konur)\)$/i, "")} · ${bandRangeText(b, e.unit)}` : "utan skilgreindra bila"}
                   </span>
                 </span>
-                <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-slate-50 text-slate-700 ring-slate-200"}`}>
+                <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-slate-50 text-slate-700 ring-hc-hairline"}`}>
                   {String(v).replace(".", ",")}{e.unit ? ` ${e.unit}` : ""}
                 </span>
                 <button type="button" onClick={() => setLookup(`${e.title} ${v}`)} title={`Fletta upp ${e.title}`}
@@ -384,9 +384,9 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Önnur gildi úr skýrslunni</p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {extras.map((r) => (
-              <li key={r.marker} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-slate-200">
+              <li key={r.marker} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-hc-hairline">
                 <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{r.note || r.marker.replace(/^x:/, "")}</span>
-                <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-sm font-bold tabular-nums text-slate-700 ring-1 ring-slate-200">
+                <span className="rounded-lg bg-slate-50 px-2.5 py-1 text-sm font-bold tabular-nums text-slate-700 ring-1 ring-hc-hairline">
                   {String(r.value).replace(".", ",")}{r.unit ? ` ${r.unit}` : ""}
                 </span>
               </li>

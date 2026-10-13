@@ -113,7 +113,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
         Breyting hér er sama valið og þátttakandinn gerir sjálfur í appinu — ekki dagbók um það sem var borðað.
       </p>
 
-      <ul className="overflow-hidden rounded-xl ring-1 ring-slate-200">
+      <ul className="overflow-hidden rounded-xl ring-1 ring-hc-hairline">
         {week.map((d, i) => {
           const protein = SLOTS.reduce((t, sl) => t + (d[sl]?.protein ?? 0), 0);
           const low = band && protein < band.min;
@@ -139,7 +139,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
       </ul>
 
       {open && meals && picks && (
-        <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-2">
+        <div className="mt-2 rounded-xl border border-hc-hairline bg-slate-50 p-2">
           <div className="mb-1.5 flex items-center justify-between">
             <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
               {SLOT_IS[open.slot]} · {WEEKDAYS[open.day].toLowerCase()}
@@ -156,7 +156,7 @@ export default function CoachMealWeek({ api, journeyId, programKey, weightKg }: 
                 {list.map((m, idx) => (
                   <li key={m.id}>
                     <button type="button" disabled={busy} onClick={() => void setPick(open.day, open.slot, m.id)}
-                      className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-left text-xs transition hover:border-lime-400 disabled:opacity-50">
+                      className="flex w-full items-center justify-between gap-2 rounded-lg border border-hc-hairline bg-white px-2 py-1.5 text-left text-xs transition hover:border-lime-400 disabled:opacity-50">
                       <span className="min-w-0 truncate font-semibold text-slate-800">{mealName(m)}</span>
                       <span className="shrink-0 tabular-nums text-slate-500">
                         {idx < alts.near.length ? "≈ " : ""}{m.protein ?? 0} g

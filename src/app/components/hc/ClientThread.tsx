@@ -76,11 +76,11 @@ export default function ClientThread({ api, journeyId, onRead }: {
   return (
     <div className="space-y-2">
       {msgs.length === 0 ? (
-        <p className="rounded-2xl bg-white p-3 text-sm text-slate-500 ring-1 ring-slate-200">
+        <p className="rounded-2xl bg-white p-3 text-sm text-slate-500 ring-1 ring-hc-hairline">
           Ekkert samtal enn. Það sem þú skrifar hér birtist í appinu hjá skjólstæðingnum.
         </p>
       ) : (
-        <div className="max-h-80 space-y-2 overflow-y-auto rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+        <div className="max-h-80 space-y-2 overflow-y-auto rounded-2xl bg-white p-3 ring-1 ring-hc-hairline">
           {msgs.map((m) => {
             const mine = m.author_kind === "coach";
             return (

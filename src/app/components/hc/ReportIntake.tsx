@@ -179,7 +179,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
               <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Er þetta sami skjólstæðingur?</p>
               <ul className="space-y-1.5">
                 {result.matches.map((m) => (
-                  <li key={m.client_id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-2.5">
+                  <li key={m.client_id} className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-2.5">
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold text-slate-900">
                         {m.full_name}
@@ -246,7 +246,7 @@ export default function ReportIntake({ api, onOpen, narrow = false }: {
             <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-400">Gildi úr skýrslunni</p>
             <ul className="grid gap-1 sm:grid-cols-2">
               {result.values.map((v, i) => (
-                <li key={`${v.code}-${i}`} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm ring-1 ring-slate-200">
+                <li key={`${v.code}-${i}`} className="flex items-center gap-2 rounded-lg px-2 py-1 text-sm ring-1 ring-hc-hairline">
                   <input type="checkbox" checked={!!take[i]} onChange={(e) => setTake({ ...take, [i]: e.target.checked })}
                     aria-label={`Vista ${v.label}`} className="h-4 w-4 accent-emerald-600" />
                   <span className="min-w-0 flex-1 truncate text-slate-700">{v.label}</span>

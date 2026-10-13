@@ -174,10 +174,10 @@ export default function WeekCalendar({ api, onOpenClient, onConnect }: {
 
       {msg && <p role="status" className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{msg}</p>}
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-hc-hairline bg-white">
         <div className="min-w-[46rem]">
           {/* day header */}
-          <div className="grid border-b border-slate-200" style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, 1fr)` }}>
+          <div className="grid border-b border-hc-hairline" style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, 1fr)` }}>
             <span />
             {days.map((d) => {
               const today = sameDay(d, new Date());
@@ -327,7 +327,7 @@ function BookDialog({ api, at, onClose, onBooked }: {
           {hits.map((c) => (
             <li key={c.journey_id}>
               <button type="button" disabled={busy} onClick={() => book(c)}
-                className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm ring-1 ring-slate-200 hover:bg-emerald-50 hover:ring-emerald-300 disabled:opacity-50">
+                className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm ring-1 ring-hc-hairline hover:bg-emerald-50 hover:ring-emerald-300 disabled:opacity-50">
                 <span className="truncate font-semibold text-slate-900">{c.name ?? "—"}</span>
                 <span className="shrink-0 text-xs text-slate-500">Bóka</span>
               </button>

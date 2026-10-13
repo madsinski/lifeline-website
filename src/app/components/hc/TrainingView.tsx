@@ -243,7 +243,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           ))}
 
           {daySessions.length === 0 && dayActivities.length === 0 && (
-            <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-slate-200">
+            <div className="rounded-2xl bg-white p-5 text-center shadow-sm ring-1 ring-hc-hairline">
               <p className="font-semibold text-slate-800">Hvíldardagur</p>
               <p className="mt-1 text-sm text-slate-500">Ekkert á dagskrá {shownDay === todayIdx ? "í dag" : WEEKDAYS[shownDay].toLowerCase()}.</p>
               {onAddDay && (
@@ -322,7 +322,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                  */
                 <div key={d} data-drop={`day:${i}`}
                   className={`relative flex items-center gap-2 border-b border-slate-100 px-1 py-1.5 transition last:border-b-0 sm:min-h-[92px] sm:flex-col sm:items-stretch sm:gap-1 sm:rounded-xl sm:border sm:p-1 ${
-                    over ? "bg-orange-50 sm:border-orange-400" : i === todayIdx ? "bg-orange-50/60 sm:border-orange-300" : "sm:border-slate-200 sm:bg-white"}`}>
+                    over ? "bg-orange-50 sm:border-orange-400" : i === todayIdx ? "bg-orange-50/60 sm:border-orange-300" : "sm:border-hc-hairline sm:bg-white"}`}>
                   <p className={`w-9 shrink-0 text-[11px] font-bold uppercase sm:w-auto sm:text-center ${i === todayIdx ? "text-orange-800" : "text-slate-400"}`}>
                     {d}
                   </p>
@@ -359,11 +359,11 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                           one-for-one: opening it and taking the day off are
                           what there is to do. */}
                       {editing === s.id && (
-                        <span className="order-last w-full rounded-lg bg-white p-2 ring-1 ring-slate-200 sm:absolute sm:left-0 sm:top-full sm:z-30 sm:mt-1 sm:w-56 sm:p-2.5 sm:shadow-xl sm:ring-slate-300">
+                        <span className="order-last w-full rounded-lg bg-white p-2 ring-1 ring-hc-hairline sm:absolute sm:left-0 sm:top-full sm:z-30 sm:mt-1 sm:w-56 sm:p-2.5 sm:shadow-xl sm:ring-slate-300">
                           <span className="flex items-center gap-1.5 sm:flex-col sm:items-stretch sm:gap-2">
                             <button type="button"
                               onClick={() => { setEditing(null); document.getElementById(`session-${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
-                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 sm:w-full sm:py-1.5 sm:text-xs">
+                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-50 sm:w-full sm:py-1.5 sm:text-xs">
                               Sjá æfinguna
                             </button>
                             {onRemoveDay && (
@@ -437,14 +437,14 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                         * grid stops constraining it.
                         */}
                       {editing === a.id && (
-                        <span className="order-last w-full rounded-lg bg-white p-2 ring-1 ring-slate-200 sm:absolute sm:left-0 sm:top-full sm:z-30 sm:mt-1 sm:w-56 sm:p-2.5 sm:shadow-xl sm:ring-slate-300">
+                        <span className="order-last w-full rounded-lg bg-white p-2 ring-1 ring-hc-hairline sm:absolute sm:left-0 sm:top-full sm:z-30 sm:mt-1 sm:w-56 sm:p-2.5 sm:shadow-xl sm:ring-slate-300">
                           <span className="flex items-center gap-1.5 sm:flex-col sm:items-stretch sm:gap-2">
                             <input type="time" defaultValue={a.at ?? ""} aria-label={`Klukkan fyrir ${a.name}`}
                               onChange={(e) => onActivityTime?.(a.id, e.target.value || null)}
                               className="min-w-0 flex-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] outline-none sm:w-full sm:flex-none sm:py-1.5 sm:text-xs" />
                             <button type="button" aria-label={`Skipta um ${a.name}`}
                               onClick={() => { onRemoveActivity?.(a.id); setAddDay(a.day); setEditing(null); }}
-                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 sm:w-full sm:py-1.5 sm:text-xs">
+                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-50 sm:w-full sm:py-1.5 sm:text-xs">
                               Skipta um
                             </button>
                             <button type="button" aria-label={`Taka ${a.name} af`}
@@ -497,7 +497,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           {editable && (canSplitHiit(exercise) || custom) && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               {canSplitHiit(exercise) && (
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-hc-hairline px-3 py-1.5 text-sm font-semibold text-slate-700">
                   <input type="checkbox" checked={mine && personal.hiit_split} onChange={(e) => save({ hiit_split: e.target.checked })} className="h-4 w-4 accent-orange-600" />
                   HIIT á sér dögum
                 </label>
@@ -619,7 +619,7 @@ const TONE: Record<Modality, { band: string; ring: string; today: string; tile: 
   strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-600 hover:bg-orange-700" },
   hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-rose-700",   pill: "text-rose-700 ring-rose-200",     go: "bg-rose-600 hover:bg-rose-700" },
   cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-sky-700",    pill: "text-sky-700 ring-sky-200",       go: "bg-sky-600 hover:bg-sky-700" },
-  other:    { band: "bg-slate-50",     ring: "ring-slate-200",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-slate-200",   go: "bg-slate-700 hover:bg-hc-ink" },
+  other:    { band: "bg-slate-50",     ring: "ring-hc-hairline",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-slate-600",  pill: "text-slate-700 ring-hc-hairline",   go: "bg-slate-700 hover:bg-hc-ink" },
 };
 
 /** The shell and header both cards share. */
@@ -1040,13 +1040,13 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                     <span className="flex items-center gap-1">
                       <button type="button" aria-label="Minnka álag" disabled={(a.load ?? 0) <= -2}
                         onClick={() => onLoad(a.id, Math.max(-2, (a.load ?? 0) - 1))}
-                        className="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 disabled:opacity-30">−</button>
+                        className="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-700 ring-1 ring-hc-hairline disabled:opacity-30">−</button>
                       <span className="w-6 text-center text-sm font-bold tabular-nums text-slate-900">
                         {(a.load ?? 0) > 0 ? `+${a.load}` : a.load ?? 0}
                       </span>
                       <button type="button" aria-label="Auka álag" disabled={(a.load ?? 0) >= 2}
                         onClick={() => onLoad(a.id, Math.min(2, (a.load ?? 0) + 1))}
-                        className="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-700 ring-1 ring-slate-200 disabled:opacity-30">+</button>
+                        className="grid h-8 w-8 place-items-center rounded-full bg-white text-slate-700 ring-1 ring-hc-hairline disabled:opacity-30">+</button>
                     </span>
                   </div>
                 )}

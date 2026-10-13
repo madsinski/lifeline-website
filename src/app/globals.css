@@ -82,6 +82,12 @@ body.hc-scroll-lock {
      builder all carried identical weight and nothing could lead the eye.
      `hairline` is for surfaces that are merely present; `border` is for
      ones with work in them. */
+  /* A control's edge, not a card's. 3.06:1 on white — the lightest
+     value that still clears the 3:1 WCAG 1.4.11 asks for anything that
+     identifies a UI component. slate-200 was 1.23:1, so every input in
+     the workstation was below it; slate-500 passes at 4.76 but reads as
+     heavy, and this is the point between the two that is defensible. */
+  --hc-control: #8A94A6;
   --hc-hairline: #EEF1F5;
   --hc-border: #DFE4EB;
   --hc-surface: #FFFFFF;
@@ -146,6 +152,7 @@ body.hc-scroll-lock {
   --font-sans: var(--font-inter);
 
   /* heilsuferð / vinnustöð */
+  --color-hc-control: var(--hc-control);
   --color-hc-hairline: var(--hc-hairline);
   --color-hc-focus: var(--hc-focus);
   --color-hc-focus-surface: var(--hc-focus-surface);

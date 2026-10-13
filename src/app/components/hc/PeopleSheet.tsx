@@ -121,7 +121,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                 face={<Face src={partner.avatar ?? null} />}
                 training={partner.training ?? null} />
             : (
-              <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200">
+              <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
                 Þú ert ekki með ábyrgðarfélaga. Veldu einn í appinu — það er auðveldara að halda áfram þegar einhver sér það.
               </p>
             )}
@@ -129,7 +129,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
           {/* A partner without an account cannot receive one — the button
               used to appear anyway and fail on a foreign key. */}
           {partner && !partner.canNudge && (
-            <p className="rounded-hc-card bg-white px-4 py-4 text-center text-sm text-slate-500 ring-1 ring-slate-200">
+            <p className="rounded-hc-card bg-white px-4 py-4 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
               {/* No "búin(n)" and no pronoun: the sentence works for
                   anybody without picking a gender for them. */}
               {partner.name.split(" ")[0]} hefur ekki stofnað aðgang enn þá, svo ekki er hægt að senda hvatningu.
@@ -137,7 +137,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
           )}
 
           {partner?.canNudge && (
-            <section className="rounded-hc-card bg-white p-4 ring-1 ring-slate-200">
+            <section className="rounded-hc-card bg-white p-4 ring-1 ring-hc-hairline">
               <p className="flex items-center gap-2 font-semibold text-hc-ink">
                 <Hand className="h-4 w-4 text-hc-brand-dark" aria-hidden /> Ýta við {partner.name.split(" ")[0]}
               </p>
@@ -171,7 +171,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                   <div className="mt-2 flex items-end gap-2">
                     <input value={note} onChange={(e) => setNote(e.target.value)}
                       placeholder="Eða skrifaðu eitthvað…" aria-label="Skilaboð með ýtingunni"
-                      className="min-h-11 min-w-0 flex-1 rounded-hc-element border border-slate-200 px-3 text-sm outline-none focus:border-hc-brand" />
+                      className="min-h-11 min-w-0 flex-1 rounded-hc-element border border-hc-control px-3 text-sm outline-none focus:border-hc-brand" />
                     <button type="button" disabled={sending || !note.trim()} onClick={() => void nudge("note", note.trim())}
                       aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
                       <Send className="h-4 w-4" aria-hidden />
@@ -198,7 +198,7 @@ function PersonCard({ name, face, stats, today, of, training, highlight = false 
   highlight?: boolean;
 }) {
   return (
-    <section className={`rounded-hc-card bg-white p-4 ring-1 sm:p-5 ${highlight ? "ring-hc-brand/40" : "ring-slate-200"}`}>
+    <section className={`rounded-hc-card bg-white p-4 ring-1 sm:p-5 ${highlight ? "ring-hc-brand/40" : "ring-hc-hairline"}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
           {face}
@@ -280,7 +280,7 @@ function Face({ src, size = 40 }: { src: string | null; size?: number }) {
   if (emoji) {
     return (
       <span style={{ ...box, fontSize: Math.round(size * 0.55) }}
-        className="grid shrink-0 place-items-center rounded-full bg-slate-100 ring-1 ring-slate-200">
+        className="grid shrink-0 place-items-center rounded-full bg-slate-100 ring-1 ring-hc-hairline">
         {emoji}
       </span>
     );
@@ -290,10 +290,10 @@ function Face({ src, size = 40 }: { src: string | null; size?: number }) {
     // host; a 40px circle is not worth that.
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt="" width={size} height={size}
-      style={box} className="shrink-0 rounded-full object-cover ring-1 ring-slate-200" />;
+      style={box} className="shrink-0 rounded-full object-cover ring-1 ring-hc-hairline" />;
   }
   return (
-    <span style={box} className="grid shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400 ring-1 ring-slate-200">
+    <span style={box} className="grid shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400 ring-1 ring-hc-hairline">
       <UserRound style={{ width: size * 0.55, height: size * 0.55 }} aria-hidden />
     </span>
   );

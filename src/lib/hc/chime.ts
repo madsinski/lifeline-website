@@ -12,7 +12,25 @@
  * Shared, because both sides of the conversation need it: the participant's
  * bell on Í dag and the coach's Skilaboð tab in the workstation.
  */
+/*
+ * Where the per-device sound preference lives.
+ *
+ * Per device and not per account on purpose: the same coach wants sound at
+ * their own desk and silence in a room with a client, and that is a fact
+ * about the room, not about them. localStorage also means a shared
+ * workstation does not carry one person's choice to the next.
+ */
+export const SOUND_KEY = "hc-sound";
+
+/** Default on — a notification nobody asked to silence should be audible. */
+export function soundOn(): boolean {
+  try { return window.localStorage.getItem(SOUND_KEY) !== "off"; } catch { return true; }
+}
+
 export function chime() {
+  // Checked here rather than at each call site, so turning sound off turns
+  // it off everywhere — including anywhere that starts chiming later.
+  if (!soundOn()) return;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;

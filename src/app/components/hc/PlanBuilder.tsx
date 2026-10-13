@@ -105,7 +105,7 @@ const WIZARD_STEPS = ["Tillaga", "Aðgerðir", "Æfingar", "Næring", "Fræðsla
 
 function WizardNav({ step, onGo }: { step: number; onGo: (n: number) => void }) {
   return (
-    <nav className="flex gap-1 overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-slate-200" aria-label="Skref áætlunarinnar">
+    <nav className="flex gap-1 overflow-x-auto rounded-xl bg-white p-1 ring-1 ring-hc-hairline" aria-label="Skref áætlunarinnar">
       {WIZARD_STEPS.map((label, i) => (
         <button key={label} type="button" onClick={() => onGo(i)} aria-current={step === i ? "step" : undefined}
           className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
@@ -125,7 +125,7 @@ function WizardFooter({ step, onGo }: { step: number; onGo: (n: number) => void 
   const last = WIZARD_STEPS.length - 1;
   const next = step < last ? WIZARD_STEPS[step + 1] : null;
   return (
-    <div className="flex items-center gap-2 border-t border-slate-200 pt-3">
+    <div className="flex items-center gap-2 border-t border-hc-hairline pt-3">
       <button type="button" disabled={step === 0} onClick={() => onGo(step - 1)}
         className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40">
         Til baka
@@ -429,7 +429,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   }, [preview, printAfter]);
 
   if (!draft || !lib) {
-    return <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{msg?.text ?? "Hleð áætlun…"}</div>;
+    return <div className="rounded-2xl border border-hc-hairline bg-white p-8 text-center text-sm text-slate-500">{msg?.text ?? "Hleð áætlun…"}</div>;
   }
 
   if (preview) {
@@ -488,14 +488,14 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           <select
             value=""
             onChange={(e) => e.target.value && applyTemplate(e.target.value)}
-            className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="shrink-0 rounded-xl border border-hc-control bg-white px-3 py-2 text-sm"
             aria-label="Byrja út frá sniðmáti"
           >
             <option value="">Byrja út frá sniðmáti…</option>
             {lib.templates.map((t) => <option key={t.key} value={t.key}>{t.name}{t.scenario ? ` — ${t.scenario}` : ""}</option>)}
           </select>
-          <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
-          <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Prenta</button>
+          <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-hc-hairline bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
+          <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className="rounded-xl border border-hc-hairline bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Prenta</button>
           <button onClick={() => void save()} disabled={busy} className="rounded-xl bg-hc-ink px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Vista drög</button>
           <button onClick={publish} disabled={busy || draft.modules.length === 0} className="rounded-xl bg-hc-brand px-4 py-2 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
             {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
@@ -512,7 +512,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       <div className={`grid gap-4 lg:grid-cols-[320px_1fr] ${step === 1 ? "" : "hidden"}`}>
         {/* Library */}
         <aside
-          className={`h-fit rounded-2xl border bg-white p-4 lg:sticky lg:top-4 ${dragOver === "out" ? "border-red-300 bg-red-50/40" : "border-slate-200"}`}
+          className={`h-fit rounded-2xl border bg-white p-4 lg:sticky lg:top-4 ${dragOver === "out" ? "border-red-300 bg-red-50/40" : "border-hc-hairline"}`}
           onDragOver={(e) => { e.preventDefault(); setDragOver("out"); }}
           onDragLeave={() => setDragOver(null)}
           onDrop={onDropOut}
@@ -520,7 +520,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
         >
           <p className="text-sm font-bold text-hc-ink">Aðgerðasafn</p>
           <p className="mb-3 text-xs text-slate-500">Dragðu aðgerð inn í áætlunina, eða úr henni hingað til að fjarlægja.</p>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Leita…" className="mb-2 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Leita…" className="mb-2 w-full rounded-lg border border-hc-control px-3 py-1.5 text-sm" />
           <div className="mb-3 flex flex-wrap gap-1">
             {(["all", ...PILLARS] as const).map((p) => (
               <button key={p} onClick={() => setFilter(p)}
@@ -547,7 +547,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                       <p className="text-xs text-slate-600">{m.summary}</p>
                       {fit ? <FitMeter fit={fit} titles={markerTitles} rank={i + 1} /> : <Rating m={m} />}
                     </div>
-                    <button onClick={() => addModule(m.key)} className="rounded-lg bg-white px-2 py-0.5 text-xs font-bold text-slate-700 ring-1 ring-slate-200" aria-label={`Bæta við ${m.title}`}>+</button>
+                    <button onClick={() => addModule(m.key)} className="rounded-lg bg-white px-2 py-0.5 text-xs font-bold text-slate-700 ring-1 ring-hc-hairline" aria-label={`Bæta við ${m.title}`}>+</button>
                   </div>
                 </div>
               );
@@ -557,19 +557,19 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
 
         {/* Plan */}
         <div className="space-y-4">
-          <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
+          <div className="grid gap-3 rounded-2xl border border-hc-hairline bg-white p-4 sm:grid-cols-2">
             <label className="sm:col-span-2 text-sm">
               <span className="font-semibold text-slate-700">Fyrirsögn</span>
-              <input value={draft.headline} onChange={(e) => update({ headline: e.target.value })} placeholder="T.d. Betri svefn og meiri orka" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
+              <input value={draft.headline} onChange={(e) => update({ headline: e.target.value })} placeholder="T.d. Betri svefn og meiri orka" className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2" />
             </label>
             <label className="sm:col-span-2 text-sm">
               <span className="font-semibold text-slate-700">Samantekt úr viðtali</span>
-              <textarea value={draft.summary} onChange={(e) => update({ summary: e.target.value })} rows={3} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
+              <textarea value={draft.summary} onChange={(e) => update({ summary: e.target.value })} rows={3} className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2" />
             </label>
             <label className="text-sm"><span className="font-semibold text-slate-700">Upphaf</span>
-              <input type="date" value={draft.start_date} onChange={(e) => update({ start_date: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" /></label>
+              <input type="date" value={draft.start_date} onChange={(e) => update({ start_date: e.target.value })} className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2" /></label>
             <label className="text-sm"><span className="font-semibold text-slate-700">Endurmat / eftirfylgd</span>
-              <input type="date" value={draft.review_date} onChange={(e) => update({ review_date: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" /></label>
+              <input type="date" value={draft.review_date} onChange={(e) => update({ review_date: e.target.value })} className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2" /></label>
           </div>
 
           <div className="grid gap-4 xl:grid-cols-2">
@@ -601,7 +601,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                     style={{ background: meta.soft }}
                   />
                   {items.length === 0 && (
-                    <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400">Dragðu aðgerðir hingað</p>
+                    <p className="rounded-xl border border-dashed border-hc-hairline p-4 text-center text-xs text-slate-400">Dragðu aðgerðir hingað</p>
                   )}
                   {/* One line per action, opened only when being edited.
                       Every item used to keep all four fields permanently
@@ -624,7 +624,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
                           onDrop={(e) => onDrop(e, p, m.uid)}
                           data-uid={m.uid}
                           className={`rounded-xl border bg-white shadow-sm transition ${
-                            carry?.uid === m.uid ? "opacity-50" : ""} ${open ? "border-slate-300" : "border-slate-200"}`}
+                            carry?.uid === m.uid ? "opacity-50" : ""} ${open ? "border-slate-300" : "border-hc-hairline"}`}
                         >
                           <div className="flex items-start gap-2 p-2">
                             {/* Both gestures live on this one element: the
@@ -768,14 +768,14 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       {step === 4 && (
         <div className="space-y-4">
           {!!lib.lectures?.length && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+            <div className="rounded-2xl border border-hc-hairline bg-white p-4 text-sm">
               <p className="font-semibold text-slate-700">Fræðsla</p>
               <p className="text-xs text-slate-500">Birtist undir „Fræðsla“ í áætlun skjólstæðings.</p>
               <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
                 {lib.lectures.map((l) => {
                   const on = draft.lecture_slugs.includes(l.slug);
                   return (
-                    <label key={l.slug} className={`flex cursor-pointer items-start gap-2 rounded-xl px-3 py-2 ring-1 ${on ? "bg-emerald-50 ring-emerald-300" : "ring-slate-200 hover:bg-slate-50"}`}>
+                    <label key={l.slug} className={`flex cursor-pointer items-start gap-2 rounded-xl px-3 py-2 ring-1 ${on ? "bg-emerald-50 ring-emerald-300" : "ring-hc-hairline hover:bg-slate-50"}`}>
                       <input type="checkbox" className="mt-1" checked={on}
                         onChange={(e) => update({ lecture_slugs: e.target.checked ? [...draft.lecture_slugs, l.slug] : draft.lecture_slugs.filter((x) => x !== l.slug) })} />
                       <span>
@@ -788,17 +788,17 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
               </div>
             </div>
           )}
-          <label className="block rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+          <label className="block rounded-2xl border border-hc-hairline bg-white p-4 text-sm">
             <span className="font-semibold text-slate-700">Skilaboð til skjólstæðings</span>
-            <textarea value={draft.nurse_note} onChange={(e) => update({ nurse_note: e.target.value })} rows={4} placeholder="Birtist efst á yfirlitinu." className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2" />
+            <textarea value={draft.nurse_note} onChange={(e) => update({ nurse_note: e.target.value })} rows={4} placeholder="Birtist efst á yfirlitinu." className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2" />
           </label>
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="rounded-2xl border border-hc-hairline bg-white p-4">
             <p className="font-bold text-hc-ink">Tilbúið?</p>
             <p className="mt-0.5 text-sm text-slate-600">
               {draft.modules.length} aðgerðir · {draft.exercise ? "æfingaáætlun" : "engin æfingaáætlun"} · {draft.nutrition ? "næringaráætlun" : "engin næringaráætlun"} · {draft.lecture_slugs.length ? `${draft.lecture_slugs.length} fræðsla` : "engin fræðsla"}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
+              <button type="button" onClick={() => setPreview(true)} className="rounded-xl border border-hc-hairline px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Forskoða</button>
               <button onClick={publish} disabled={busy || draft.modules.length === 0}
                 className="rounded-xl bg-hc-brand px-4 py-2 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
                 {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
@@ -927,7 +927,7 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-bold text-hc-ink">Æfingaáætlun</h3>
         <span className="flex-1" />
-        <select value={value?.key ?? ""} onChange={(e) => pick(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm" aria-label="Æfingasniðmát">
+        <select value={value?.key ?? ""} onChange={(e) => pick(e.target.value)} className="rounded-lg border border-hc-control px-3 py-1.5 text-sm" aria-label="Æfingasniðmát">
           <option value="">Engin æfingaáætlun</option>
           {templates.map((t) => <option key={t.key} value={t.key}>{t.name}</option>)}
           {value && !templates.some((t) => t.key === value.key) && <option value={value.key}>{value.name} (sérsniðin)</option>}
@@ -956,7 +956,7 @@ function ExerciseEditor({ value, templates, onChange, api, journeyId }: {
               <label className="mt-2 block text-xs text-slate-500">Meginreglur (ein lína á reglu)
                 <textarea value={value.principles.join("\n")} rows={4}
                   onChange={(e) => edit({ principles: e.target.value.split("\n") })}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-800" />
+                  className="mt-1 w-full rounded-lg border border-hc-control px-2 py-1.5 text-sm text-slate-800" />
               </label>
             </details>
           )}
@@ -985,7 +985,7 @@ function NutritionEditor({ value, templates, onChange, api, journeyId, weightKg 
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-bold text-hc-ink">Næringaráætlun</h3>
         <span className="flex-1" />
-        <select value={value?.key ?? ""} onChange={(e) => pick(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm" aria-label="Næringarsniðmát">
+        <select value={value?.key ?? ""} onChange={(e) => pick(e.target.value)} className="rounded-lg border border-hc-control px-3 py-1.5 text-sm" aria-label="Næringarsniðmát">
           <option value="">Engin næringaráætlun</option>
           {templates.map((t) => <option key={t.key} value={t.key}>{t.name}</option>)}
         </select>
@@ -996,7 +996,7 @@ function NutritionEditor({ value, templates, onChange, api, journeyId, weightKg 
             <div key={i} className="flex gap-2">
               <input value={p} aria-label="Meginregla"
                 onChange={(e) => onChange({ ...value, principles: value.principles.map((x, j) => (j === i ? e.target.value : x)) })}
-                className="flex-1 rounded-lg border border-slate-200 px-2 py-1 text-sm" />
+                className="flex-1 rounded-lg border border-hc-control px-2 py-1 text-sm" />
               <button aria-label="Fjarlægja" className="px-1 text-slate-400 hover:text-red-500"
                 onClick={() => onChange({ ...value, principles: value.principles.filter((_, j) => j !== i) })}>×</button>
             </div>

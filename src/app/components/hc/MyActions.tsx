@@ -410,7 +410,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       {actSheet && (
         <Sheet title={actSheet.name} onClose={() => setActSheet(null)}>
           <div className="space-y-3 p-3">
-            <dl className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
+            <dl className="overflow-hidden rounded-2xl bg-white ring-1 ring-hc-hairline">
               {([
                 ["Dagur", WEEKDAYS[actSheet.day] ?? null],
                 ["Tími", actSheet.at ? `kl. ${actSheet.at}` : null],
@@ -429,7 +429,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 session gets from its exercise list and an activity had
                 nowhere to say. */}
             {(actSheet.covers.length > 0 || (actSheet.benefits ?? []).length > 0) && (
-              <div className="rounded-2xl bg-white p-3 ring-1 ring-slate-200">
+              <div className="rounded-2xl bg-white p-3 ring-1 ring-hc-hairline">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
                   {actSheet.covers.length ? "Kemur í staðinn fyrir" : "Gott fyrir"}
                 </p>
@@ -486,7 +486,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         const open = !shut.has(p);
 
         return (
-          <div key={p} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <div key={p} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-hc-hairline">
             {/* Two lines: the name and today on the first, the week and the
                 month on the second. The second line is the one that was
                 missing — a day on its own says nothing about whether this
@@ -900,7 +900,7 @@ function AddPicker({ api, when, inPlan, onAdd }: {
         <li key={m.key}>
           <button type="button" disabled={!!busy}
             onClick={async () => { setBusy(m.key); await onAdd(m.key); setBusy(null); }}
-            className="flex w-full items-start gap-3 rounded-2xl bg-white p-3 text-left ring-1 ring-slate-200 transition hover:ring-slate-300 disabled:opacity-50">
+            className="flex w-full items-start gap-3 rounded-2xl bg-white p-3 text-left ring-1 ring-hc-hairline transition hover:ring-slate-300 disabled:opacity-50">
             <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full"
               style={{ background: PILLAR_META[m.pillar].soft, color: PILLAR_META[m.pillar].ink }} aria-hidden>
               {busy === m.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}

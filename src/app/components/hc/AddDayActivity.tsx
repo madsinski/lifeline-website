@@ -59,7 +59,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
               {(Object.keys(STRENGTH_FOCUS_IS) as StrengthFocus[]).map((f) => (
                 <button key={f} type="button" onClick={() => setFocus(f)} aria-pressed={focus === f}
                   className={`rounded-xl p-3 text-left ring-1 transition ${
-                    focus === f ? "bg-hc-brand/10 ring-2 ring-hc-brand" : "bg-white ring-slate-200 hover:ring-slate-300"}`}>
+                    focus === f ? "bg-hc-brand/10 ring-2 ring-hc-brand" : "bg-white ring-hc-hairline hover:ring-slate-300"}`}>
                   <span className="block font-semibold text-hc-ink">{STRENGTH_FOCUS_IS[f].label}</span>
                   <span className="block text-[11px] text-slate-500">{STRENGTH_FOCUS_IS[f].blurb}</span>
                 </button>
@@ -77,7 +77,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
                     <button key={r} type="button" aria-pressed={on}
                       onClick={() => setInjuries((xs) => (on ? xs.filter((y) => y !== r) : [...xs, r]))}
                       className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                        on ? "bg-amber-100 text-amber-900 ring-amber-300" : "bg-white text-slate-600 ring-slate-200"}`}>
+                        on ? "bg-amber-100 text-amber-900 ring-amber-300" : "bg-white text-slate-600 ring-hc-hairline"}`}>
                       {REGION_IS[r].label}
                     </button>
                   );
@@ -116,7 +116,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
           <div className="flex flex-wrap gap-1.5">
             {ACTIVITY_GROUPS.map((g) => (
               <button key={g} type="button" onClick={() => setGroup(g)} aria-pressed={group === g}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-slate-200"}`}>{g}</button>
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${group === g ? "bg-hc-ink text-white" : "bg-white text-slate-700 ring-1 ring-hc-hairline"}`}>{g}</button>
             ))}
           </div>
 
@@ -130,7 +130,7 @@ export default function AddDayActivity({ weekday, onAdd, onClose }: {
                       at: /^([01]\d|2[0-3]):[0-5]\d$/.test(at) ? at : null,
                       minutes: x.minutes, covers: x.covers, partial: x.partial ?? [], intensity: x.intensity,
                     }))}
-                className="flex gap-2.5 rounded-xl bg-white p-3 text-left ring-1 ring-slate-200 transition hover:ring-2 hover:ring-hc-brand">
+                className="flex gap-2.5 rounded-xl bg-white p-3 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-hc-brand">
                 <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
                   <ActivityIcon name={x.name} className="h-4 w-4" />
                 </span>

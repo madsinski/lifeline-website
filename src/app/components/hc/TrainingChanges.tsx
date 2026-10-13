@@ -105,7 +105,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                         <button key={e} type="button" aria-pressed={on}
                           onClick={() => set({ emphasis: e })}
                           className={`flex w-full items-start gap-3 rounded-hc-element p-3 text-left ring-1 transition ${
-                            on ? "bg-hc-brand/10 ring-hc-brand" : "bg-white ring-slate-200 hover:bg-slate-50"}`}>
+                            on ? "bg-hc-brand/10 ring-hc-brand" : "bg-white ring-hc-hairline hover:bg-slate-50"}`}>
                           <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${
                             on ? "border-hc-brand bg-hc-brand" : "border-slate-300"}`}>
                             {on && <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />}
@@ -157,7 +157,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                           <button key={lv.key} type="button" aria-pressed={settings.level === lv.key}
                             onClick={() => set({ level: lv.key })}
                             className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                              settings.level === lv.key ? "bg-hc-ink text-white ring-hc-ink" : "bg-white text-slate-700 ring-slate-200"}`}>
+                              settings.level === lv.key ? "bg-hc-ink text-white ring-hc-ink" : "bg-white text-slate-700 ring-hc-hairline"}`}>
                             {lv.label}
                           </button>
                         ))}
@@ -174,7 +174,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
                         return (
                           <button key={r} type="button" aria-pressed={on} onClick={() => toggleInjury(r)}
                             className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                              on ? "bg-amber-100 text-amber-900 ring-amber-300" : "bg-white text-slate-600 ring-slate-200"}`}>
+                              on ? "bg-amber-100 text-amber-900 ring-amber-300" : "bg-white text-slate-600 ring-hc-hairline"}`}>
                             {REGION_IS[r].label}
                           </button>
                         );
@@ -218,7 +218,7 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
 
   if (inline) {
     return (
-      <section className="overflow-hidden rounded-hc-card bg-white shadow-hc-card ring-1 ring-slate-200">
+      <section className="overflow-hidden rounded-hc-card bg-white shadow-hc-card ring-1 ring-hc-hairline">
         <p className="px-4 pb-1 pt-3.5 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Breytingar</p>
         {body}
       </section>

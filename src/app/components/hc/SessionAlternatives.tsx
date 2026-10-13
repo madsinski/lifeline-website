@@ -95,7 +95,7 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
               <div className="grid gap-2 sm:grid-cols-2">
                 {set.options.map((o) => (
                   <button key={o.key} type="button" onClick={() => onPick({ label: o.label, modality })}
-                    className="flex items-start gap-3 rounded-2xl bg-white p-3 text-left ring-1 ring-slate-200 transition hover:ring-2 hover:ring-hc-brand">
+                    className="flex items-start gap-3 rounded-2xl bg-white p-3 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-hc-brand">
                     <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700">
                       <o.Icon className="h-5 w-5" aria-hidden />
                     </span>
@@ -110,7 +110,7 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
           )}
 
           {/* The honest answer is sometimes none of the above. */}
-          <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200">
+          <div className="rounded-2xl bg-slate-50 p-3 ring-1 ring-hc-hairline">
             <p className="text-sm font-semibold text-slate-800">Eitthvað allt annað</p>
             <p className="mt-0.5 text-xs text-slate-500">
               Göngutúr, jóga, sund með börnunum — það telst með. Hreyfing sem þú gerðir er betri en æfing sem þú slepptir.

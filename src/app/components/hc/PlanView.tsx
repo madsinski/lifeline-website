@@ -81,7 +81,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
             <span className="flex-1" />
             <button
               onClick={() => window.print()}
-              className="whitespace-nowrap rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="whitespace-nowrap rounded-full border border-hc-hairline px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
               Prenta / PDF
             </button>
@@ -209,7 +209,7 @@ function ModuleCard({ m }: { m: PlanItem }) {
   );
   if (!hasMore) return <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">{body}</div>;
   return (
-    <details className="group rounded-2xl border border-slate-100 bg-white p-4 shadow-sm open:ring-1 open:ring-slate-200">
+    <details className="group rounded-2xl border border-slate-100 bg-white p-4 shadow-sm open:ring-1 open:ring-hc-hairline">
       <summary className="flex cursor-pointer list-none items-start gap-2 [&::-webkit-details-marker]:hidden">
         <div className="flex-1">{body}</div>
         <span className="mt-1 text-slate-400 transition group-open:rotate-180" aria-hidden>▾</span>
@@ -368,7 +368,7 @@ function SessionCard({ s, n }: { s: ExerciseSession; n: number }) {
               {b.items.map((it, j) => b.key === "main"
                 ? <ExerciseRow key={j} it={it} />
                 : (
-                  <li key={j} className="flex items-center gap-2 rounded-full bg-slate-50 py-1 pl-1 pr-3 text-sm ring-1 ring-slate-200">
+                  <li key={j} className="flex items-center gap-2 rounded-full bg-slate-50 py-1 pl-1 pr-3 text-sm ring-1 ring-hc-hairline">
                     {it.image
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={it.image} alt="" className="h-7 w-7 rounded-full object-cover" />
@@ -389,7 +389,7 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
   const [open, setOpen] = useState(false);
   const how = !!(it.cues?.length || it.video);
   return (
-    <li className="rounded-2xl ring-1 ring-slate-200">
+    <li className="rounded-2xl ring-1 ring-hc-hairline">
       <div className="flex gap-3 p-2">
         <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-orange-50 sm:h-24 sm:w-24">
           {it.image
@@ -601,7 +601,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
       )}
 
       </div>
-      <footer className="mt-3 flex shrink-0 justify-between border-t border-slate-200 pt-1.5 text-[7.5pt] text-slate-400">
+      <footer className="mt-3 flex shrink-0 justify-between border-t border-hc-hairline pt-1.5 text-[7.5pt] text-slate-400">
         <span>Lifeline Health ehf. · lifelinehealth.is</span>
         <span>Ítarleg útgáfa, æfingar og fræðsla á aðganginum þínum</span>
       </footer>

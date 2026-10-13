@@ -239,7 +239,7 @@ export default function CoachView({ api, startOn, focusNewest = false }: {
       {/* Two tabs. The segmented control uses the brand green when active
           rather than near-black: this page is the warm one in the journey,
           and ink on a chat surface reads as a disabled state. */}
-      <nav aria-label="Þjálfari" className="flex rounded-hc-element bg-white p-1 shadow-hc-card ring-1 ring-slate-200">
+      <nav aria-label="Þjálfari" className="flex rounded-hc-element bg-white p-1 shadow-hc-card ring-1 ring-hc-hairline">
         {[{ key: "talk" as const, label: "Skilaboð", Icon: MessageCircle },
           { key: "book" as const, label: "Bóka", Icon: CalendarPlus }].map((t) => (
           <button key={t.key} type="button" onClick={() => setTab(t.key)}
@@ -418,7 +418,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
               <li key={w.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
                 {w.photo_url
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={w.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-slate-200" />
+                  ? <img src={w.photo_url} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-hc-hairline" />
                   : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400"><UserRound className="h-5 w-5" aria-hidden /></span>}
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-hc-ink">{w.name}</p>
@@ -454,7 +454,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
         <div className="space-y-2 bg-slate-50/60 p-4">
           {data.thread.length > shownCount && (
             <button type="button" onClick={() => setShownCount((n) => n + STEP)}
-              className="mx-auto block rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50">
+              className="mx-auto block rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-hc-hairline transition hover:bg-slate-50">
               Sjá eldri skilaboð ({Math.min(STEP, data.thread.length - shownCount)})
             </button>
           )}
@@ -470,7 +470,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
                   ? "bg-hc-brand text-white"
                   : m.kind === "nudge"
                     ? "bg-amber-50 text-amber-950 ring-1 ring-amber-200"
-                    : "bg-white text-slate-900 ring-1 ring-slate-200"}`}>
+                    : "bg-white text-slate-900 ring-1 ring-hc-hairline"}`}>
                 {m.author_kind === "coach" && (
                   <p className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide opacity-60">
                     {m.kind === "nudge" && <Sparkles className="h-3 w-3" aria-hidden />}
@@ -525,16 +525,16 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost }
 {host && createPortal(
         <div className="fixed inset-x-0 z-30"
           style={{ bottom: keyboard.open ? keyboard.inset : "var(--hc-dock-offset)" }}>
-          <div className="mx-auto flex max-w-4xl items-end gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
+          <div className="mx-auto flex max-w-4xl items-end gap-2 border-t border-hc-hairline bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
             <button type="button" onClick={() => setPrompts(true)}
               aria-label="Tilbúin skilaboð"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-hc-brand-dark">
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-slate-500 ring-1 ring-hc-hairline transition hover:bg-slate-50 hover:text-hc-brand-dark">
               <MessageSquarePlus className="h-5 w-5" aria-hidden />
             </button>
             <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void onSend(); } }}
               placeholder="Skrifaðu skilaboð…" aria-label="Skilaboð til þjálfarans"
-              className="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-hc-element border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-hc-brand focus:ring-2 focus:ring-hc-brand/20" />
+              className="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-hc-element border border-hc-control px-3 py-2.5 text-sm outline-none focus:border-hc-brand focus:ring-2 focus:ring-hc-brand/20" />
             <button type="button" onClick={() => void onSend()} disabled={busy || !draft.trim()}
               aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
               <Send className="h-4 w-4" aria-hidden />
@@ -860,7 +860,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
           </a>
         )}
         {isVideo && !booking.meeting_url && (
-          <p className="rounded-hc-element bg-slate-50 px-3 py-2.5 text-xs text-slate-600 ring-1 ring-slate-200">
+          <p className="rounded-hc-element bg-slate-50 px-3 py-2.5 text-xs text-slate-600 ring-1 ring-hc-hairline">
             Hlekkurinn á fundinn birtist hér þegar þjálfarinn hefur staðfest tímann.
           </p>
         )}
@@ -868,7 +868,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
         {/* Where, and what to know. Only for a measurement — a video call
             happens wherever you are. */}
         {!isVideo && (place?.site || place?.address || place?.info || prep.length > 0) && (
-          <section className="rounded-hc-card bg-slate-50 p-3.5 ring-1 ring-slate-200">
+          <section className="rounded-hc-card bg-slate-50 p-3.5 ring-1 ring-hc-hairline">
             {(place?.site || place?.address) && (
               <>
                 <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">

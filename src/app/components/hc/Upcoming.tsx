@@ -132,7 +132,7 @@ export function UpcomingSoon({ items, onDismiss }: {
 export function UpcomingList({ items, onNavigate }: { items: Upcoming[]; onNavigate?: (href: string) => boolean }) {
   if (!items.length) {
     return (
-      <p className="rounded-hc-card bg-hc-surface px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200">
+      <p className="rounded-hc-card bg-hc-surface px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
         Ekkert bókað eins og er.
       </p>
     );

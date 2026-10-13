@@ -154,7 +154,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         ) : (
           <ul className="mt-2 space-y-1">
             {staged.map((x, i) => (
-              <li key={`${x.target}-${x.reason}`} className="flex items-start gap-2 rounded-lg bg-white p-2 text-sm ring-1 ring-slate-200">
+              <li key={`${x.target}-${x.reason}`} className="flex items-start gap-2 rounded-lg bg-white p-2 text-sm ring-1 ring-hc-hairline">
                 <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: TARGET_IS[x.target].color }} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-slate-900">{TARGET_IS[x.target].label}</span>
@@ -193,7 +193,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
           <ul className="space-y-1">
             {fresh.map((s) => (
               <li key={`${s.target}-${s.reason}`} {...dragProps(s.target, s.reason, "ai")}
-                className="cursor-grab rounded-lg bg-white p-2 text-sm ring-1 ring-slate-200 hover:ring-slate-300">
+                className="cursor-grab rounded-lg bg-white p-2 text-sm ring-1 ring-hc-hairline hover:ring-slate-300">
                 <div className="flex items-start gap-2">
                   <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: TARGET_IS[s.target].color }} aria-hidden />
                   <span className="min-w-0 flex-1">
@@ -229,7 +229,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
           {COMMON_REASONS[pick].map((reason) => (
             <li key={reason}>
               <button type="button" {...dragProps(pick, reason, "nurse")} onClick={() => add(pick, reason)}
-                className="cursor-grab rounded-lg border border-slate-200 bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-slate-400 hover:bg-slate-50">
+                className="cursor-grab rounded-lg border border-hc-hairline bg-white px-2 py-1 text-left text-xs text-slate-700 hover:border-slate-400 hover:bg-slate-50">
                 {reason}
               </button>
             </li>

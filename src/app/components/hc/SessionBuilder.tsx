@@ -112,7 +112,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                   {it?.image
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={it.image} alt="" loading="lazy"
-                        className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-slate-200" />
+                        className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-hc-hairline" />
                     : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-300">
                         <Dumbbell className="h-6 w-6" aria-hidden />
                       </span>}
@@ -153,7 +153,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
                           <button key={x.key} type="button" disabled={on}
                             onClick={() => { setKeys((k) => [...k, x.key]); setAdding(false); }}
                             className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${
-                              on ? "bg-slate-200 text-slate-400" : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-hc-brand/10 hover:text-hc-brand-dark"}`}>
+                              on ? "bg-slate-200 text-slate-400" : "bg-white text-slate-700 ring-1 ring-hc-hairline hover:bg-hc-brand/10 hover:text-hc-brand-dark"}`}>
                             {on && <Check className="mr-1 inline h-3 w-3" aria-hidden />}{x.label}
                           </button>
                         );

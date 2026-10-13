@@ -175,7 +175,7 @@ export default function CoachInbox({ api, onRead }: {
               <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${m.pending ? "opacity-60" : ""} ${
                 m.author_kind === "coach"
                   ? m.kind === "nudge" ? "bg-amber-100 text-amber-950" : "bg-hc-brand text-white"
-                  : "bg-white text-slate-900 ring-1 ring-slate-200"}`}>
+                  : "bg-white text-slate-900 ring-1 ring-hc-hairline"}`}>
                 {m.author_kind === "coach" && m.author_name && (
                   <p className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide opacity-60">
                     {m.kind === "nudge" && <Sparkles className="h-3 w-3" aria-hidden />}{m.author_name}
@@ -213,7 +213,7 @@ export default function CoachInbox({ api, onRead }: {
           <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(draft); } }}
             placeholder="Svaraðu…" aria-label={`Svar til ${open.name}`}
-            className="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-hc-element border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-hc-brand" />
+            className="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-hc-element border border-hc-control px-3 py-2.5 text-sm outline-none focus:border-hc-brand" />
           <button type="button" onClick={() => void send(draft)} disabled={busy || !draft.trim()}
             aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
             <Send className="h-4 w-4" aria-hidden />

@@ -74,12 +74,12 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita (enska: squat, row, plank…)"
-              className="min-w-[200px] flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" aria-label="Leita í æfingasafni" />
-            <select value={equip} onChange={(e) => setEquip(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm" aria-label="Búnaður">
+              className="min-w-[200px] flex-1 rounded-xl border border-hc-control px-3 py-2 text-sm" aria-label="Leita í æfingasafni" />
+            <select value={equip} onChange={(e) => setEquip(e.target.value)} className="rounded-xl border border-hc-control px-3 py-2 text-sm" aria-label="Búnaður">
               {EQUIP.map((k) => <option key={k} value={k}>{k ? EQUIPMENT_IS[k] : "Allur búnaður"}</option>)}
             </select>
             <button type="button" aria-pressed={best} onClick={() => setBest(!best)}
-              className={`rounded-xl border px-3 py-2 text-sm font-semibold ${best ? "border-orange-300 bg-orange-50 text-orange-800" : "border-slate-200 text-slate-600"}`}>
+              className={`rounded-xl border px-3 py-2 text-sm font-semibold ${best ? "border-orange-300 bg-orange-50 text-orange-800" : "border-hc-hairline text-slate-600"}`}>
               ★ Mest fyrir minnst
             </button>
           </div>
@@ -101,7 +101,7 @@ export default function ExercisePicker({ api, mode, onPick, onClose }: {
             {rows?.map((ex) => {
               const isAdded = added.includes(ex.id);
               return (
-                <div key={ex.id} className={`flex flex-col overflow-hidden rounded-2xl border bg-white ${isAdded ? "border-emerald-400" : "border-slate-200"}`}>
+                <div key={ex.id} className={`flex flex-col overflow-hidden rounded-2xl border bg-white ${isAdded ? "border-emerald-400" : "border-hc-hairline"}`}>
                   <button type="button" onClick={() => setOpen(ex)} className="relative aspect-[4/3] bg-slate-100" aria-label={`Nánar um ${ex.name_is || ex.name}`}>
                     {ex.illustration_url
                       // eslint-disable-next-line @next/next/no-img-element

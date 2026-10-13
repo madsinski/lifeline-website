@@ -74,7 +74,7 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
   return (
     <Sheet title="Allt safnið" onClose={onClose} canvas>
       <div className="space-y-3 p-3 sm:p-4">
-        <label className="flex items-center gap-2 rounded-hc-element bg-white px-3 ring-1 ring-slate-200 focus-within:ring-hc-brand">
+        <label className="flex items-center gap-2 rounded-hc-element bg-white px-3 ring-1 ring-hc-hairline focus-within:ring-hc-brand">
           <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
           <input value={q} onChange={(e) => setQ(e.target.value)}
             placeholder="Leita í fræðslunni…" aria-label="Leita í fræðslunni"
@@ -89,13 +89,13 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
         )}
 
         {failed && (
-          <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200">
+          <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
             Náði ekki í safnið. Athugaðu netsambandið.
           </p>
         )}
 
         {all !== null && shown.length === 0 && (
-          <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200">
+          <p className="rounded-hc-card bg-white px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-hc-hairline">
             {q.trim() ? `Ekkert fannst fyrir „${q.trim()}“.` : "Safnið er tómt."}
           </p>
         )}
@@ -106,7 +106,7 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
           if (!rows.length) return null;
           const meta = p === "general" ? null : PILLAR_META[p as Pillar];
           return (
-            <section key={p} className="overflow-hidden rounded-hc-card bg-white shadow-hc-card ring-1 ring-slate-200">
+            <section key={p} className="overflow-hidden rounded-hc-card bg-white shadow-hc-card ring-1 ring-hc-hairline">
               <p className="px-4 py-2.5 text-xs font-bold uppercase tracking-[0.14em]"
                 style={meta ? { background: meta.soft, color: meta.ink } : { background: "#F1F5F9", color: "#475569" }}>
                 {meta ? meta.label : "Almennt"}
@@ -118,7 +118,7 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
                       className="flex items-center gap-3 px-4 py-3 transition hover:bg-slate-50">
                       {l.completed
                         ? <CheckCircle2 className="h-6 w-6 shrink-0 text-hc-brand-dark" aria-label="Lokið" />
-                        : <span className="h-6 w-6 shrink-0 rounded-full border-2 border-slate-200" aria-hidden />}
+                        : <span className="h-6 w-6 shrink-0 rounded-full border-2 border-hc-hairline" aria-hidden />}
                       <span className="min-w-0 flex-1">
                         <span className={`block font-semibold ${l.completed ? "text-slate-400" : "text-hc-ink"}`}>
                           {l.title}

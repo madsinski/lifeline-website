@@ -223,7 +223,7 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
             <div className="mt-3 space-y-1.5">
               {d.candidates.map((c) => (
                 <button key={c.id} type="button" disabled={busy} onClick={() => void choose(c.id)}
-                  className="flex w-full items-center justify-between rounded-hc-element border border-slate-200 px-3 py-2.5 text-left text-sm font-semibold text-hc-ink transition hover:bg-slate-50 disabled:opacity-50">
+                  className="flex w-full items-center justify-between rounded-hc-element border border-hc-hairline px-3 py-2.5 text-left text-sm font-semibold text-hc-ink transition hover:bg-slate-50 disabled:opacity-50">
                   {c.name}
                   {d.partner?.id === c.id && <span className="text-xs font-normal text-hc-brand-dark">núverandi</span>}
                 </button>

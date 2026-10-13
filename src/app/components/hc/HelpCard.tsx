@@ -99,7 +99,7 @@ export default function HelpCard({ api }: { api: Api }) {
         <div className="mt-3 grid gap-2">
           {REQUEST_KINDS.map((k) => (
             <button key={k} type="button" onClick={() => setKind(k)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-hc-brand">
+              className="rounded-2xl border border-hc-hairline bg-white px-4 py-3 text-left transition hover:border-hc-brand">
               <span className="flex items-center gap-2 font-semibold text-hc-ink">
                 <span className={`h-2 w-2 rounded-full ${REQUEST_IS[k].dot}`} aria-hidden />
                 {REQUEST_IS[k].label}
@@ -109,7 +109,7 @@ export default function HelpCard({ api }: { api: Api }) {
           ))}
         </div>
       ) : (
-        <div className="mt-3 space-y-3 rounded-2xl border border-slate-200 p-3">
+        <div className="mt-3 space-y-3 rounded-2xl border border-hc-hairline p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="font-semibold text-hc-ink">{REQUEST_IS[kind].label}</p>
             <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
@@ -124,7 +124,7 @@ export default function HelpCard({ api }: { api: Api }) {
                 return (
                   <button key={m.key} type="button" aria-pressed={on}
                     onClick={() => setPicked(on ? picked.filter((x) => x !== m.key) : [...picked, m.key])}
-                    className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-emerald-500 bg-emerald-50 font-semibold text-emerald-900" : "border-slate-200 bg-white hover:border-slate-300"}`}>
+                    className={`rounded-xl border px-3 py-2 text-left text-sm transition ${on ? "border-emerald-500 bg-emerald-50 font-semibold text-emerald-900" : "border-hc-hairline bg-white hover:border-slate-300"}`}>
                     {m.label}
                     <span className="block text-xs font-normal text-slate-500">{m.hint}</span>
                   </button>
@@ -204,7 +204,7 @@ export default function HelpCard({ api }: { api: Api }) {
                 </div>
                 {r.body && <p className="mt-0.5 text-slate-600">{r.body}</p>}
                 {r.reply && (
-                  <p className="mt-1.5 rounded-lg bg-white p-2 text-slate-800 ring-1 ring-slate-200">
+                  <p className="mt-1.5 rounded-lg bg-white p-2 text-slate-800 ring-1 ring-hc-hairline">
                     <span className="block text-xs font-semibold text-slate-500">
                       Svar{r.replied_by ? ` frá ${r.replied_by}` : ""}
                     </span>

@@ -155,7 +155,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
       );
     case "fullimage":
       return (
-        <figure className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-200">
+        <figure className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-hc-hairline">
           {slide.image_url
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={slide.image_url} alt={slide.caption || slide.title} className="h-auto w-full" />
@@ -243,7 +243,7 @@ export function SlideView({ slide, counter }: { slide: LectureSlide; counter?: s
       );
     case "sources":
       return (
-        <div className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-slate-200">
+        <div className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-hc-hairline">
           <div className="min-h-[340px] p-7 sm:p-10">
             {counter && <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{counter}</p>}
             <h2 className="mt-2 flex items-center gap-2 text-2xl font-bold text-hc-ink"><BookOpen className="h-6 w-6 text-slate-400" aria-hidden />{slide.title || "Heimildir"}</h2>
@@ -310,7 +310,7 @@ export function SlideDeck({ slides, onLastSlide, start = 0, pillar }: { slides: 
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
         <button type="button" onClick={() => setI(Math.max(0, idx - 1))} disabled={idx === 0}
-          className="inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-white px-4 font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-30">
+          className="inline-flex min-h-11 items-center gap-1 rounded-full border border-hc-hairline bg-white px-4 font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-30">
           <ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri
         </button>
         <div className="hidden flex-wrap justify-center gap-1.5 sm:flex" role="tablist" aria-label="Glærur">

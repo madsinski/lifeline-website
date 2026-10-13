@@ -160,7 +160,7 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
             )}
             {WHY.map((w) => (
               <button key={w.key} type="button" onClick={() => setWhy(w.key)}
-                className="w-full rounded-2xl bg-white p-3.5 text-left ring-1 ring-slate-200 transition hover:ring-2 hover:ring-orange-400">
+                className="w-full rounded-2xl bg-white p-3.5 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-orange-400">
                 <span className="block font-semibold text-slate-900">{w.label}</span>
                 <span className="mt-0.5 block text-xs text-slate-500">{w.hint}</span>
               </button>
@@ -178,12 +178,12 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
             <div className="grid gap-2">
               {REGIONS.map((r) => (
                 <button key={r} type="button" onClick={() => setRegion(r)}
-                  className="rounded-2xl bg-white p-3 text-left font-semibold text-slate-900 ring-1 ring-slate-200 hover:ring-2 hover:ring-orange-400">
+                  className="rounded-2xl bg-white p-3 text-left font-semibold text-slate-900 ring-1 ring-hc-hairline hover:ring-2 hover:ring-orange-400">
                   {REGION_IS[r].label}
                 </button>
               ))}
               <button type="button" onClick={() => setRegion("back")}
-                className="rounded-2xl bg-white p-3 text-left text-slate-700 ring-1 ring-slate-200 hover:ring-2 hover:ring-orange-400">
+                className="rounded-2xl bg-white p-3 text-left text-slate-700 ring-1 ring-hc-hairline hover:ring-2 hover:ring-orange-400">
                 Annað — sýndu mér mildari æfingar
               </button>
             </div>

@@ -92,7 +92,7 @@ export default function Caseload({ api, onOpen }: {
    */
   if (!clients.length) {
     return (
-      <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+      <section className="rounded-2xl bg-white p-4 ring-1 ring-hc-hairline">
         <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
           <Users className="h-4 w-4 text-slate-400" aria-hidden /> Mínir skjólstæðingar
         </p>
@@ -106,7 +106,7 @@ export default function Caseload({ api, onOpen }: {
   const waiting = clients.filter((c) => c.needs_reply).length;
 
   return (
-    <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
+    <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-hc-hairline">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-slate-100 p-4">
         <p className="flex items-center gap-2 font-semibold text-slate-900">
           <Users className="h-4 w-4 text-slate-400" aria-hidden /> Mínir skjólstæðingar

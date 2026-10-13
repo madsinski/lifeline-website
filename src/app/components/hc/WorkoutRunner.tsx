@@ -496,12 +496,12 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
             <div className="flex items-center justify-center gap-2 text-sm text-slate-500">
               <span>Hvíld</span>
               <button type="button" onClick={() => changeRest(restSec - 15)} aria-label="Stytta hvíld um 15 sekúndur"
-                className="h-7 w-7 rounded-lg font-bold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100">−</button>
+                className="h-7 w-7 rounded-lg font-bold text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-100">−</button>
               <span className="min-w-14 text-center font-bold tabular-nums text-slate-800">
                 {restSec >= 60 ? `${Math.floor(restSec / 60)}:${String(restSec % 60).padStart(2, "0")}` : `${restSec} sek.`}
               </span>
               <button type="button" onClick={() => changeRest(restSec + 15)} aria-label="Lengja hvíld um 15 sekúndur"
-                className="h-7 w-7 rounded-lg font-bold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100">+</button>
+                className="h-7 w-7 rounded-lg font-bold text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-100">+</button>
               {restSec !== prescribedRest && (
                 <button type="button" onClick={() => { try { window.localStorage.removeItem(restKey); } catch { /* private mode */ } setRestSec(prescribedRest); }}
                   className="font-semibold text-hc-brand-dark hover:underline">Sjálfgefið</button>
@@ -520,7 +520,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
       {today.length > 0 && (
         <ul className="flex flex-wrap gap-1.5">
           {today.map((s, i) => (
-            <li key={s.id ?? i} className="flex items-center gap-1 rounded-lg bg-white py-1 pl-2 pr-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
+            <li key={s.id ?? i} className="flex items-center gap-1 rounded-lg bg-white py-1 pl-2 pr-1 text-xs font-medium text-slate-700 ring-1 ring-hc-hairline">
               <span className="tabular-nums">{s.weight != null ? `${s.weight} kg × ` : ""}{s.reps}{timed ? " sek." : ""}</span>
               {/* A mistyped weight is the common case and it used to be
                   permanent — it would then feed the suggestion for next

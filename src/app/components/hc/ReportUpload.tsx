@@ -65,7 +65,7 @@ export default function ReportUpload({ api, onDone, compact, heading, blurb }: {
           sjúkraskrá. Said plainly because a person handing over their own
           blood results is entitled to know all four without reading a
           policy page. */}
-      <ul className="mt-3 space-y-2.5 rounded-hc-element bg-slate-50 p-4 ring-1 ring-slate-200">
+      <ul className="mt-3 space-y-2.5 rounded-hc-element bg-slate-50 p-4 ring-1 ring-hc-hairline">
         {SELF_CONSENT_POINTS.map((x) => (
           <li key={x.title} className="flex gap-2.5">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-dark" aria-hidden />

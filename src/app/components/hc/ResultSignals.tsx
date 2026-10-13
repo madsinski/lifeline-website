@@ -46,7 +46,7 @@ export default function ResultSignals({ flagged }: { flagged: FlaggedValue[] }) 
       </div>
 
       {counts.filter((g) => g.items.length).map((g) => (
-        <div key={g.signal} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+        <div key={g.signal} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-hc-hairline">
           <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5">
             <span className={`h-2.5 w-2.5 rounded-full ${g.dot}`} aria-hidden />
             <p className="font-bold text-slate-900">{g.title}</p>
@@ -59,7 +59,7 @@ export default function ResultSignals({ flagged }: { flagged: FlaggedValue[] }) 
                   <span className="block truncate font-semibold text-slate-900">{f.title}</span>
                   {f.band && <span className="block text-xs text-slate-500">{f.band}</span>}
                 </span>
-                <span className="rounded-lg bg-slate-50 px-3 py-1 text-sm font-bold tabular-nums text-slate-800 ring-1 ring-slate-200">
+                <span className="rounded-lg bg-slate-50 px-3 py-1 text-sm font-bold tabular-nums text-slate-800 ring-1 ring-hc-hairline">
                   {String(f.value).replace(".", ",")}{f.unit ? ` ${f.unit}` : ""}
                 </span>
               </li>

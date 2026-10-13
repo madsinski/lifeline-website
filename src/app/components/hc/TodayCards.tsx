@@ -165,7 +165,7 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
             {[["cheer", "Áfram þú!"], ["proud", "Vel gert"],
               ["missing", "Sakna þín í vikunni"], ["together", "Eigum við að æfa saman?"]].map(([k, label]) => (
               <button key={k} type="button" disabled={busy} onClick={() => void send(k)}
-                className="rounded-xl border border-slate-200 px-3 py-2 text-left text-xs font-semibold text-hc-ink transition hover:bg-slate-50 disabled:opacity-50">
+                className="rounded-xl border border-hc-hairline px-3 py-2 text-left text-xs font-semibold text-hc-ink transition hover:bg-slate-50 disabled:opacity-50">
                 {label}
               </button>
             ))}
@@ -173,7 +173,7 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
           <div className="flex gap-2">
             <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={140}
               placeholder="Eða skrifaðu eitthvað…" aria-label="Eigin skilaboð"
-              className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400" />
+              className="min-w-0 flex-1 rounded-xl border border-hc-control px-3 py-2 text-sm outline-none focus:border-emerald-400" />
             <button type="button" disabled={busy || !note.trim()} onClick={() => void send("cheer", note)}
               className="shrink-0 rounded-xl bg-hc-brand px-3 text-xs font-bold text-white disabled:opacity-40">Senda</button>
           </div>

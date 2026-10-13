@@ -67,7 +67,7 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
   };
 
   return (
-    <section className={bare ? "" : "rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6"}>
+    <section className={bare ? "" : "rounded-3xl bg-white p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6"}>
       {!bare && (
         <>
           <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">Hvar viltu byrja?</p>
@@ -131,7 +131,7 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
           if (o.key === "report" && !onUpload && !preview) return null;
           return (
             <button key={o.key} type="button" disabled={!!busy || preview} onClick={act}
-              className="flex w-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-hc-brand disabled:opacity-60">
+              className="flex w-full items-start gap-3 rounded-2xl border border-hc-hairline bg-white p-3.5 text-left transition hover:border-hc-brand disabled:opacity-60">
               <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand">
                 <Icon className="h-4 w-4" aria-hidden />
               </span>

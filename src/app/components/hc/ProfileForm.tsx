@@ -36,7 +36,7 @@ export interface ProfileFormData {
 /** GDPR 9. gr.: informed consent for processing health data, with the full text one tap away. */
 export function ConsentBox({ checked, onChange, error }: { checked: boolean; onChange: (v: boolean) => void; error?: string }) {
   return (
-    <div className={`rounded-xl border p-3 text-sm ${error ? "border-red-300 bg-red-50" : "border-slate-200 bg-white"}`}>
+    <div className={`rounded-xl border p-3 text-sm ${error ? "border-red-300 bg-red-50" : "border-hc-hairline bg-white"}`}>
       <label className="flex cursor-pointer items-start gap-3">
         <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#10B981]" />
         <span className="text-slate-700">

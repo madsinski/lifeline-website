@@ -25,6 +25,7 @@ import PinPad from "@/app/components/hc/PinPad";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CoachAsClient from "@/app/components/hc/CoachAsClient";
 import CoachBookings from "@/app/components/hc/CoachBookings";
+import PlanChanges from "@/app/components/hc/PlanChanges";
 import ClientThread from "@/app/components/hc/ClientThread";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import ClientsView from "@/app/components/hc/ClientsView";
@@ -35,6 +36,7 @@ import { hcBtn, hcPage, hcTabs } from "@/app/components/hc/ui";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
 import WsHeader, { type WsMenuItem } from "@/app/components/hc/WsHeader";
+import WsSettings from "@/app/components/hc/WsSettings";
 import { type FlowStep } from "@/app/components/hc/Flow";
 import { type Checkpoint } from "@/app/components/hc/StatusStrip";
 import ResultsCard, { sexOf, type HcResult } from "@/app/components/hc/ResultsCard";
@@ -103,7 +105,7 @@ interface Detail {
 }
 /** The workstation is either on the home screen or on one client. */
 /** The three places on the home side, plus a client's workspace. */
-type HomeTab = "today" | "messages" | "calendar" | "clients" | "teaching";
+type HomeTab = "today" | "messages" | "calendar" | "clients" | "teaching" | "settings";
 
 /**
  * How many participants are waiting on a reply, kept current.
@@ -117,10 +119,24 @@ function useCoachUnread(api: (u: string, i?: RequestInit) => Promise<Response>) 
   const [unread, setUnread] = useState(0);
   const rung = useRef(0);
   const load = useCallback(async () => {
-    const r = await api("/api/vinnustod/chat").catch(() => null);
+    /*
+     * Messages AND beiðnir, counted together.
+     *
+     * The badge only knew about chat, so a participant could ask for
+     * something through WsRequests and nothing announced it — no dot, no
+     * pulse, no chime, and the coach found out when they next happened to
+     * scroll past the section. Both mean the same thing to a coach ("a
+     * person is waiting on you"), so they share one signal rather than
+     * competing for attention with two.
+     */
+    const [r, rq] = await Promise.all([
+      api("/api/vinnustod/chat").catch(() => null),
+      api("/api/vinnustod/requests?status=open").catch(() => null),
+    ]);
     if (!r?.ok) return;
     const j = await r.json().catch(() => null);
-    const n = Number(j?.unread ?? 0);
+    const rj = rq?.ok ? await rq.json().catch(() => null) : null;
+    const n = Number(j?.unread ?? 0) + (Array.isArray(rj?.requests) ? rj.requests.length : 0);
     // Deferred: this runs on a path an effect calls, and the compiler
     // objects to setting state synchronously there.
     setTimeout(() => setUnread(n), 0);
@@ -302,7 +318,7 @@ export function WorkstationApp({ mode }: { mode: "worker" | "staff" }) {
 
 // ── Shell ───────────────────────────────────────────────────────────────────
 
-const HOME_TABS: HomeTab[] = ["today", "calendar", "clients", "teaching"];
+const HOME_TABS: HomeTab[] = ["today", "calendar", "clients", "teaching", "settings"];
 const isHomeTab = (v: unknown): v is HomeTab => typeof v === "string" && (HOME_TABS as string[]).includes(v);
 
 function readView(): View {
@@ -367,9 +383,11 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
 
   const menu: WsMenuItem[] = [
     { label: "Fletta upp", icon: "book", hint: "⌘K", onClick: () => setShowBook(true) },
-    { label: "Tengja dagatal", icon: "calendar" as const, onClick: () => setShowCal(true) },
+    /* Calendar, PIN and sign-out moved to the Stillingar tab: they were
+       only reachable from this menu, which is where settings go to be
+       forgotten. Sign-out stays here too — it is the one thing somebody
+       needs in a hurry and should not have to change tab for. */
     ...(mode === "worker" ? [
-      { label: me.has_pin ? "Breyta PIN" : "Setja PIN", icon: "key" as const, onClick: () => setShowPin(true) },
       { label: "Útskrá", icon: "logout" as const, onClick: () => void logout() },
     ] : []),
   ];
@@ -393,7 +411,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                       is waiting on an answer, and the only reason the
                       participants' Þjálfari page is a conversation rather
                       than an outbox. */}
-                  {([["today", "Yfirlit"], ["teaching", "Fræðsla"]] as const).map(([k, label]) => (
+                  {([["today", "Yfirlit"], ["teaching", "Fræðsla"], ["settings", "Stillingar"]] as const).map(([k, label]) => (
                     <button key={k} type="button" onClick={() => setView({ home: k })}
                       aria-current={view.home === k ? "page" : undefined}
                       className={`relative ${hcTabs.tab(view.home === k)}`}>
@@ -418,7 +436,17 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                     Skjólstæðingar all moved inside Home, each with one
                     home; Fræðsla stays its own because it is a library you
                     consult, not part of a day's work. */}
-                {view.home !== "teaching" && (
+                {view.home === "settings" && (
+                  <WsSettings
+                    me={me}
+                    mode={mode}
+                    onPin={() => setShowPin(true)}
+                    onCalendar={() => setShowCal(true)}
+                    onLogout={() => void logout()}
+                  />
+                )}
+
+                {view.home !== "teaching" && view.home !== "settings" && (
                   <Home rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} onRead={reloadUnread} />
                 )}
                 {view.home === "teaching" && <TeachingLibrary api={api} />}
@@ -647,7 +675,7 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
   }, [api, id, load, onChanged]);
 
   const backBtn = (
-    <button type="button" onClick={onBack} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+    <button type="button" onClick={onBack} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-hc-hairline bg-white py-1.5 pl-1.5 pr-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100"><ArrowLeft className="h-4 w-4" /></span> Til baka
     </button>
   );
@@ -919,6 +947,15 @@ function PatientView({ id, compose, me, onBack, onChanged }: {
                   mælingar" wrapped two sections that name themselves, so it
                   was a third box saying nothing the contents did not. */}
               <CoachBookings api={api} journeyId={j.id} />
+
+              {/* What has moved in the plan since last time.
+                  On Staða rather than the plan tab because this is the
+                  question before an encounter, not while editing: the plan
+                  tab shows what the plan IS, this shows what changed and
+                  who changed it. A participant who quietly dropped two
+                  actions is the subject of the next conversation, and
+                  nothing surfaced that before. */}
+              {j.plan_published_at && <PlanChanges api={api} journeyId={j.id} />}
             </div>
 
             <section className="flex min-h-0 flex-col rounded-2xl border border-hc-hairline bg-white p-4 shadow-hc-card">
@@ -1337,7 +1374,7 @@ function Adherence({ d }: { d: Detail }) {
   const titleOf = (uid: string) => d.plan?.modules?.find((m) => m.uid === uid)?.title ?? "aðgerð";
   const tone = status === "on-track" ? "bg-emerald-50 text-emerald-900 ring-emerald-200"
     : status === "needs-nudge" ? "bg-amber-50 text-amber-900 ring-amber-200"
-    : "bg-slate-50 text-slate-700 ring-slate-200";
+    : "bg-slate-50 text-slate-700 ring-hc-hairline";
   return (
     <section className={`flex flex-wrap items-center gap-4 rounded-2xl px-4 py-3 ring-1 ${tone}`}>
       <div>
@@ -1394,7 +1431,7 @@ function seedFromNotes(n: InterviewNotes | null): { summary?: string; goals?: Pl
 
 function Card({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <section className="rounded-2xl border border-hc-hairline bg-white p-5">
       <h3 className="mb-3 flex items-center gap-2 font-bold text-slate-900"><span className="text-emerald-600">{icon}</span>{title}</h3>
       {children}
     </section>
@@ -1490,11 +1527,11 @@ function Messages({ d, startOpen, reload }: { d: Detail; startOpen: boolean; rel
               </div>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Rás">
                 <button type="button" aria-pressed={sms} disabled={!d.patient.phone} onClick={() => setSms((v) => !v)}
-                  className={`${btn} min-h-9 ${sms ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>
+                  className={`${btn} min-h-9 ${sms ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
                   <Phone className="h-4 w-4" /> SMS {sms && "✓"}
                 </button>
                 <button type="button" aria-pressed={email} disabled={!d.patient.email} onClick={() => setEmail((v) => !v)}
-                  className={`${btn} min-h-9 ${email ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>
+                  className={`${btn} min-h-9 ${email ? "bg-emerald-600 text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
                   <Mail className="h-4 w-4" /> Tölvupóstur {email && "✓"}
                 </button>
               </div>
@@ -1596,7 +1633,7 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
             <div className="flex gap-1" role="radiogroup" aria-label="Form">
               {([["in_person", "Á staðnum"], ["video", "Myndsímtal"]] as const).map(([k, l]) => (
                 <button key={k} type="button" role="radio" aria-checked={m === k} onClick={() => setM(k)}
-                  className={`${btn} min-h-9 ${m === k ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>{l}</button>
+                  className={`${btn} min-h-9 ${m === k ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>{l}</button>
               ))}
             </div>
           )}
@@ -1747,7 +1784,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
           {STEPS.map((s, i) => (
             <li key={s}>
               <button type="button" onClick={() => setStep(i)} aria-current={step === i ? "step" : undefined}
-                className={`flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${step === i ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"}`}>
+                className={`flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${step === i ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline hover:bg-slate-50"}`}>
                 <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${step === i ? "bg-white text-slate-900" : i < step ? "bg-emerald-500 text-white" : "bg-slate-100"}`}>
                   {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
                 </span>
@@ -1760,14 +1797,14 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
 
       <div className="min-w-0 space-y-4">
         {step === 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <section className="rounded-2xl border border-hc-hairline bg-white p-5">
             <h3 className="text-lg font-bold text-slate-900">Undirbúningur</h3>
             <p className="mb-4 text-sm text-slate-500">Um 10 mínútur fyrir viðtalið.</p>
             <ul className="space-y-2">
               {prep.map((p, i) => (
                 <li key={i}>
                   <button type="button" role="checkbox" aria-checked={checked[i]} onClick={() => setChecked(checked.map((c, k) => (k === i ? !c : c)))}
-                    className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition ${checked[i] ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-slate-200 hover:bg-slate-50"}`}>
+                    className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left text-sm transition ${checked[i] ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-hc-hairline hover:bg-slate-50"}`}>
                     <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${checked[i] ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300"}`}>{checked[i] && <Check className="h-3.5 w-3.5" />}</span>
                     {p}
                   </button>
@@ -1783,7 +1820,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
         )}
 
         {step === 1 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <section className="rounded-2xl border border-hc-hairline bg-white p-5">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Samtal</h3>
@@ -1795,11 +1832,11 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
             </div>
             <div className="space-y-4">
               {TOPICS.map((t) => (
-                <div key={t.key} className="rounded-xl border border-slate-200 p-3" style={{ borderLeftWidth: 4, borderLeftColor: t.color }}>
+                <div key={t.key} className="rounded-xl border border-hc-hairline p-3" style={{ borderLeftWidth: 4, borderLeftColor: t.color }}>
                   <label htmlFor={`note-${t.key}`} className="font-semibold text-slate-900">{t.title}</label>
                   <p className="mt-0.5 text-xs text-slate-500">{((isFollowup ? FOLLOWUP_PROMPTS[t.key] : null) ?? t.prompts).join(" · ")}</p>
                   <textarea id={`note-${t.key}`} value={notes[t.key] ?? ""} onChange={(e) => setNote_(t.key, e.target.value)} rows={3}
-                    className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" />
+                    className="mt-2 w-full rounded-lg border border-hc-control px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" />
                 </div>
               ))}
             </div>
@@ -1811,7 +1848,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
         )}
 
         {step === 2 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <section className="rounded-2xl border border-hc-hairline bg-white p-5">
             <h3 className="text-lg font-bold text-slate-900">Mat</h3>
             <p className="mb-4 text-sm text-slate-500">Er eitthvað í niðurstöðum eða samtalinu sem gæti kallað á læknismeðferð?</p>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1834,7 +1871,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
         )}
 
         {step === 3 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <section className="rounded-2xl border border-hc-hairline bg-white p-5">
             <h3 className="text-lg font-bold text-slate-900">Aðgerðaáætlun</h3>
             <p className="mt-1 text-sm text-slate-500">Veldu sniðmát sem passar, dragðu inn 2–4 aðgerðir á stoð í mesta lagi og skrifaðu persónulegar athugasemdir. Punktar úr samtalinu fylgja sem samantekt.</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -1868,10 +1905,10 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
   const [when, setWhen] = useState(j.followup_booked_for ? toLocalInput(new Date(j.followup_booked_for)) : suggested);
   const interviewDone = !!j.interview_done_at;
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <section className="rounded-2xl border border-hc-hairline bg-white p-5">
       <h3 className="text-lg font-bold text-slate-900">Ljúka</h3>
       <ol className="mt-4 space-y-3">
-        <li className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-3">
+        <li className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-3">
           <span className={`flex h-7 w-7 items-center justify-center rounded-full ${(isFollowup ? j.followup_done_at : interviewDone) ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"}`}>
             {(isFollowup ? j.followup_done_at : interviewDone) ? <Check className="h-4 w-4" /> : 1}
           </span>
@@ -1880,13 +1917,13 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
             <button type="button" disabled={busy} onClick={() => run({ event: isFollowup ? "followup_done" : "interview_done" }, "Skráð.")} className={btnPrimary}>Merkja lokið</button>
           )}
         </li>
-        <li className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 p-3">
+        <li className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-3">
           <span className={`flex h-7 w-7 items-center justify-center rounded-full ${planPublished ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"}`}>{planPublished ? <Check className="h-4 w-4" /> : 2}</span>
           <span className="flex-1 text-sm font-semibold text-slate-800">Aðgerðaáætlun birt skjólstæðingi</span>
           {!planPublished && <span className="text-xs text-amber-700">Ekki birt enn</span>}
         </li>
         {!isFollowup && (
-          <li className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 p-3">
+          <li className="flex flex-wrap items-end gap-3 rounded-xl border border-hc-hairline p-3">
             <span className={`flex h-7 w-7 items-center justify-center rounded-full ${j.followup_booked_for ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"}`}>{j.followup_booked_for ? <Check className="h-4 w-4" /> : 3}</span>
             <label className="flex-1 text-sm font-semibold text-slate-800">Bóka eftirfylgd eftir 3 mánuði <span className="font-normal text-slate-500">(ráðlögð, valfrjáls)</span>
               <input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className="mt-1 block rounded-lg border border-slate-300 px-2 py-1.5 text-sm font-normal" />
@@ -1918,7 +1955,7 @@ function actionText(a: string) {
 
 function History({ audit }: { audit: Detail["audit"] }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <section className="rounded-2xl border border-hc-hairline bg-white p-5">
       <ol className="relative space-y-4 border-l-2 border-slate-100 pl-5">
         {audit.map((a, i) => (
           <li key={i} className="relative">

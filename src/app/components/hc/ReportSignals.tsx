@@ -41,7 +41,7 @@ export default function ReportSignals({ report, signals, onOpen, max = 8 }: {
   const shown = lit.slice(0, max);
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-3">
+    <section className="rounded-2xl border border-hc-hairline bg-white p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <AlertTriangle className="h-4 w-4 text-amber-600" aria-hidden />
         <p className="text-sm font-bold text-slate-900">Það sem er utan marka</p>

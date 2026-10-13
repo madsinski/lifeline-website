@@ -85,7 +85,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
 
   const chip = (on: boolean, extra = "") =>
     `rounded-full px-2.5 py-1.5 text-xs font-bold transition ${
-      on ? `bg-lime-700 text-white ${extra}` : "bg-white text-slate-500 ring-1 ring-slate-200"}`;
+      on ? `bg-lime-700 text-white ${extra}` : "bg-white text-slate-500 ring-1 ring-hc-hairline"}`;
 
   return (
     <Sheet title="Innkaupalisti" onClose={onClose} canvas>
@@ -96,7 +96,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             onClick={() => setDays(allWeek ? new Set([todayIdx]) : new Set([0, 1, 2, 3, 4, 5, 6]))}
             aria-pressed={allWeek}
             className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              allWeek ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>
+              allWeek ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
             Vikan öll
           </button>
           {WEEKDAYS_SHORT.map((lbl, i) => (
@@ -117,7 +117,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             onClick={() => setCats(allCats ? new Set<SlotCat>(["breakfast"]) : new Set(SLOT_CATS))}
             aria-pressed={allCats}
             className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              allCats ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>
+              allCats ? "bg-hc-ink text-white" : "bg-white text-slate-600 ring-1 ring-hc-hairline"}`}>
             Allar
           </button>
           {SLOT_CATS.map((c) => (
@@ -129,7 +129,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
         </div>
 
         {inScope.length === 0 ? (
-          <p className="mt-3 rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-slate-200">
+          <p className="mt-3 rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-hc-hairline">
             Engin máltíð valin. Veldu dag og máltíð til að sjá hvað þarf að kaupa.
           </p>
         ) : (
@@ -138,7 +138,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
                 trips do not need it, but when you need it nothing else will
                 do. */}
             <button type="button" onClick={() => setMealsOpen((v) => !v)} aria-expanded={mealsOpen}
-              className="mt-3 flex w-full items-center gap-2 rounded-2xl bg-white p-3 text-left ring-1 ring-slate-200">
+              className="mt-3 flex w-full items-center gap-2 rounded-2xl bg-white p-3 text-left ring-1 ring-hc-hairline">
               <span className="min-w-0 flex-1 text-sm font-semibold text-slate-900">
                 {picked.length} af {inScope.length} máltíðum
               </span>
@@ -147,7 +147,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             </button>
 
             {mealsOpen && (
-              <ul className="mt-1.5 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
+              <ul className="mt-1.5 overflow-hidden rounded-2xl bg-white ring-1 ring-hc-hairline">
                 {inScope.map((p) => {
                   const key = plannedKey(p);
                   const on = !dropped.has(key);
@@ -187,11 +187,11 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
             </div>
 
             {lines.length === 0 ? (
-              <p className="mt-2 rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-slate-200">
+              <p className="mt-2 rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-hc-hairline">
                 Engin máltíð valin af þeim sem eru í boði.
               </p>
             ) : (
-              <ul className="mt-2 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
+              <ul className="mt-2 overflow-hidden rounded-2xl bg-white ring-1 ring-hc-hairline">
                 {lines.map((l) => {
                   const key = `${l.text}|${l.unit ?? ""}`;
                   const on = ticked.has(key);

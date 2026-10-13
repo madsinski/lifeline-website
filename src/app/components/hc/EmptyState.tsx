@@ -38,7 +38,7 @@ export default function EmptyState({ variant = "empty", title, body, action, com
 
   if (quiet) {
     return (
-      <p className="flex items-center gap-2 rounded-hc-element bg-hc-surface px-3 py-2.5 text-sm text-hc-ink-2 ring-1 ring-slate-200">
+      <p className="flex items-center gap-2 rounded-hc-element bg-hc-surface px-3 py-2.5 text-sm text-hc-ink-2 ring-1 ring-hc-hairline">
         <Icon className={`h-4 w-4 shrink-0 ${icon}`} strokeWidth={2} aria-hidden />
         <span className="font-semibold text-hc-ink">{title}</span>
         {body && <span className="min-w-0 truncate">{body}</span>}
@@ -50,7 +50,7 @@ export default function EmptyState({ variant = "empty", title, body, action, com
   }
 
   return (
-    <div className={`flex flex-col items-center text-center ${compact ? "rounded-hc-card border border-dashed border-slate-300 bg-hc-surface p-6" : "rounded-hc-hero bg-hc-surface p-8 shadow-hc-card ring-1 ring-slate-200"}`}>
+    <div className={`flex flex-col items-center text-center ${compact ? "rounded-hc-card border border-dashed border-slate-300 bg-hc-surface p-6" : "rounded-hc-hero bg-hc-surface p-8 shadow-hc-card ring-1 ring-hc-hairline"}`}>
       <span className={`flex items-center justify-center rounded-full ${disc} ${compact ? "h-11 w-11" : "h-14 w-14"}`} aria-hidden>
         <Icon className={`${compact ? "h-5 w-5" : "h-7 w-7"} ${icon}`} strokeWidth={2} />
       </span>

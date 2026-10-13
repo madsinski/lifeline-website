@@ -37,7 +37,7 @@ export function ProgramList({ rows, current, onPick, tone }: { rows: ProgramRow[
         return (
           <li key={r.key}>
             <button type="button" onClick={() => onPick(r.key)} aria-pressed={on}
-              className={`relative h-full w-full rounded-2xl bg-white p-3 text-left ring-1 transition hover:ring-slate-400 ${on ? `ring-2 ${ring}` : "ring-slate-200"}`}>
+              className={`relative h-full w-full rounded-2xl bg-white p-3 text-left ring-1 transition hover:ring-slate-400 ${on ? `ring-2 ${ring}` : "ring-hc-hairline"}`}>
               {on && <span className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-white ${badge}`}><Check className="h-4 w-4" /></span>}
               <span className="block pr-7 font-semibold text-slate-900">{r.name}</span>
               {r.goal && <span className="mt-0.5 block text-sm text-slate-600">{r.goal}</span>}

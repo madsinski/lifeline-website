@@ -192,7 +192,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
               Meira
             </button>
             {more && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200">
+              <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-hc-hairline">
                 {rest.map((i) => (
                   <Link key={i.key} href={i.href} onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
                     className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-700 hover:bg-slate-50"}`}>
@@ -229,7 +229,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
          */
         const bar = (
           <nav aria-label="Heilsuferðin" hidden={keyboard.open}
-            className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur sm:hidden print:hidden"
+            className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hc-hairline bg-white/95 backdrop-blur sm:hidden print:hidden"
             /* Height from the shared token, so a sticky dock can offset
                itself by exactly this and stay correct if it changes. */
             style={{ height: "var(--hc-nav-h)", paddingBottom: "env(safe-area-inset-bottom)", boxSizing: "content-box" }}>
@@ -245,7 +245,7 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
                   Meira
                 </button>
                 {more && (
-                  <div className="absolute bottom-full right-1 mb-2 w-48 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200">
+                  <div className="absolute bottom-full right-1 mb-2 w-48 overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-hc-hairline">
                     {spill.map((i) => (
                       <Link key={i.key} href={i.href} onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
                         className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-emerald-50 text-hc-brand-dark" : "text-slate-700 hover:bg-slate-50"}`}>

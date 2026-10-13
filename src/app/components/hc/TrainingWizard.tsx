@@ -70,7 +70,7 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
   const last = step === STEPS.length - 1;
 
   const card = (on: boolean) =>
-    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-emerald-50 ring-2 ring-hc-brand" : "bg-white ring-slate-200 hover:ring-slate-300"}`;
+    `w-full rounded-2xl p-4 text-left transition ring-1 ${on ? "bg-emerald-50 ring-2 ring-hc-brand" : "bg-white ring-hc-hairline hover:ring-slate-300"}`;
 
   return (
     <section className={`${hcCard.base} p-5 sm:p-6`} aria-label="Uppsetning æfingaáætlunar">
@@ -281,7 +281,7 @@ function ScoreBars({ s, planStart }: { s: TrainingSettings; planStart: string | 
   const { score } = previewWeek(s, planStart);
   if (s.activities.length === 0) return null;
   return (
-    <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+    <div className="rounded-2xl bg-white p-4 ring-1 ring-hc-hairline">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-semibold text-hc-ink">Vikan þín í dag</p>
         <p className="text-sm text-hc-ink-2">{score.overall}/10 · {score.summary}</p>

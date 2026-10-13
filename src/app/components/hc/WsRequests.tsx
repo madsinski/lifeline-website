@@ -62,9 +62,22 @@ export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journe
   return (
     <section>
       <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-slate-500">
-        Beiðnir <span className="rounded-full bg-hc-ink px-2 py-0.5 text-[11px] text-white">{rows.length}</span>
+        {/* Red and pulsing, like the tab badge, because these are people
+            waiting on a reply — the same thing an unread message is. A
+            count in neutral ink said "there are some" where this has to say
+            "somebody is waiting". Brand ink stays for counts of ongoing work
+            like Bíður þín, which is not new and should not flash.
+            The pulse stops after six iterations (animate-hc-ping) and
+            motion-reduce removes it entirely. */}
+        Beiðnir
+        <span className="relative grid h-5 min-w-5 place-items-center">
+          <span className="absolute inset-0 animate-hc-ping rounded-full bg-red-500/40 motion-reduce:hidden" aria-hidden />
+          <span className="relative grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+            {rows.length}
+          </span>
+        </span>
       </h2>
-      <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-hc-hairline bg-white">
         {rows.map((r) => (
           <li key={r.id} className="px-4 py-3">
             <div className="flex flex-wrap items-center gap-2">

@@ -59,9 +59,9 @@ export default function DayExampleEditor({ value, onChange, api }: {
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap gap-1.5">
               <input value={d.meal} onChange={(e) => set(i, { meal: e.target.value })} placeholder="Máltíð" aria-label="Máltíð"
-                className="w-32 rounded-lg border border-slate-200 px-2 py-1 text-sm font-semibold" />
+                className="w-32 rounded-lg border border-hc-control px-2 py-1 text-sm font-semibold" />
               <input value={d.example} onChange={(e) => set(i, { example: e.target.value, meal_id: null })} placeholder="Dæmi" aria-label="Dæmi"
-                className="min-w-[140px] flex-1 rounded-lg border border-slate-200 px-2 py-1 text-sm" />
+                className="min-w-[140px] flex-1 rounded-lg border border-hc-control px-2 py-1 text-sm" />
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
               {d.meal_id

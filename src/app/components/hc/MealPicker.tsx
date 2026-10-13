@@ -60,11 +60,11 @@ export default function MealPicker({ api, category, onPick, onClose }: {
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Leita (enska: chicken, oats…)"
-              aria-label="Leita í máltíðasafni" className="min-w-[180px] flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-            <select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Flokkur" className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+              aria-label="Leita í máltíðasafni" className="min-w-[180px] flex-1 rounded-xl border border-hc-control px-3 py-2 text-sm" />
+            <select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Flokkur" className="rounded-xl border border-hc-control px-3 py-2 text-sm">
               {CATS.map((c) => <option key={c} value={c}>{c ? CATEGORY_IS[c] : "Allir flokkar"}</option>)}
             </select>
-            <select value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Merki" className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+            <select value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Merki" className="rounded-xl border border-hc-control px-3 py-2 text-sm">
               {TAGS.map((t) => <option key={t} value={t}>{t || "Öll merki"}</option>)}
             </select>
           </div>
@@ -77,7 +77,7 @@ export default function MealPicker({ api, category, onPick, onClose }: {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {rows?.map((m) => (
               <button key={m.id} type="button" onClick={() => { onPick(m); onClose(); }}
-                className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-left hover:border-lime-400">
+                className="flex flex-col overflow-hidden rounded-2xl border border-hc-hairline bg-white text-left hover:border-lime-400">
                 <span className="block aspect-[4/3] bg-slate-100">
                   {m.illustration_url
                     // eslint-disable-next-line @next/next/no-img-element
