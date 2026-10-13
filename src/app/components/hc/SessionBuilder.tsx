@@ -17,7 +17,7 @@
 // genuinely want that, and a rule that argues with them would be wrong.
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Check, Dumbbell, Plus, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Dumbbell, Plus, RotateCcw, X } from "lucide-react";
 import {
   GROUP_IS, slotAdvice, slotKeysFor, STRENGTH_SLOTS, STRENGTH_FOCUS_IS,
   type StrengthFocus, type TrainingSettings,
@@ -77,8 +77,7 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
           {/* What is missing, when something is. Advisory, and it names the
               gap rather than just flagging one. */}
           {advice && (
-            <p className="flex items-start gap-2 bg-hc-warn-surface px-4 py-2.5 text-sm font-medium text-hc-warn-ink">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />{advice}
+            <p className="flex items-start gap-2 bg-hc-warn-surface px-4 py-2.5 text-sm font-medium text-hc-warn-ink"> {advice}
             </p>
           )}
 

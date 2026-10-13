@@ -12,7 +12,7 @@
 // matters more than the one who said "takk" an hour ago.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Lightbulb, Send } from "lucide-react";
 import { hcBtn, hcCard } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -179,7 +179,7 @@ export default function CoachInbox({ api, onRead }: {
                   : "bg-hc-surface text-hc-ink ring-1 ring-hc-hairline"}`}>
                 {m.author_kind === "coach" && m.author_name && (
                   <p className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide opacity-60">
-                    {m.kind === "nudge" && <Sparkles className="h-3 w-3" aria-hidden />}{m.author_name}
+                    {m.author_name}
                   </p>
                 )}
                 <p className="whitespace-pre-wrap leading-snug">{m.body}</p>
@@ -208,7 +208,7 @@ export default function CoachInbox({ api, onRead }: {
               <button key={i} type="button" disabled={busy}
                 onClick={() => { setNudgesOpen(false); void send(n, true); }}
                 className="rounded-full bg-hc-warn-surface px-3 py-1.5 text-left text-xs font-semibold text-hc-warn-ink ring-1 ring-hc-warn-ink/30 transition hover:bg-amber-100 disabled:opacity-40">
-                <Sparkles className="mr-1 inline h-3 w-3" aria-hidden />{n.slice(0, 38)}…
+                {n.slice(0, 38)}…
               </button>
             ))}
           </div>
@@ -225,7 +225,7 @@ export default function CoachInbox({ api, onRead }: {
             className={`grid h-11 w-11 shrink-0 place-items-center rounded-hc-element border transition ${
               nudgesOpen ? "border-amber-300 bg-hc-warn-surface text-hc-warn-ink"
                          : "border-hc-control bg-hc-surface text-hc-ink-2 hover:bg-hc-warn-surface hover:text-hc-warn-ink"}`}>
-            <Sparkles className="h-4 w-4" aria-hidden />
+            <Lightbulb className="h-4 w-4" aria-hidden />
           </button>
           <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(draft); } }}

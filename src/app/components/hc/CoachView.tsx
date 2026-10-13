@@ -22,7 +22,7 @@ import { useKeyboard } from "@/lib/hc/use-keyboard";
 import {
   Activity, CalendarClock, CalendarPlus, Check, ChevronDown, ChevronRight,
   Dumbbell, Gauge, HeartPulse, MapPin, MessageCircle, MessageSquarePlus,
-  Send, Sparkles, UserRound, Video, X,
+  Send, UserRound, Video, X,
 } from "lucide-react";
 import { hcBtn, hcCard } from "./ui";
 import Sheet from "./Sheet";
@@ -448,7 +448,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
                     : "bg-hc-surface text-hc-ink ring-1 ring-hc-hairline"}`}>
                 {m.author_kind === "coach" && (
                   <p className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide opacity-60">
-                    {m.kind === "nudge" && <Sparkles className="h-3 w-3" aria-hidden />}
+                    
                     {m.author_name || c?.name || "Þjálfarinn"}
                   </p>
                 )}

@@ -8,7 +8,7 @@
 // plan and then drags the actions around as usual.
 
 import { useState } from "react";
-import { ArrowRight, ChevronDown, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronDown, Loader2 } from "lucide-react";
 import { PILLAR_META, type Pillar } from "@/lib/hc/types";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -101,15 +101,19 @@ export default function AiProposalPanel({ api, journeyId, ready, onApply }: {
 
   const chosen = proposal ? proposal.actions.filter((_, i) => picked[i]) : [];
 
+  /* The tint was emerald-50 at 40%, which lands on #F7FEFB — a separation
+       of 1.023 from the white card under it, so there was no card, just a
+       heading floating on the page. Full strength and a ring that is
+       actually a colour: the fill says what kind of panel it is, the ring
+     says where it ends. */
   return (
-    <section className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
+    <section className="rounded-2xl bg-hc-ok-surface p-4 ring-1 ring-hc-ok-ink/25">
       <div className="flex flex-wrap items-center gap-2">
-        <Sparkles className="h-5 w-5 text-hc-ok-ink" />
         <h3 className="font-bold text-hc-ink">Tillaga út frá niðurstöðum</h3>
         <span className="flex-1" />
         <button type="button" onClick={run} disabled={busy}
           className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-emerald-700 px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           {busy ? "Les niðurstöður…" : proposal ? "Greina aftur" : "Greina niðurstöður"}
         </button>
       </div>

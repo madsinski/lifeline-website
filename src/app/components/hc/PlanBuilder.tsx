@@ -11,7 +11,7 @@
 
 import PillarIcon from "./PillarIcon";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, Loader2, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronDown, Loader2 } from "lucide-react";
 import PlanView from "./PlanView";
 import TrainingControls from "./TrainingControls";
 import { DEFAULT_TRAINING, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
@@ -854,7 +854,7 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" disabled={disabled || busy} onClick={() => setOpen(!open)}
           className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-emerald-700 px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-40">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {busy ? "Set saman…" : "Láta AI setja saman"}
         </button>
         {disabled && <span className="text-xs text-hc-ink-2">Veldu sniðmát fyrst.</span>}
@@ -870,7 +870,7 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
           </label>
           <button type="button" disabled={busy} onClick={run}
             className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-brand-dark px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-40">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Setja saman
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Setja saman
           </button>
         </div>
       )}

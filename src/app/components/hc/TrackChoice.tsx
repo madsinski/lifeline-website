@@ -24,7 +24,7 @@
 // survive it, and the card says so.
 
 import { useState } from "react";
-import { ClipboardCheck, FileHeart, Sparkles, UserRound } from "lucide-react";
+import { ClipboardCheck, FileHeart, Lightbulb, UserRound } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -101,7 +101,7 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
           },
           {
             key: "app" as const,
-            icon: Sparkles,
+            icon: Lightbulb,
             title: "Ég vil nota appið sjálf(ur)",
             body: "Æfingar, næring, svefn og daglegar venjur — ég set prógrammið upp og stilli það sjálf(ur).",
             foot: "Engin kennitala, engar mælingar og enginn þjálfari.",

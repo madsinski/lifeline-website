@@ -13,7 +13,7 @@
 // partial payload, so nothing outside it can be lost.
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpen, ChevronRight, Dumbbell, LayoutGrid, Plus, Sparkles, Trash2, Utensils, X } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, ChevronRight, Dumbbell, LayoutGrid, Plus, Trash2, Utensils, X } from "lucide-react";
 import PillarIcon from "./PillarIcon";
 import { hcBtn, hcCard, hcKicker, hcTabs } from "./ui";
 import { GRADE_IS } from "@/lib/hc/rating";
@@ -419,8 +419,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                   return (
                     <li key={m.key} className={`p-3 ${top ? "bg-emerald-50/60 ring-1 ring-inset ring-hc-brand" : ""}`}>
                       {top && (
-                        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-hc-brand-text">
-                          <Sparkles className="h-3.5 w-3.5" aria-hidden /> Mælum helst með þessu
+                        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-hc-brand-text"> Mælum helst með þessu
                         </p>
                       )}
                       <div className="flex items-start gap-2">
@@ -429,7 +428,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                           {m.frequency && <p className="text-xs text-hc-ink-2">{m.frequency}</p>}
                           <p className="mt-0.5 line-clamp-2 text-xs text-hc-ink-2">{m.summary}</p>
                           <div className="mt-1.5 flex flex-wrap gap-1">
-                            {why && f.targets.length === 0 && <span className="inline-flex items-center gap-1 rounded-full bg-hc-warn-surface px-2 py-0.5 text-[11px] font-semibold text-hc-warn-ink ring-1 ring-hc-warn-ink/30"><Sparkles className="h-3 w-3" aria-hidden />Tillaga · {why}</span>}
+                            {why && f.targets.length === 0 && <span className="inline-flex items-center gap-1 rounded-full bg-hc-warn-surface px-2 py-0.5 text-[11px] font-semibold text-hc-warn-ink ring-1 ring-hc-warn-ink/30"> Tillaga · {why}</span>}
                             {m.evidence_grade && GRADE_IS[m.evidence_grade] && <span title={GRADE_IS[m.evidence_grade].hint} className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${GRADE_IS[m.evidence_grade].className}`}>Rannsóknir {m.evidence_grade}</span>}
                           </div>
                           <FitMeter fit={f} titles={d.marker_titles ?? {}} rank={i + 1} />
