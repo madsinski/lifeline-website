@@ -590,7 +590,15 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
 
           <aside className="min-w-0">
             <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">Skilaboð</h3>
-            <CoachInbox api={api} onRead={onRead} />
+            {/* Capped and scrolling, rather than as tall as the thread.
+                A busy inbox stretched this column well past the two cards
+                beside it, so the page grew a long empty gutter on the left
+                and the roster below was pushed off the screen. 32rem is
+                about the height of Bíður þín and Vikan together, which is
+                what it sits against. */}
+            <div className="max-h-[32rem] overflow-y-auto overscroll-contain rounded-2xl">
+              <CoachInbox api={api} onRead={onRead} />
+            </div>
           </aside>
         </div>
       </section>
@@ -605,7 +613,13 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
             the section about people was one step too many. */}
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="min-w-0">
-            <ClientsView api={api} onOpenClient={(id) => onOpen(id)} />
+            {/* Same cap for the roster: it grows with the practice, and an
+                unbounded list means the section below it moves further away
+                every time somebody joins. The search inside it is the way
+                to reach a specific person; the list is for browsing. */}
+            <div className="max-h-[32rem] overflow-y-auto overscroll-contain rounded-2xl">
+              <ClientsView api={api} onOpenClient={(id) => onOpen(id)} />
+            </div>
           </div>
           <aside className="min-w-0">
             <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} narrow expanded />
