@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -93,6 +93,23 @@ function AccountLoginContent() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+
+  /** Put the message where the person is looking.
+   *
+   * Both steps of signup swap a tall block for a shorter one and the
+   * browser keeps the scroll offset, which lands past the end of the new
+   * content — at the footer. The error and the confirmation both render at
+   * the top of the card, so whatever just happened was announced off
+   * screen. A failed signup then looks identical to a silent one, which is
+   * exactly how this was reported: "no email", with no account created and
+   * an error nobody saw. */
+  const showMessage = useCallback(() => {
+    setTimeout(() => {
+      const el = document.getElementById("account-card") ?? document.querySelector("form");
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  }, []);
+
   const [researchOptOut, setResearchOptOut] = useState(false);
   const [marketingOptOut, setMarketingOptOut] = useState(false);
   const [error, setError] = useState("");
@@ -193,16 +210,19 @@ function AccountLoginContent() {
       if (signupStage === "form") {
         if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
           setError("Fylltu inn nafn, netfang og lykilorð.");
+          showMessage();
           setLoading(false);
           return;
         }
         if (password.length < 12) {
           setError("Lykilorðið þarf að vera minnst 12 stafir.");
+          showMessage();
           setLoading(false);
           return;
         }
         if (password !== confirmPassword) {
           setError("Lykilorðin eru ekki eins.");
+          showMessage();
           setLoading(false);
           return;
         }
@@ -257,6 +277,7 @@ function AccountLoginContent() {
       });
       if (signUpError) {
         setError(signUpError.message);
+        showMessage();
         setLoading(false);
         return;
       }
@@ -300,6 +321,7 @@ function AccountLoginContent() {
       setInfo(
         "Aðgangurinn er stofnaður. Staðfestu netfangið með hlekknum sem við sendum þér og skráðu þig svo inn."
       );
+      showMessage();
       setMode("login");
       setSignupStage("form");
       setPassword("");
@@ -355,7 +377,9 @@ function AccountLoginContent() {
         <LoginAudienceTabs active="personal" />
 
         {/* Card */}
-        <div className="relative overflow-hidden bg-white rounded-2xl shadow-lg">
+        {/* The scroll target for showMessage(): the top of the card, where
+            both the error and the confirmation render. */}
+        <div id="account-card" className="relative scroll-mt-4 overflow-hidden bg-white rounded-2xl shadow-lg">
           <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
 
           {/* Inner tabs — match /business/login styling */}
