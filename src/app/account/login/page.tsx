@@ -442,7 +442,30 @@ function AccountLoginContent() {
               onConfirm={handleSubmit}
             />
           ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form
+            onSubmit={handleSubmit}
+            /* Take the person to the field the browser is complaining about.
+             *
+             * The password inputs carry minLength={12}, so a short password
+             * makes the form invalid and the browser refuses to submit —
+             * handleSubmit never runs, which is why every message this page
+             * can show was irrelevant. The browser does say something, in a
+             * bubble pinned to the FIELD, which on a phone is several
+             * screens above the button that was just pressed. From there it
+             * looks like the button does nothing.
+             *
+             * onInvalid fires once per invalid field; only the first one
+             * matters, and bringing it into view is what the browser cannot
+             * do for us. */
+            onInvalid={(e) => {
+              const el = e.target as HTMLInputElement;
+              if (el.dataset.scrolled) return;
+              el.dataset.scrolled = "1";
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+              setTimeout(() => { el.focus({ preventScroll: true }); delete el.dataset.scrolled; }, 400);
+            }}
+            className="space-y-5"
+          >
             {mode === "signup" && (
               <>
                 <div className="flex gap-3">
@@ -541,6 +564,9 @@ function AccountLoginContent() {
                     : "Lykilorðið þitt"
                 }
                 minLength={mode === "signup" ? 12 : undefined}
+                onInvalid={(e) => e.currentTarget.setCustomValidity(
+                  mode === "signup" ? "Lykilorðið þarf að vera minnst 12 stafir." : "")}
+                onInput={(e) => e.currentTarget.setCustomValidity("")}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
               />
             </div>
@@ -562,6 +588,8 @@ function AccountLoginContent() {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                   placeholder="Sláðu lykilorðið inn aftur"
                   minLength={12}
+                  onInvalid={(e) => e.currentTarget.setCustomValidity("Lykilorðið þarf að vera minnst 12 stafir.")}
+                  onInput={(e) => e.currentTarget.setCustomValidity("")}
                   autoComplete="new-password"
                 />
               </div>
