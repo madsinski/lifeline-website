@@ -29,9 +29,11 @@ const STAGE_IS: Record<string, string> = {
   interview: "Viðtal", plan: "Áætlun", action: "Í gangi", done: "Lokið",
 };
 
-export default function ClientsView({ api, onOpenClient }: {
+export default function ClientsView({ api, onOpenClient, capped = false }: {
   api: Api;
   onOpenClient: (journeyId: string) => void;
+  /** Cap the people list and scroll it, leaving the controls fixed. */
+  capped?: boolean;
 }) {
   const [tab, setTab] = useState<"all" | "groups">("all");
   const [q, setQ] = useState("");
@@ -92,8 +94,13 @@ export default function ClientsView({ api, onOpenClient }: {
 
       {rows === null && <p className="flex items-center gap-2 text-sm text-hc-ink-2"><Loader2 className="h-4 w-4 animate-spin" /> Hleð…</p>}
 
+      {/* Only the people scroll. Allir/Hópar, Nýr hópur and the search stay
+          above it — the search is how you reach somebody in a list too long
+          to read, so scrolling it out of reach defeats the cap it was meant
+          to make bearable. */}
       {tab === "all" && rows !== null && (
-        <ul className="divide-y divide-hc-hairline overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface">
+        <ul className={`divide-y divide-hc-hairline rounded-2xl border border-hc-hairline bg-hc-surface ${
+          capped ? "max-h-80 overflow-y-auto overscroll-contain" : "overflow-hidden"}`}>
           {people.map((r) => (
             <li key={r.id}>
               <button type="button" onClick={() => onOpenClient(r.id)}

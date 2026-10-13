@@ -46,8 +46,10 @@ const NUDGES = [
   "Þú hefur ekki merkt við í nokkra daga. Viltu að við léttum áætlunina aðeins?",
 ];
 
-export default function CoachInbox({ api, onRead }: {
+export default function CoachInbox({ api, onRead, capped = false }: {
   api: Api;
+  /** Cap the thread list and scroll it, for the two-column home. */
+  capped?: boolean;
   /** Tell the page the badge is stale, so it clears without a poll wait. */
   onRead?: () => void;
 }) {
@@ -248,8 +250,12 @@ export default function CoachInbox({ api, onRead }: {
       </p>
     );
   }
+  /* overflow-y-auto, not overflow-hidden, when capped: the two cannot both
+     apply, and a hidden overflow on a capped list simply truncates it with
+     no way to reach the rest. */
   return (
-    <ul className={`${hcCard.base} divide-y divide-hc-hairline overflow-hidden`}>
+    <ul className={`${hcCard.base} divide-y divide-hc-hairline ${
+      capped ? "max-h-[28rem] overflow-y-auto overscroll-contain" : "overflow-hidden"}`}>
       {threads.map((t) => (
         <li key={t.journeyId}>
           <button type="button" onClick={() => { setOpen(t); void loadThread(t); }}

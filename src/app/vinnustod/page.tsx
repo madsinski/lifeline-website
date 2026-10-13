@@ -33,6 +33,7 @@ import ClientsView from "@/app/components/hc/ClientsView";
 import WeekAhead from "@/app/components/hc/WeekAhead";
 import CoachInbox from "@/app/components/hc/CoachInbox";
 import TeachingLibrary from "@/app/components/hc/TeachingLibrary";
+import ProgramsLibrary from "@/app/components/hc/ProgramsLibrary";
 import { hcBtn, hcPage, hcTabs } from "@/app/components/hc/ui";
 import KnowledgeSearch, { useKnowledgeHotkey } from "@/app/components/hc/KnowledgeSearch";
 import { cookieApi, useWsApi, type WsApi } from "@/app/components/hc/ws-api";
@@ -412,7 +413,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                       is waiting on an answer, and the only reason the
                       participants' Þjálfari page is a conversation rather
                       than an outbox. */}
-                  {([["today", "Yfirlit"], ["teaching", "Fræðsla"], ["settings", "Stillingar"]] as const).map(([k, label]) => (
+                  {([["today", "Yfirlit"], ["teaching", "Prógrömm"], ["settings", "Stillingar"]] as const).map(([k, label]) => (
                     <button key={k} type="button" onClick={() => setView({ home: k })}
                       aria-current={view.home === k ? "page" : undefined}
                       className={`relative ${hcTabs.tab(view.home === k)}`}>
@@ -450,7 +451,29 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                 {view.home !== "teaching" && view.home !== "settings" && (
                   <Home rows={rows} me={me} isDoctor={isDoctor} onOpen={open} onChanged={load} onRead={reloadUnread} />
                 )}
-                {view.home === "teaching" && <TeachingLibrary api={api} />}
+                {view.home === "teaching" && (
+                  <div className="space-y-6">
+                    {/* Programmes first, teaching second.
+                        The tab was "Fræðsla" and held lectures plus a list
+                        of exercises, which made it a reading room — while
+                        the programmes a coach actually assembles lived in
+                        /admin behind a gate a coach may not pass. The
+                        material is still here; it is no longer the whole
+                        point of the tab. */}
+                    <section className="space-y-3">
+                      <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-hc-ink-3">
+                        Prógrömm
+                      </h2>
+                      <ProgramsLibrary api={api} people={rows.map((r) => ({ id: r.id, name: cleanName(r.client_name) }))} />
+                    </section>
+                    <section className="space-y-3">
+                      <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-hc-ink-3">
+                        Fræðsluefni
+                      </h2>
+                      <TeachingLibrary api={api} />
+                    </section>
+                  </div>
+                )}
               </div>
             )}
       </main>
@@ -590,15 +613,10 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
 
           <aside className="min-w-0">
             <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">Skilaboð</h3>
-            {/* Capped and scrolling, rather than as tall as the thread.
-                A busy inbox stretched this column well past the two cards
-                beside it, so the page grew a long empty gutter on the left
-                and the roster below was pushed off the screen. 32rem is
-                about the height of Bíður þín and Vikan together, which is
-                what it sits against. */}
-            <div className="max-h-[32rem] overflow-y-auto overscroll-contain rounded-2xl">
-              <CoachInbox api={api} onRead={onRead} />
-            </div>
+            {/* Capped inside the component, not around it: CoachInbox
+                already scrolls its open thread, so a wrapper that scrolled
+                too put two scrollbars side by side. */}
+            <CoachInbox api={api} onRead={onRead} capped />
           </aside>
         </div>
       </section>
@@ -613,13 +631,10 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
             the section about people was one step too many. */}
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="min-w-0">
-            {/* Same cap for the roster: it grows with the practice, and an
-                unbounded list means the section below it moves further away
-                every time somebody joins. The search inside it is the way
-                to reach a specific person; the list is for browsing. */}
-            <div className="max-h-[32rem] overflow-y-auto overscroll-contain rounded-2xl">
-              <ClientsView api={api} onOpenClient={(id) => onOpen(id)} />
-            </div>
+            {/* The cap lives inside ClientsView, on the list alone: the
+                filters and the search have to stay put, because the search
+                is how you reach somebody in a list too long to read. */}
+            <ClientsView api={api} onOpenClient={(id) => onOpen(id)} capped />
           </div>
           <aside className="min-w-0">
             <ReportIntake api={api} onOpen={(journeyId) => onOpen(journeyId)} narrow expanded />

@@ -17,6 +17,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import PlanView from "@/app/components/hc/PlanView";
 import MyActions from "@/app/components/hc/MyActions";
+import SuggestedProgram from "@/app/components/hc/SuggestedProgram";
 import Paywall from "@/app/components/hc/Paywall";
 import ResultSignals, { type FlaggedValue } from "@/app/components/hc/ResultSignals";
 import ResultsCard, { type HcResult } from "@/app/components/hc/ResultsCard";
@@ -723,6 +724,15 @@ function PlanPageInner() {
                       urgent and everything is there. Swipe it away and it
                       stays away until tomorrow. */}
                   {!soonHidden && <UpcomingSoon items={upcoming} onDismiss={hideSoon} />}
+                  {/* Above the day's actions, because a suggested programme
+                      changes what those actions ARE — answering it after
+                      working through the list would be reading the list
+                      twice. Reloads on accept so the new programme appears
+                      rather than the old one with a confirmation over it. */}
+                  <SuggestedProgram api={api} onAccepted={() => {
+                    cache.invalidate("/api/hc/plan", "/api/hc/my-plan", "/api/hc/actions", "/api/hc/training");
+                    setReloadKey((k) => k + 1);
+                  }} />
                   <MyActions api={api} journeyId={data.journey_id} plan={plan}
                     onEditPillar={(pl) => { setEditPillar(pl); setEditing(true); }} logs={data.logs} prefs={data.prefs}
                     /* One library action appended server side, then the page
