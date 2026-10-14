@@ -83,10 +83,24 @@ const QUESTIONS = {
   age: { title: "Á hvaða aldri ertu?", hint: "Viðmiðin okkar eru aldursbundin.", options: AGES },
 } as const;
 
-export default function OnboardingPlayer({ api, onFinished }: {
+export default function OnboardingPlayer({ api, onFinished, preview }: {
   api: Api;
   /** Called when the flow completes, so the app can reload and show itself. */
   onFinished: () => void;
+  /**
+   * Render an unsaved arrangement instead of the published one.
+   *
+   * The composer had no way to show its own work: you arranged a flow, you
+   * published it, and the only way to see it was to be a client walking it.
+   * With this it renders the draft as it stands — including steps that have
+   * not been saved — so the thing being edited and the thing being looked at
+   * are the same thing.
+   *
+   * Everything that writes is a no-op here. A preview that recorded answers
+   * would mark the admin as having started the flow, and "started: 1" in
+   * their own funnel is a number that means nothing.
+   */
+  preview?: { steps: FlowStep[]; index: number };
 }) {
   const [flow, setFlow] = useState<Flow | null | undefined>(undefined);
   const [i, setI] = useState(0);
@@ -96,6 +110,13 @@ export default function OnboardingPlayer({ api, onFinished }: {
   const [lecture, setLecture] = useState<Lecture | null>(null);
 
   useEffect(() => {
+    if (preview) {
+      const t = setTimeout(() => {
+        setFlow({ slug: "preview", name: "Forskoðun", steps: preview.steps });
+        setI(Math.min(preview.index, Math.max(preview.steps.length - 1, 0)));
+      }, 0);
+      return () => clearTimeout(t);
+    }
     const t = setTimeout(async () => {
       const r = await api("/api/hc/onboarding").catch(() => null);
       const j = r?.ok ? await r.json().catch(() => null) : null;
@@ -109,7 +130,7 @@ export default function OnboardingPlayer({ api, onFinished }: {
       setAnswers(j.answers ?? {});
     }, 0);
     return () => clearTimeout(t);
-  }, [api, onFinished]);
+  }, [api, onFinished, preview]);
 
   const step: FlowStep | undefined = flow?.steps[i];
 
@@ -133,12 +154,14 @@ export default function OnboardingPlayer({ api, onFinished }: {
   }, [api, step?.kind, step?.lectureSlug]);
 
   const post = useCallback(async (payload: Record<string, unknown>) => {
+    /* The preview answers locally and tells the server nothing. */
+    if (preview) return { ok: true, stepIndex: i, done: false };
     const r = await api("/api/hc/onboarding", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }).catch(() => null);
     return r?.ok ? await r.json().catch(() => null) : null;
-  }, [api]);
+  }, [api, preview, i]);
 
   const advance = useCallback(async () => {
     if (!flow) return;

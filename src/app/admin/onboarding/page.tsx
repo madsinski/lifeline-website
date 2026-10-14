@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useStaffGuard } from "@/lib/useStaffGuard";
 import { adminApi, adminJson } from "../hc-api";
+import OnboardingPlayer from "@/app/components/hc/OnboardingPlayer";
 import {
   DEFAULT_FLOW, MODULES, flowProblems, moduleDef,
   type FlowStep, type ModuleKind,
@@ -56,6 +57,10 @@ export default function OnboardingAdminPage() {
   const [draft, setDraft] = useState<Flow | null>(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  /* Which step the preview is showing. Clicking a step in the list moves
+     it, so the pane follows what is being edited. */
+  const [at, setAt] = useState(0);
+  const [showPreview, setShowPreview] = useState(true);
 
   const load = useCallback(async () => {
     const { ok, data } = await adminJson<{ flows: Flow[]; lectures: Lecture[]; funnel: Record<string, Funnel> }>("/api/admin/hc/onboarding");
@@ -146,6 +151,12 @@ export default function OnboardingAdminPage() {
               </option>
             ))}
           </select>
+          {!showPreview && (
+            <button type="button" onClick={() => setShowPreview(true)}
+              className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700">
+              Forskoða
+            </button>
+          )}
           <button type="button" onClick={createFlow}
             className="min-h-10 rounded-lg bg-[#047857] px-4 text-sm font-semibold text-white hover:bg-emerald-800">
             Nýtt ferli
@@ -159,7 +170,7 @@ export default function OnboardingAdminPage() {
             Veldu ferli eða búðu til nýtt.
           </p>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+          <div className={`grid gap-4 ${showPreview ? "lg:grid-cols-[220px_1fr_390px]" : "lg:grid-cols-[260px_1fr]"}`}>
             {/* ── the pieces ───────────────────────────────────────── */}
             <aside>
               <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Einingar</h2>
@@ -195,9 +206,12 @@ export default function OnboardingAdminPage() {
                     <li key={st.id}
                       className={`rounded-xl bg-white p-3 shadow-sm ring-1 ${bad ? "ring-amber-300" : "ring-transparent"}`}>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                        <button type="button" onClick={() => setAt(i)}
+                          title="Sýna þetta skref í forskoðun"
+                          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold transition ${
+                            at === i ? "bg-[#047857] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
                           {i + 1}
-                        </span>
+                        </button>
                         <span className="min-w-0 flex-1 font-semibold text-slate-900">{def?.label ?? st.kind}</span>
                         <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
                           aria-label="Upp" className="rounded px-2 py-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30">↑</button>
@@ -350,6 +364,49 @@ export default function OnboardingAdminPage() {
                 )}
               </div>
             </section>
+
+            {/* ── Forskoðun ──────────────────────────────────────────
+                The draft as the person will see it, including steps that
+                have not been saved. The composer could arrange a flow and
+                show nothing of it; the only way to see one was to be a
+                client walking it, which is a slow way to notice that a
+                heading is wrong.
+
+                It is the real player, not a mock-up — same component the
+                app runs — with every write turned off. A preview that
+                recorded answers would put the admin in their own funnel. */}
+            {showPreview && (
+              <aside className="lg:sticky lg:top-6 lg:self-start">
+                <div className="mb-2 flex items-center gap-2">
+                  <h2 className="flex-1 text-xs font-bold uppercase tracking-wide text-slate-500">Forskoðun</h2>
+                  <button type="button" onClick={() => setShowPreview(false)}
+                    className="text-xs font-semibold text-slate-500 hover:text-slate-800">Fela</button>
+                </div>
+                {draft.steps.length === 0 ? (
+                  <p className="rounded-2xl bg-white px-4 py-8 text-center text-sm text-slate-600 shadow-sm">
+                    Engin skref til að sýna.
+                  </p>
+                ) : (
+                  /* A phone, because that is what this is walked on. */
+                  <div className="overflow-hidden rounded-[2rem] border-8 border-slate-900 bg-[#ECF0F3] shadow-xl">
+                    <div className="h-[600px] overflow-y-auto">
+                      <OnboardingPlayer
+                        /* Remounted when the arrangement or the focused step
+                           changes, so edits show immediately instead of after
+                           a reload. */
+                        key={`${at}-${draft.steps.map((x) => x.kind + (x.questionKey ?? "") + (x.title ?? "")).join("|")}`}
+                        api={adminApi}
+                        onFinished={() => {}}
+                        preview={{ steps: draft.steps, index: at }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <p className="mt-2 text-xs leading-snug text-slate-500">
+                  Ekkert er vistað héðan. Smelltu á númer skrefs til að sjá það.
+                </p>
+              </aside>
+            )}
           </div>
         )}
       </main>
