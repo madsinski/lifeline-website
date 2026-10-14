@@ -31,6 +31,7 @@ import ClientThread from "@/app/components/hc/ClientThread";
 import CalendarConnect, { type CalendarApi } from "@/app/components/hc/CalendarConnect";
 import ClientsView from "@/app/components/hc/ClientsView";
 import WeekAhead from "@/app/components/hc/WeekAhead";
+import StationSlots from "@/app/components/hc/StationSlots";
 import CoachInbox from "@/app/components/hc/CoachInbox";
 import TeachingLibrary from "@/app/components/hc/TeachingLibrary";
 import ProgramsLibrary from "@/app/components/hc/ProgramsLibrary";
@@ -612,6 +613,10 @@ function Home({ rows, me, isDoctor, onOpen, onChanged, onRead }: {
 
             <WsRequests api={api} onOpen={onOpen} />
             <WeekAhead api={api} onOpenClient={(id) => onOpen(id)} />
+            {/* Beside the week, because the week you are looking at is the
+                week you open times for. The participant's "Pick an available
+                time" reads the same table. */}
+            <StationSlots api={api} />
           </div>
 
           <aside className="min-w-0">
