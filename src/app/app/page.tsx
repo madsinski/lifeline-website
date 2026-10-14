@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import SettingsCard from "@/app/components/hc/SettingsCard";
+import OnboardingPlayer from "@/app/components/hc/OnboardingPlayer";
 import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey, STEP_SHORT } from "@/lib/hc/stages";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
@@ -87,6 +88,9 @@ function Heilsuferd() {
   // Once the plan exists, "Í dag" is home; ?ferd=1 is the journey itself.
   const showJourney = params.get("ferd") === "1";
   const [authed, setAuthed] = useState<boolean | null>(null);
+  /* Starts false; the player flips it true either by finishing the flow or
+     by reporting that there is none. */
+  const [onboarded, setOnboarded] = useState(false);
   const [data, setData] = useState<JourneyData | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<StepKey | null>(null);
@@ -135,6 +139,21 @@ function Heilsuferd() {
   }, [load, router]);
 
   if (authed === false) return <FirstStep stadur={stadur} />;
+
+  /* A published onboarding flow runs before the journey does.
+     OnboardingPlayer renders nothing when there is no flow, when this person
+     has finished it, or when the fetch fails — so the app is never behind a
+     screen that cannot load. That is deliberate: onboarding which can strand
+     somebody is worse than none, and the sequence this replaces could strand
+     you behind an email confirmation with no way past. */
+  if (!onboarded) {
+    return (
+      <Shell>
+        <OnboardingPlayer api={api} onFinished={() => { setOnboarded(true); void load(true); }} />
+      </Shell>
+    );
+  }
+
   if (noJourney) return <StartJourney onStarted={() => void load(true)} />;
 
   if (!data) {
