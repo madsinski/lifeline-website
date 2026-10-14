@@ -435,6 +435,20 @@ function Shell({ children }: { children: React.ReactNode }) {
 function StartJourney({ onStarted }: { onStarted: () => void }) {
   const [busy, setBusy] = useState<"check" | "coach" | null>(null);
 
+  /* Somebody who came through /byrja already answered this. Asking again on
+     arrival would make the question they just answered look like it was not
+     listened to. */
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      const { data } = await supabase.auth.getSession();
+      const chosen = data.session?.user?.user_metadata?.start_track;
+      if (chosen === "check" || chosen === "coach") void begin(chosen);
+    }, 0);
+    return () => clearTimeout(t);
+    // begin is stable for the life of this component.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* Both routes create the journey the same way; they differ in the track
      recorded on it. Done in one step from here so the choice is the first
      thing that happens, not something corrected afterwards. */

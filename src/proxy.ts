@@ -22,6 +22,8 @@ const BYPASS_PREFIXES = [
   "/access",                // the /access/claim + /access/error pages
   "/app",                   // the app surface (own auth guard in its layout)
   "/account/login",         // existing users need to be able to log in
+  "/byrja",                 // the signup flow itself — gating the way IN
+                            //   makes the gate the product
   "/business/login",        //   "          "
   // ── Token-gated / unguessable-URL flows: the URL itself is the
   //    access mechanism (per-recipient secret token, noindex'd, never
