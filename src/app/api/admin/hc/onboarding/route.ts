@@ -42,8 +42,8 @@ function cleanSteps(raw: unknown): FlowStep[] | string {
 }
 
 export async function GET(req: NextRequest) {
-  const gate = await adminGate(req, false);
-  if (gate) return gate;
+  const g = await adminGate(req, false);
+  if (g instanceof NextResponse) return g;
   const [flows, lectures] = await Promise.all([
     supabaseAdmin.from("hc_onboarding_flows").select("*").order("audience").order("name"),
     supabaseAdmin.from("hc_lectures").select("slug, title, kind, duration_min").order("title"),
@@ -52,8 +52,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const gate = await adminGate(req, true);
-  if (gate) return gate;
+  const g = await adminGate(req, true);
+  if (g instanceof NextResponse) return g;
 
   const b = await req.json().catch(() => null);
   const name = s(b?.name, 120);
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabaseAdmin.from("hc_onboarding_flows").upsert({
     slug, name, audience, steps, active,
-    updated_by: typeof gate === "object" ? null : null,
+    updated_by: g.email ?? null,
     updated_at: new Date().toISOString(),
   }, { onConflict: "slug" });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -90,8 +90,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const gate = await adminGate(req, true);
-  if (gate) return gate;
+  const g = await adminGate(req, true);
+  if (g instanceof NextResponse) return g;
   const slug = req.nextUrl.searchParams.get("slug") ?? "";
   if (!slug) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   /* A live flow is not deleted out from under the people walking it. */
