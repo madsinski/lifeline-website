@@ -154,8 +154,18 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
   }, [api, step?.kind, step?.lectureSlug]);
 
   const post = useCallback(async (payload: Record<string, unknown>) => {
-    /* The preview answers locally and tells the server nothing. */
-    if (preview) return { ok: true, stepIndex: i, done: false };
+    /* The preview answers locally and tells the server nothing — but it has
+       to answer the way the server would. Returning the CURRENT index for an
+       advance put the player straight back on the step it had just left, so
+       the preview could be opened at any step and walked through none of
+       them. */
+    if (preview) {
+      const total = preview.steps.length;
+      const next = payload.action === "advance" ? Math.min(i + 1, total - 1)
+        : payload.action === "back" ? Math.max(i - 1, 0)
+        : i;
+      return { ok: true, stepIndex: next, done: false };
+    }
     const r = await api("/api/hc/onboarding", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -168,9 +178,12 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
     setBusy(true);
     const j = await post({ action: "advance" });
     setBusy(false);
-    if (j?.done || i + 1 >= flow.steps.length) { onFinished(); return; }
+    if (!preview && (j?.done || i + 1 >= flow.steps.length)) { onFinished(); return; }
+    /* The last step of a preview stays on the last step: calling onFinished
+       here would blank the frame the admin is looking at. */
+    if (preview && i + 1 >= flow.steps.length) return;
     setI(typeof j?.stepIndex === "number" ? j.stepIndex : i + 1);
-  }, [flow, i, post, onFinished]);
+  }, [flow, i, post, onFinished, preview]);
 
   const back = useCallback(async () => {
     setBusy(true);

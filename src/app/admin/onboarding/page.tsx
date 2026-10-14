@@ -61,6 +61,8 @@ export default function OnboardingAdminPage() {
      it, so the pane follows what is being edited. */
   const [at, setAt] = useState(0);
   const [showPreview, setShowPreview] = useState(true);
+  /* Full-screen, for when 390px of phone is not enough to judge a screen. */
+  const [bigPreview, setBigPreview] = useState(false);
 
   const load = useCallback(async () => {
     const { ok, data } = await adminJson<{ flows: Flow[]; lectures: Lecture[]; funnel: Record<string, Funnel> }>("/api/admin/hc/onboarding");
@@ -170,7 +172,7 @@ export default function OnboardingAdminPage() {
             Veldu ferli eða búðu til nýtt.
           </p>
         ) : (
-          <div className={`grid gap-4 ${showPreview ? "lg:grid-cols-[220px_1fr_390px]" : "lg:grid-cols-[260px_1fr]"}`}>
+          <div className={`grid gap-4 ${showPreview ? "lg:grid-cols-[200px_minmax(0,1fr)_430px]" : "lg:grid-cols-[260px_1fr]"}`}>
             {/* ── the pieces ───────────────────────────────────────── */}
             <aside>
               <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Einingar</h2>
@@ -379,6 +381,8 @@ export default function OnboardingAdminPage() {
               <aside className="lg:sticky lg:top-6 lg:self-start">
                 <div className="mb-2 flex items-center gap-2">
                   <h2 className="flex-1 text-xs font-bold uppercase tracking-wide text-slate-500">Forskoðun</h2>
+                  <button type="button" onClick={() => setBigPreview(true)}
+                    className="text-xs font-semibold text-[#047857] hover:underline">Stækka</button>
                   <button type="button" onClick={() => setShowPreview(false)}
                     className="text-xs font-semibold text-slate-500 hover:text-slate-800">Fela</button>
                 </div>
@@ -389,7 +393,11 @@ export default function OnboardingAdminPage() {
                 ) : (
                   /* A phone, because that is what this is walked on. */
                   <div className="overflow-hidden rounded-[2rem] border-8 border-slate-900 bg-[#ECF0F3] shadow-xl">
-                    <div className="h-[600px] overflow-y-auto">
+                    {/* Tall enough to show a whole screen without scrolling
+                        the frame: the pillars step is the longest and ran
+                        past 600px, so the admin was judging a screen by its
+                        top half. */}
+                    <div className="h-[760px] overflow-y-auto">
                       <OnboardingPlayer
                         /* Remounted when the arrangement or the focused step
                            changes, so edits show immediately instead of after
@@ -407,6 +415,40 @@ export default function OnboardingAdminPage() {
                 </p>
               </aside>
             )}
+          </div>
+        )}
+
+        {/* Full screen, phone-shaped.
+            Judging a screen inside a 430px column means judging it at a
+            size nobody will see it at; this is the same width a phone gives
+            it, with room around it to actually look. */}
+        {bigPreview && draft && draft.steps.length > 0 && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4"
+            role="dialog" aria-label="Forskoðun">
+            <div className="flex max-h-full flex-col items-center gap-3">
+              <div className="flex w-full items-center gap-2">
+                <p className="flex-1 text-sm font-semibold text-white">
+                  {draft.name} · skref {at + 1} af {draft.steps.length}
+                </p>
+                <button type="button" onClick={() => setAt((v) => Math.max(0, v - 1))} disabled={at === 0}
+                  className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-30">←</button>
+                <button type="button" onClick={() => setAt((v) => Math.min(draft.steps.length - 1, v + 1))}
+                  disabled={at >= draft.steps.length - 1}
+                  className="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-30">→</button>
+                <button type="button" onClick={() => setBigPreview(false)}
+                  className="rounded-lg bg-white px-3 py-1.5 text-sm font-bold text-slate-900">Loka</button>
+              </div>
+              <div className="overflow-hidden rounded-[2.5rem] border-[10px] border-slate-900 bg-[#ECF0F3] shadow-2xl">
+                <div className="h-[80vh] w-[390px] overflow-y-auto">
+                  <OnboardingPlayer
+                    key={`big-${at}-${draft.steps.map((x) => x.kind + (x.questionKey ?? "") + (x.title ?? "")).join("|")}`}
+                    api={adminApi}
+                    onFinished={() => {}}
+                    preview={{ steps: draft.steps, index: at }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>
