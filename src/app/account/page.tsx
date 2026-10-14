@@ -23,6 +23,7 @@ import SignedDocumentsList from "./SignedDocumentsList";
 import AccountPromoCard from "../components/AccountPromoCard";
 import ContextSwitcher from "../components/ContextSwitcher";
 import DataPrivacyPanel from "../components/account/DataPrivacyPanel";
+import InstallGuide from "@/app/components/hc/InstallGuide";
 
 /* ---------- tier data (mirrors pricing page) ---------- */
 const tiers = [
@@ -63,14 +64,16 @@ interface SubscriptionRow {
 }
 
 /* ---------- nav sections ---------- */
-type Section = "overview" | "profile" | "messages" | "assessment" | "education" | "programs" | "settings" | "upgrade" | "billing";
+type Section = "overview" | "profile" | "messages" | "assessment" | "education" | "programs" | "settings" | "upgrade" | "app" | "billing";
 // "upgrade" (app soft-sell) and "assessment" (legacy package picker) still
 // render when linked to directly, but are no longer in the menu: the
 // health-check journey (/app) is the way in.
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Yfirlit", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
   { id: "billing", label: "Greiðslur", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
-  { id: "assessment", label: "Heilsumat", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+  { id: "assessment", label: "Heilsufarsskoðun", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+  { id: "upgrade", label: "Þjálfun", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+  { id: "app", label: "Appið", icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" },
   { id: "settings", label: "Stillingar", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
 
@@ -1301,20 +1304,6 @@ function AccountPageInner() {
                   </div>
                 </section>
 
-                {/* Heilsuferð — the self-service health-check journey
-                    (/app). Same entry for B2C and B2B. */}
-                <Link
-                  href="/app"
-                  className="group flex items-center gap-4 rounded-2xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-5 text-white shadow-md transition hover:shadow-lg"
-                >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg">✚</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">Heilsuferðin þín</span>
-                    <span className="block font-semibold">Heilsufarsskoðun, skref fyrir skref</span>
-                    <span className="block text-sm text-emerald-100">Sjáðu næsta skref, fræðsluna og aðgerðaáætlunina þína.</span>
-                  </span>
-                  <span className="text-emerald-200 transition group-hover:translate-x-1" aria-hidden>→</span>
-                </Link>
 
                 {/* Promo card — managed in /admin/website → "Aðgangur".
                     Hidden unless an admin turns it on and publishes. */}
@@ -2597,20 +2586,58 @@ function AccountPageInner() {
             )}
 
             {/* ============ UPGRADE (coaching app soft-sell) ============ */}
+            {/* ============ APPIÐ ============ */}
+            {/* Access to the app as a page of its own: what it is, whether
+                this account has it, how to install it, and the way in. The
+                left nav still carries a direct link, because somebody who
+                just wants the app should not have to read a page about it
+                first. */}
+            {activeSection === "app" && (
+              <section className="space-y-6">
+                <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#047857]">Lifeline appið</p>
+                  <h1 className="mt-1 text-2xl font-bold text-[#0F172A] sm:text-3xl">Dagleg þjálfun í símanum</h1>
+                  <p className="mt-2 max-w-2xl leading-relaxed text-[#6B7280]">
+                    Æfingar, næring, svefn og andleg líðan — dag frá degi, með áætlun sem er þín og þjálfara
+                    sem þú nærð í. Appið keyrir í vafranum og þarf enga uppsetningu úr verslun.
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <Link href="/app"
+                      className="inline-flex min-h-11 items-center rounded-xl bg-[#047857] px-5 font-semibold text-white transition hover:bg-emerald-800">
+                      Opna appið
+                    </Link>
+                    <button type="button" onClick={() => setActiveSection("upgrade")}
+                      className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1F2937]">
+                      Sjá hvað fylgir
+                    </button>
+                  </div>
+                </div>
+
+                {/* Installing it on the home screen — the same guide the
+                    journey uses, not a second copy of the instructions. */}
+                <div className="rounded-2xl bg-white p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-[#1F2937]">Setja á heimaskjáinn</h2>
+                  <p className="mt-1 text-sm text-[#6B7280]">
+                    Þá opnast appið eins og venjulegt app, án vafrastiku.
+                  </p>
+                  <div className="mt-4"><InstallGuide /></div>
+                </div>
+              </section>
+            )}
+
             {activeSection === "upgrade" && (
               <section className="space-y-6">
                 {/* Hero */}
-                <div className="rounded-2xl p-8 text-white shadow-sm"
-                  style={{ background: "linear-gradient(135deg, #7C3AED, #3B82F6, #10B981)" }}>
-                  <p className="text-xs font-semibold tracking-[0.15em] uppercase opacity-90 mb-3">
-                    Lifeline coaching app
+                <div className="rounded-2xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-8 text-white shadow-sm">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-emerald-300">
+                    Þjálfun hjá Lifeline
                   </p>
-                  <h1 className="text-3xl sm:text-4xl font-semibold leading-tight">
-                    Turn your results into daily habits.
+                  <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">
+                    Úr niðurstöðum í daglegar venjur
                   </h1>
-                  <p className="mt-3 text-base opacity-95 max-w-xl">
-                    Daily actions, meal logs, weigh-ins, a personalised programme, and your coach in your pocket.
-                    Your company covered the assessment — coaching is optional and paid personally.
+                  <p className="mt-3 max-w-xl text-base text-emerald-100">
+                    Daglegar aðgerðir, máltíðir, vigtun, áætlun sem er þín — og þjálfari sem þú nærð í.
+                    Þjálfunin er valkvæð og greidd sérstaklega.
                   </p>
                 </div>
 
