@@ -43,11 +43,21 @@ interface Lecture { slug: string; title: string; subtitle: string | null; kind: 
  *  number somebody invents to two digits of precision is a number that
  *  misleads the programme that reads it. */
 const PILLARS = [
-  { key: "sleep", label: "Svefn", hint: "Hvernig sefur þú að jafnaði?" },
-  { key: "nutrition", label: "Næring", hint: "Hvernig borðar þú að jafnaði?" },
-  { key: "exercise", label: "Hreyfing", hint: "Hvernig gengur hreyfingin?" },
-  { key: "mental", label: "Andleg líðan", hint: "Hvernig líður þér andlega?" },
+  /* `dative` exists because "Byrjum á …" governs it, and the nominative
+     label cannot be bent into that sentence by a join. Carrying both beats
+     discovering at runtime that the heading and the sentence need different
+     forms of the same word. */
+  { key: "sleep", label: "Svefn", dative: "svefni", hint: "Hvernig sefur þú að jafnaði?" },
+  { key: "nutrition", label: "Næring", dative: "næringu", hint: "Hvernig borðar þú að jafnaði?" },
+  { key: "exercise", label: "Hreyfing", dative: "hreyfingu", hint: "Hvernig gengur hreyfingin?" },
+  { key: "mental", label: "Andleg líðan", dative: "andlegri líðan", hint: "Hvernig líður þér andlega?" },
 ] as const;
+
+/** "a, b og c" — not "a og b og c", which is what a plain join gives. */
+function listIs(xs: string[]): string {
+  if (xs.length <= 1) return xs[0] ?? "";
+  return `${xs.slice(0, -1).join(", ")} og ${xs[xs.length - 1]}`;
+}
 const BANDS = [
   { key: "low", label: "Illa" },
   { key: "mid", label: "Svona la la" },
@@ -312,7 +322,7 @@ export default function OnboardingPlayer({ api, onFinished }: {
       })()}
 
       {step.kind === "recommend" && (() => {
-        const weak = PILLARS.filter((x) => answers[`pillar_${x.key}`] === "low").map((x) => x.label);
+        const weak = PILLARS.filter((x) => answers[`pillar_${x.key}`] === "low").map((x) => x.dative);
         const lim = (answers.limits ?? "").split(",").filter((x) => x && x !== "none");
         return (
           <section>
@@ -328,7 +338,7 @@ export default function OnboardingPlayer({ api, onFinished }: {
               {weak.length > 0 && (
                 <li className="flex items-start gap-2.5 rounded-xl bg-hc-surface p-3.5 shadow-sm">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-dark" aria-hidden />
-                  <span className="text-sm text-hc-ink">Byrjum á {weak.join(" og ").toLowerCase()}</span>
+                  <span className="text-sm text-hc-ink">Byrjum á {listIs(weak)}</span>
                 </li>
               )}
               {lim.length > 0 && (
