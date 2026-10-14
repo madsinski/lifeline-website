@@ -1456,70 +1456,6 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Your journey timeline (hidden for B2C pre-booking, Sjálfsmat, and Tími) */}
-                {!(!companyId && bodyCompStatus === "none") && bodyCompPackage !== "self-checkin" && bodyCompPackage !== "checkin" && (
-                <JourneyTimeline
-                  onChangePackage={!companyId && bodyCompStatus !== "none" ? async () => {
-                    if (!currentBookingId) { router.push("/account/book"); return; }
-                    const done = await cancelCurrentBooking("change");
-                    if (done) router.push("/account/book");
-                  } : undefined}
-                  isB2C={!companyId}
-                  hasOnboarded={true}
-                  biodyActivated={biodyActivated}
-                  hasBodyCompSlot={!!mySlotAt}
-                  hasBodyCompBooking={bodyCompStatus === "booked" || bodyCompStatus === "completed"}
-                  hasBodyCompCompleted={bodyCompStatus === "completed"}
-                  hasBloodTestBooking={!!myBloodTestBooking}
-                  companyEvent={companyEvent}
-                  hasApprovedBloodDays={upcomingBloodDays.length > 0}
-                  hasInPersonDoctorBooking={!!myDoctorSlot}
-                  hasAvailableInPersonSlots={upcomingDoctorSlots.length > 0}
-                  hasVideoPortalConfirmed={!!videoPortalConfirmedAt}
-                  videoConfirmBusy={videoConfirmBusy}
-                  onPickBodyCompSlot={() => setBcPickerOpen(true)}
-                  onPickBloodTestDay={() => setBtPickerOpen(true)}
-                  onPickInPersonDoctorSlot={() => setDrPickerOpen(true)}
-                  onConfirmVideoPortal={async () => {
-                    if (!confirm("Have you booked a video meeting with your Lifeline doctor in the patient portal? Click OK to confirm your video booking.")) return;
-                    setVideoConfirmBusy(true);
-                    const { error: err } = await supabase.rpc("confirm_video_consultation_portal");
-                    if (!err) setVideoPortalConfirmedAt(new Date().toISOString());
-                    setVideoConfirmBusy(false);
-                  }}
-                  onClearVideoPortal={async () => {
-                    if (!confirm("Clear your video consultation confirmation?")) return;
-                    setVideoConfirmBusy(true);
-                    const { error: err } = await supabase.rpc("clear_video_consultation_portal");
-                    if (!err) setVideoPortalConfirmedAt(null);
-                    setVideoConfirmBusy(false);
-                  }}
-                  onGoToBiody={() => setBiodyEditOpen(true)}
-                  journeyChecks={journeyChecks}
-                  onToggleJourneyCheck={async (key) => {
-                    if (!user) return;
-                    const nextValue = journeyChecks[key] ? undefined : new Date().toISOString();
-                    const next = { ...journeyChecks, [key]: nextValue };
-                    // Optimistic update
-                    setJourneyChecks(next);
-                    // Persist — strip keys that are undefined so the JSONB stays tidy
-                    const payload: Record<string, string> = {};
-                    (Object.keys(next) as Array<keyof typeof next>).forEach((k) => {
-                      const v = next[k];
-                      if (typeof v === "string") payload[k] = v;
-                    });
-                    const { error } = await supabase
-                      .from("clients_decrypted")
-                      .update({ journey_checks: payload })
-                      .eq("id", user.id);
-                    if (error) {
-                      // Roll back
-                      setJourneyChecks(journeyChecks);
-                      alert(`Could not save: ${error.message}`);
-                    }
-                  }}
-                />
-                )}
 
                 {/* Current bookings */}
                 <CurrentBookings
@@ -1654,14 +1590,17 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Wellbeing check-in — disabled for now, moved to settings for later use */}
-                {/* Satisfaction prompts after milestones */}
-                <SatisfactionPromptCard
-                  bodyCompStatus={bodyCompStatus}
-                  myDoctorSlot={myDoctorSlot}
-                  satisfactionDone={satisfactionDone}
-                  onStart={(ctx) => setSatisfactionOpen(ctx)}
+                <NextSteps
+                  assessmentDone={bodyCompStatus === "completed"}
+                  onGo={(sec) => { setActiveSection(sec); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
                 />
+
+                {/* No satisfaction prompt on Yfirlit.
+                    "Hvernig var líkamssamsetningarmælingin?" asked somebody
+                    to rate a service on the page they open to see where
+                    they stand. The modals below stay mounted — the
+                    wellbeing one is meant for Stillingar later, per the note
+                    that was here — but nothing on this page opens them. */}
 
                 {wellbeingOpen && (
                   <WellbeingSurveyModal
@@ -1697,21 +1636,6 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Patient portal — the medical record and results live in Medalia */}
-                <section className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 text-white">
-                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-lg font-bold text-[#1F2937]">Sjúklingagátt</h2>
-                      <p className="text-sm text-[#6B7280]">Niðurstöður, skýrsla læknis og örugg samskipti við heilbrigðisstarfsfólk eru í Medalia.</p>
-                    </div>
-                    <MedaliaButton label="Opna sjúklingagátt" size="md" />
-                  </div>
-                </section>
 
                 {/* After your assessment — teaser for the coaching app */}
                 <button type="button" onClick={() => { setActiveSection("upgrade"); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }}
@@ -1726,15 +1650,11 @@ function AccountPageInner() {
                   <span className="text-[#10B981] transition group-hover:translate-x-1" aria-hidden>→</span>
                 </button>
 
-                {biodyActivated && (
-                  <BiodyReconsentBanner userId={user.id} onGoToSettings={() => setActiveSection("settings")} />
-                )}
-
-                {biodyActivated && (
-                  <BodyCompositionCard userId={user.id} />
-                )}
-
-                <WellnessFramingCard />
+                {/* The privacy nudge, the measurements and the wellness
+                    framing all moved: the nudge to Stillingar where its own
+                    button already pointed, the measurements and the framing
+                    to Heilsufarsskoðun, which is the page about the medical
+                    service they belong to. */}
 
               </>
             )}
@@ -1936,7 +1856,95 @@ function AccountPageInner() {
 
             {/* ============ ASSESSMENT ============ */}
             {activeSection === "assessment" && (
-              <ServicesSection companyName={companyName} onGoToCoaching={() => setActiveSection("upgrade")} />
+              <section className="space-y-6">
+                {/* The journey itself. It was on Yfirlit, where it was the
+                    largest thing on a page that is meant to say who you are
+                    and what you have access to — and every step of it is
+                    about one active heilsufarsskoðun, which is this page. */}
+              <JourneyTimeline
+                onChangePackage={!companyId && bodyCompStatus !== "none" ? async () => {
+                  if (!currentBookingId) { router.push("/account/book"); return; }
+                  const done = await cancelCurrentBooking("change");
+                  if (done) router.push("/account/book");
+                } : undefined}
+                isB2C={!companyId}
+                hasOnboarded={true}
+                biodyActivated={biodyActivated}
+                hasBodyCompSlot={!!mySlotAt}
+                hasBodyCompBooking={bodyCompStatus === "booked" || bodyCompStatus === "completed"}
+                hasBodyCompCompleted={bodyCompStatus === "completed"}
+                hasBloodTestBooking={!!myBloodTestBooking}
+                companyEvent={companyEvent}
+                hasApprovedBloodDays={upcomingBloodDays.length > 0}
+                hasInPersonDoctorBooking={!!myDoctorSlot}
+                hasAvailableInPersonSlots={upcomingDoctorSlots.length > 0}
+                hasVideoPortalConfirmed={!!videoPortalConfirmedAt}
+                videoConfirmBusy={videoConfirmBusy}
+                onPickBodyCompSlot={() => setBcPickerOpen(true)}
+                onPickBloodTestDay={() => setBtPickerOpen(true)}
+                onPickInPersonDoctorSlot={() => setDrPickerOpen(true)}
+                onConfirmVideoPortal={async () => {
+                  if (!confirm("Have you booked a video meeting with your Lifeline doctor in the patient portal? Click OK to confirm your video booking.")) return;
+                  setVideoConfirmBusy(true);
+                  const { error: err } = await supabase.rpc("confirm_video_consultation_portal");
+                  if (!err) setVideoPortalConfirmedAt(new Date().toISOString());
+                  setVideoConfirmBusy(false);
+                }}
+                onClearVideoPortal={async () => {
+                  if (!confirm("Clear your video consultation confirmation?")) return;
+                  setVideoConfirmBusy(true);
+                  const { error: err } = await supabase.rpc("clear_video_consultation_portal");
+                  if (!err) setVideoPortalConfirmedAt(null);
+                  setVideoConfirmBusy(false);
+                }}
+                onGoToBiody={() => setBiodyEditOpen(true)}
+                journeyChecks={journeyChecks}
+                onToggleJourneyCheck={async (key) => {
+                  if (!user) return;
+                  const nextValue = journeyChecks[key] ? undefined : new Date().toISOString();
+                  const next = { ...journeyChecks, [key]: nextValue };
+                  // Optimistic update
+                  setJourneyChecks(next);
+                  // Persist — strip keys that are undefined so the JSONB stays tidy
+                  const payload: Record<string, string> = {};
+                  (Object.keys(next) as Array<keyof typeof next>).forEach((k) => {
+                    const v = next[k];
+                    if (typeof v === "string") payload[k] = v;
+                  });
+                  const { error } = await supabase
+                    .from("clients_decrypted")
+                    .update({ journey_checks: payload })
+                    .eq("id", user.id);
+                  if (error) {
+                    // Roll back
+                    setJourneyChecks(journeyChecks);
+                    alert(`Could not save: ${error.message}`);
+                  }
+                }}
+              />
+                <ServicesSection companyName={companyName} onGoToCoaching={() => setActiveSection("upgrade")} />
+                  {/* Patient portal — the medical record and results live in Medalia */}
+                  <section className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 text-white">
+                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-lg font-bold text-[#1F2937]">Sjúklingagátt</h2>
+                        <p className="text-sm text-[#6B7280]">Niðurstöður, skýrsla læknis og örugg samskipti við heilbrigðisstarfsfólk eru í Medalia.</p>
+                      </div>
+                      <MedaliaButton label="Opna sjúklingagátt" size="md" />
+                    </div>
+                  </section>
+                {biodyActivated && <BodyCompositionCard userId={user.id} />}
+                {/* Required framing, kept verbatim: it states that this is
+                    not the sjúkraskrá and that the record lives in Medalia
+                    under lögum nr. 55/2009. It belongs on the page about
+                    the medical service rather than on the account home. */}
+                <WellnessFramingCard />
+              </section>
             )}
 
             {/* ============ APP & DEVICES ============ */}
@@ -2796,6 +2804,13 @@ function AccountPageInner() {
 
                 {/* Data & privacy — Biody-import consent + DSR */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
+                  {/* The nudge sits with the control it was pointing at.
+                      It was on Yfirlit with a button that said "open the
+                      privacy settings" — which is this panel, one scroll
+                      away now instead of a page away. */}
+                  {biodyActivated && (
+                    <BiodyReconsentBanner userId={user.id} onGoToSettings={() => setActiveSection("settings")} />
+                  )}
                   <DataPrivacyPanel userId={user.id} />
                 </div>
 
@@ -3003,15 +3018,15 @@ function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGo
         <div className="text-sm text-amber-900 leading-relaxed flex-1">
           <p className="font-medium text-amber-950 mb-1">Staðfestu val um persónuvernd</p>
           <p>
-            We&apos;ve added a new privacy control: whether your Biody body-composition
-            measurements show up in this app dashboard for self-tracking. By default
-            they don&apos;t. Your medical record in Medalia is not affected either way.
+            Ný stilling: hvort mælingarnar þínar frá Biody birtist hér á yfirlitinu svo
+            þú getir fylgst með þeim sjálf/ur. Sjálfgefið birtast þær ekki. Sjúkraskráin
+            þín í Medalia breytist ekki hvort sem er.
           </p>
           <button
             onClick={onGoToSettings}
             className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition-colors"
           >
-            Open Data &amp; privacy settings
+            Opna persónuverndarstillingar
           </button>
         </div>
       </div>
@@ -3026,6 +3041,76 @@ function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGo
 // the app as a wellness surface during the pre-Medalia-API interim, and
 // remains useful afterwards as a clear pointer to where clinical data
 // lives.
+/**
+ * The three steps, as buttons.
+ *
+ * Same three the home page shows under "Hvernig Lifeline virkar", with the
+ * middle one changed from "Fáðu skýrsluna þína" to the app, because by the
+ * time somebody is signed in the report is a thing that arrives rather than
+ * a thing they do.
+ *
+ * Marketing explains; this moves. So each box is a click to the place that
+ * continues it, and the first one carries a tick when the assessment is
+ * actually finished — the other two do not, because the account cannot see
+ * whether somebody has started using the app or taken up coaching, and a
+ * tick that guesses is worse than no tick.
+ */
+function NextSteps({ assessmentDone, onGo }: {
+  assessmentDone: boolean;
+  onGo: (s: Section) => void;
+}) {
+  const steps: { n: number; title: string; desc: string; go: () => void; done?: boolean; icon: string }[] = [
+    {
+      n: 1, title: "Farðu í heilsumat",
+      desc: "Mælingar, blóðprufa og lífsstílsgreining — hjá okkur eða hjá Sameind.",
+      go: () => onGo("assessment"), done: assessmentDone,
+      icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+    },
+    {
+      n: 2, title: "Fáðu Lifeline appið",
+      desc: "Daglega áætlunin þín, æfingar og næring — í símanum.",
+      go: () => onGo("app"),
+      icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z",
+    },
+    {
+      n: 3, title: "Byrjaðu heilsuþjálfun",
+      desc: "Þjálfari, eftirfylgd og áætlun sem breytist með þér.",
+      go: () => onGo("upgrade"),
+      icon: "M13 10V3L4 14h7v7l9-11h-7z",
+    },
+  ];
+  return (
+    <section>
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-[#6B7280]">Næstu skref</h2>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {steps.map((st) => (
+          <button key={st.n} type="button" onClick={st.go}
+            className="group flex flex-col rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-md">
+            <span className="flex items-center gap-2">
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                st.done ? "bg-emerald-50 text-[#047857]" : "bg-gray-50 text-[#6B7280]"}`}>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d={st.icon} />
+                </svg>
+              </span>
+              {st.done ? (
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-[#047857]">Lokið</span>
+              ) : (
+                <span className="text-xs font-bold text-[#9CA3AF]">{st.n}</span>
+              )}
+            </span>
+            <span className="mt-3 block font-bold text-[#1F2937]">{st.title}</span>
+            <span className="mt-1 block flex-1 text-sm leading-relaxed text-[#6B7280]">{st.desc}</span>
+            <span className="mt-3 text-sm font-semibold text-[#047857] transition group-hover:translate-x-0.5">
+              {st.done ? "Sjá niðurstöður →" : "Áfram →"}
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function WellnessFramingCard() {
   return (
     <p className="px-1 text-xs leading-relaxed text-slate-500">
