@@ -28,7 +28,7 @@ async function authHeader(): Promise<Record<string, string>> {
 
 export default function BookAssessmentPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Hleð…</div>}>
       <BookAssessmentContent />
     </Suspense>
   );
@@ -68,7 +68,7 @@ function BookAssessmentContent() {
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  // Union grant (stéttarfélagsstyrkur). The member declares their fund and
+  // Styrkur stéttarfélags (stéttarfélagsstyrkur). The member declares their fund and
   // consents; the server recomputes the discount and is the authority on the
   // amount actually charged — see /api/bookings/grant.
   const [unionCode, setUnionCode] = useState<string | null>(null);
@@ -250,7 +250,7 @@ function BookAssessmentContent() {
    * we tell the server to void the claim so the booking goes back to list
    * price rather than staying quietly discounted.
    */
-  async function handleGrantContinue(skip: boolean) {
+  async function handleGrantÁfram(skip: boolean) {
     setGrantError(null);
 
     if (skip) {
@@ -313,7 +313,7 @@ function BookAssessmentContent() {
     setStage("review");
   }
 
-  async function handleReviewContinue() {
+  async function handleReviewÁfram() {
     // For paid packages, we create the booking up-front so we have a stable
     // reference to pass to Straumur. For free (Self Check-in), we still
     // mirror a zero-amount Straumur record into the payments ledger so
@@ -360,7 +360,7 @@ function BookAssessmentContent() {
     setBookingId(id);
 
     // Atomically claim the station slot for this booking. If it was taken
-    // between "I chose it" and "I clicked Continue", the RPC fails and we
+    // between "I chose it" and "I clicked Áfram", the RPC fails and we
     // send the user back to the schedule step with a clear error.
     if (needsVisit && selectedSlotId) {
       let { data: claim, error: claimErr } = await supabase.rpc("book_station_slot", {
@@ -394,7 +394,7 @@ function BookAssessmentContent() {
           return;
         }
         const ok = typeof window !== "undefined" && window.confirm(
-          "You already have a draft measurement booking. Cancel the old draft and use this new time instead?",
+          "Þú átt þegar ófrágengna mælingabókun. Viltu fella hana niður og nota þennan tíma í staðinn?",
         );
         if (ok) {
           // Cancel each unpaid draft through the atomic RPC so the station
@@ -420,9 +420,9 @@ function BookAssessmentContent() {
       if (claimErr || (row && row.ok === false)) {
         const code = row?.error;
         setPaymentError(
-          code === "slot_unavailable" ? "That time slot was just taken. Please pick another."
-            : code === "already_booked" ? "You already have a measurement booking. Cancel it first from your dashboard, then try again."
-            : claimErr?.message || "Could not reserve your time slot. Please try again."
+          code === "slot_unavailable" ? "Þessi tími var að bókast. Veldu annan."
+            : code === "already_booked" ? "Þú átt þegar mælingabókun. Afbókaðu hana á yfirlitinu og reyndu svo aftur."
+            : claimErr?.message || "Tókst ekki að taka frá tímann. Reyndu aftur."
         );
         // Roll THIS draft back. Don't bulk-release — any slot the user still
         // holds belongs to a different (legit) booking and is protected by
@@ -451,7 +451,7 @@ function BookAssessmentContent() {
       .eq("id", bookingId)
       .maybeSingle();
     if (!current || current.status !== "requested" || current.payment_status !== "pending") {
-      setPaymentError("Your booking is no longer payable — it may have been cancelled in another tab. Please start over.");
+      setPaymentError("Ekki er lengur hægt að greiða þessa bókun — hún kann að hafa verið felld niður annars staðar. Byrjaðu upp á nýtt.");
       setPaying(false);
       setStage("schedule");
       return;
@@ -546,7 +546,7 @@ function BookAssessmentContent() {
   }
 
   if (authChecking) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">Hleð…</div>;
   }
 
   return (
@@ -554,8 +554,8 @@ function BookAssessmentContent() {
       <main className="max-w-3xl mx-auto px-6 py-10 sm:py-14 space-y-8">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">Book your assessment</div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A]">{pkg ? pkg.name : "Choose your package"}</h1>
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">Bókaðu heilsufarsskoðun</div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A]">{pkg ? pkg.name : "Veldu pakka"}</h1>
           </div>
           <Link
             href="/account"
@@ -564,7 +564,7 @@ function BookAssessmentContent() {
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to dashboard
+            Til baka á yfirlitið
           </Link>
         </header>
 
@@ -574,7 +574,7 @@ function BookAssessmentContent() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <div className="font-semibold mb-1">This is an extra self-paid check-in</div>
+              <div className="font-semibold mb-1">Þetta er aukatími á eigin kostnað</div>
               <p className="leading-relaxed text-amber-900/90">
                 Your employer covers your standard Lifeline rounds — we&apos;ll email you when the next one opens. Anything you book here is an <strong>extra you pay for yourself</strong>, on top of what your employer provides. You can still take the employer round when it opens.
               </p>
@@ -588,12 +588,12 @@ function BookAssessmentContent() {
           <PackageStage
             selected={selectedPkg}
             onSelect={(k) => setSelectedPkg(k)}
-            onContinue={() => selectedPkg && setStage("schedule")}
+            onÁfram={() => selectedPkg && setStage("schedule")}
           />
         )}
 
         {stage === "schedule" && pkg && (
-          <ScheduleStage
+          <TímasetningStage
             pkg={pkg}
             needsVisit={needsVisit}
             selectedSlotId={selectedSlotId}
@@ -606,7 +606,7 @@ function BookAssessmentContent() {
             }}
             setNotes={setNotes}
             onBack={() => setStage("package")}
-            onContinue={() => setStage(grantEligible ? "grant" : "review")}
+            onÁfram={() => setStage(grantEligible ? "grant" : "review")}
           />
         )}
 
@@ -624,8 +624,8 @@ function BookAssessmentContent() {
             setKennitala={setKennitala}
             setConsent={setGrantConsent}
             onBack={() => setStage("schedule")}
-            onContinue={() => handleGrantContinue(false)}
-            onSkip={() => handleGrantContinue(true)}
+            onÁfram={() => handleGrantÁfram(false)}
+            onSkip={() => handleGrantÁfram(true)}
           />
         )}
 
@@ -642,7 +642,7 @@ function BookAssessmentContent() {
             grantFundName={grantIsk > 0 ? selectedFund?.name ?? null : null}
             payableIsk={payableIsk}
             onBack={() => setStage(grantEligible ? "grant" : "schedule")}
-            onContinue={handleReviewContinue}
+            onÁfram={handleReviewÁfram}
             error={paymentError}
           />
         )}
@@ -672,8 +672,8 @@ function BookAssessmentContent() {
 function StageIndicator({ stage, includeGrant }: { stage: Stage; includeGrant: boolean }) {
   const steps: Array<{ key: Stage; label: string }> = [
     { key: "package", label: "Package" },
-    { key: "schedule", label: "Schedule" },
-    ...(includeGrant ? [{ key: "grant" as Stage, label: "Union grant" }] : []),
+    { key: "schedule", label: "Tímasetning" },
+    ...(includeGrant ? [{ key: "grant" as Stage, label: "Styrkur stéttarfélags" }] : []),
     { key: "review", label: "Review" },
     { key: "pay", label: "Payment" },
     { key: "done", label: "Done" },
@@ -705,11 +705,11 @@ function StageIndicator({ stage, includeGrant }: { stage: Stage; includeGrant: b
 // ──────────────────────────────────────────────────────────────────────────────
 
 function PackageStage({
-  selected, onSelect, onContinue,
+  selected, onSelect, onÁfram,
 }: {
   selected: PackageKey | null;
   onSelect: (k: PackageKey) => void;
-  onContinue: () => void;
+  onÁfram: () => void;
 }) {
   return (
     <div className="space-y-4">
@@ -736,7 +736,7 @@ function PackageStage({
                   <span className="text-2xl font-bold text-[#0F172A]">
                     {p.priceIsk === 0 ? "Free" : p.priceIsk.toLocaleString("is-IS")}
                   </span>
-                  {p.priceIsk > 0 && <span className="text-xs font-medium text-[#64748B]">ISK · one-time</span>}
+                  {p.priceIsk > 0 && <span className="text-xs font-medium text-[#64748B]">kr. · eitt skipti</span>}
                 </div>
                 <p className="text-sm text-[#475569] mt-2 leading-relaxed">{p.summary}</p>
                 <ul className="mt-3 space-y-1">
@@ -757,11 +757,11 @@ function PackageStage({
       <div className="flex justify-end">
         <button
           type="button"
-          onClick={onContinue}
+          onClick={onÁfram}
           disabled={!selected}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95"
         >
-          Continue
+          Áfram
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>
@@ -780,10 +780,10 @@ type StationSlotRow = {
   location: string | null;
 };
 
-function ScheduleStage({
+function TímasetningStage({
   pkg, needsVisit, selectedSlotId, selectedSlotAt, notes, error,
   onPickSlot, setNotes,
-  onBack, onContinue,
+  onBack, onÁfram,
 }: {
   pkg: PackageDef;
   needsVisit: boolean;
@@ -794,7 +794,7 @@ function ScheduleStage({
   onPickSlot: (id: string, at: string, location: string | null) => void;
   setNotes: (v: string) => void;
   onBack: () => void;
-  onContinue: () => void;
+  onÁfram: () => void;
 }) {
   const [slots, setSlots] = useState<StationSlotRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -825,25 +825,25 @@ function ScheduleStage({
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [slots]);
 
-  const canContinue = !needsVisit || !!selectedSlotId;
+  const canÁfram = !needsVisit || !!selectedSlotId;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
       <div>
         <div className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">{pkg.name}</div>
         <h2 className="text-lg font-semibold text-[#0F172A]">
-          {needsVisit ? "Pick an available time" : "Start your self check-in"}
+          {needsVisit ? "Veldu lausan tíma" : "Byrjaðu sjálfsmatið"}
         </h2>
         <p className="text-sm text-[#64748B] mt-1">
           {needsVisit
-            ? "Only real open slots are shown. Remember to fast from midnight the night before your visit — water only."
-            : "Free and remote. You can start the questionnaire from the confirmation screen."}
+            ? "Aðeins raunverulegir lausir tímar birtast. Mundu að fasta frá miðnætti kvöldið áður — aðeins vatn."
+            : "Gjaldfrjálst og fer fram í fjarþjónustu. Þú getur byrjað á spurningalistanum á staðfestingarskjánum."}
         </p>
       </div>
 
       {needsVisit && (
         loading ? (
-          <div className="text-sm text-gray-500">Loading slots…</div>
+          <div className="text-sm text-gray-500">Sæki tíma…</div>
         ) : grouped.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
             No open slots right now. We&apos;ll open new times shortly — please check back, or email{" "}
@@ -889,13 +889,13 @@ function ScheduleStage({
       )}
 
       <label className="block">
-        <span className="text-xs font-medium text-gray-600">Notes for our team (optional)</span>
+        <span className="text-xs font-medium text-gray-600">Athugasemd til okkar (valfrjálst)</span>
         <textarea
           rows={2}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-          placeholder="Anything we should know?"
+          placeholder="Eitthvað sem við ættum að vita?"
         />
       </label>
 
@@ -918,8 +918,8 @@ function ScheduleStage({
         </button>
         <button
           type="button"
-          onClick={onContinue}
-          disabled={!canContinue}
+          onClick={onÁfram}
+          disabled={!canÁfram}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95"
         >
           Review
@@ -933,7 +933,7 @@ function ScheduleStage({
 
 function GrantStage({
   pkg, unionCode, fund, previewGrantIsk, kennitala, consent, saving, error,
-  onPickUnion, setKennitala, setConsent, onBack, onContinue, onSkip,
+  onPickUnion, setKennitala, setConsent, onBack, onÁfram, onSkip,
 }: {
   pkg: PackageDef;
   unionCode: string | null;
@@ -947,7 +947,7 @@ function GrantStage({
   setKennitala: (v: string) => void;
   setConsent: (v: boolean) => void;
   onBack: () => void;
-  onContinue: () => void;
+  onÁfram: () => void;
   onSkip: () => void;
 }) {
   // A live fund is one we have a signed direct-settlement agreement with —
@@ -1088,7 +1088,7 @@ function GrantStage({
           </button>
           <button
             type="button"
-            onClick={onContinue}
+            onClick={onÁfram}
             disabled={saving || !picked || (isLive && (!ktValid || !consent))}
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -1111,7 +1111,7 @@ function GrantStage({
 function ReviewStage({
   pkg, needsVisit, selectedSlotAt, selectedLocation, notes, fullName, email,
   grantIsk, grantFundName, payableIsk,
-  onBack, onContinue, error,
+  onBack, onÁfram, error,
 }: {
   pkg: PackageDef;
   needsVisit: boolean;
@@ -1124,12 +1124,12 @@ function ReviewStage({
   grantFundName: string | null;
   payableIsk: number;
   onBack: () => void;
-  onContinue: () => void;
+  onÁfram: () => void;
   error: string | null;
 }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
-      <h2 className="text-lg font-semibold text-[#0F172A]">Review your booking</h2>
+      <h2 className="text-lg font-semibold text-[#0F172A]">Farðu yfir bókunina</h2>
 
       <div className="rounded-xl border border-gray-100 bg-[#f8fafc] p-4 space-y-2 text-sm">
         <Row label="Package" value={pkg.name} />
@@ -1167,12 +1167,12 @@ function ReviewStage({
             <span>{payableIsk.toLocaleString("is-IS")} ISK</span>
           </div>
           <p className="text-xs text-[#64748B] mt-1">
-            Healthcare services are exempt from VAT in Iceland (Act 50/1988).
+            Heilbrigðisþjónusta er undanþegin virðisaukaskatti á Íslandi (lög nr. 50/1988).
           </p>
         </div>
       ) : (
         <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900">
-          Free — no payment needed.
+          Gjaldfrjálst — engin greiðsla.
         </div>
       )}
 
@@ -1191,10 +1191,10 @@ function ReviewStage({
         </button>
         <button
           type="button"
-          onClick={onContinue}
+          onClick={onÁfram}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95"
         >
-          {pkg.priceIsk > 0 ? "Continue to payment" : "Confirm"}
+          {pkg.priceIsk > 0 ? "Áfram í greiðslu" : "Confirm"}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>
@@ -1229,7 +1229,7 @@ function PayStage({
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-[#0F172A]">Secure payment</h2>
+        <h2 className="text-lg font-semibold text-[#0F172A]">Örugg greiðsla</h2>
         <p className="text-sm text-[#64748B] mt-1">
           Powered by {STRAUMUR_BRAND.name}. Supports {STRAUMUR_BRAND.cardsSupported.join(", ")}.
         </p>
@@ -1240,13 +1240,13 @@ function PayStage({
           <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z" />
           </svg>
-          Straumur payment
+          Greiðsla með Straumi
         </div>
         <p className="text-sm text-[#475569]">
           The Straumur checkout will open here once the API is connected. For now, click the button below to simulate payment and continue.
         </p>
         <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900">
-          <strong>Test mode:</strong> no real charge is made. Your booking will be marked paid for internal testing.
+          <strong>Prófunarhamur:</strong> no real charge is made. Your booking will be marked paid for internal testing.
         </div>
         {grantIsk > 0 && (
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-[11px] text-emerald-900">
@@ -1255,7 +1255,7 @@ function PayStage({
           </div>
         )}
         <div className="mt-4 flex items-center justify-between text-sm">
-          <span className="text-[#64748B]">Charge amount</span>
+          <span className="text-[#64748B]">Upphæð</span>
           <span className="font-semibold text-[#0F172A]">{payableIsk.toLocaleString("is-IS")} ISK</span>
         </div>
       </div>
@@ -1281,7 +1281,7 @@ function PayStage({
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60"
         >
           {paying && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {paying ? "Processing…" : `Pay ${payableIsk.toLocaleString("is-IS")} ISK`}
+          {paying ? "Vinn úr…" : `Pay ${payableIsk.toLocaleString("is-IS")} ISK`}
         </button>
       </div>
     </div>
@@ -1309,7 +1309,7 @@ function DoneStage({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <h2 className="text-2xl font-bold text-[#0F172A]">You&apos;re booked.</h2>
+      <h2 className="text-2xl font-bold text-[#0F172A]">Bókunin er frágengin.</h2>
       <p className="text-sm text-[#475569] mt-2 max-w-md mx-auto leading-relaxed">
         {needsVisit
           ? `See you at ${selectedLocation || "the Lifeline station"} on ${when}. We'll email you a reminder the day before.`
@@ -1320,7 +1320,7 @@ function DoneStage({
           href="/account"
           className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 shadow-sm"
         >
-          Go to dashboard
+          Fara á yfirlitið
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>
