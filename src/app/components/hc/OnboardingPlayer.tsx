@@ -39,6 +39,34 @@ type Api = (url: string, init?: RequestInit) => Promise<Response>;
 interface Flow { slug: string; name: string; steps: FlowStep[] }
 interface Lecture { slug: string; title: string; subtitle: string | null; kind: string | null; article_md: string | null; video_url: string | null; duration_min: number | null }
 
+/** The four pillars, self-rated. Three bands rather than a 1-10 slider: a
+ *  number somebody invents to two digits of precision is a number that
+ *  misleads the programme that reads it. */
+const PILLARS = [
+  { key: "sleep", label: "Svefn", hint: "Hvernig sefur þú að jafnaði?" },
+  { key: "nutrition", label: "Næring", hint: "Hvernig borðar þú að jafnaði?" },
+  { key: "exercise", label: "Hreyfing", hint: "Hvernig gengur hreyfingin?" },
+  { key: "mental", label: "Andleg líðan", hint: "Hvernig líður þér andlega?" },
+] as const;
+const BANDS = [
+  { key: "low", label: "Illa" },
+  { key: "mid", label: "Svona la la" },
+  { key: "high", label: "Vel" },
+] as const;
+
+/** What changes an exercise prescription. Multi-select, and "ekkert" is an
+ *  explicit answer rather than an empty one — a blank here is
+ *  indistinguishable from a skipped screen otherwise. */
+const LIMITS = [
+  { key: "knee", label: "Hné" },
+  { key: "back", label: "Bak" },
+  { key: "shoulder", label: "Öxl" },
+  { key: "hip", label: "Mjöðm" },
+  { key: "heart", label: "Hjarta eða blóðþrýstingur" },
+  { key: "pregnant", label: "Þungun" },
+  { key: "other", label: "Annað" },
+] as const;
+
 const QUESTIONS = {
   goal: { title: "Hvað ertu að leita að?", hint: "Veldu það sem skiptir mestu núna.", options: GOALS },
   move: { title: "Hvað hreyfir þú þig mikið núna?", hint: "Við byrjum þar sem þú ert.", options: MOVES },
@@ -179,6 +207,140 @@ export default function OnboardingPlayer({ api, onFinished }: {
                 </button>
               ))}
             </div>
+          </section>
+        );
+      })()}
+
+      {step.kind === "pillars" && (() => {
+        /* All four on one screen, not four screens. They are the same
+           question asked four times and splitting them would quadruple the
+           length of the flow for no extra information. */
+        const got = PILLARS.filter((x) => answers[`pillar_${x.key}`]).length;
+        return (
+          <section>
+            <h1 className="text-2xl font-bold leading-tight text-hc-ink">{step.title || "Hvar stendur þú núna?"}</h1>
+            <p className="mt-1.5 text-sm text-hc-ink-2">Þitt eigið mat. Við notum það sem upphafspunkt, ekki sem einkunn.</p>
+            <div className="mt-5 space-y-4">
+              {PILLARS.map((pl) => (
+                <div key={pl.key}>
+                  <p className="text-sm font-semibold text-hc-ink">{pl.label}</p>
+                  <p className="text-xs text-hc-ink-3">{pl.hint}</p>
+                  <div className="mt-1.5 flex gap-1.5">
+                    {BANDS.map((bd) => {
+                      const on = answers[`pillar_${pl.key}`] === bd.key;
+                      return (
+                        <button key={bd.key} type="button" disabled={busy}
+                          onClick={() => void post({ action: "answer", key: `pillar_${pl.key}`, value: bd.key })
+                            .then(() => setAnswers((a) => ({ ...a, [`pillar_${pl.key}`]: bd.key })))}
+                          aria-pressed={on}
+                          className={`min-h-11 flex-1 rounded-xl border-2 px-2 text-sm font-semibold transition ${
+                            on ? "border-hc-brand-dark bg-hc-ok-surface text-hc-ok-ink" : "border-transparent bg-hc-surface text-hc-ink-2"}`}>
+                          {bd.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={() => void advance()} disabled={busy || got < PILLARS.length}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-hc-brand-dark py-3 font-bold text-white disabled:opacity-50">
+              Áfram <ArrowRight className="h-4 w-4" aria-hidden />
+            </button>
+            {got < PILLARS.length && (
+              <p className="mt-2 text-center text-xs text-hc-ink-3">
+                {PILLARS.length - got} eftir af fjórum.
+              </p>
+            )}
+          </section>
+        );
+      })()}
+
+      {step.kind === "limits" && (() => {
+        const chosen = (answers.limits ?? "").split(",").filter(Boolean);
+        const toggle = async (k: string) => {
+          const next = k === "none" ? ["none"]
+            : chosen.filter((x) => x !== "none").includes(k)
+              ? chosen.filter((x) => x !== k && x !== "none")
+              : [...chosen.filter((x) => x !== "none"), k];
+          const v = next.join(",");
+          setAnswers((a) => ({ ...a, limits: v }));
+          await post({ action: "answer", key: "limits", value: v });
+        };
+        return (
+          <section>
+            <h1 className="text-2xl font-bold leading-tight text-hc-ink">{step.title || "Er eitthvað sem þarf að taka tillit til?"}</h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-hc-ink-2">
+              Verkir, meiðsli eða annað sem breytir æfingum. Við sníðum prógrammið að þessu — og þjálfarinn sér það.
+            </p>
+            <div className="mt-5 space-y-2">
+              {LIMITS.map((l) => {
+                const on = chosen.includes(l.key);
+                return (
+                  <button key={l.key} type="button" disabled={busy} onClick={() => void toggle(l.key)} aria-pressed={on}
+                    className={`flex min-h-12 w-full items-center gap-3 rounded-xl border-2 bg-hc-surface px-4 text-left font-semibold transition ${
+                      on ? "border-hc-brand-dark" : "border-transparent"}`}>
+                    <span className={`grid h-5 w-5 shrink-0 place-items-center rounded border-2 ${
+                      on ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-hc-control"}`}>
+                      {on && <Check className="h-3 w-3" aria-hidden />}
+                    </span>
+                    <span className="text-hc-ink">{l.label}</span>
+                  </button>
+                );
+              })}
+              {/* An explicit no. A blank answer here is indistinguishable
+                  from a screen somebody skipped. */}
+              <button type="button" disabled={busy} onClick={() => void toggle("none")} aria-pressed={chosen.includes("none")}
+                className={`flex min-h-12 w-full items-center gap-3 rounded-xl border-2 bg-hc-surface px-4 text-left font-semibold transition ${
+                  chosen.includes("none") ? "border-hc-brand-dark" : "border-transparent"}`}>
+                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${
+                  chosen.includes("none") ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-hc-control"}`}>
+                  {chosen.includes("none") && <Check className="h-3 w-3" aria-hidden />}
+                </span>
+                <span className="text-hc-ink">Nei, ekkert af þessu</span>
+              </button>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-hc-ink-3">
+              Þetta er ekki sjúkraskrá. Ef eitthvað er bráðatilfelli, hringdu í 112.
+            </p>
+            <button type="button" onClick={() => void advance()} disabled={busy || chosen.length === 0}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-hc-brand-dark py-3 font-bold text-white disabled:opacity-50">
+              Áfram <ArrowRight className="h-4 w-4" aria-hidden />
+            </button>
+          </section>
+        );
+      })()}
+
+      {step.kind === "recommend" && (() => {
+        const weak = PILLARS.filter((x) => answers[`pillar_${x.key}`] === "low").map((x) => x.label);
+        const lim = (answers.limits ?? "").split(",").filter((x) => x && x !== "none");
+        return (
+          <section>
+            <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Prógrammið þitt"}</h1>
+            <p className="mt-1 text-sm text-hc-ink-2">Sett saman úr svörunum þínum. Þjálfarinn fer yfir það með þér.</p>
+            <ul className="mt-5 space-y-2">
+              {previewLines(asStart).map((l) => (
+                <li key={l} className="flex items-start gap-2.5 rounded-xl bg-hc-surface p-3.5 shadow-sm">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-dark" aria-hidden />
+                  <span className="text-sm text-hc-ink">{l}</span>
+                </li>
+              ))}
+              {weak.length > 0 && (
+                <li className="flex items-start gap-2.5 rounded-xl bg-hc-surface p-3.5 shadow-sm">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-dark" aria-hidden />
+                  <span className="text-sm text-hc-ink">Byrjum á {weak.join(" og ").toLowerCase()}</span>
+                </li>
+              )}
+              {lim.length > 0 && (
+                <li className="flex items-start gap-2.5 rounded-xl bg-hc-warn-surface p-3.5">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-warn-ink" aria-hidden />
+                  <span className="text-sm text-hc-ink">Æfingar aðlagaðar — þjálfarinn fær upplýsingarnar þínar</span>
+                </li>
+              )}
+            </ul>
+            <p className="mt-4 text-xs leading-relaxed text-hc-ink-3">
+              Lifeline mælir og fylgist með — við greinum ekki sjúkdóma og komum ekki í stað læknis.
+            </p>
           </section>
         );
       })()}
@@ -339,7 +501,8 @@ export default function OnboardingPlayer({ api, onFinished }: {
       {/* Advance is always available except on the screens that advance
           themselves when answered. "Má sleppa" is the admin's choice and
           shows as a quieter way past. */}
-      {step.kind !== "question" && step.kind !== "track" && step.kind !== "consent" && (
+      {step.kind !== "question" && step.kind !== "track" && step.kind !== "consent"
+        && step.kind !== "pillars" && step.kind !== "limits" && (
         <button type="button" onClick={() => void advance()} disabled={busy}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-hc-brand-dark py-3 font-bold text-white disabled:opacity-50">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}

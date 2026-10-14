@@ -21,6 +21,9 @@
 
 export type ModuleKind =
   | "welcome"
+  | "pillars"
+  | "limits"
+  | "recommend"
   | "lecture"
   | "consent"
   | "profile"
@@ -35,6 +38,8 @@ export type ModuleKind =
 /** What a step can depend on, and what it produces. Used to order-check. */
 export type Capability =
   | "account"      // a signed-in user
+  | "pillars"      // the four self-assessments
+  | "limits"       // injuries and limitations declared
   | "consent"      // terms accepted
   | "profile"      // name, contact, date of birth, sex
   | "answers"      // the goal/activity/age questions
@@ -71,6 +76,32 @@ export const MODULES: ModuleDef[] = [
     kind: "question", label: "Spurning",
     blurb: "Ein spurning með svarmöguleikum — markmið, hreyfing eða aldur. Svörin stýra tillögunni.",
     needs: ["account"], gives: ["answers"], repeatable: true, config: ["questionKey", "skippable"],
+  },
+  {
+    /* From the RN app's step 2. Four sliders is the fastest way to a
+       starting level that is not a guess, and the adaptive programme
+       already reads levels — it was computing them from measurements the
+       coaching track never takes. */
+    kind: "pillars", label: "Sjálfsmat á stoðunum",
+    blurb: "Svefn, næring, hreyfing og andleg líðan — hvar viðkomandi telur sig standa. Gefur upphafsstig.",
+    needs: ["account"], gives: ["pillars"], repeatable: false, config: ["skippable"],
+  },
+  {
+    /* The one module that is not optional on an exercise track. Prescribing
+       squats to somebody with a knee they did not get to mention is the
+       failure this prevents, and it has to come BEFORE anything that
+       produces a programme. */
+    kind: "limits", label: "Meiðsli og takmarkanir",
+    blurb: "Verkir, meiðsli, þungun eða annað sem breytir æfingum. Kemur á undan áætlun.",
+    needs: ["account"], gives: ["limits"], repeatable: false,
+  },
+  {
+    /* Shows the programme the answers produce, before it is applied.
+       Requires the limitations: a recommendation made without them is one
+       that has to be withdrawn. */
+    kind: "recommend", label: "Tillaga að prógrammi",
+    blurb: "Prógrammið sem svörin gefa, til samþykktar. Þarf stoðamat og takmarkanir á undan.",
+    needs: ["answers", "pillars", "limits"], gives: [], repeatable: false, config: ["title"],
   },
   {
     kind: "summary", label: "Tillaga",
@@ -148,6 +179,7 @@ export function flowProblems(steps: FlowStep[]): { id: string; message: string }
       const names = missing.map((m) => ({
         account: "innskráningu", consent: "samþykki", profile: "upplýsingar",
         answers: "svör við spurningum", track: "val á leið", payment: "greiðslu",
+        pillars: "sjálfsmat á stoðunum", limits: "upplýsingar um meiðsli",
       } as Record<Capability, string>)[m]);
       out.push({ id: s.id, message: `Vantar ${names.join(" og ")} á undan.` });
     }
@@ -175,6 +207,8 @@ export const DEFAULT_FLOW: Omit<FlowStep, "id">[] = [
   { kind: "question", questionKey: "goal" },
   { kind: "question", questionKey: "move" },
   { kind: "question", questionKey: "age" },
+  { kind: "pillars" },
+  { kind: "limits" },
   { kind: "summary" },
   { kind: "track" },
   { kind: "profile", skippable: true },

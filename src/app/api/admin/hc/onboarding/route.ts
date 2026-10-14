@@ -44,11 +44,43 @@ function cleanSteps(raw: unknown): FlowStep[] | string {
 export async function GET(req: NextRequest) {
   const g = await adminGate(req, false);
   if (g instanceof NextResponse) return g;
-  const [flows, lectures] = await Promise.all([
+
+  /* ?client=<email> inspects one person: the answers they gave and where
+     they stopped. Ported from the onboarding bench, which had the only
+     useful version of this — "replaying support tickets" is exactly what it
+     is for, and the composer could arrange a journey without being able to
+     see whether anybody finished one. */
+  const email = req.nextUrl.searchParams.get("client");
+  if (email) {
+    const { data: who } = await supabaseAdmin.from("clients_decrypted")
+      .select("id, full_name, email").eq("email", email.trim().toLowerCase()).maybeSingle();
+    if (!who) return NextResponse.json({ client: null });
+    const { data: prog } = await supabaseAdmin.from("hc_onboarding_progress")
+      .select("flow_slug, step_index, answers, done_at, updated_at").eq("client_id", who.id).maybeSingle();
+    return NextResponse.json({ client: { name: who.full_name, email: who.email }, progress: prog ?? null });
+  }
+
+  const [flows, lectures, progress] = await Promise.all([
     supabaseAdmin.from("hc_onboarding_flows").select("*").order("audience").order("name"),
     supabaseAdmin.from("hc_lectures").select("slug, title, kind, duration_min").order("title"),
+    supabaseAdmin.from("hc_onboarding_progress").select("flow_slug, step_index, done_at").limit(2000),
   ]);
-  return NextResponse.json({ flows: flows.data ?? [], lectures: lectures.data ?? [] });
+
+  /* The funnel, per flow: how many started, how many finished, and WHERE
+     the unfinished stopped. The last of those is the only one that tells
+     you which step to change. */
+  const rows = progress.data ?? [];
+  const funnel: Record<string, { started: number; done: number; stoppedAt: Record<number, number> }> = {};
+  for (const r of rows) {
+    const f = (funnel[r.flow_slug] ??= { started: 0, done: 0, stoppedAt: {} });
+    f.started += 1;
+    if (r.done_at) f.done += 1;
+    else f.stoppedAt[r.step_index] = (f.stoppedAt[r.step_index] ?? 0) + 1;
+  }
+
+  return NextResponse.json({
+    flows: flows.data ?? [], lectures: lectures.data ?? [], funnel,
+  });
 }
 
 export async function POST(req: NextRequest) {

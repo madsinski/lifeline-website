@@ -33,6 +33,7 @@ interface Flow {
   steps: FlowStep[]; active: boolean;
 }
 interface Lecture { slug: string; title: string; kind: string | null; duration_min: number | null }
+interface Funnel { started: number; done: number; stoppedAt: Record<number, number> }
 
 const AUDIENCE_IS: Record<Flow["audience"], string> = {
   all: "Allir", check: "Heilsufarsskoðun", coach: "Þjálfun",
@@ -48,17 +49,21 @@ export default function OnboardingAdminPage() {
   const { authorized, loading: guardLoading } = useStaffGuard();
   const [flows, setFlows] = useState<Flow[]>([]);
   const [lectures, setLectures] = useState<Lecture[]>([]);
+  const [funnel, setFunnel] = useState<Record<string, Funnel>>({});
+  const [who, setWho] = useState("");
+  const [found, setFound] = useState<{ name: string | null; progress: { flow_slug: string; step_index: number; answers: Record<string, unknown>; done_at: string | null } | null } | null | undefined>(undefined);
   const [slug, setSlug] = useState<string | null>(null);
   const [draft, setDraft] = useState<Flow | null>(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const { ok, data } = await adminJson<{ flows: Flow[]; lectures: Lecture[] }>("/api/admin/hc/onboarding");
+    const { ok, data } = await adminJson<{ flows: Flow[]; lectures: Lecture[]; funnel: Record<string, Funnel> }>("/api/admin/hc/onboarding");
     if (!ok) return;
     setTimeout(() => {
       setFlows(data.flows ?? []);
       setLectures(data.lectures ?? []);
+      setFunnel(data.funnel ?? {});
     }, 0);
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -248,6 +253,85 @@ export default function OnboardingAdminPage() {
                   </li>
                 )}
               </ol>
+
+              {/* Whether anybody finishes it.
+                  The composer could arrange a journey and say nothing about
+                  how it performs — which is how a flow with a dead step
+                  stays published for a month. "Stöðvast á" is the number
+                  that tells you WHICH step to change, so it is the one
+                  printed largest. */}
+              {(() => {
+                const f = funnel[draft.slug];
+                if (!f?.started) {
+                  return (
+                    <p className="mt-4 rounded-xl bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
+                      Enginn hefur farið í gegnum þetta ferli enn.
+                    </p>
+                  );
+                }
+                const stops = Object.entries(f.stoppedAt).sort((a, b) => b[1] - a[1]);
+                return (
+                  <div className="mt-4 rounded-xl bg-white p-3 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Hvernig gengur</p>
+                    <p className="mt-1 text-sm text-slate-700">
+                      <strong className="text-slate-900">{f.done}</strong> af{" "}
+                      <strong className="text-slate-900">{f.started}</strong> hafa klárað
+                      {f.started > 0 && <span className="text-slate-500"> ({Math.round((f.done / f.started) * 100)}%)</span>}
+                    </p>
+                    {stops.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {stops.slice(0, 3).map(([idx, n]) => {
+                          const st = draft.steps[Number(idx)];
+                          const label = st ? (moduleDef(st.kind)?.label ?? st.kind) : "óþekkt skref";
+                          return (
+                            <li key={idx} className="text-sm text-slate-700">
+                              <span className="font-semibold text-amber-800">{n}</span> stöðvast á{" "}
+                              <span className="font-semibold">{Number(idx) + 1}. {label}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* One person, by email. For replaying a support ticket:
+                  what they answered and where they are. */}
+              <div className="mt-3 rounded-xl bg-white p-3 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Skoða einn notanda</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <input value={who} onChange={(e) => setWho(e.target.value)} placeholder="netfang"
+                    aria-label="Netfang" className="min-h-9 flex-1 rounded-lg border border-slate-300 px-2 text-sm" />
+                  <button type="button" disabled={!who.trim()}
+                    onClick={() => void (async () => {
+                      setFound(undefined);
+                      const { ok, data } = await adminJson<{ client: { name: string | null } | null; progress: never }>(
+                        `/api/admin/hc/onboarding?client=${encodeURIComponent(who.trim())}`);
+                      setFound(ok ? (data.client ? { name: data.client.name, progress: data.progress ?? null } : null) : null);
+                    })()}
+                    className="min-h-9 rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white disabled:opacity-40">
+                    Fletta upp
+                  </button>
+                </div>
+                {found === null && <p className="mt-2 text-sm text-slate-600">Fannst ekki.</p>}
+                {found && found !== undefined && (
+                  <div className="mt-2 text-sm text-slate-700">
+                    <p className="font-semibold text-slate-900">{found.name ?? "—"}</p>
+                    {found.progress ? (
+                      <>
+                        <p className="text-slate-600">
+                          {found.progress.flow_slug} · skref {found.progress.step_index + 1}
+                          {found.progress.done_at ? " · klárað" : " · í gangi"}
+                        </p>
+                        <pre className="mt-1.5 overflow-x-auto rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
+{JSON.stringify(found.progress.answers, null, 1)}
+                        </pre>
+                      </>
+                    ) : <p className="text-slate-600">Hefur ekki byrjað í neinu ferli.</p>}
+                  </div>
+                )}
+              </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button type="button" onClick={() => void save(false)} disabled={busy}
