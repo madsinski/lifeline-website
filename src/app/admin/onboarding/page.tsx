@@ -81,7 +81,7 @@ export default function OnboardingAdminPage() {
     return () => clearTimeout(t);
   }, [slug, flows]);
 
-  const problems = useMemo(() => (draft ? flowProblems(draft.steps) : []), [draft]);
+  const problems = useMemo(() => (draft ? flowProblems(draft.steps, draft.audience) : []), [draft]);
   const problemFor = (id: string) => problems.find((p) => p.id === id)?.message;
 
   const patch = (i: number, p: Partial<FlowStep>) =>

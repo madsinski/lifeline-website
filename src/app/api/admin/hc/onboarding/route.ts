@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
      half-arranged is the normal state of arranging something. */
   const active = b?.active === true;
   if (active) {
-    const problems = flowProblems(steps);
+    const problems = flowProblems(steps, audience);
     if (problems.length) {
       return NextResponse.json({
         error: "Ferlið gengur ekki upp í þessari röð.", problems,

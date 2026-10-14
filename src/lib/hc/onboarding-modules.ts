@@ -59,6 +59,17 @@ export interface ModuleDef {
   repeatable: boolean;
   /** Which config fields the composer should offer. */
   config?: ("lectureSlug" | "questionKey" | "title" | "body" | "skippable")[];
+  /**
+   * Only meaningful for the coaching audience.
+   *
+   * The health assessment is a medical service — measurements, bloods and a
+   * doctor's report, in Medalia. Nothing here produces a clinical finding,
+   * and asking somebody who already has that report to self-assess would be
+   * offering them a worse version of it. The composer warns when one of
+   * these lands in a check-track flow rather than refusing it, because a
+   * mixed flow is a judgement call and not an error.
+   */
+  coachingOnly?: boolean;
 }
 
 export const MODULES: ModuleDef[] = [
@@ -74,17 +85,22 @@ export const MODULES: ModuleDef[] = [
   },
   {
     kind: "question", label: "Spurning",
-    blurb: "Ein spurning með svarmöguleikum — markmið, hreyfing eða aldur. Svörin stýra tillögunni.",
+    blurb: "Ein spurning með svarmöguleikum — markmið, hreyfing eða aldur. Svörin ráða upphafssniðinu.",
     needs: ["account"], gives: ["answers"], repeatable: true, config: ["questionKey", "skippable"],
+    coachingOnly: true,
   },
   {
-    /* From the RN app's step 2. Four sliders is the fastest way to a
-       starting level that is not a guess, and the adaptive programme
-       already reads levels — it was computing them from measurements the
-       coaching track never takes. */
-    kind: "pillars", label: "Sjálfsmat á stoðunum",
-    blurb: "Svefn, næring, hreyfing og andleg líðan — hvar viðkomandi telur sig standa. Gefur upphafsstig.",
+    /* Not a diagnosis and not a substitute for one.
+       The health assessment is a medical service: measurements, bloods, a
+       doctor's reading, all of it in Medalia. Somebody who holds that report
+       must not then be asked to rate their own health — it would be offering
+       a worse version of what they already have. This asks the coaching
+       audience which areas they want to work on, so the starting template
+       has somewhere to start. */
+    kind: "pillars", label: "Sjálfsmat á heilsunni",
+    blurb: "Hvaða svið viltu vinna með — svefn, næring, hreyfing eða andleg líðan. Ræður upphafssniðinu. Á við þjálfun, ekki heilsufarsskoðun.",
     needs: ["account"], gives: ["pillars"], repeatable: false, config: ["skippable"],
+    coachingOnly: true,
   },
   {
     /* The one module that is not optional on an exercise track. Prescribing
@@ -92,16 +108,18 @@ export const MODULES: ModuleDef[] = [
        failure this prevents, and it has to come BEFORE anything that
        produces a programme. */
     kind: "limits", label: "Meiðsli og takmarkanir",
-    blurb: "Verkir, meiðsli, þungun eða annað sem breytir æfingum. Kemur á undan áætlun.",
+    blurb: "Verkir, meiðsli, þungun eða annað sem breytir æfingum. Kemur á undan áætlun. Á við þjálfun.",
     needs: ["account"], gives: ["limits"], repeatable: false,
+    coachingOnly: true,
   },
   {
     /* Shows the programme the answers produce, before it is applied.
        Requires the limitations: a recommendation made without them is one
        that has to be withdrawn. */
-    kind: "recommend", label: "Tillaga að prógrammi",
-    blurb: "Prógrammið sem svörin gefa, til samþykktar. Þarf stoðamat og takmarkanir á undan.",
+    kind: "recommend", label: "Upphafssnið",
+    blurb: "Gróft snið út frá svörunum, sem viðkomandi stillir svo sjálf/ur. Þarf sjálfsmat og takmarkanir á undan. Á við þjálfun.",
     needs: ["answers", "pillars", "limits"], gives: [], repeatable: false, config: ["title"],
+    coachingOnly: true,
   },
   {
     kind: "summary", label: "Tillaga",
@@ -165,7 +183,7 @@ export interface FlowStep {
  * invalid" tells somebody to go hunting, and the thing they would find is
  * exactly what this already knows.
  */
-export function flowProblems(steps: FlowStep[]): { id: string; message: string }[] {
+export function flowProblems(steps: FlowStep[], audience?: string): { id: string; message: string }[] {
   const out: { id: string; message: string }[] = [];
   const have = new Set<Capability>(["account"]); // signing in is the premise
   const seen = new Map<ModuleKind, number>();
@@ -182,6 +200,13 @@ export function flowProblems(steps: FlowStep[]): { id: string; message: string }
         pillars: "sjálfsmat á stoðunum", limits: "upplýsingar um meiðsli",
       } as Record<Capability, string>)[m]);
       out.push({ id: s.id, message: `Vantar ${names.join(" og ")} á undan.` });
+    }
+
+    /* The assessment is a medical service and its report comes from a
+       doctor. A question that produces a starting template has nothing to
+       add to somebody who already holds one. */
+    if (audience === "check" && def.coachingOnly) {
+      out.push({ id: s.id, message: `${def.label} á við þjálfun — ekki þá sem eru með heilsufarsskýrslu.` });
     }
 
     const n = (seen.get(s.kind) ?? 0) + 1;

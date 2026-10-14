@@ -251,8 +251,11 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
         const got = PILLARS.filter((x) => answers[`pillar_${x.key}`]).length;
         return (
           <section>
-            <h1 className="text-2xl font-bold leading-tight text-hc-ink">{step.title || "Hvar stendur þú núna?"}</h1>
-            <p className="mt-1.5 text-sm text-hc-ink-2">Þitt eigið mat. Við notum það sem upphafspunkt, ekki sem einkunn.</p>
+            <h1 className="text-2xl font-bold leading-tight text-hc-ink">{step.title || "Hverju viltu breyta?"}</h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-hc-ink-2">
+              Þitt eigið mat á því hvar skórinn kreppir. Við notum það til að velja hvar við byrjum —
+              þetta er ekki heilsufarsmat og ekki einkunn.
+            </p>
             <div className="mt-5 space-y-4">
               {PILLARS.map((pl) => (
                 <div key={pl.key}>
@@ -349,8 +352,10 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
         const lim = (answers.limits ?? "").split(",").filter((x) => x && x !== "none");
         return (
           <section>
-            <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Prógrammið þitt"}</h1>
-            <p className="mt-1 text-sm text-hc-ink-2">Sett saman úr svörunum þínum. Þjálfarinn fer yfir það með þér.</p>
+            <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Svona leggjum við upp"}</h1>
+            <p className="mt-1 text-sm leading-relaxed text-hc-ink-2">
+            Gróft snið til að byrja með. Þú stillir það sjálf/ur í appinu og þjálfarinn fer yfir það með þér.
+          </p>
             <ul className="mt-5 space-y-2">
               {previewLines(asStart).map((l) => (
                 <li key={l} className="flex items-start gap-2.5 rounded-xl bg-hc-surface p-3.5 shadow-sm">
