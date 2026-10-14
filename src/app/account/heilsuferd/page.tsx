@@ -135,7 +135,7 @@ function Heilsuferd() {
   }, [load, router]);
 
   if (authed === false) return <FirstStep stadur={stadur} />;
-  if (noJourney) return <StartJourney />;
+  if (noJourney) return <StartJourney onStarted={() => void load(true)} />;
 
   if (!data) {
     return (
@@ -412,21 +412,104 @@ function Shell({ children }: { children: React.ReactNode }) {
 // ── Step 1 when logged out ─────────────────────────────────────────────────
 
 /** Signed in, no journey yet: starting one is a choice, not a side effect of looking. */
-function StartJourney() {
+/**
+ * What this is going to be, asked before anything is committed to.
+ *
+ * This was a hero for the health check and one button, so the only question
+ * a new account was asked is whether it wanted the thing we had decided to
+ * sell it. Somebody who came for the coaching had to start a health check to
+ * find out the coaching existed — TrackChoice offers exactly that choice,
+ * but only renders once a journey is already underway, which is after the
+ * decision it is asking about.
+ *
+ * Two routes, because there are two products:
+ *
+ *   Heilsufarsskoðun   measurements, bloods, a doctor's reading, a plan.
+ *                      Booked through Medalia.
+ *   Þjálfun í appinu   sleep, food, movement, mind — daily, no workup.
+ *
+ * The third door stays, quietly: somebody who already holds a report should
+ * not be sold the tests again, and that path (own_report_at) is built and
+ * works. It is a line rather than a card because it is the rarer case.
+ */
+function StartJourney({ onStarted }: { onStarted: () => void }) {
+  const [busy, setBusy] = useState<"check" | "coach" | null>(null);
+
+  /* Both routes create the journey the same way; they differ in the track
+     recorded on it. Done in one step from here so the choice is the first
+     thing that happens, not something corrected afterwards. */
+  const begin = async (track: "check" | "coach") => {
+    setBusy(track);
+    await api("/api/hc/journey?start=1").catch(() => null);
+    if (track === "coach") {
+      await api("/api/hc/journey", {
+        method: "POST",
+        body: JSON.stringify({ action: "choose_track", track: "coach" }),
+      }).catch(() => null);
+    }
+    setBusy(null);
+    onStarted();
+  };
+
   return (
     <Shell>
       <section className={`${hcCard.hero} p-6 sm:p-8`}>
-        <p className={`${hcKicker} text-emerald-300`}>Heilsuferðin</p>
-        <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Heilsufarsskoðun og áætlun sem fylgir þér</h1>
+        <p className={`${hcKicker} text-emerald-300`}>Lifeline</p>
+        <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Hvað viltu byrja á?</h1>
         <p className="mt-2 max-w-2xl text-emerald-100">
-          Mælingar og blóðprufa, skýrsla sem læknir fer yfir, viðtal við hjúkrunarfræðing og aðgerðaáætlun til þriggja mánaða
-          um svefn, hreyfingu, næringu og andlega líðan.
+          Þú getur byrjað á heilsufarsskoðun eða farið beint í þjálfunina. Hvort tveggja er hægt síðar —
+          þú ert ekki að loka neinni leið.
         </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link href="/account/heilsuferd?start=1" className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-hc-ok-surface">Hefja heilsuferð →</Link>
-          <Link href="/account/heilsuferd/adgangur" className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface/15 px-4 font-semibold text-white ring-1 ring-white/30 hover:bg-hc-surface/25">Stillingar</Link>
-        </div>
       </section>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <article className="flex flex-col rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-hairline">
+          <h2 className="font-bold text-hc-ink">Heilsufarsskoðun</h2>
+          <p className="mt-1 flex-1 text-sm leading-relaxed text-hc-ink-2">
+            Mælingar og blóðprufa, skýrsla sem læknir fer yfir, viðtal við hjúkrunarfræðing og
+            aðgerðaáætlun til þriggja mánaða. Tímar bókast í Medalia.
+          </p>
+          <ul className="mt-3 space-y-1 text-sm text-hc-ink-2">
+            <li>· Líkamssamsetning, þrek og styrkur</li>
+            <li>· Blóðprufa og læknisyfirferð</li>
+            <li>· Áætlun út frá þínum tölum</li>
+          </ul>
+          <button type="button" onClick={() => void begin("check")} disabled={!!busy}
+            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-hc-element bg-hc-brand-dark px-5 font-bold text-white transition hover:bg-emerald-800 disabled:opacity-50">
+            {busy === "check" ? "Augnablik…" : "Hefja heilsufarsskoðun"}
+          </button>
+        </article>
+
+        <article className="flex flex-col rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-hairline">
+          <h2 className="font-bold text-hc-ink">Þjálfun í appinu</h2>
+          <p className="mt-1 flex-1 text-sm leading-relaxed text-hc-ink-2">
+            Dagleg þjálfun í svefni, næringu, hreyfingu og andlegri líðan — án mælinga til að byrja með.
+            Þú færð áætlun og getur náð í þjálfarann þinn.
+          </p>
+          <ul className="mt-3 space-y-1 text-sm text-hc-ink-2">
+            <li>· Æfingar og máltíðir sem passa þér</li>
+            <li>· Dagleg skref og eftirfylgd</li>
+            <li>· Skilaboð við þjálfara</li>
+          </ul>
+          <button type="button" onClick={() => void begin("coach")} disabled={!!busy}
+            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-hc-element bg-hc-brand-dark px-5 font-bold text-white transition hover:bg-emerald-800 disabled:opacity-50">
+            {busy === "coach" ? "Augnablik…" : "Byrja í þjálfun"}
+          </button>
+        </article>
+      </div>
+
+      {/* The rarer case, kept reachable. */}
+      <p className="mt-4 text-center text-sm text-hc-ink-2">
+        Ertu þegar með niðurstöður?{" "}
+        <button type="button" onClick={() => void begin("check")} disabled={!!busy}
+          className="font-semibold text-hc-brand-text underline">
+          Byrjaðu hér og settu skýrsluna inn
+        </button>
+      </p>
+
+      <p className="mt-4 text-center text-sm">
+        <Link href="/account/heilsuferd/adgangur" className="text-hc-ink-2 underline">Stillingar</Link>
+      </p>
     </Shell>
   );
 }
