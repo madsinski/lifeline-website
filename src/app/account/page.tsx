@@ -1377,84 +1377,9 @@ function AccountPageInner() {
                 {/* Sjálfsmat has its own abbreviated journey — only the
                     patient-portal questionnaire remains. Short-circuit before
                     the full JourneyTimeline. */}
-                {!companyId && bodyCompPackage === "self-checkin" && bodyCompStatus !== "none" && (
-                  <SelfCheckinJourney
-                    completed={bodyCompStatus === "completed"}
-                    onChangePackage={async () => {
-                      if (!currentBookingId) { router.push("/account/book"); return; }
-                      const done = await cancelCurrentBooking("change");
-                      if (done) router.push("/account/book");
-                    }}
-                  />
-                )}
 
                 {/* Tími has its own 4-step journey: booked → Biody profile
                     → measurement → optional doctor add-on. */}
-                {!companyId && bodyCompPackage === "checkin" && bodyCompStatus !== "none" && (
-                  <CheckinJourney
-                    biodyActivated={biodyActivated}
-                    bodyCompBookingAt={bodyCompBookingAt}
-                    completed={bodyCompStatus === "completed"}
-                    hasDoctorBooking={!!myDoctorSlot || !!videoPortalConfirmedAt}
-                    onGoToBiody={() => setBiodyEditOpen(true)}
-                    onChangePackage={async () => {
-                      if (!currentBookingId) { router.push("/account/book"); return; }
-                      const done = await cancelCurrentBooking("change");
-                      if (done) router.push("/account/book");
-                    }}
-                    doctorAddonPaid={!!checkinDoctorAddonPaidAt}
-                    payingDoctorAddon={payingCheckinDoctor}
-                    hasAvailableInPersonSlots={upcomingDoctorSlots.length > 0}
-                    onPickInPersonDoctorSlot={() => setDrPickerOpen(true)}
-                    onConfirmVideoPortal={async () => {
-                      if (!confirm("Have you booked a video meeting with your Lifeline doctor in the patient portal?")) return;
-                      setVideoConfirmBusy(true);
-                      const { error } = await supabase.rpc("confirm_video_consultation_portal");
-                      if (!error) setVideoPortalConfirmedAt(new Date().toISOString());
-                      setVideoConfirmBusy(false);
-                    }}
-                    videoConfirmBusy={videoConfirmBusy}
-                    onPayDoctorAddon={async () => {
-                      if (!user) return;
-                      if (!confirm("Bæta viðtali við lækni við eftirfylgdina fyrir 18.500 kr.? Greitt í gegnum Straum.")) return;
-                      setPayingCheckinDoctor(true);
-                      try {
-                        const AMOUNT = 18500;
-                        const res = await createStraumurCharge({
-                          amountIsk: AMOUNT,
-                          reference: `checkin-doctor-${user.id}-${Date.now()}`,
-                          description: "Lifeline Health — Tími doctor consultation",
-                          customer: { name: `${profileFirstName} ${profileLastName}`.trim() || user.email || "", email: user.email || "", phone: phone || null },
-                          returnUrl: typeof window !== "undefined" ? window.location.href : "",
-                        });
-                        if (!res.ok) { alert(`Payment failed: ${res.error}`); return; }
-                        const paidAt = new Date().toISOString();
-                        const { error: updErr } = await supabase
-                          .from("clients_decrypted")
-                          .update({ checkin_doctor_addon_paid_at: paidAt })
-                          .eq("id", user.id);
-                        if (updErr) { alert(`Could not record payment: ${updErr.message}`); return; }
-                        await supabase.from("payments").insert({
-                          owner_type: "client",
-                          owner_id: user.id,
-                          owner_company_id: companyId ?? null,
-                          owner_company_name: companyName ?? null,
-                          amount_isk: AMOUNT,
-                          currency: "ISK",
-                          description: "Lifeline Health — Tími doctor consultation",
-                          provider: "straumur",
-                          provider_reference: res.providerReference,
-                          status: "succeeded",
-                          related_type: "checkin_doctor_addon",
-                          paid_at: paidAt,
-                        });
-                        setCheckinDoctorAddonPaidAt(paidAt);
-                      } finally {
-                        setPayingCheckinDoctor(false);
-                      }
-                    }}
-                  />
-                )}
 
 
                 {/* Current bookings */}
@@ -1857,6 +1782,83 @@ function AccountPageInner() {
             {/* ============ ASSESSMENT ============ */}
             {activeSection === "assessment" && (
               <section className="space-y-6">
+                {!companyId && bodyCompPackage === "self-checkin" && bodyCompStatus !== "none" && (
+                  <SelfCheckinJourney
+                    completed={bodyCompStatus === "completed"}
+                    onChangePackage={async () => {
+                      if (!currentBookingId) { router.push("/account/book"); return; }
+                      const done = await cancelCurrentBooking("change");
+                      if (done) router.push("/account/book");
+                    }}
+                  />
+                )}
+
+                {!companyId && bodyCompPackage === "checkin" && bodyCompStatus !== "none" && (
+                  <CheckinJourney
+                    biodyActivated={biodyActivated}
+                    bodyCompBookingAt={bodyCompBookingAt}
+                    completed={bodyCompStatus === "completed"}
+                    hasDoctorBooking={!!myDoctorSlot || !!videoPortalConfirmedAt}
+                    onGoToBiody={() => setBiodyEditOpen(true)}
+                    onChangePackage={async () => {
+                      if (!currentBookingId) { router.push("/account/book"); return; }
+                      const done = await cancelCurrentBooking("change");
+                      if (done) router.push("/account/book");
+                    }}
+                    doctorAddonPaid={!!checkinDoctorAddonPaidAt}
+                    payingDoctorAddon={payingCheckinDoctor}
+                    hasAvailableInPersonSlots={upcomingDoctorSlots.length > 0}
+                    onPickInPersonDoctorSlot={() => setDrPickerOpen(true)}
+                    onConfirmVideoPortal={async () => {
+                      if (!confirm("Have you booked a video meeting with your Lifeline doctor in the patient portal?")) return;
+                      setVideoConfirmBusy(true);
+                      const { error } = await supabase.rpc("confirm_video_consultation_portal");
+                      if (!error) setVideoPortalConfirmedAt(new Date().toISOString());
+                      setVideoConfirmBusy(false);
+                    }}
+                    videoConfirmBusy={videoConfirmBusy}
+                    onPayDoctorAddon={async () => {
+                      if (!user) return;
+                      if (!confirm("Bæta viðtali við lækni við eftirfylgdina fyrir 18.500 kr.? Greitt í gegnum Straum.")) return;
+                      setPayingCheckinDoctor(true);
+                      try {
+                        const AMOUNT = 18500;
+                        const res = await createStraumurCharge({
+                          amountIsk: AMOUNT,
+                          reference: `checkin-doctor-${user.id}-${Date.now()}`,
+                          description: "Lifeline Health — Tími doctor consultation",
+                          customer: { name: `${profileFirstName} ${profileLastName}`.trim() || user.email || "", email: user.email || "", phone: phone || null },
+                          returnUrl: typeof window !== "undefined" ? window.location.href : "",
+                        });
+                        if (!res.ok) { alert(`Payment failed: ${res.error}`); return; }
+                        const paidAt = new Date().toISOString();
+                        const { error: updErr } = await supabase
+                          .from("clients_decrypted")
+                          .update({ checkin_doctor_addon_paid_at: paidAt })
+                          .eq("id", user.id);
+                        if (updErr) { alert(`Could not record payment: ${updErr.message}`); return; }
+                        await supabase.from("payments").insert({
+                          owner_type: "client",
+                          owner_id: user.id,
+                          owner_company_id: companyId ?? null,
+                          owner_company_name: companyName ?? null,
+                          amount_isk: AMOUNT,
+                          currency: "ISK",
+                          description: "Lifeline Health — Tími doctor consultation",
+                          provider: "straumur",
+                          provider_reference: res.providerReference,
+                          status: "succeeded",
+                          related_type: "checkin_doctor_addon",
+                          paid_at: paidAt,
+                        });
+                        setCheckinDoctorAddonPaidAt(paidAt);
+                      } finally {
+                        setPayingCheckinDoctor(false);
+                      }
+                    }}
+                  />
+                )}
+
                 {/* The journey itself. It was on Yfirlit, where it was the
                     largest thing on a page that is meant to say who you are
                     and what you have access to — and every step of it is
