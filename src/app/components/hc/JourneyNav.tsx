@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useKeyboard } from "@/lib/hc/use-keyboard";
 import { supabase } from "@/lib/supabase";
-import { Zap, BookOpen, Compass, Dumbbell, FileHeart, MoreHorizontal, Settings, Sun, UserRound, Utensils } from "lucide-react";
+import { BookOpen, Compass, Dumbbell, ExternalLink, FileHeart, MoreHorizontal, Settings, Sun, UserRound, Utensils, Zap } from "lucide-react";
 
 export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "coach" | "report" | "journey" | "notifications" | "account";
 
@@ -202,6 +202,16 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
                     )}
                   </Link>
                 ))}
+                {/* Out of the app and onto the website.
+                    Separated by a rule because it leaves: the items above
+                    move you within the journey, this one does not. The
+                    in-app "Stillingar" above still points at /app/adgangur,
+                    which is a different thing — the journey's own settings
+                    rather than the account. */}
+                <Link href="/account"
+                  className="flex items-center gap-3 border-t border-hc-hairline px-4 py-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+                  <ExternalLink className="h-5 w-5" aria-hidden /> Mínar síður
+                </Link>
               </div>
             )}
           </div>
@@ -252,6 +262,16 @@ export default function JourneyNav({ active, hasReport = true, hasExercise = tru
                         <i.Icon className="h-5 w-5" aria-hidden />{i.label}
                       </Link>
                     ))}
+                    {/* Out of the app and onto the website.
+                        Separated by a rule because it leaves: the items above
+                        move you within the journey, this one does not. The
+                        in-app "Stillingar" above still points at /app/adgangur,
+                        which is a different thing — the journey's own settings
+                        rather than the account. */}
+                    <Link href="/account"
+                      className="flex items-center gap-3 border-t border-hc-hairline px-4 py-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+                      <ExternalLink className="h-5 w-5" aria-hidden /> Mínar síður
+                    </Link>
                   </div>
                 )}
               </div>
