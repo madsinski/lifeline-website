@@ -2,7 +2,7 @@
 
 // Sign-in with a PIN on this device, and the calendar feed / Google calendar
 // for the participant's appointments. Shown on the journey page and on
-// "Aðgangur" (/account/heilsuferd/adgangur).
+// "Aðgangur" (/app/adgangur).
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";

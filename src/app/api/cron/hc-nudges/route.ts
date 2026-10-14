@@ -17,7 +17,7 @@ import type { ActionPlan } from "@/lib/hc/types";
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const URL_TODAY = "https://www.lifelinehealth.is/account/heilsuferd/aaetlun?tab=today";
+const URL_TODAY = "https://www.lifelinehealth.is/app/aaetlun?tab=today";
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;

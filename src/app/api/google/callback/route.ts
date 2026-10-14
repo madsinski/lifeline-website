@@ -22,13 +22,13 @@ export async function GET(req: Request) {
   const state = G.verifyState(q.get("state") ?? "");
   if (!state) return back(req, "/", { google: "state" });
 
-  const home = state.returnTo || (state.kind === "worker" ? "/vinnustod" : "/account/heilsuferd");
+  const home = state.returnTo || (state.kind === "worker" ? "/vinnustod" : "/app");
   if (state.kind === "worker") {
     const { data } = await supabaseAdmin.from("hc_workers").select("id, active").eq("id", state.ownerId).maybeSingle();
     if (!data?.active) return back(req, "/vinnustod", { google: "notfound" });
   } else {
     const { data } = await supabaseAdmin.auth.admin.getUserById(state.ownerId);
-    if (!data?.user) return back(req, "/account/heilsuferd", { google: "notfound" });
+    if (!data?.user) return back(req, "/app", { google: "notfound" });
   }
 
   if (q.get("error")) return back(req, home, { google: "cancelled" });

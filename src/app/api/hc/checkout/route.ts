@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
       reference: journey.id,
       description: pkg.name,
       customer: { name: profile!.full_name || user.email || "", email: user.email || "", phone: profile!.phone },
-      returnUrl: `${siteOrigin(req)}/account/heilsuferd`,
+      returnUrl: `${siteOrigin(req)}/app`,
     });
     if (!charge.ok) {
       if (companyCode) await supabaseAdmin.from("company_hc_codes").update({ redeemed_by: null, redeemed_at: null }).eq("id", companyCode.id);
@@ -284,9 +284,9 @@ export async function POST(req: NextRequest) {
         <div style="font-family:ui-monospace,monospace;font-size:26px;letter-spacing:.12em;text-align:center;background:#ECFDF5;border-radius:10px;padding:16px;margin:16px 0;color:#065F46;font-weight:700;">${code}</div>
         <p style="margin:0;">Þú finnur kóðann líka alltaf á aðganginum þínum.</p>`,
       ctaLabel: "Opna heilsuferðina",
-      ctaUrl: `${origin}/account/heilsuferd`,
+      ctaUrl: `${origin}/app`,
     }),
-    text: `${pkg.name} er greidd. Virkjunarkóðinn þinn er ${code}. Opnaðu heilsuferðina: ${origin}/account/heilsuferd`,
+    text: `${pkg.name} er greidd. Virkjunarkóðinn þinn er ${code}. Opnaðu heilsuferðina: ${origin}/app`,
   });
 
   return NextResponse.json({ ok: true, order, journey, quote: q });

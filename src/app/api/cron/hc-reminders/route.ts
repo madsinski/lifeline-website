@@ -25,7 +25,7 @@ async function emailOf(clientId: string): Promise<string | null> {
   return data?.user?.email ?? null;
 }
 
-async function send(clientId: string, title: string, body: string, path = "/account/heilsuferd"): Promise<boolean> {
+async function send(clientId: string, title: string, body: string, path = "/app"): Promise<boolean> {
   const to = await emailOf(clientId);
   if (!to) return false;
   const r = await sendEmail({
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
       .is("followup_invited_at", null).is("cancelled_at", null);
     for (const j of js || []) {
       const body = "Þrír mánuðir eru liðnir frá því að áætlunin þín var gerð. Í eftirfylgdarviðtali farið þið hjúkrunarfræðingurinn yfir hvernig gengur og uppfærið áætlunina. Hjúkrunarfræðingurinn hefur samband til að finna tíma, eða þú svarar þessum pósti.";
-      if (await send(j.client_id, "Tími fyrir eftirfylgd", body, "/account/heilsuferd/aaetlun")) {
+      if (await send(j.client_id, "Tími fyrir eftirfylgd", body, "/app/aaetlun")) {
         await supabaseAdmin.from("hc_journeys").update({ followup_invited_at: new Date().toISOString() }).eq("id", j.id);
         await hcAudit("system", "followup_invite_sent", j.id);
         sent.invite++;

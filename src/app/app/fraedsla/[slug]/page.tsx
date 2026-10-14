@@ -33,7 +33,7 @@ export default function LecturePage() {
   useEffect(() => {
     (async () => {
       const r = await authed(`/api/hc/lectures/${slug}`);
-      if (r.status === 401) { router.replace(`/account/login?next=${encodeURIComponent(`/account/heilsuferd/fraedsla/${slug}`)}`); return; }
+      if (r.status === 401) { router.replace(`/account/login?next=${encodeURIComponent(`/app/fraedsla/${slug}`)}`); return; }
       if (!r.ok) { setError("Fyrirlesturinn fannst ekki."); return; }
       const j = await r.json();
       setLecture(j.lecture);
@@ -57,7 +57,7 @@ export default function LecturePage() {
       <div className="mx-auto max-w-4xl px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
         <JourneyHeader />
         <div className="sm:mb-4"><JourneyNav active="fraedsla" /></div>
-        <BackLink href="/account/heilsuferd/fraedsla" label="Fræðslan" />
+        <BackLink href="/app/fraedsla" label="Fræðslan" />
         {error && <p className="mt-8 text-hc-ink-2">{error}</p>}
         {lecture && (
           <article className="mt-5">
@@ -85,11 +85,11 @@ export default function LecturePage() {
                 )}
               <span className="flex-1" />
               {next
-                ? <Link href={`/account/heilsuferd/fraedsla/${next.slug}`}
+                ? <Link href={`/app/fraedsla/${next.slug}`}
                     className="inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-hc-surface px-4 text-sm font-semibold text-hc-ink-2 shadow-sm hover:bg-hc-sunken">
                     Næsti: {next.title} <ChevronRight className="h-4 w-4" aria-hidden />
                   </Link>
-                : <BackLink href="/account/heilsuferd" label="Aftur í heilsuferðina" />}
+                : <BackLink href="/app" label="Aftur í heilsuferðina" />}
             </div>
           </article>
         )}

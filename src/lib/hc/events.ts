@@ -124,7 +124,7 @@ async function notifyClient(j: HcJourney, event: JourneyEvent, origin = "https:/
   await sendEmail({
     to: email,
     subject: m.title,
-    html: renderBrandedEmail({ title: m.title, bodyHtml: `<p style="margin:0;">${m.body}</p>`, ctaLabel: "Opna heilsuferðina", ctaUrl: `${origin}/account/heilsuferd` }),
-    text: `${m.body}\n\n${origin}/account/heilsuferd`,
+    html: renderBrandedEmail({ title: m.title, bodyHtml: `<p style="margin:0;">${m.body}</p>`, ctaLabel: "Opna heilsuferðina", ctaUrl: `${origin}/app` }),
+    text: `${m.body}\n\n${origin}/app`,
   }).catch(() => {});
 }

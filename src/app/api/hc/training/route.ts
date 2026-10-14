@@ -1,5 +1,5 @@
 // The participant's own training settings (level, plus-minus load, injuries)
-// for the adaptive programme on /account/heilsuferd/aaetlun.
+// for the adaptive programme on /app/aaetlun.
 // GET ?journey=<id> → settings; POST → save. Own journey only.
 
 import { NextRequest, NextResponse, after } from "next/server";

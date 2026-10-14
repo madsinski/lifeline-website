@@ -1,7 +1,7 @@
 // Exercise library search.
 //
 // Used by the plan builder (/vinnustod + /admin/coach/plans) and by the
-// participant's own swap wizard on /account/heilsuferd/aaetlun. Reads the
+// participant's own swap wizard on /app/aaetlun. Reads the
 // same `exercises` table that /admin/content manages.
 //
 // GET ?q=&category=&equipment=&muscles=&best=1&limit=

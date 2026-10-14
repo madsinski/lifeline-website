@@ -66,7 +66,7 @@ interface SubscriptionRow {
 type Section = "overview" | "profile" | "messages" | "assessment" | "education" | "programs" | "settings" | "upgrade" | "billing";
 // "upgrade" (app soft-sell) and "assessment" (legacy package picker) still
 // render when linked to directly, but are no longer in the menu: the
-// health-check journey (/account/heilsuferd) is the way in.
+// health-check journey (/app) is the way in.
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Yfirlit", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
   { id: "billing", label: "Greiðslur", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
@@ -351,7 +351,7 @@ function AccountPageInner() {
         const peek = await hcCache.load(hc, "/api/hc/journey/exists").then((e) => e.body as { exists?: boolean; has_plan?: boolean }).catch(() => null);
         if (peek?.exists) {
           hcCache.prefetch(hc, peek.has_plan ? ["/api/hc/actions", "/api/hc/plan"] : ["/api/hc/journey"]);
-          router.replace(peek.has_plan ? "/account/heilsuferd/aaetlun" : "/account/heilsuferd");
+          router.replace(peek.has_plan ? "/app/aaetlun" : "/app");
           return;
         }
       }
@@ -1210,7 +1210,7 @@ function AccountPageInner() {
                   {item.label}
                 </button>
               ))}
-              <Link href="/account/heilsuferd" className="mt-1 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#065F46] bg-emerald-50 hover:bg-emerald-100 transition-all whitespace-nowrap">
+              <Link href="/app" className="mt-1 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#065F46] bg-emerald-50 hover:bg-emerald-100 transition-all whitespace-nowrap">
                 <span className="w-5 text-center" aria-hidden>✚</span>
                 Heilsuferðin
               </Link>
@@ -1294,9 +1294,9 @@ function AccountPageInner() {
                 </section>
 
                 {/* Heilsuferð — the self-service health-check journey
-                    (/account/heilsuferd). Same entry for B2C and B2B. */}
+                    (/app). Same entry for B2C and B2B. */}
                 <Link
-                  href="/account/heilsuferd"
+                  href="/app"
                   className="group flex items-center gap-4 rounded-2xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-5 text-white shadow-md transition hover:shadow-lg"
                 >
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg">✚</span>

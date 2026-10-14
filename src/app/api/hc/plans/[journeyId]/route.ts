@@ -148,9 +148,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ journeyId:
         bodyHtml: `<p style="margin:0 0 12px;">${plan.headline ? `<strong>${String(plan.headline).replace(/</g, "&lt;")}</strong><br/>` : ""}Áætlunin nær yfir svefn, hreyfingu, næringu og andlega líðan. Þú getur skoðað hana í síma eða tölvu og prentað hana út.</p>
           <p style="margin:0;">Eftirfylgdarviðtal eftir þrjá mánuði er ráðlagt. Þú getur bókað það á aðganginum þínum.</p>`,
         ctaLabel: "Skoða áætlunina",
-        ctaUrl: `${origin}/account/heilsuferd/aaetlun`,
+        ctaUrl: `${origin}/app/aaetlun`,
       }),
-      text: `Aðgerðaáætlunin þín er tilbúin: ${origin}/account/heilsuferd/aaetlun`,
+      text: `Aðgerðaáætlunin þín er tilbúin: ${origin}/app/aaetlun`,
     });
   }
   return NextResponse.json({ ok: true });

@@ -92,7 +92,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ companyId:
     for (const c of created) {
       const m = byId.get(c.member_id);
       if (!m?.email) continue;
-      const signup = `${origin}/account/login?mode=signup&next=${encodeURIComponent("/account/heilsuferd")}`;
+      const signup = `${origin}/account/login?mode=signup&next=${encodeURIComponent("/app")}`;
       const r = await sendEmail({
         to: m.email,
         subject: `${a.company.name} býður þér í heilsufarsskoðun`,

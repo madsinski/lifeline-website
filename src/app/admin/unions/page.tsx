@@ -5,7 +5,7 @@
 // review → save; signed cooperation agreement on file; the contact person
 // who receives members' reimbursement applications. Only unions with
 // status "approved" AND a signed, unexpired agreement are offered at
-// checkout (/account/heilsuferd).
+// checkout (/app).
 
 import { useCallback, useEffect, useState } from "react";
 import { useStaffGuard } from "@/lib/useStaffGuard";

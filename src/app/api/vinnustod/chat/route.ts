@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
       // conversation, and a health message does not belong on a lock screen
       // in full.
       body: text.length > 90 ? `${text.slice(0, 90)}…` : text,
-      url: "/account/heilsuferd/aaetlun?tab=coach",
+      url: "/app/aaetlun?tab=coach",
       tag: `chat-${journeyId}`,
     }).catch(() => {});
   });

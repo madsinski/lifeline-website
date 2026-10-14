@@ -77,7 +77,7 @@ export default function BetaFeedback() {
   // bottom bar, and on Þjálfari a docked composer as well, so a floating
   // pill at bottom-6 right-6 lands on top of them — measured sitting over
   // the week grid's own buttons on Æfingar.
-  if (!hasPreview || hidden || pathname.startsWith("/app") || pathname.startsWith("/account/heilsuferd")) return null;
+  if (!hasPreview || hidden || pathname.startsWith("/app") || pathname.startsWith("/app")) return null;
 
   return (
     <>

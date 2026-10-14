@@ -103,7 +103,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   // marketing nav must not also render — otherwise the header doubles up.
   // Placed after all hooks so the rules of hooks are respected.
   /*
-   * /account/heilsuferd is an app, not a page of the site.
+   * /app is an app, not a page of the site.
    *
    * It already carries its own navigation — the bottom bar with Í dag,
    * Æfingar, Næring, Þjálfari — and it was being wrapped in the marketing
@@ -115,7 +115,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
    * /account/login and /account/signup keep the chrome: those are doors
    * into the site and the brand belongs on them.
    */
-  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar", "/vinnustod", "/app", "/account/heilsuferd"];
+  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar", "/vinnustod", "/app"];
   if (chromeFree.some((p) => pathname.startsWith(p))) {
     return null;
   }
@@ -197,7 +197,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                       {t("nav.my_account", "Minn reikningur")}
                     </Link>
-                    <Link href="/account/heilsuferd/adgangur" onClick={() => setAcctOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100">
+                    <Link href="/app/adgangur" onClick={() => setAcctOpen(false)} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50 border-t border-gray-100">
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.3 4.3c.4-1.7 2.9-1.7 3.4 0a1.7 1.7 0 002.6 1.1c1.5-.9 3.3.8 2.3 2.3a1.7 1.7 0 001.1 2.6c1.7.4 1.7 2.9 0 3.4a1.7 1.7 0 00-1.1 2.6c.9 1.5-.8 3.3-2.3 2.3a1.7 1.7 0 00-2.6 1.1c-.4 1.7-2.9 1.7-3.4 0a1.7 1.7 0 00-2.6-1.1c-1.5.9-3.3-.8-2.3-2.3a1.7 1.7 0 00-1.1-2.6c-1.7-.4-1.7-2.9 0-3.4a1.7 1.7 0 001.1-2.6c-.9-1.5.8-3.3 2.3-2.3 1 .6 2.3.1 2.6-1.1z M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                       Aðgangur og stillingar
                     </Link>

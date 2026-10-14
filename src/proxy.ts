@@ -21,7 +21,9 @@ const BYPASS_PREFIXES = [
   "/api",                   // API routes (own auth)
   "/access",                // the /access/claim + /access/error pages
   "/app",                   // the app surface (own auth guard in its layout)
-  "/account/login",         // existing users need to be able to log in
+  "/account",               // the account area — own Supabase auth guard, and
+                            //   it is a page of the site now rather than a
+                            //   doorway that bounced everyone to the app
   "/byrja",                 // the signup flow itself — gating the way IN
                             //   makes the gate the product
   "/business/login",        //   "          "
@@ -46,7 +48,7 @@ const BYPASS_PREFIXES = [
   "/sales-terms",           //   "  (English)
   "/heilsuskodun",          // public health-check entry per location (posters, employers, heilsugæsla)
   "/vinnustod",             // nurse/doctor workstation — own cookie auth (src/lib/hc/ws-auth.ts)
-  "/account/heilsuferd",    // health-check journey — own Supabase session check; signup must reach it
+  "/app",    // health-check journey — own Supabase session check; signup must reach it
   // ── Infrastructure
   "/coming-soon",           // the gate's own rewrite target
   "/manifest.webmanifest",  // installable app manifest (src/app/manifest.ts)
@@ -153,9 +155,11 @@ export async function proxy(request: NextRequest) {
   //    let everything through instead of rewriting to coming-soon.
   if (!(await isSiteGated(supabase, Date.now()))) return response;
 
-  // 5. Default: gate to coming-soon — except the account area: a participant
-  //    who lands on /account (navbar, old emails, password reset) belongs in
-  //    their heilsuferð, which is open to them.
-  if (pathname.startsWith("/account")) return NextResponse.redirect(new URL("/account/heilsuferd", request.url));
+  // 5. Default: gate to coming-soon.
+  //
+  //    /account used to be special-cased into a redirect to the journey,
+  //    because the account area had nothing of its own to show. It does now,
+  //    and it is in the bypass list above with its own auth guard — so the
+  //    redirect would only have been in the way.
   return NextResponse.rewrite(new URL("/coming-soon", request.url));
 }

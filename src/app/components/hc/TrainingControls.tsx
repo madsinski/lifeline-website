@@ -2,7 +2,7 @@
 
 // Settings for the adaptive training programme (src/lib/hc/adaptive-program.ts):
 // where the participant is (stage and week), their level, a plus-minus load
-// control and injured areas. Used on /account/heilsuferd/aaetlun (participant)
+// control and injured areas. Used on /app/aaetlun (participant)
 // and in the workstation (nurse, same row). Read-only without onChange.
 
 import { CARDIO_IS, LOAD_IS, PLACE_IS, REGION_IS, REGIONS, injuryNotes, stageAt, type Region, type TrainingSettings } from "@/lib/hc/adaptive-program";

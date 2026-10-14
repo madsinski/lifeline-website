@@ -127,7 +127,7 @@ export default function PartnerInvitePage() {
               {s.inviter ? `${s.inviter} getur nú valið þig sem félaga.` : "Boðinu er svarað."}
               {" "}Þú getur gert það sama úr þínum stillingum.
             </p>
-            <Link href="/account/heilsuferd/adgangur"
+            <Link href="/app/adgangur"
               className="mt-5 inline-block rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white">
               Í stillingar
             </Link>

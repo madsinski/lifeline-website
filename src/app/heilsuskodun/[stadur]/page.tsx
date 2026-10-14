@@ -31,7 +31,7 @@ export default async function LocationLanding({ params }: { params: Promise<{ st
   const { loc, pkg } = await load(slug);
   if (!loc) notFound();
 
-  const next = `/account/heilsuferd?stadur=${encodeURIComponent(loc.slug)}`;
+  const next = `/app?stadur=${encodeURIComponent(loc.slug)}`;
   const signup = `/account/login?mode=signup&next=${encodeURIComponent(next)}`;
   const login = `/account/login?next=${encodeURIComponent(next)}`;
 

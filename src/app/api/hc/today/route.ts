@@ -261,7 +261,7 @@ export async function POST(req: NextRequest) {
     await sendPush(partnerId, {
       title: `${from} ${NUDGES[kind]}`,
       body: note || "Opnaðu heilsuferðina til að sjá.",
-      url: "/account/heilsuferd/aaetlun?tab=today",
+      url: "/app/aaetlun?tab=today",
       tag: `nudge-from-${user.id}`,
     }).catch(() => {});
   });

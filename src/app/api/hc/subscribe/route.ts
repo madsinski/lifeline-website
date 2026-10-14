@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
       reference: `sub_${user.id.slice(0, 8)}`,
       description: p.name,
       customer: { name: user.email || "", email: user.email || "", phone: null },
-      returnUrl: `${siteOrigin(req)}/account/heilsuferd`,
+      returnUrl: `${siteOrigin(req)}/app`,
     });
     if (!charge.ok) {
       return NextResponse.json({ error: charge.error || "Greiðsla tókst ekki." }, { status: 402 });

@@ -1,7 +1,7 @@
 "use client";
 
 // Rendering for lecture content, shared by the customer viewer
-// (/account/heilsuferd/fraedsla/[slug]) and the admin editor's live preview
+// (/app/fraedsla/[slug]) and the admin editor's live preview
 // (/admin/lectures) — so what staff see is exactly what customers see.
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";

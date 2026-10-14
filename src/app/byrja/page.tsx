@@ -101,7 +101,7 @@ export default function StartPage() {
       password,
       options: {
         data: { full_name: name.trim() || null, start_answers: a, start_track: track ?? suggested },
-        emailRedirectTo: `${origin}/account/heilsuferd`,
+        emailRedirectTo: `${origin}/app`,
       },
     });
     if (error) { setBusy(false); setErr(error.message); return; }
@@ -112,7 +112,7 @@ export default function StartPage() {
     if (data.session) {
       /* Supabase returned a session, so confirmation is not being enforced
          and the person can simply go in. */
-      router.push("/account/heilsuferd");
+      router.push("/app");
       return;
     }
     setBusy(false);

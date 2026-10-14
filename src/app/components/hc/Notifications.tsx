@@ -205,7 +205,7 @@ export function NotificationBell({ unread, onOpen }: {
 
   return onOpen
     ? <button type="button" onClick={() => { setFresh(false); onOpen(); }} className={cls} aria-label={label}>{inner}</button>
-    : <Link href="/account/heilsuferd/tilkynningar" onClick={() => setFresh(false)} className={cls} aria-label={label}>{inner}</Link>;
+    : <Link href="/app/tilkynningar" onClick={() => setFresh(false)} className={cls} aria-label={label}>{inner}</Link>;
 }
 
 /** The whole Tilkynningar page, as a sheet. */

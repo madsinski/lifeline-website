@@ -29,10 +29,10 @@ export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "co
  * twice.
  */
 const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun; primary?: boolean }[] = [
-  { primary: true, key: "today", label: "Í dag", href: "/account/heilsuferd/aaetlun?tab=today", Icon: Sun },
-  { primary: true, key: "exercise", label: "Æfingar", href: "/account/heilsuferd/aaetlun?tab=exercise", Icon: Dumbbell },
-  { primary: true, key: "nutrition", label: "Næring", href: "/account/heilsuferd/aaetlun?tab=nutrition", Icon: Utensils },
-  { key: "fraedsla", label: "Fræðsla", href: "/account/heilsuferd/fraedsla", Icon: BookOpen },
+  { primary: true, key: "today", label: "Í dag", href: "/app/aaetlun?tab=today", Icon: Sun },
+  { primary: true, key: "exercise", label: "Æfingar", href: "/app/aaetlun?tab=exercise", Icon: Dumbbell },
+  { primary: true, key: "nutrition", label: "Næring", href: "/app/aaetlun?tab=nutrition", Icon: Utensils },
+  { key: "fraedsla", label: "Fræðsla", href: "/app/fraedsla", Icon: BookOpen },
   /*
    * A person, not a speech bubble.
    *
@@ -47,11 +47,11 @@ const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun;
    * Aðgangur gives up CircleUser for a gear so the two are not two people
    * side by side; settings behind a cog is as conventional as it gets.
    */
-  { primary: true, key: "coach", label: "Þjálfari", href: "/account/heilsuferd/aaetlun?tab=coach", Icon: UserRound },
-  { primary: true, key: "report", label: "Skýrslan", href: "/account/heilsuferd/aaetlun?tab=report", Icon: FileHeart },
-  { key: "journey", label: "Ferðin", href: "/account/heilsuferd?ferd=1", Icon: Compass },
-  { key: "notifications", label: "Tilkynningar", href: "/account/heilsuferd/tilkynningar", Icon: Zap },
-  { key: "account", label: "Stillingar", href: "/account/heilsuferd/adgangur", Icon: Settings },
+  { primary: true, key: "coach", label: "Þjálfari", href: "/app/aaetlun?tab=coach", Icon: UserRound },
+  { primary: true, key: "report", label: "Skýrslan", href: "/app/aaetlun?tab=report", Icon: FileHeart },
+  { key: "journey", label: "Ferðin", href: "/app?ferd=1", Icon: Compass },
+  { key: "notifications", label: "Tilkynningar", href: "/app/tilkynningar", Icon: Zap },
+  { key: "account", label: "Stillingar", href: "/app/adgangur", Icon: Settings },
 ];
 
 /*
@@ -112,7 +112,7 @@ export function JourneyHeader() {
        header — the site header it replaced had the whole chrome bar's
        breathing space. */
     <div className="flex items-center justify-between pb-5 pt-2 sm:pb-6 sm:pt-3">
-      <Link href="/account/heilsuferd" aria-label="Heilsuferðin">
+      <Link href="/app" aria-label="Heilsuferðin">
         <LifelineLogo size="sm" />
       </Link>
     </div>

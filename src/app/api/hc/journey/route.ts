@@ -1,4 +1,4 @@
-// The customer's journey hub: everything /account/heilsuferd needs in one call.
+// The customer's journey hub: everything /app needs in one call.
 // GET  → the current journey, or { journey: null } when there is none.
 //      ?stadur=<location slug> or ?start=1 creates it (an explicit start —
 //      just looking at the page must not, or an app subscriber who peeks is

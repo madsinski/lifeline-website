@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
       at: newest.at,
       unread: group.some((m) => m.unread),
       count: group.length,
-      href: "/account/heilsuferd/aaetlun?tab=coach",
+      href: "/app/aaetlun?tab=coach",
     });
   }
 
@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
       title: names.get(m.sender_id as string) ?? "Félagi",
       body: (m.content as string) ?? null,
       at: m.created_at as string, unread: !m.read,
-      href: "/account/heilsuferd/aaetlun?tab=today",
+      href: "/app/aaetlun?tab=today",
     });
   }
 
@@ -157,7 +157,7 @@ export async function GET(req: NextRequest) {
       at: at.toISOString(),
       // A booking is not news; it is a fact about next week.
       unread: false,
-      href: (a.video_room_url as string) ?? "/account/heilsuferd/aaetlun?tab=today",
+      href: (a.video_room_url as string) ?? "/app/aaetlun?tab=today",
     });
   }
 
@@ -168,7 +168,7 @@ export async function GET(req: NextRequest) {
         title: "Skýrsla bíður staðfestingar",
         body: `${(r.approval_requested_by as string) ?? "Starfsmaður"} setti hana inn fyrir þig.`,
         at: r.approval_requested_at as string, unread: true,
-        href: "/account/heilsuferd",
+        href: "/app",
       });
     } else if (r.retention_asked_at && r.client_approved_at) {
       items.push({
@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
         title: "Viltu halda skýrslunni þinni?",
         body: "Við spyrjum einu sinni á ári.",
         at: r.retention_asked_at as string, unread: true,
-        href: "/account/heilsuferd",
+        href: "/app",
       });
     }
   }

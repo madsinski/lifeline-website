@@ -121,7 +121,7 @@ function AccountLoginContent() {
   const [loading, setLoading] = useState(false);
   // The health-check journey has its own onboarding (welcome lecture), so
   // people arriving for it skip the generic welcome slideshow.
-  const journeyNext = nextPath.startsWith("/account/heilsuferd");
+  const journeyNext = nextPath.startsWith("/app");
 
   // PIN sign-in on a trusted device (set up from the journey settings).
   const [pinAvailable, setPinAvailable] = useState<{ email_hint: string | null } | null>(null);

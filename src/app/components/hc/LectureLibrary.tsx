@@ -114,7 +114,7 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
               <ul className="divide-y divide-hc-hairline">
                 {rows.map((l) => (
                   <li key={l.slug}>
-                    <Link href={`/account/heilsuferd/fraedsla/${l.slug}`}
+                    <Link href={`/app/fraedsla/${l.slug}`}
                       className="flex items-center gap-3 px-4 py-3 transition hover:bg-hc-sunken">
                       {l.completed
                         ? <CheckCircle2 className="h-6 w-6 shrink-0 text-hc-brand-text" aria-label="Lokið" />

@@ -161,7 +161,7 @@ export function UpcomingList({ items, onNavigate }: { items: Upcoming[]; onNavig
  * Only a coach message belongs in the thread, and those are notifications
  * rather than upcoming items, so they carry their own href.
  */
-const ROW_HREF = "/account/heilsuferd/aaetlun?tab=coach&sub=book";
+const ROW_HREF = "/app/aaetlun?tab=coach&sub=book";
 
 function Row({ x, urgent = false, onNavigate }: {
   x: Upcoming; urgent?: boolean;

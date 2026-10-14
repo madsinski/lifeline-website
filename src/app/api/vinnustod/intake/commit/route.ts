@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       const { data: link } = await supabaseAdmin.auth.admin.generateLink({
         type: "invite",
         email,
-        options: { redirectTo: `${origin}/account/heilsuferd` },
+        options: { redirectTo: `${origin}/app` },
       });
       const url = link?.properties?.action_link;
       if (url) {

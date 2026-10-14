@@ -136,7 +136,7 @@ export function TodayCard({ d, api, doneToday, ofToday, onNudged }: {
           </button>
         )}
         {!d.partner && (
-          <Link href="/account/heilsuferd/adgangur" className="ml-auto text-xs font-semibold text-hc-brand-text hover:underline">
+          <Link href="/app/adgangur" className="ml-auto text-xs font-semibold text-hc-brand-text hover:underline">
             Velja félaga
           </Link>
         )}

@@ -204,9 +204,9 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
           <div style="font-family:ui-monospace,monospace;font-size:24px;letter-spacing:.12em;text-align:center;background:#ECFDF5;border-radius:10px;padding:14px;margin:16px 0;color:#065F46;font-weight:700;">${order.activation_code}</div>
           <p style="margin:0;">Þar bókar þú líka blóðprufu og mælingar.</p>`,
         ctaLabel: "Opna heilsuferðina",
-        ctaUrl: `${origin}/account/heilsuferd`,
+        ctaUrl: `${origin}/app`,
       }),
-      text: `Virkjunarkóðinn þinn er ${order.activation_code}. ${origin}/account/heilsuferd`,
+      text: `Virkjunarkóðinn þinn er ${order.activation_code}. ${origin}/app`,
     });
     if (!r.ok) return NextResponse.json({ error: r.error || "Sending mistókst." }, { status: 502 });
     await hcAudit(actor.label, "reminder_sent", journey.id);
@@ -262,9 +262,9 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
           title: subject,
           bodyHtml: text.split(/\n{2,}/).map((p) => `<p style="margin:0 0 12px;">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`).join(""),
           ctaLabel: "Opna heilsuferðina",
-          ctaUrl: `${origin}/account/heilsuferd`,
+          ctaUrl: `${origin}/app`,
         });
-        const r = await sendEmail({ to: email, subject, html, text: `${text}\n\n${origin}/account/heilsuferd`, replyTo: actor.kind === "worker" ? actor.worker.email : actor.email ?? undefined });
+        const r = await sendEmail({ to: email, subject, html, text: `${text}\n\n${origin}/app`, replyTo: actor.kind === "worker" ? actor.worker.email : actor.email ?? undefined });
         const status = r.id === "dev-log" ? "dry-run" : r.ok ? "sent" : "failed";
         results.push({ channel: "email", ok: r.ok, to: email, error: r.error, status });
         await db.from("hc_messages").insert({ journey_id: journey.id, client_id: journey.client_id, channel: "email", recipient: email, template, subject, body: text, status, error: r.error ?? null, provider_id: r.id ?? null, sent_by: actor.label });
@@ -288,7 +288,7 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
     const profile = await getClientProfile(journey.client_id);
     const first = (profile?.full_name ?? "").split(" ")[0] || "þú";
     const text = `Hæ ${first}. Heilsufarsskýrslan þín er tilbúin og komin á aðganginn þinn hjá Lifeline. Þar sérðu niðurstöðurnar þínar, viðmiðin og hvað hefur áhrif á hvert gildi.`;
-    const link = `${origin}/account/heilsuferd/aaetlun`;
+    const link = `${origin}/app/aaetlun`;
 
     const results: { channel: string; ok: boolean; status: string }[] = [];
     if (profile?.phone) {

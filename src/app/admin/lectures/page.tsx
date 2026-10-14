@@ -222,7 +222,7 @@ export default function LecturesAdmin() {
               </button>
               <button type="button" onClick={duplicate} className={btnGhost}><Copy className="h-4 w-4" /> Afrita</button>
               {edit.slug && edit.published && (
-                <button type="button" onClick={() => window.open(`/account/heilsuferd/fraedsla/${edit.slug}`, "_blank", "noopener")} className={btnGhost}>
+                <button type="button" onClick={() => window.open(`/app/fraedsla/${edit.slug}`, "_blank", "noopener")} className={btnGhost}>
                   <ExternalLink className="h-4 w-4" /> Opna á vef
                 </button>
               )}

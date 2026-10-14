@@ -11,5 +11,5 @@ export async function POST(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
   if (!googleConfigured()) return NextResponse.json({ error: "Google-dagatal er ekki komið í gagnið enn." }, { status: 503 });
-  return NextResponse.json({ url: consentUrl(user.id, "client", "/account/heilsuferd?cal=1", user.email) });
+  return NextResponse.json({ url: consentUrl(user.id, "client", "/app?cal=1", user.email) });
 }

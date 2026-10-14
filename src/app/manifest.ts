@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Lifeline",
     description: "Áætlunin þín, dagurinn í dag og næsti tími hjá Lifeline Health.",
     lang: "is",
-    start_url: "/account/heilsuferd/aaetlun?tab=today",
+    start_url: "/app/aaetlun?tab=today",
     scope: "/",
     display: "standalone",
     background_color: "#F8FAFC",

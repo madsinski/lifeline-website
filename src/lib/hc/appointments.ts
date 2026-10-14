@@ -97,19 +97,19 @@ export async function clientAppointments(clientId: string): Promise<CalItem[]> {
     if (recent(j.blood_test_booked_for)) out.push({
       id: itemId(j.id, "blood"), start: j.blood_test_booked_for!, minutes: 20,
       summary: "Blóðprufa – Lifeline heilsufarsskoðun",
-      description: `${FASTING_IS}\n\nhttps://www.lifelinehealth.is/account/heilsuferd`,
+      description: `${FASTING_IS}\n\nhttps://www.lifelinehealth.is/app`,
       location: place(loc?.blood_test_site, loc?.blood_test_address), reminderMinutes: 12 * 60,
     });
     if (recent(j.measurements_booked_for)) out.push({
       id: itemId(j.id, "measure"), start: j.measurements_booked_for!, minutes: 30,
       summary: "Mælingar – Lifeline heilsufarsskoðun",
-      description: `${MEASURE_IS}\n\nhttps://www.lifelinehealth.is/account/heilsuferd`,
+      description: `${MEASURE_IS}\n\nhttps://www.lifelinehealth.is/app`,
       location: place(loc?.measurement_site, loc?.measurement_address), reminderMinutes: 120,
     });
     if (recent(j.interview_booked_for)) out.push({
       id: itemId(j.id, "interview"), start: j.interview_booked_for!, minutes: 45,
       summary: "Viðtal við hjúkrunarfræðing – Lifeline",
-      description: `${j.interview_mode === "video" ? (j.meeting_url ? `Myndsímtal: ${j.meeting_url}` : "Myndsímtal. Hlekkurinn birtist á aðganginum þínum.") : "Farið yfir niðurstöður og gerð aðgerðaáætlun."}\n\nhttps://www.lifelinehealth.is/account/heilsuferd`,
+      description: `${j.interview_mode === "video" ? (j.meeting_url ? `Myndsímtal: ${j.meeting_url}` : "Myndsímtal. Hlekkurinn birtist á aðganginum þínum.") : "Farið yfir niðurstöður og gerð aðgerðaáætlun."}\n\nhttps://www.lifelinehealth.is/app`,
       location: j.interview_mode === "video" ? (j.meeting_url ?? "Myndsímtal") : place(loc?.interview_site, loc?.interview_address), reminderMinutes: 120,
     });
     if (recent(j.followup_booked_for)) {
@@ -117,7 +117,7 @@ export async function clientAppointments(clientId: string): Promise<CalItem[]> {
       out.push({
         id: itemId(j.id, "followup"), start: j.followup_booked_for!, minutes: 30,
         summary: "Eftirfylgdarviðtal – Lifeline",
-        description: `Farið yfir árangur og áætlunin uppfærð.${video ? (j.followup_meeting_url ? `\n\nMyndsímtal: ${j.followup_meeting_url}` : "\n\nMyndsímtal. Hlekkurinn birtist á aðganginum þínum.") : ""}\n\nhttps://www.lifelinehealth.is/account/heilsuferd`,
+        description: `Farið yfir árangur og áætlunin uppfærð.${video ? (j.followup_meeting_url ? `\n\nMyndsímtal: ${j.followup_meeting_url}` : "\n\nMyndsímtal. Hlekkurinn birtist á aðganginum þínum.") : ""}\n\nhttps://www.lifelinehealth.is/app`,
         location: video ? (j.followup_meeting_url ?? "Myndsímtal") : place(loc?.interview_site, loc?.interview_address), reminderMinutes: 120,
       });
     }
@@ -220,7 +220,7 @@ function bookingItem(
       loc?.measurement_info && !video ? `\n${loc.measurement_info}` : null,
       b.note,
       b.meeting_url ? `\nMyndsímtal: ${b.meeting_url}` : null,
-      "\nhttps://www.lifelinehealth.is/account/heilsuferd/aaetlun?tab=coach",
+      "\nhttps://www.lifelinehealth.is/app/aaetlun?tab=coach",
     ].filter(Boolean).join("\n"),
     location: video ? (b.meeting_url ?? "Myndsímtal") : (site ?? "Lifeline"),
     reminderMinutes: 30,
@@ -338,7 +338,7 @@ export async function trainingCommitments(clientId: string): Promise<CalItem[]> 
         start: nextOccurrence(a.day, a.at),
         minutes: a.minutes ?? 60,
         summary: a.name,
-        description: "Úr æfingaáætluninni þinni hjá Lifeline.\n\nhttps://www.lifelinehealth.is/account/heilsuferd/aaetlun?tab=exercise",
+        description: "Úr æfingaáætluninni þinni hjá Lifeline.\n\nhttps://www.lifelinehealth.is/app/aaetlun?tab=exercise",
         location: null,
         reminderMinutes: 60,
         recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${BYDAY[a.day]}`],
