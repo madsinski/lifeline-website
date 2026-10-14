@@ -16,7 +16,9 @@ import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
 import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
 import AvatarPicker from "../components/AvatarPicker";
 import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
-import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
+// pickStaffGreeting stays in /admin, where a joke is a staff tool rather
+// than somebody's account page. Only the role type is needed here.
+import { type GreetingRole } from "@/lib/staff-greetings";
 import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
 import { APP_LIVE, APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-links";
 import SignedDocumentsList from "./SignedDocumentsList";
@@ -70,7 +72,6 @@ type Section = "overview" | "profile" | "messages" | "assessment" | "education" 
 // health-check journey (/app) is the way in.
 const navItems: { id: Section; label: string; icon: string }[] = [
   { id: "overview", label: "Yfirlit", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
-  { id: "billing", label: "Greiðslur", icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" },
   { id: "assessment", label: "Heilsufarsskoðun", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
   { id: "upgrade", label: "Þjálfun", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
   { id: "app", label: "Appið", icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" },
@@ -124,10 +125,6 @@ function AccountPageInner() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [staffRole, setStaffRole] = useState<GreetingRole | null>(null);
-  const staffGreeting = useMemo(
-    () => (staffRole ? pickStaffGreeting(staffRole, profileFirstName) : null),
-    [staffRole, profileFirstName],
-  );
   const [bodyCompStatus, setBodyCompStatus] = useState<"none" | "booked" | "completed">("none");
   const [bodyCompPackage, setBodyCompPackage] = useState<"foundational" | "checkin" | "self-checkin" | null>(null);
   const [currentBookingId, setCurrentBookingId] = useState<string | null>(null);
@@ -1272,7 +1269,13 @@ function AccountPageInner() {
                       />
                       <div className="min-w-0 flex-1">
                         <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">
-                          {staffGreeting ?? (profileFirstName ? `Hæ, ${profileFirstName}` : "Mínar síður")}
+                          {/* The name, always. staffGreeting put a rotating
+                              English one-liner here — "Wazzup boss man",
+                              "CEO mode: engaged" — which is neither profile
+                              information nor Icelandic. The greetings file
+                              stays for /admin, where it is a staff tool
+                              rather than somebody's account page. */}
+                          {profileFirstName ? `Hæ, ${profileFirstName}` : "Mínar síður"}
                         </h1>
                         {companyName ? (
                           <p className="text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -2650,7 +2653,13 @@ function AccountPageInner() {
             )}
 
             {/* ============ BILLING ============ */}
-            {activeSection === "billing" && (
+            {/* Greiðslur, inside Stillingar.
+                It was its own menu entry for one panel and a plan summary,
+                which is a page for somebody who visits it twice a year. The
+                section still answers to "billing" so existing links keep
+                working — it simply also renders under Stillingar, where
+                people look for it. */}
+            {(activeSection === "billing" || activeSection === "settings") && (
               <section className="space-y-6">
                 {/* App subscription — only shown while a paid plan is active.
                     The old plan picker is gone; the app is sold on /coaching. */}
