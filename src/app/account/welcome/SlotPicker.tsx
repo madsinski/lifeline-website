@@ -67,9 +67,9 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
     if (err) {
       setError(
         err.message.includes("slot_full")
-          ? t("b2b.welcome.slot.full", "That slot just filled up. Pick another.")
+          ? t("b2b.welcome.slot.full", "Þessi tími var að fyllast. Veldu annan.")
           : err.message.includes("forbidden")
-            ? t("b2b.welcome.slot.forbidden", "You can only book slots at your own company's event.")
+            ? t("b2b.welcome.slot.forbidden", "Þú getur aðeins bókað tíma á viðburði þíns eigin fyrirtækis.")
             : err.message,
       );
       load();
@@ -80,7 +80,7 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
   };
 
   const cancel = async () => {
-    if (typeof window !== "undefined" && !window.confirm("Cancel your measurement slot? You can pick another open time right after.")) return;
+    if (typeof window !== "undefined" && !window.confirm("Afbóka mælingatímann? Þú getur valið annan lausan tíma strax á eftir.")) return;
     setSaving("cancel");
     setError("");
     const { error } = await supabase.rpc("cancel_body_comp_slot", { p_event_id: event.id });
@@ -102,7 +102,7 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100 sticky top-0 bg-white">
-          <h2 className="text-xl font-semibold">{t("b2b.welcome.slot.title", "Pick your 5-minute slot")}</h2>
+          <h2 className="text-xl font-semibold">{t("b2b.welcome.slot.title", "Veldu 5 mínútna tíma")}</h2>
           <p className="text-sm text-gray-600 mt-1">
             {dateLabel} · {event.start_time.slice(0, 5)}–{event.end_time.slice(0, 5)}
           </p>
@@ -111,7 +111,7 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
         </div>
 
         <div className="p-4">
-          {loading && <div className="text-gray-500 text-sm p-4">{t("b2b.welcome.slot.loading", "Loading slots…")}</div>}
+          {loading && <div className="text-gray-500 text-sm p-4">{t("b2b.welcome.slot.loading", "Sæki tíma…")}</div>}
           {error && <div className="text-red-600 text-sm p-4">{error}</div>}
           {!loading && slots.length > 0 && (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -134,7 +134,7 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
                   >
                     <div className="font-mono">{time}</div>
                     <div className="text-[10px] mt-0.5">
-                      {mine ? t("b2b.welcome.slot.mine", "Your slot ✓")
+                      {mine ? t("b2b.welcome.slot.mine", "Þinn tími ✓")
                         : full ? t("b2b.welcome.slot.full_short", "Full")
                         : t("b2b.welcome.slot.available", "{{n}}/{{cap}} booked").replace("{{n}}", String(s.booked_count)).replace("{{cap}}", String(event.slot_capacity))}
                     </div>
@@ -144,14 +144,14 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
             </div>
           )}
           {!loading && slots.length === 0 && !error && (
-            <div className="text-gray-500 text-sm p-4">{t("b2b.welcome.slot.none", "No slots yet.")}</div>
+            <div className="text-gray-500 text-sm p-4">{t("b2b.welcome.slot.none", "Engir tímar enn.")}</div>
           )}
         </div>
 
         <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2 sticky bottom-0 bg-white">
           {slots.some((s) => s.is_mine) ? (
             <button onClick={cancel} disabled={saving !== null} className="text-sm text-red-600 hover:underline disabled:opacity-50">
-              {t("b2b.welcome.slot.cancel", "Cancel my booking")}
+              {t("b2b.welcome.slot.cancel", "Afbóka")}
             </button>
           ) : <span />}
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">

@@ -1,6 +1,6 @@
 "use client";
 
-// "Your signed documents" — read-only list of every legal document
+// "Undirrituð skjöl" — read-only list of every legal document
 // the current user has accepted (TOS, DPA, employee TOS, health-
 // assessment consent, Biody import consent, etc.) with a button to
 // download the original signed PDF certificate.

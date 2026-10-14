@@ -11,9 +11,9 @@ type Props = {
 };
 
 const TITLES: Record<Props["context"], string> = {
-  body_comp: "How was the body-composition scan?",
-  doctor: "How was your doctor consultation?",
-  overall: "How was your Lifeline experience?",
+  body_comp: "Hvernig var líkamssamsetningarmælingin?",
+  doctor: "Hvernig var viðtalið við lækninn?",
+  overall: "Hvernig var upplifunin hjá Lifeline?",
 };
 
 export default function SatisfactionSurveyModal({ companyId, context, onClose, onSubmitted }: Props) {
@@ -24,11 +24,11 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
   const [error, setError] = useState("");
 
   async function submit() {
-    if (nps == null) { setError("Please pick a score from 0 to 10."); return; }
+    if (nps == null) { setError("Veldu einkunn frá 0 til 10."); return; }
     setSaving(true);
     setError("");
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); setError("Not signed in."); return; }
+    if (!user) { setSaving(false); setError("Þú þarft að skrá þig inn."); return; }
     const { error: upErr } = await supabase.from("client_satisfaction_surveys").upsert({
       client_id: user.id,
       company_id: companyId,
@@ -55,7 +55,7 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
         </div>
         <div className="p-6 space-y-5">
           <div>
-            <div className="text-sm font-medium text-gray-900 mb-2">How likely are you to recommend Lifeline to a colleague or friend?</div>
+            <div className="text-sm font-medium text-gray-900 mb-2">Hversu líklegt er að þú mælir með Lifeline við samstarfsfólk eða vini?</div>
             <div className="grid grid-cols-11 gap-1">
               {Array.from({ length: 11 }, (_, i) => i).map((n) => {
                 const selected = nps === n;
@@ -76,12 +76,12 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
               })}
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Not likely</span>
-              <span>Extremely likely</span>
+              <span>Ólíklegt</span>
+              <span>Mjög líklegt</span>
             </div>
           </div>
           <div>
-            <div className="text-sm font-medium text-gray-900 mb-2">How helpful was it for you?</div>
+            <div className="text-sm font-medium text-gray-900 mb-2">Hversu gagnlegt var þetta fyrir þig?</div>
             <div className="grid grid-cols-5 gap-1.5">
               {[1, 2, 3, 4, 5].map((n) => {
                 const selected = helpful === n;
@@ -95,12 +95,12 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
               })}
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Not helpful</span>
-              <span>Very helpful</span>
+              <span>Ekki gagnlegt</span>
+              <span>Mjög gagnlegt</span>
             </div>
           </div>
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Anything we could do better? (optional)</span>
+            <span className="text-sm font-medium text-gray-700">Eitthvað sem við gætum gert betur? (valfrjálst)</span>
             <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
           </label>
           {error && <div className="text-red-600 text-sm">{error}</div>}

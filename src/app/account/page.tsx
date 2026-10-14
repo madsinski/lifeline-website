@@ -994,7 +994,7 @@ function AccountPageInner() {
   //   • paid, ≥ 48h   → confirm + atomic refund_and_cancel_booking RPC
   //                     (refunds Straumur, marks the payments row refunded,
   //                     cancels the booking, releases the station_slot, and
-  //                     optionally refunds the Check-in doctor add-on, all
+  //                     optionally refunds the Tími doctor add-on, all
   //                     in a single SECURITY DEFINER server-side txn)
   //   • paid, < 48h   → alert contact support; no state change
   // Returns true if the booking was cancelled, false if nothing changed.
@@ -1371,7 +1371,7 @@ function AccountPageInner() {
                 )}
 
 
-                {/* Self Check-in has its own abbreviated journey — only the
+                {/* Sjálfsmat has its own abbreviated journey — only the
                     patient-portal questionnaire remains. Short-circuit before
                     the full JourneyTimeline. */}
                 {!companyId && bodyCompPackage === "self-checkin" && bodyCompStatus !== "none" && (
@@ -1385,7 +1385,7 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Check-in has its own 4-step journey: booked → Biody profile
+                {/* Tími has its own 4-step journey: booked → Biody profile
                     → measurement → optional doctor add-on. */}
                 {!companyId && bodyCompPackage === "checkin" && bodyCompStatus !== "none" && (
                   <CheckinJourney
@@ -1413,14 +1413,14 @@ function AccountPageInner() {
                     videoConfirmBusy={videoConfirmBusy}
                     onPayDoctorAddon={async () => {
                       if (!user) return;
-                      if (!confirm("Add a doctor consultation to your Check-in round for 18,500 kr? You'll be charged via Straumur.")) return;
+                      if (!confirm("Bæta viðtali við lækni við eftirfylgdina fyrir 18.500 kr.? Greitt í gegnum Straum.")) return;
                       setPayingCheckinDoctor(true);
                       try {
                         const AMOUNT = 18500;
                         const res = await createStraumurCharge({
                           amountIsk: AMOUNT,
                           reference: `checkin-doctor-${user.id}-${Date.now()}`,
-                          description: "Lifeline Health — Check-in doctor consultation",
+                          description: "Lifeline Health — Tími doctor consultation",
                           customer: { name: `${profileFirstName} ${profileLastName}`.trim() || user.email || "", email: user.email || "", phone: phone || null },
                           returnUrl: typeof window !== "undefined" ? window.location.href : "",
                         });
@@ -1438,7 +1438,7 @@ function AccountPageInner() {
                           owner_company_name: companyName ?? null,
                           amount_isk: AMOUNT,
                           currency: "ISK",
-                          description: "Lifeline Health — Check-in doctor consultation",
+                          description: "Lifeline Health — Tími doctor consultation",
                           provider: "straumur",
                           provider_reference: res.providerReference,
                           status: "succeeded",
@@ -1453,7 +1453,7 @@ function AccountPageInner() {
                   />
                 )}
 
-                {/* Your journey timeline (hidden for B2C pre-booking, Self Check-in, and Check-in) */}
+                {/* Your journey timeline (hidden for B2C pre-booking, Sjálfsmat, and Tími) */}
                 {!(!companyId && bodyCompStatus === "none") && bodyCompPackage !== "self-checkin" && bodyCompPackage !== "checkin" && (
                 <JourneyTimeline
                   onChangePackage={!companyId && bodyCompStatus !== "none" ? async () => {
@@ -1536,7 +1536,7 @@ function AccountPageInner() {
                   onChangeDoctorSlot={() => setDrPickerOpen(true)}
                   onCancelDoctorSlot={async () => {
                     if (!myDoctorSlot) return;
-                    if (!confirm("Cancel your doctor consultation? The slot will go back into the open pool.")) return;
+                    if (!confirm("Afbóka viðtal við lækni? The slot will go back into the open pool.")) return;
                     const { error } = await supabase.rpc("cancel_doctor_slot");
                     if (error) { alert(`Cancel failed: ${error.message}`); return; }
                     setMyDoctorSlot(null);
@@ -2893,13 +2893,13 @@ function BodyCompositionCard({ userId }: { userId: string }) {
       try {
         const { data: s } = await supabase.auth.getSession();
         const token = s.session?.access_token;
-        if (!token) throw new Error("Not signed in");
+        if (!token) throw new Error("Þú þarft að skrá þig inn");
         const res = await fetch("/api/account/biody/measurements", {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
         const j = await res.json().catch(() => ({}));
-        if (!res.ok || !j.ok) throw new Error(j.error || "Could not load measurements");
+        if (!res.ok || !j.ok) throw new Error(j.error || "Tókst ekki að sækja mælingar");
         setMeasurements(j.measurements as BodyCompSummary[]);
       } catch (e) {
         setError((e as Error).message);
@@ -2918,7 +2918,7 @@ function BodyCompositionCard({ userId }: { userId: string }) {
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-[#1F2937]">Body composition</h2>
+          <h2 className="text-lg font-semibold text-[#1F2937]">Líkamssamsetning</h2>
           <p className="text-xs text-[#6B7280] mt-0.5">
             Latest readings from your Biody scan — pulled live, not stored here.
           </p>
@@ -2930,24 +2930,24 @@ function BodyCompositionCard({ userId }: { userId: string }) {
         )}
       </div>
 
-      {loading && <p className="text-sm text-gray-500">Loading measurements…</p>}
+      {loading && <p className="text-sm text-gray-500">Sæki mælingar…</p>}
       {error && (
         <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
           Couldn&apos;t reach Biody: {error}
         </div>
       )}
       {!loading && !error && measurements && measurements.length === 0 && (
-        <p className="text-sm text-gray-500">No analysed measurements yet. Book a scan to get started.</p>
+        <p className="text-sm text-gray-500">Engar greindar mælingar enn. Bókaðu mælingu til að byrja.</p>
       )}
       {latest && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Stat label="Weight" value={latest.weight_kg} unit="kg" />
-          <Stat label="Body fat" value={latest.body_fat_pct} unit="%" />
-          <Stat label="Muscle mass" value={latest.muscle_mass_kg} unit="kg" />
-          <Stat label="Body water" value={latest.body_water_pct} unit="%" />
-          <Stat label="Phase angle" value={latest.phase_angle} unit="°" />
+          <Stat label="Þyngd" value={latest.weight_kg} unit="kg" />
+          <Stat label="Fitumassi" value={latest.body_fat_pct} unit="%" />
+          <Stat label="Vöðvamassi" value={latest.muscle_mass_kg} unit="kg" />
+          <Stat label="Vatnshlutfall" value={latest.body_water_pct} unit="%" />
+          <Stat label="Fasahorn" value={latest.phase_angle} unit="°" />
           <Stat label="BMR" value={latest.bmr_kcal} unit="kcal" />
-          <Stat label="Waist : hip" value={latest.waist_to_hip} unit="" />
+          <Stat label="Mittis- og mjaðmahlutfall" value={latest.waist_to_hip} unit="" />
         </div>
       )}
     </section>
@@ -2992,7 +2992,7 @@ function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGo
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         <div className="text-sm text-amber-900 leading-relaxed flex-1">
-          <p className="font-medium text-amber-950 mb-1">Please confirm a privacy preference</p>
+          <p className="font-medium text-amber-950 mb-1">Staðfestu val um persónuvernd</p>
           <p>
             We&apos;ve added a new privacy control: whether your Biody body-composition
             measurements show up in this app dashboard for self-tracking. By default
@@ -3027,26 +3027,26 @@ function WellnessFramingCard() {
   );
 }
 
-// Self Check-in has no on-site measurement, no blood test, no doctor visit —
+// Sjálfsmat has no on-site measurement, no blood test, no doctor visit —
 // the next step is simply answering the questionnaire in the patient portal.
 // We render an abbreviated journey and a purpose-built hero card.
 function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean; onChangePackage: () => void | Promise<void> }) {
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
-        <h3 className="text-lg font-semibold text-[#1F2937]">Your journey</h3>
+        <h3 className="text-lg font-semibold text-[#1F2937]">Heilsuferðin þín</h3>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
             Change package
           </button>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
             <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-            Self Check-in
+            Sjálfsmat
           </span>
         </div>
       </div>
       <p className="text-sm text-[#6B7280] mb-6">
-        Self Check-in is fully remote — no visit, no blood test. Just the questionnaire in the patient portal.
+        Sjálfsmat is fully remote — no visit, no blood test. Just the questionnaire in the patient portal.
       </p>
       <ol className="relative border-l-2 border-gray-100 ml-4 space-y-5">
         {/* Step 1 */}
@@ -3057,8 +3057,8 @@ function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean
             </svg>
           </span>
           <div>
-            <div className="font-semibold text-[#1F2937]">Self Check-in booked</div>
-            <p className="text-sm text-[#6B7280] mt-1">Your remote check-in is registered. You can find it under Current bookings below.</p>
+            <div className="font-semibold text-[#1F2937]">Sjálfsmat bókað</div>
+            <p className="text-sm text-[#6B7280] mt-1">Fjarmatið þitt er skráð. Þú finnur það undir „Bókanir“ hér fyrir neðan.</p>
           </div>
         </li>
 
@@ -3074,7 +3074,7 @@ function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean
             )}
           </span>
           <div>
-            <div className="font-semibold text-[#1F2937]">Answer the questionnaire in the patient portal</div>
+            <div className="font-semibold text-[#1F2937]">Svaraðu spurningalistanum í sjúklingagáttinni</div>
             <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
               {completed
                 ? "Done. A Lifeline clinician has reviewed your answers and will reach out if anything is flagged."
@@ -3082,7 +3082,7 @@ function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean
             </p>
             {!completed && (
               <div className="mt-3 flex flex-wrap gap-2">
-                <MedaliaButton label="Open patient portal" size="sm" />
+                <MedaliaButton label="Opna sjúklingagátt" size="sm" />
               </div>
             )}
           </div>
@@ -3092,7 +3092,7 @@ function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean
   );
 }
 
-// Check-in package: booked → activate Biody profile → measurement on the
+// Tími package: booked → activate Biody profile → measurement on the
 // scheduled date → (optional) doctor consultation add-on at 18,500 ISK →
 // view results in the patient portal.
 function CheckinJourney({
@@ -3121,29 +3121,29 @@ function CheckinJourney({
   type S = { title: string; description: string; state: "done" | "active" | "pending"; cta?: React.ReactNode };
   const steps: S[] = [
     {
-      title: "Check-in booked",
-      description: "Your follow-up round is registered. See Current bookings below for the date and time.",
+      title: "Tími bókaður",
+      description: "Eftirfylgdin þín er skráð. Dagsetning og tími eru undir „Bókanir“ hér fyrir neðan.",
       state: "done",
     },
     {
-      title: "Update and confirm your body-composition profile",
+      title: "Uppfærðu upplýsingar fyrir líkamssamsetningarmælingu",
       description: biodyActivated
-        ? "Your profile is synced with Biody. You can update details any time."
+        ? "Upplýsingarnar þínar eru samstilltar við Biody. Þú getur breytt þeim hvenær sem er."
         : "Confirm your height, weight and activity level so we can send your profile to Biody before the measurement.",
       state: biodyActivated ? "done" : "active",
       cta: (
         <button onClick={onGoToBiody} className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-[#10B981] to-[#14B8A6] text-white hover:opacity-95">
-          {biodyActivated ? "Edit details" : "Activate profile"}
+          {biodyActivated ? "Breyta upplýsingum" : "Activate profile"}
         </button>
       ),
     },
     {
       title: "Measurement appointment",
       description: completed
-        ? "Measurement complete. Your progress report is being prepared."
+        ? "Mælingu lokið. Framvinduskýrslan þín er í vinnslu."
         : slotLabel
-          ? `Scheduled for ${slotLabel}. See Current bookings below for directions.`
-          : "We'll confirm the time once your station slot is finalised.",
+          ? `Áætlaður ${slotLabel}. See Current bookings below for directions.`
+          : "Við staðfestum tímann þegar mælingatíminn þinn er frágenginn.",
       state: completed ? "done" : biodyActivated ? "active" : "pending",
     },
     (() => {
@@ -3153,7 +3153,7 @@ function CheckinJourney({
       if (hasDoctorBooking) {
         return {
           title: "Doctor consultation",
-          description: "Your consultation is booked. See Current bookings below.",
+          description: "Viðtalið þitt er bókað. Sjá „Bókanir“ hér fyrir neðan.",
           state: "done" as const,
         };
       }
@@ -3169,14 +3169,14 @@ function CheckinJourney({
               className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white hover:opacity-95 disabled:opacity-50"
             >
               {payingDoctorAddon && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              {payingDoctorAddon ? "Charging…" : "Add for 18,500 kr"}
+              {payingDoctorAddon ? "Charging…" : "Bæta við fyrir 18.500 kr."}
             </button>
           ),
         };
       }
       return {
         title: "Doctor consultation",
-        description: "Paid. Choose how you'd like to meet your Lifeline doctor.",
+        description: "Greitt. Veldu hvernig þú vilt hitta lækninn þinn hjá Lifeline.",
         state: "active" as const,
         cta: (
           <div className="flex flex-wrap items-center gap-2">
@@ -3185,7 +3185,7 @@ function CheckinJourney({
                 Pick a time (in person)
               </button>
             ) : null}
-            <MedaliaButton label="Book video via portal" size="sm" variant="outline" />
+            <MedaliaButton label="Bóka myndsímtal í gáttinni" size="sm" variant="outline" />
             <button
               onClick={onConfirmVideoPortal}
               disabled={videoConfirmBusy}
@@ -3198,30 +3198,30 @@ function CheckinJourney({
       };
     })(),
     {
-      title: "View your results in the patient portal",
+      title: "Sjá niðurstöðurnar í sjúklingagáttinni",
       description: completed
-        ? "Your progress report, updated health score and refreshed plan are in Medalia."
+        ? "Framvinduskýrslan, uppfærð heilsueinkunn og ný áætlun eru í Medalia."
         : "After your measurement (and optional doctor review), your progress report lands in the Lifeline patient portal.",
       state: completed ? "active" : "pending",
-      cta: completed ? <MedaliaButton label="Open patient portal" size="sm" /> : undefined,
+      cta: completed ? <MedaliaButton label="Opna sjúklingagátt" size="sm" /> : undefined,
     },
   ];
 
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
-        <h3 className="text-lg font-semibold text-[#1F2937]">Your journey</h3>
+        <h3 className="text-lg font-semibold text-[#1F2937]">Heilsuferðin þín</h3>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
             Change package
           </button>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Check-in
+            Tími
           </span>
         </div>
       </div>
-      <p className="text-sm text-[#6B7280] mb-6">Your follow-up round — track progress and refresh your plan.</p>
+      <p className="text-sm text-[#6B7280] mb-6">Eftirfylgdin þín — fylgstu með framvindu og uppfærðu áætlunina.</p>
       <ol className="relative border-l-2 border-gray-100 ml-4 space-y-5">
         {steps.map((s, i) => {
           const color = s.state === "done" ? "bg-emerald-500 text-white" : s.state === "active" ? "bg-[#10B981] text-white" : "bg-gray-200 text-gray-500";
@@ -3313,22 +3313,22 @@ function JourneyTimeline({
     done: biodyActivated,
     active: hasOnboarded && !biodyActivated,
     description: biodyActivated
-      ? "Confirmed. You can update your details (height, weight, activity level) any time."
-      : "Activate your profile — takes about a minute.",
-    cta: { label: biodyActivated ? "Edit details" : "Activate", onClick: onGoToBiody },
+      ? "Staðfest. Þú getur uppfært upplýsingarnar þínar (hæð, þyngd, hreyfingu) hvenær sem er."
+      : "Virkjaðu aðganginn þinn — tekur um mínútu.",
+    cta: { label: biodyActivated ? "Breyta upplýsingum" : "Activate", onClick: onGoToBiody },
   };
   const b2cBookStep: JourneyStep = {
     // B2C: one step covers measurement + blood-draw referral via Medalia booking
-    title: "Book your Foundational Health assessment",
+    title: "Bókaðu heilsufarsskoðunina þína",
     done: hasBodyCompBooking,
     active: !hasBodyCompBooking,
     description: hasBodyCompCompleted
-      ? "Completed. Your results live in the patient portal."
+      ? "Lokið. Niðurstöðurnar þínar eru í sjúklingagáttinni."
       : hasBodyCompBooking
-        ? "Booked. See 'Current bookings' below for the scheduled time."
+        ? "Bókað. Sjá „Bókanir“ hér fyrir neðan fyrir tímasetninguna."
         : "Pick a package, a time, and pay — one visit covers measurements and your blood-test referral.",
     cta: !hasBodyCompBooking
-      ? { label: "Book at a station", href: "/account/book" }
+      ? { label: "Bóka á mælingastöð", href: "/account/book" }
       : undefined,
     // Selected-package row: shows which package the user is on +
     // a real button (not a text link) to switch to a different one.
@@ -3351,15 +3351,15 @@ function JourneyTimeline({
     ) : undefined,
   };
   const b2bMeasurementsStep: JourneyStep = {
-    title: "Measurements — book your time slot",
+    title: "Mælingar — bókaðu tíma",
     done: hasBodyCompSlot,
     active: biodyActivated && !hasBodyCompSlot && !!companyEvent,
     description: hasBodyCompSlot
-      ? "Your slot is booked. See 'Current bookings' below."
+      ? "Tíminn þinn er bókaður. Sjá „Bókanir“ hér fyrir neðan."
       : companyEvent
-        ? `On-site at ${eventLabel}. Pick a 5-minute slot.`
-        : "Your company will schedule the measurement day. You'll be notified.",
-    cta: !hasBodyCompSlot && companyEvent ? { label: "Pick a slot", onClick: onPickBodyCompSlot } : undefined,
+        ? `Á staðnum at ${eventLabel}. Pick a 5-minute slot.`
+        : "Fyrirtækið þitt ákveður mælingadaginn. Þú færð tilkynningu.",
+    cta: !hasBodyCompSlot && companyEvent ? { label: "Veldu tíma", onClick: onPickBodyCompSlot } : undefined,
   };
   // B2C blood-test step: no booking needed. The referral is standing;
   // users just walk in at any Sameind station during opening hours. We
@@ -3368,12 +3368,12 @@ function JourneyTimeline({
   const b2cBloodTestCustomBody = (hasBodyCompBooking && !hasBodyCompCompleted) ? (
     <div className="mt-3 space-y-3">
       <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-900">
-        <div className="font-semibold mb-0.5">Fast from midnight</div>
+        <div className="font-semibold mb-0.5">Fasta frá miðnætti</div>
         Water only — no food, coffee, tea, juice, or alcohol.
       </div>
       <details className="group rounded-lg border border-gray-200 bg-white">
         <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">
-          <span>Sameind stations — walk in at any of these</span>
+          <span>Sameind — þú getur mætt á hvaða stöð sem er</span>
           <svg className="w-3.5 h-3.5 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
@@ -3427,23 +3427,23 @@ function JourneyTimeline({
         done: bloodTestDone || hasBodyCompCompleted,
         active: !(bloodTestDone || hasBodyCompCompleted) && hasBodyCompBooking,
         description: (bloodTestDone || hasBodyCompCompleted)
-          ? "Done — results will appear in your personal report."
+          ? "Lokið — niðurstöðurnar birtast í skýrslunni þinni."
           : hasBodyCompBooking
-            ? "Walk in at any Sameind station during opening hours — no booking needed."
-            : "Your Sameind referral is issued when you book your assessment above.",
+            ? "Mættu á hvaða Sameind-stöð sem er á opnunartíma — engin bókun nauðsynleg."
+            : "Beiðnin þín til Sameindar er gefin út þegar þú bókar skoðunina hér fyrir ofan.",
         customBody: b2cBloodTestCustomBody,
         manualCheck: { key: "blood_test", label: "I've done my blood test" },
       }
     : {
-        title: "Blood test at Sameind — pick your day",
+        title: "Blóðprufa hjá Sameind — veldu dag",
         done: hasBloodTestBooking,
         active: biodyActivated && !hasBloodTestBooking && hasApprovedBloodDays,
         description: hasBloodTestBooking
-          ? "Day chosen. Walk in at any Sameind station during its opening hours."
+          ? "Dagur valinn. Mættu á hvaða Sameind-stöð sem er á opnunartíma."
           : hasApprovedBloodDays
-            ? "Your company has approved days for you. Walk in at any Sameind station during its opening hours."
-            : "Your company will approve blood-test days. You'll be notified.",
-        cta: !hasBloodTestBooking && hasApprovedBloodDays ? { label: "Pick a day", onClick: onPickBloodTestDay } : undefined,
+            ? "Your company has approved days for you. Mættu á hvaða Sameind-stöð sem er during its opening hours."
+            : "Fyrirtækið þitt samþykkir daga fyrir blóðprufu. Þú færð tilkynningu.",
+        cta: !hasBloodTestBooking && hasApprovedBloodDays ? { label: "Veldu dag", onClick: onPickBloodTestDay } : undefined,
       };
   const steps: JourneyStep[] = [
     onboardingStep,
@@ -3459,10 +3459,10 @@ function JourneyTimeline({
       const description = hasVideoPortalConfirmed && !hasInPersonDoctorBooking
         ? "Video meeting confirmed — you've booked it in your patient portal. See 'Current bookings' below."
         : hasInPersonDoctorBooking
-          ? "In-person consultation booked. See 'Current bookings' below."
+          ? "Staðviðtal bókað. Sjá „Bókanir“ hér fyrir neðan."
           : canBook
-            ? "Choose how you'd like to meet your Lifeline doctor to build your action plan."
-            : "Once your report is ready, the Lifeline team will open consultation options for you.";
+            ? "Veldu hvernig þú vilt hitta lækninn til að setja saman aðgerðaáætlunina."
+            : "Þegar skýrslan þín er tilbúin opnar Lifeline fyrir viðtalstíma.";
       const customBody = !hasAnyBooking ? (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* In-person option */}
@@ -3472,15 +3472,15 @@ function JourneyTimeline({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <span className="text-sm font-semibold text-blue-900">In person</span>
+              <span className="text-sm font-semibold text-blue-900">Á staðnum</span>
             </div>
-            <p className="text-xs text-blue-900/80 leading-snug mb-2">Meet the doctor at the Lifeline location, set by our team.</p>
+            <p className="text-xs text-blue-900/80 leading-snug mb-2">Hittu lækninn á starfsstöð Lifeline, á tíma sem við ákveðum.</p>
             {hasAvailableInPersonSlots ? (
               <button onClick={onPickInPersonDoctorSlot} className="text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">
                 Pick a time
               </button>
             ) : (
-              <div className="text-xs text-blue-900/70">No in-person slots available right now.</div>
+              <div className="text-xs text-blue-900/70">Engir tímar á staðnum lausir eins og er.</div>
             )}
           </div>
           {/* Video option */}
@@ -3493,7 +3493,7 @@ function JourneyTimeline({
             </div>
             <p className="text-xs text-violet-900/80 leading-snug mb-2">Video meetings are booked inside the patient portal (Zoom Healthcare). Book there, then come back to confirm.</p>
             <div className="flex flex-wrap gap-2">
-              <MedaliaButton label="Open patient portal" size="sm" variant="outline" />
+              <MedaliaButton label="Opna sjúklingagátt" size="sm" variant="outline" />
               <button
                 onClick={onConfirmVideoPortal}
                 disabled={videoConfirmBusy}
@@ -3509,7 +3509,7 @@ function JourneyTimeline({
         </div>
       ) : hasVideoPortalConfirmed && !hasInPersonDoctorBooking ? (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <MedaliaButton label="Open patient portal" size="sm" />
+          <MedaliaButton label="Opna sjúklingagátt" size="sm" />
           <button onClick={onClearVideoPortal} disabled={videoConfirmBusy} className="text-xs font-medium text-red-600 hover:underline disabled:opacity-60">
             Clear confirmation
           </button>
@@ -3528,11 +3528,11 @@ function JourneyTimeline({
     // previous step's done condition), so the user sees it as the current
     // step rather than a perpetually grey terminator.
     {
-      title: "View your results in the patient portal",
+      title: "Sjá niðurstöðurnar í sjúklingagáttinni",
       done: resultsViewed,
       active: !resultsViewed && (hasBodyCompCompleted || hasInPersonDoctorBooking || hasVideoPortalConfirmed),
       description: resultsViewed
-        ? "Marked as reviewed. You can revisit your report any time in Medalia."
+        ? "Merkt sem yfirfarið. Þú kemst alltaf í skýrsluna þína í Medalia."
         : hasBodyCompCompleted || hasInPersonDoctorBooking || hasVideoPortalConfirmed
           ? "Your report, health score and action plan are ready in Medalia. Open the portal to review them, then tick the box below."
           : "Once your measurements, blood work and doctor consultation are done, your full personal report lands in the Lifeline patient portal.",
@@ -3546,8 +3546,8 @@ function JourneyTimeline({
 
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">Your journey</h3>
-      <p className="text-sm text-[#6B7280] mb-6">Where you are in the Lifeline programme.</p>
+      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">Heilsuferðin þín</h3>
+      <p className="text-sm text-[#6B7280] mb-6">Hvar þú ert stödd/staddur í Lifeline.</p>
       <ol className="relative border-l-2 border-gray-100 ml-4">
         {steps.map((s, i) => {
           const dotColor = s.done
@@ -3587,7 +3587,7 @@ function JourneyTimeline({
                   <div className={`text-sm ${s.active ? "text-gray-700" : "text-gray-500"} mt-0.5`}>{s.description}</div>
                   {"portal" in s && s.portal && (
                     <div className="mt-3">
-                      <MedaliaButton label="Open patient portal" size="sm" />
+                      <MedaliaButton label="Opna sjúklingagátt" size="sm" />
                     </div>
                   )}
                   {"customBody" in s && s.customBody ? s.customBody : null}
@@ -3664,7 +3664,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H7V4h10v16zM12 18.5a1 1 0 100-2 1 1 0 000 2z" />
               </svg>
             </div>
-            <div className="font-bold text-gray-900 text-sm">Put the plan into motion — the Lifeline app</div>
+            <div className="font-bold text-gray-900 text-sm">Komdu áætluninni af stað — Lifeline appið</div>
           </div>
           <p className="text-xs text-gray-600 leading-relaxed mb-4">
             Your personal plan, daily actions and tracking live in the mobile app. Pick the track that fits you.
@@ -3674,7 +3674,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
             <div className="relative overflow-hidden rounded-xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 via-sky-50/50 to-white p-4 shadow-sm">
               <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-sky-400 to-sky-500" />
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-sky-500 px-2 py-0.5 rounded-md shadow-sm">Track A</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-sky-500 px-2 py-0.5 rounded-md shadow-sm">Leið A</span>
                 <span className="text-sm font-bold text-gray-900">Self-managed journey</span>
               </div>
               <p className="text-[12px] text-gray-700 leading-snug pl-1">
@@ -3689,7 +3689,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <span className="text-sm font-bold text-gray-900">Personal coaching</span>
               </div>
               <p className="text-[12px] text-gray-700 leading-snug pl-1">
-                Everything in Track A plus a dedicated health coach who reviews your progress, adjusts your plan and checks in with you each week.
+                Everything in Leið A plus a dedicated health coach who reviews your progress, adjusts your plan and checks in with you each week.
               </p>
               <Link href="/coaching" className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-indigo-700 hover:text-indigo-800 hover:underline pl-1">
                 Learn about coaching
@@ -3725,7 +3725,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="font-bold text-gray-900 text-sm">Stay on track</div>
+            <div className="font-bold text-gray-900 text-sm">Haltu þér við efnið</div>
           </div>
           <p className="text-xs text-gray-600 leading-relaxed mb-4">
             Check back at the right cadence so your plan stays calibrated to your actual numbers — not last year&apos;s.
@@ -3739,7 +3739,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
               </div>
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 mb-0.5">Every month</div>
-                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Self check-in</div>
+                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Sjálfsmat</div>
                 <p className="text-[12px] text-gray-700 leading-snug">Free, five-minute questionnaire. Catches changes early.</p>
               </div>
             </li>
@@ -3750,8 +3750,8 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
               </div>
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-orange-700 mb-0.5">Every 3–6 months</div>
-                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Measurement check-in</div>
-                <p className="text-[12px] text-gray-700 leading-snug">Re-take body composition + key labs so your plan stays calibrated.</p>
+                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Mælingatími</div>
+                <p className="text-[12px] text-gray-700 leading-snug">Endurtaktu líkamssamsetningu og helstu blóðgildi svo áætlunin haldist rétt stillt.</p>
               </div>
             </li>
             <li className="relative flex items-start gap-3 rounded-xl border-2 border-rose-300 bg-gradient-to-br from-rose-50 via-rose-50/50 to-white p-3 shadow-sm">
@@ -3762,7 +3762,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-rose-700 mb-0.5">Every 6–12 months</div>
                 <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Full Foundational re-assessment</div>
-                <p className="text-[12px] text-gray-700 leading-snug">Complete panel, updated report and fresh doctor review.</p>
+                <p className="text-[12px] text-gray-700 leading-snug">Full blóðprufa, uppfærð skýrsla og nýtt mat læknis.</p>
               </div>
             </li>
           </ul>
@@ -3855,13 +3855,13 @@ function CurrentBookings({
       </div>
       {nothing ? (
         <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center">
-          <p className="text-sm text-gray-600">Nothing booked yet. Use the journey steps above to book your measurement and blood test.</p>
+          <p className="text-sm text-gray-600">Ekkert bókað enn. Notaðu skrefin hér fyrir ofan til að bóka mælingu og blóðprufu.</p>
         </div>
       ) : (() => {
         const bcTime = mySlotAt ? new Date(mySlotAt).getTime() : Infinity;
         const btTime = myBloodTestBooking ? new Date(myBloodTestBooking.day + "T00:00:00").getTime() : Infinity;
         const drTime = myDoctorSlot ? new Date(myDoctorSlot.slot_at).getTime() : Infinity;
-        const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : "In person";
+        const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : "Á staðnum";
         const calButtons = (ev: CalendarEvent, accentClasses: string) => (
           <>
             <a
@@ -3896,7 +3896,7 @@ function CurrentBookings({
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">Measurements</div>
-                  <div className="font-semibold text-gray-900 leading-tight">On-site</div>
+                  <div className="font-semibold text-gray-900 leading-tight">Á staðnum</div>
                 </div>
               </div>
               <div className="space-y-1.5 text-sm text-gray-700">
@@ -3924,7 +3924,7 @@ function CurrentBookings({
                 {companyEvent.room_notes && <div className="text-xs text-gray-500 pl-6">{companyEvent.room_notes}</div>}
               </div>
               <div className="mt-3 rounded-lg bg-blue-50/70 border border-blue-100 px-3 py-2 text-xs text-blue-900">
-                <div className="font-semibold mb-1">What to expect</div>
+                <div className="font-semibold mb-1">Við hverju má búast</div>
                 <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-blue-900/90">
                   <li>Blood pressure</li>
                   <li>Height</li>
@@ -3951,9 +3951,9 @@ function CurrentBookings({
                     durationMinutes: 5,
                     location: companyEvent.location || undefined,
                     description: [
-                      "Your on-site Lifeline body-composition measurement.",
+                      "Líkamssamsetningarmælingin þín hjá Lifeline.",
                       companyEvent.room_notes ? `Room: ${companyEvent.room_notes}` : "",
-                      "What to expect: blood pressure, height, weight, body composition (muscle mass %, fat %).",
+                      "Við hverju má búast: blóðþrýstingur, hæð, þyngd og líkamssamsetning (vöðvamassi %, fita %).",
                     ].filter(Boolean).join("\n"),
                   },
                   "border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300",
@@ -3972,7 +3972,7 @@ function CurrentBookings({
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-semibold uppercase tracking-wide text-rose-600">Blood test</div>
-                  <div className="font-semibold text-gray-900 leading-tight">Sameind walk-in</div>
+                  <div className="font-semibold text-gray-900 leading-tight">Mæting hjá Sameind</div>
                 </div>
               </div>
               <div className="space-y-1.5 text-sm text-gray-700">
@@ -3986,22 +3986,22 @@ function CurrentBookings({
                   <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="font-medium">Walk in at any Sameind station</span>
+                  <span className="font-medium">Mættu á hvaða Sameind-stöð sem er</span>
                 </div>
                 {myBloodTestBooking.note && <div className="text-xs text-gray-500 pl-6">{myBloodTestBooking.note}</div>}
               </div>
               <div className="mt-3 rounded-lg bg-rose-50/70 border border-rose-100 px-3 py-2 text-xs text-rose-900">
-                <div className="font-semibold mb-1">What to expect</div>
+                <div className="font-semibold mb-1">Við hverju má búast</div>
                 <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-rose-900/90">
-                  <li>Walk in at any Sameind station on your chosen day</li>
-                  <li>Go as early as possible — preferably between 08:00 and 12:00</li>
-                  <li>Check in at reception</li>
+                  <li>Mættu á hvaða Sameind-stöð sem er á þeim degi sem þú valdir</li>
+                  <li>Mættu sem fyrst — helst á milli 08:00 og 12:00</li>
+                  <li>Skráðu þig í móttökunni</li>
                   <li>Short blood draw (5 minutes)</li>
-                  <li>Results will appear in your final health report</li>
+                  <li>Niðurstöðurnar birtast í lokaskýrslunni þinni</li>
                 </ul>
               </div>
               <div className="mt-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-900">
-                <span className="font-semibold">Fast from midnight.</span> Water only — no food, coffee, tea, juice or alcohol.
+                <span className="font-semibold">Fasta frá miðnætti.</span> Water only — no food, coffee, tea, juice or alcohol.
               </div>
               <div className="mt-4 pt-4 border-t border-rose-100/70 flex flex-wrap gap-2">
                 {!isB2C && (
@@ -4019,8 +4019,8 @@ function CurrentBookings({
                       start: dayStart,
                       end: dayEnd,
                       description: [
-                        "Walk in at any Sameind station. Go as early as possible — preferably between 08:00 and 12:00.",
-                        "Fast from midnight. Water only — no food, coffee, tea, juice, or alcohol.",
+                        "Mættu á hvaða Sameind-stöð sem er. Mættu sem fyrst — helst á milli 08:00 og 12:00.",
+                        "Fasta frá miðnætti. Aðeins vatn — enginn matur, kaffi, te, safi eða áfengi.",
                         myBloodTestBooking.note ? `Note: ${myBloodTestBooking.note}` : "",
                       ].filter(Boolean).join("\n"),
                     },
@@ -4079,14 +4079,14 @@ function CurrentBookings({
               {myDoctorSlot.booking_note && <div className="text-xs text-gray-500 pl-6 italic">“{myDoctorSlot.booking_note}”</div>}
             </div>
             <div className="mt-3 rounded-lg bg-violet-50/70 border border-violet-100 px-3 py-2 text-xs text-violet-900">
-              <div className="font-semibold mb-1">What to expect</div>
+              <div className="font-semibold mb-1">Við hverju má búast</div>
               <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-violet-900/90">
-                <li>Walk through your body-composition + blood-test results</li>
-                <li>Discuss your health questionnaire answers</li>
-                <li>Agree on a personal action plan</li>
-                <li>Time for your questions</li>
+                <li>Farið yfir niðurstöður úr líkamssamsetningu og blóðprufu</li>
+                <li>Rætt um svörin úr heilsufarsspurningunum</li>
+                <li>Komið sér saman um aðgerðaáætlun</li>
+                <li>Tími fyrir spurningarnar þínar</li>
               </ul>
-              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Please review your health report in the patient portal before your doctor meeting.</div>
+              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið.</div>
             </div>
             <div className="mt-4 pt-4 border-t border-violet-100/70 flex flex-wrap gap-2">
               <button onClick={onChangeDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-violet-200 text-violet-700 bg-white hover:bg-violet-50 hover:border-violet-300 transition-colors">
@@ -4109,7 +4109,7 @@ function CurrentBookings({
                     `${modeLabel(myDoctorSlot.mode)} with your Lifeline doctor.`,
                     myDoctorSlot.meeting_link ? `Join link: ${myDoctorSlot.meeting_link}` : "",
                     myDoctorSlot.notes || "",
-                    "Please review your health report in the patient portal before the meeting.",
+                    "Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið.",
                   ].filter(Boolean).join("\n"),
                 },
                 "border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-300",
@@ -4128,7 +4128,7 @@ function CurrentBookings({
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Doctor · Video meeting</div>
-                <div className="font-semibold text-gray-900 leading-tight">Video meeting booked in patient portal</div>
+                <div className="font-semibold text-gray-900 leading-tight">Myndsímtal bókað í sjúklingagáttinni</div>
               </div>
             </div>
             <div className="space-y-1.5 text-sm text-gray-700">
@@ -4141,16 +4141,16 @@ function CurrentBookings({
               <div className="text-sm text-gray-600">Your video consultation is booked inside the patient portal (Zoom Healthcare). Join the meeting from the portal at your scheduled time.</div>
             </div>
             <div className="mt-3 rounded-lg bg-violet-50/70 border border-violet-100 px-3 py-2 text-xs text-violet-900">
-              <div className="font-semibold mb-1">What to expect</div>
+              <div className="font-semibold mb-1">Við hverju má búast</div>
               <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-violet-900/90">
-                <li>Join the video meeting from the patient portal</li>
-                <li>Walk through your report with your doctor</li>
-                <li>Agree on a personal action plan</li>
+                <li>Tengstu myndsímtalinu í sjúklingagáttinni</li>
+                <li>Farðu yfir skýrsluna með lækninum</li>
+                <li>Komið sér saman um aðgerðaáætlun</li>
               </ul>
-              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Please review your health report in the patient portal before your doctor meeting.</div>
+              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið.</div>
             </div>
             <div className="mt-4 pt-4 border-t border-violet-100/70 flex flex-wrap items-center gap-2">
-              <MedaliaButton label="Go to patient portal" size="sm" />
+              <MedaliaButton label="Fara í sjúklingagátt" size="sm" />
               <button onClick={onClearVideoPortal} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 hover:border-rose-300 transition-colors">
                 Clear
               </button>
@@ -4170,7 +4170,7 @@ function CurrentBookings({
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Measurements</div>
-                <div className="font-semibold text-gray-900 leading-tight">At a Lifeline station</div>
+                <div className="font-semibold text-gray-900 leading-tight">Á mælingastöð Lifeline</div>
               </div>
             </div>
             <div className="space-y-1.5 text-sm text-gray-700">
@@ -4188,11 +4188,11 @@ function CurrentBookings({
               </div>
             </div>
             <div className="mt-3 rounded-lg bg-emerald-50/70 border border-emerald-100 px-3 py-2 text-xs text-emerald-900">
-              <div className="font-semibold mb-1">What to expect</div>
+              <div className="font-semibold mb-1">Við hverju má búast</div>
               <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-emerald-900/90">
                 <li>Blood pressure, height, weight, body composition</li>
-                <li>Targeted blood draw — fast from midnight</li>
-                <li>Results appear in your personal report</li>
+                <li>Markviss blóðprufa — fasta frá miðnætti</li>
+                <li>Niðurstöðurnar birtast í skýrslunni þinni</li>
               </ul>
             </div>
             <div className="mt-4 pt-4 border-t border-emerald-100/70 flex flex-wrap gap-2">
@@ -4223,7 +4223,7 @@ function CurrentBookings({
                     </svg>
                     {cancelBusy ? "Cancelling…" : "Cancel booking"}
                   </button>
-                  <span className="text-[11px] text-gray-500 self-center">Free refund up to 48 hours before — after that, request review</span>
+                  <span className="text-[11px] text-gray-500 self-center">Full endurgreiðsla fram að 48 klukkustundum fyrir — eftir það má óska eftir endurskoðun</span>
                 </>
               )}
             </div>
@@ -4239,17 +4239,17 @@ function CurrentBookings({
                 </svg>
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Self Check-in</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Sjálfsmat</div>
                 <div className="font-semibold text-gray-900 leading-tight">Remote questionnaire</div>
               </div>
             </div>
             <p className="text-sm text-gray-700 leading-relaxed">
               {bodyCompStatus === "completed"
-                ? "Completed — a clinician has reviewed your answers."
-                : "Open the patient portal and answer the questionnaire. No visit required."}
+                ? "Lokið — fagaðili hefur farið yfir svörin þín."
+                : "Opnaðu sjúklingagáttina og svaraðu spurningalistanum. Engin heimsókn nauðsynleg."}
             </p>
             <div className="mt-4">
-              <MedaliaButton label="Open patient portal" size="sm" />
+              <MedaliaButton label="Opna sjúklingagátt" size="sm" />
             </div>
           </div>
         ) : null;
@@ -4267,14 +4267,14 @@ function CurrentBookings({
         const entries: Entry[] = [
           { key: "self-checkin", card: selfCheckinCard, time: 0 },
           { key: "bc", card: bcCard, time: bcTime, past: mySlotAt && companyEvent && bcEnd < now ? {
-            label: "On-site measurements",
+            label: "Mælingar á staðnum",
             sublabel: companyEvent.location || "Measurement",
             time: new Date(mySlotAt).getTime(),
             accent: "blue",
           } : undefined },
           { key: "bc-b2c", card: bcB2CCard, time: bodyCompBookingAt ? new Date(bodyCompBookingAt).getTime() : Infinity, past: hasB2CBodyComp && bodyCompBookingAt && bcB2CEnd < now ? {
             label: "Body composition measurement",
-            sublabel: "At a Lifeline station",
+            sublabel: "Á mælingastöð Lifeline",
             time: new Date(bodyCompBookingAt).getTime(),
             accent: "emerald",
           } : undefined },
@@ -4286,7 +4286,7 @@ function CurrentBookings({
           } : undefined },
           { key: "dr", card: drCard, time: drTime, past: myDoctorSlot && drEnd < now ? {
             label: myDoctorSlot.doctor_name ? `Consultation with ${myDoctorSlot.doctor_name}` : "Doctor consultation",
-            sublabel: myDoctorSlot.mode === "video" ? "Video call" : myDoctorSlot.mode === "phone" ? "Phone call" : "In person",
+            sublabel: myDoctorSlot.mode === "video" ? "Video call" : myDoctorSlot.mode === "phone" ? "Phone call" : "Á staðnum",
             time: new Date(myDoctorSlot.slot_at).getTime(),
             accent: "violet",
           } : undefined },
@@ -4311,7 +4311,7 @@ function CurrentBookings({
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center">
-                <p className="text-sm text-gray-600">No upcoming bookings. Use the journey steps above to book your next check-in.</p>
+                <p className="text-sm text-gray-600">Engar bókanir framundan. Notaðu skrefin hér fyrir ofan til að bóka næsta tíma.</p>
               </div>
             )}
             {past.length > 0 && (
@@ -4377,11 +4377,11 @@ function BloodTestDayPickerModal({
   const [error, setError] = useState("");
 
   const save = async () => {
-    if (!selectedDay) { setError("Pick a day."); return; }
+    if (!selectedDay) { setError("Veldu dag."); return; }
     setSaving(true);
     setError("");
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setError("Not signed in"); setSaving(false); return; }
+    if (!user) { setError("Þú þarft að skrá þig inn"); setSaving(false); return; }
     const { error: upErr } = await supabase.from("blood_test_bookings").upsert({
       client_id: user.id,
       company_id: companyId,
@@ -4395,7 +4395,7 @@ function BloodTestDayPickerModal({
   };
 
   const cancel = async () => {
-    if (!confirm("Cancel your blood-test day booking?")) return;
+    if (!confirm("Afbóka daginn fyrir blóðprufu?")) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase.from("blood_test_bookings").delete().eq("client_id", user.id);
@@ -4411,9 +4411,9 @@ function BloodTestDayPickerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">Pick your blood-test day</h2>
+          <h2 className="text-xl font-semibold">Veldu dag fyrir blóðprufu</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Your company approves specific days for you to visit Sameind. Walk in at any Sameind station during that station&apos;s opening hours.
+            Your company approves specific days for you to visit Sameind. Mættu á hvaða Sameind-stöð sem er during that station&apos;s opening hours.
           </p>
         </div>
         <div className="p-6 space-y-4">
@@ -4446,12 +4446,12 @@ function BloodTestDayPickerModal({
             <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. I'll aim for 8:30" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
           </label>
           <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-900">
-            <div className="font-semibold mb-1">Important — fast before your blood test</div>
+            <div className="font-semibold mb-1">Mikilvægt — fasta fyrir blóðprufu</div>
             You must <strong>fast from midnight</strong> the night before your visit. Water is fine; no food, no coffee, no tea, no juice, no alcohol.
           </div>
           <details className="group rounded-lg border border-gray-200 bg-white">
             <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">
-              <span>Sameind stations — walk in at any of these</span>
+              <span>Sameind — þú getur mætt á hvaða stöð sem er</span>
               <svg className="w-3.5 h-3.5 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
@@ -4623,11 +4623,11 @@ function BiodyProfileModal({
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!sex || !heightCm || !weightKg || !activityLevel || !dob) {
-      setError("Please fill in every field.");
+      setError("Fylltu út alla reiti.");
       return;
     }
     if (!biodyActive && !acceptHealth) {
-      setError("Please accept the health-data consent to activate.");
+      setError("Samþykktu meðferð heilsufarsupplýsinga til að virkja.");
       return;
     }
     setSaving(true);
@@ -4666,7 +4666,7 @@ function BiodyProfileModal({
         // soft-fail (biody-sync down, missing fields, etc.) — the API
         // returns biody_activated=false in that case. Surface the
         // underlying biody_error so the user knows to try again rather
-        // than seeing "Edit details" and then having it revert on
+        // than seeing "Breyta upplýsingum" and then having it revert on
         // refetch.
         if (j.biody_activated === false) {
           setSaving(false);
@@ -4703,10 +4703,10 @@ function BiodyProfileModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">{biodyActive ? "Edit body-composition profile" : "Activate your body-composition profile"}</h2>
+          <h2 className="text-xl font-semibold">{biodyActive ? "Breyta upplýsingum fyrir líkamssamsetningu" : "Virkja líkamssamsetningarmælingu"}</h2>
           <p className="text-sm text-gray-600 mt-1">
             {biodyActive
-              ? "Keep your details up to date so measurements and recommendations stay accurate."
+              ? "Hafðu upplýsingarnar réttar svo mælingar og ráðleggingar séu nákvæmar."
               : "A few quick details so we can set up your profile with our measurement partner."}
           </p>
         </div>
@@ -4743,7 +4743,7 @@ function BiodyProfileModal({
                 <input type="number" min={30} max={300} step={0.1} value={weightKg} onChange={(e) => setWeightKg(e.target.value)} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </label>
               <div className="block sm:col-span-2">
-                <span className="block text-xs font-medium text-gray-700 mb-1">Date of birth</span>
+                <span className="block text-xs font-medium text-gray-700 mb-1">Fæðingardagur</span>
                 <DobFields value={dob} onChange={setDob} />
               </div>
             </div>
@@ -4802,7 +4802,7 @@ function DoctorSlotPickerModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : "In person";
+  const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : "Á staðnum";
 
   type SlotRow = typeof slots[number];
   const grouped = useMemo(() => {
@@ -4816,7 +4816,7 @@ function DoctorSlotPickerModal({
   }, [slots]);
 
   const save = async () => {
-    if (!selectedId) { setError("Pick a time."); return; }
+    if (!selectedId) { setError("Veldu tíma."); return; }
     setSaving(true);
     setError("");
     // Atomic swap when changing an existing claim: claim new first, then
@@ -4832,9 +4832,9 @@ function DoctorSlotPickerModal({
     if (row && row.ok === false) {
       setError(
         row.error === "slot_unavailable" ? "That slot was just taken. Pick another."
-        : row.error === "already_booked" ? "You already have a booking."
-        : row.error === "company_reserved" ? "That slot is reserved for another company."
-        : row.error || "Failed to book.",
+        : row.error === "already_booked" ? "Þú átt þegar bókun."
+        : row.error === "company_reserved" ? "Þessi tími er frátekinn fyrir annað fyrirtæki."
+        : row.error || "Bókun tókst ekki.",
       );
       return;
     }
@@ -4843,7 +4843,7 @@ function DoctorSlotPickerModal({
   };
 
   const cancel = async () => {
-    if (!confirm("Cancel your doctor consultation?")) return;
+    if (!confirm("Afbóka viðtal við lækni?")) return;
     const { error: cancelErr } = await supabase.rpc("cancel_doctor_slot");
     if (cancelErr) { setError(cancelErr.message); return; }
     onCancelled();
@@ -4854,7 +4854,7 @@ function DoctorSlotPickerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">{existing ? "Change your doctor consultation" : "Book your doctor consultation"}</h2>
+          <h2 className="text-xl font-semibold">{existing ? "Breyta viðtali við lækni" : "Bóka viðtal við lækni"}</h2>
           <p className="text-sm text-gray-600 mt-1">
             Meet 1:1 with your Lifeline doctor to go through the report and agree an action plan.
           </p>
@@ -4902,7 +4902,7 @@ function DoctorSlotPickerModal({
           )}
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Note (optional)</span>
-            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything the doctor should know in advance" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-400" />
+            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Eitthvað sem læknirinn ætti að vita fyrir fram" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-400" />
           </label>
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
@@ -4926,7 +4926,7 @@ function DoctorSlotPickerModal({
 const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: string; border: string; icon: React.ReactNode }> = [
     {
       title: "Exercise",
-      desc: "Strength, cardio and movement — programs tailored to you.",
+      desc: "Styrkur, þol og hreyfing — prógrömm sniðin að þér.",
       color: "text-[#3B82F6]",
       bg: "bg-blue-50",
       border: "border-blue-100",
@@ -4938,7 +4938,7 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
     },
     {
       title: "Nutrition",
-      desc: "Guidance tied to your blood work, goals, and macros.",
+      desc: "Ráðgjöf byggð á blóðgildum, markmiðum og næringarskiptingu.",
       color: "text-[#0D9488]",
       bg: "bg-teal-50",
       border: "border-teal-100",
@@ -4951,7 +4951,7 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
     },
     {
       title: "Sleep",
-      desc: "Better rest through rhythms, routines and environment.",
+      desc: "Betri hvíld með takti, venjum og umhverfi.",
       color: "text-[#8B5CF6]",
       bg: "bg-violet-50",
       border: "border-violet-100",
@@ -4963,7 +4963,7 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
     },
     {
       title: "Mental wellness",
-      desc: "Mindfulness, breathing, stress tools and resilience.",
+      desc: "Núvitund, öndun, álagsstjórnun og seigla.",
       color: "text-[#06B6D4]",
       bg: "bg-cyan-50",
       border: "border-cyan-100",
@@ -4978,7 +4978,7 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
 const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: string; icon: React.ReactNode }> = [
     {
       title: "Daily actions",
-      desc: "Small, concrete steps every day — chosen to move your specific numbers.",
+      desc: "Lítil og áþreifanleg skref á hverjum degi — valin til að hreyfa við þínum tölum.",
       color: "text-[#10B981]",
       bg: "bg-[#10B981]/10",
       icon: (
@@ -4988,7 +4988,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Your health coach",
+      title: "Þjálfarinn þinn",
       desc: "A real human in your corner — plans, adjustments, regular reviews, and direct messaging whenever you need guidance.",
       color: "text-blue-600",
       bg: "bg-blue-50",
@@ -5011,7 +5011,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
     },
     {
       title: "Community & events",
-      desc: "Join challenges, group sessions, and in-app events with others on the programme.",
+      desc: "Taktu þátt í áskorunum, hóptímum og viðburðum með öðrum í prógramminu.",
       color: "text-fuchsia-600",
       bg: "bg-fuchsia-50",
       icon: (
@@ -5022,7 +5022,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
     },
     {
       title: "Education",
-      desc: "Short, evidence-based courses on everything from sleep science to protein targets.",
+      desc: "Stutt, gagnreynd námskeið um allt frá svefni til próteinmarkmiða.",
       color: "text-indigo-600",
       bg: "bg-indigo-50",
       icon: (
@@ -5046,7 +5046,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
     },
     {
       title: "Weigh-ins & trends",
-      desc: "Weekly weigh-in reminders, body-composition history, and trend lines that matter.",
+      desc: "Vikulegar áminningar um vigtun, saga líkamssamsetningar og þróunarlínur sem skipta máli.",
       color: "text-cyan-600",
       bg: "bg-cyan-50",
       icon: (
@@ -5097,9 +5097,9 @@ function ResumeBookingHero({
 }) {
   const pkgLabel =
     pkg === "foundational" ? "Foundational Health"
-      : pkg === "checkin" ? "Check-in"
-      : pkg === "self-checkin" ? "Self Check-in"
-      : "Your assessment";
+      : pkg === "checkin" ? "Tími"
+      : pkg === "self-checkin" ? "Sjálfsmat"
+      : "Skoðunin þín";
   const slotLabel = scheduledAt ? new Date(scheduledAt).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : null;
   return (
     <section className="relative overflow-hidden rounded-2xl shadow-sm text-white" style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)" }}>
@@ -5109,14 +5109,14 @@ function ResumeBookingHero({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span className="text-xs font-semibold uppercase tracking-wide">Continue where you left off</span>
+          <span className="text-xs font-semibold uppercase tracking-wide">Haltu áfram þar sem frá var horfið</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold leading-tight max-w-xl">
           You have an incomplete booking.
         </h2>
         <p className="mt-3 text-base opacity-95 leading-relaxed max-w-xl">
           Your <strong>{pkgLabel}</strong> booking is reserved but hasn&apos;t been paid for yet.
-          {slotLabel ? <> Scheduled for <strong>{slotLabel}</strong>.</> : null} Finish the payment to confirm it, or cancel to start over.
+          {slotLabel ? <> Áætlaður <strong>{slotLabel}</strong>.</> : null} Finish the payment to confirm it, or cancel to start over.
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <Link
@@ -5155,7 +5155,7 @@ function ServicesSection({
       unit: "ISK",
       desc: "The full measurement round — great for family members, or a fresh baseline outside the company programme.",
       includes: [
-        "On-site measurements — blood pressure, body composition",
+        "Mælingar á staðnum — blóðþrýstingur og líkamssamsetning",
         "Targeted blood panel",
         "Full health questionnaire",
         "Doctor-reviewed personal report",
@@ -5164,17 +5164,17 @@ function ServicesSection({
       accent: "from-[#3B82F6] to-[#10B981]",
       tone: "border-blue-100 bg-blue-50/40",
       dot: "text-[#3B82F6]",
-      cta: "Book assessment",
+      cta: "Bóka skoðun",
       href: "/account/book",
     },
     {
-      name: "Check-in",
+      name: "Tími",
       tag: "Follow-up",
       price: "19,900",
       unit: "ISK",
       desc: "A lighter round 3–12 months after the foundational — see what changed and refresh your action plan.",
       includes: [
-        "On-site measurements",
+        "Mælingar á staðnum",
         "Progress report vs baseline",
         "Updated health score",
         "Brief doctor review",
@@ -5183,18 +5183,18 @@ function ServicesSection({
       accent: "from-[#10B981] to-[#14B8A6]",
       tone: "border-emerald-100 bg-emerald-50/40",
       dot: "text-[#10B981]",
-      cta: "Book check-in",
+      cta: "Bóka tíma",
       href: "/account/book",
     },
     {
-      name: "Self Check-in",
+      name: "Sjálfsmat",
       tag: "Free",
       price: "0",
       unit: "ISK",
       desc: "A self-guided online questionnaire you can rerun any time to track your own progress through the year.",
       includes: [
         "Online health questionnaire",
-        "Self-reported metrics you control",
+        "Mælikvarðar sem þú skráir sjálf",
         "Updated personal health score",
         "Instant, private insight",
         "If something flags, Lifeline reaches out",
@@ -5218,7 +5218,7 @@ function ServicesSection({
           Book services
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold text-[#0F172A] leading-tight">
-          {companyName ? "Add to what your company covered" : "Your Lifeline services"}
+          {companyName ? "Bættu við það sem fyrirtækið greiddi" : "Þjónustan þín hjá Lifeline"}
         </h2>
         <p className="text-base text-[#475569] mt-3 leading-relaxed max-w-2xl">
           {companyName
@@ -5279,7 +5279,7 @@ function ServicesSection({
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Coming soon</div>
-              <h3 className="text-xl font-bold text-[#0F172A]">The Lifeline coaching app</h3>
+              <h3 className="text-xl font-bold text-[#0F172A]">Lifeline þjálfunarappið</h3>
               <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-2xl">
                 Daily actions, a health coach, community, education and advanced macro tracking — available on three tiers. Turns your assessment into habits that actually stick.
               </p>
@@ -5364,7 +5364,7 @@ function AppFeaturesBlock() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Personalised programs</div>
-              <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] leading-tight">Drive improvements across the four pillars</h3>
+              <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] leading-tight">Framfarir á öllum fjórum stoðum</h3>
               <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-2xl">
                 Strength, cardio, mobility, and mindfulness programs built around your level and your physician&apos;s plan. Made for real life, for real people — home and gym versions of every program, so you can train wherever you are.
               </p>
@@ -5432,7 +5432,7 @@ function DownloadAppHero() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Get the Lifeline app</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Náðu í Lifeline appið</h2>
               <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
                 Your personal plan, daily actions, programmes and tracking — in your pocket. Sign in with the same email and password you use here.
               </p>
@@ -5462,7 +5462,7 @@ function DownloadAppHero() {
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               Coming soon
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">The Lifeline app is on the way</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Lifeline appið er á leiðinni</h2>
             <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
               We&apos;re in final testing on iPhone and Android. Drop your email and we&apos;ll send you the download link the day it drops — along with anything worth knowing in the lead-up.
             </p>
@@ -5494,7 +5494,7 @@ function DownloadAppHero() {
               </form>
             )}
             {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-            <p className="mt-4 text-xs text-[#9CA3AF]">Available soon on iPhone and Android — App Store and Google Play.</p>
+            <p className="mt-4 text-xs text-[#9CA3AF]">Væntanlegt fyrir iPhone og Android — App Store og Google Play.</p>
           </div>
         </div>
       </div>
@@ -5520,7 +5520,7 @@ function WellbeingPromptCard({ lastWellbeingAt, onStart }: { lastWellbeingAt: st
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900">
-            {lastWellbeingAt ? "Monthly wellbeing check-in" : "Share a quick wellbeing check-in"}
+            {lastWellbeingAt ? "Mánaðarlegt líðanmat" : "Svaraðu stuttu líðanmati"}
           </h3>
           <p className="text-sm text-gray-600 mt-1">
             Five questions, 30 seconds. Helps us see how you feel over time — your answers stay private, your company sees only anonymised group trends (min 5 people).
@@ -5549,8 +5549,8 @@ function SatisfactionPromptCard({
   const drReady = myDoctorSlot != null && new Date(myDoctorSlot.slot_at).getTime() < Date.now() && !satisfactionDone.doctor;
   if (!bcReady && !drReady) return null;
   const pending: Array<{ key: "body_comp" | "doctor"; title: string; sub: string }> = [];
-  if (bcReady) pending.push({ key: "body_comp", title: "How was the body-composition scan?", sub: "30-second survey — 2 quick questions + an optional comment." });
-  if (drReady) pending.push({ key: "doctor", title: "How was your doctor consultation?", sub: "30-second survey — 2 quick questions + an optional comment." });
+  if (bcReady) pending.push({ key: "body_comp", title: "Hvernig var líkamssamsetningarmælingin?", sub: "30-second survey — 2 quick questions + an optional comment." });
+  if (drReady) pending.push({ key: "doctor", title: "Hvernig var viðtalið við lækninn?", sub: "30-second survey — 2 quick questions + an optional comment." });
   return (
     <div className="space-y-3">
       {pending.map((p) => (
@@ -5600,7 +5600,7 @@ function RefundRequestModal({
   const when = scheduledAt ? new Date(scheduledAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
 
   async function submit() {
-    if (!reason.trim()) { setErr("Please tell us why you need to cancel so we can help quickly."); return; }
+    if (!reason.trim()) { setErr("Segðu okkur af hverju þú þarft að afbóka svo við getum aðstoðað hratt."); return; }
     setErr(""); setBusy(true);
     const total = amountIsk + (includeAddon ? 18500 : 0);
     const { data, error } = await supabase.from("refund_requests").insert({
@@ -5658,7 +5658,7 @@ function RefundRequestModal({
           {includeCheckinAddon && (
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" checked={includeAddon} onChange={(e) => setIncludeAddon(e.target.checked)} />
-              Also request refund of the 18,500 ISK Check-in doctor add-on
+              Also request refund of the 18,500 ISK Tími doctor add-on
             </label>
           )}
           {err && <div className="text-sm text-red-600">{err}</div>}

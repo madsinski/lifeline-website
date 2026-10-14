@@ -14,16 +14,33 @@ const WHO5_QUESTIONS: Array<{ key: "w1_cheerful" | "w2_calm" | "w3_active" | "w4
   { key: "w2_calm", label: "I have felt calm and relaxed" },
   { key: "w3_active", label: "I have felt active and vigorous" },
   { key: "w4_rested", label: "I woke up feeling fresh and rested" },
-  { key: "w5_interest", label: "My daily life has been filled with things that interest me" },
+  { key: "w5_interest", label: "Daglegt líf mitt hefur verið fullt af því sem vekur áhuga minn" },
 ];
 
+/*
+ * The WHO-5 response scale, in Icelandic.
+ *
+ * The numbering is the original instrument's: 5 for "allan tímann" down to
+ * 0 for "aldrei", so a higher total means better wellbeing and the raw
+ * score is comparable with every published WHO-5 result.
+ *
+ * Worth knowing, because it looks like a contradiction: the University of
+ * Iceland's Matstækjaskrá describes its Icelandic WHO-5 as running "frá 0
+ * (alltaf) til 5 (aldrei)" — the reverse numbering — while also saying a
+ * higher score means better wellbeing. Those two statements cannot both
+ * hold for positively-worded items, so the entry is either describing a
+ * reverse-scored variant or summarising loosely. Renumbering ours on the
+ * strength of an ambiguous secondary source would invert every score we
+ * have already stored, so the labels moved and the values did not. Worth a
+ * look at the 2014 validation paper before anybody changes it.
+ */
 const SCALE: Array<{ value: number; label: string }> = [
-  { value: 5, label: "All of the time" },
-  { value: 4, label: "Most of the time" },
-  { value: 3, label: "More than half of the time" },
-  { value: 2, label: "Less than half of the time" },
-  { value: 1, label: "Some of the time" },
-  { value: 0, label: "At no time" },
+  { value: 5, label: "Allan tímann" },
+  { value: 4, label: "Oftast" },
+  { value: 3, label: "Meira en helming tímans" },
+  { value: 2, label: "Minna en helming tímans" },
+  { value: 1, label: "Stundum" },
+  { value: 0, label: "Aldrei" },
 ];
 
 export default function WellbeingSurveyModal({ companyId, onClose, onSubmitted }: Props) {
@@ -35,11 +52,11 @@ export default function WellbeingSurveyModal({ companyId, onClose, onSubmitted }
   const allAnswered = WHO5_QUESTIONS.every((q) => answers[q.key] != null);
 
   async function submit() {
-    if (!allAnswered) { setError("Please answer every question."); return; }
+    if (!allAnswered) { setError("Svaraðu öllum spurningum."); return; }
     setSaving(true);
     setError("");
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); setError("Not signed in."); return; }
+    if (!user) { setSaving(false); setError("Þú þarft að skrá þig inn."); return; }
     const { error: insErr } = await supabase.from("client_wellbeing_surveys").insert({
       client_id: user.id,
       company_id: companyId,
@@ -60,12 +77,12 @@ export default function WellbeingSurveyModal({ companyId, onClose, onSubmitted }
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">Wellbeing check-in</h2>
+          <h2 className="text-xl font-semibold">Líðanmat</h2>
           <p className="text-sm text-gray-600 mt-1">
             Over the last two weeks — choose the answer that best fits.{" "}
             {companyId
-              ? "Your individual answers stay private; only aggregated trends (min 5 people) are shared with your company."
-              : "Your answers stay private — used to personalise your insights and track your wellbeing over time."}
+              ? "Svörin þín eru trúnaðarmál. Aðeins samanteknar niðurstöður (minnst 5 manns) fara til fyrirtækisins."
+              : "Svörin þín eru trúnaðarmál — notuð til að sníða ráðleggingar að þér og fylgjast með líðan yfir tíma."}
           </p>
         </div>
         <div className="p-6 space-y-5">
@@ -90,7 +107,7 @@ export default function WellbeingSurveyModal({ companyId, onClose, onSubmitted }
             </div>
           ))}
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Anything else you want to share? (optional, never shared with your employer)</span>
+            <span className="text-sm font-medium text-gray-700">Viltu bæta einhverju við? (valfrjálst, fer aldrei til vinnuveitanda)</span>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-emerald-400" />
           </label>
           {error && <div className="text-red-600 text-sm">{error}</div>}
