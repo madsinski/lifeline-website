@@ -55,13 +55,18 @@ export function daysPerWeek(move?: MoveKey): number {
 }
 
 /** What the plan will lead with. The goal decides the headline; the rest of
- *  the pillars are still there, they are simply not the opening move. */
+ *  the pillars are still there, they are simply not the opening move.
+ *
+ *  Accusative, because the only caller reads "Áhersla á <this>". Splitting a
+ *  sentence across a component and a data file is how "svefn og dagleg
+ *  hreyfing" shipped — each half correct, the join wrong, and the proofreader
+ *  blind to it because it never sees them together. */
 export function emphasis(goal?: GoalKey): string {
   switch (goal) {
-    case "energy": return "svefn og dagleg hreyfing";
-    case "weight": return "næring og brennsla";
+    case "energy": return "svefn og daglega hreyfingu";
+    case "weight": return "næringu og brennslu";
     case "strength": return "styrktarþjálfun og prótein";
-    case "sleep": return "svefnrútína og kvöldvenjur";
+    case "sleep": return "svefnrútínu og kvöldvenjur";
     case "stress": return "öndun, hvíld og álagsstjórnun";
     default: return "grunnmælingar og fyrirbyggjandi venjur";
   }
