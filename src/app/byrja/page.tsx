@@ -257,7 +257,7 @@ export default function StartPage() {
                   <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold underline">notkunarskilmála</a>
                   {" "}og{" "}
                   <a href="/privacy" target="_blank" rel="noreferrer" className="font-semibold underline">persónuverndarstefnu</a>
-                  {" "}Lifeline Health (v{PUBLIC_TERMS_VERSION}).
+                  {" "}Lifeline Health ({PUBLIC_TERMS_VERSION}).
                 </span>
               </label>
 
