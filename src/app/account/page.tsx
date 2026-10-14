@@ -341,19 +341,25 @@ function AccountPageInner() {
           });
       }
 
-      // Health-check participants are redirected into the heilsuferð, so that
-      // decision comes before the profile read rather than after it — the row
-      // below is wide and they never see it. Prefetching what the destination
-      // reads means it paints on arrival instead of loading again.
-      if (!new URLSearchParams(window.location.search).has("klassiskt")) {
+      /* No longer a redirect.
+       *
+       * Anybody with a journey used to be sent straight to the app from
+       * here, with ?klassiskt as the only way to see their own account page
+       * — so the account area existed but was reachable only by somebody who
+       * knew a query parameter. /account is a page of the site now, with the
+       * site's header and its own left navigation, and the app is a link on
+       * it rather than a place it throws you.
+       *
+       * The prefetch stays. Warming what the app reads means it paints on
+       * arrival when they do click through, which was the good half of the
+       * old behaviour. */
+      {
         const { data: sess } = await supabase.auth.getSession();
         const token = sess.session?.access_token ?? "";
         const hc = (url: string) => fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         const peek = await hcCache.load(hc, "/api/hc/journey/exists").then((e) => e.body as { exists?: boolean; has_plan?: boolean }).catch(() => null);
         if (peek?.exists) {
           hcCache.prefetch(hc, peek.has_plan ? ["/api/hc/actions", "/api/hc/plan"] : ["/api/hc/journey"]);
-          router.replace(peek.has_plan ? "/app/aaetlun" : "/app");
-          return;
         }
       }
 
@@ -373,20 +379,21 @@ function AccountPageInner() {
           const cd = clientData as Record<string, unknown>;
           const companyId = cd.company_id as string | null;
           const welcomeSeen = cd.welcome_seen_at as string | null;
-          if (!companyId && !welcomeSeen) {
-            // B2B contacts who signed up to manage a company (account_origin
-            // "business") and aren't an employee of any company (no company_id)
-            // belong in the business portal, not the consumer welcome flow.
-            // This catches contacts who confirmed their email but abandoned
-            // company registration.
-            if ((currentUser.user_metadata?.account_origin as string | undefined) === "business") {
-              router.replace("/business/account");
-            } else {
-              router.replace("/account/welcome");
-            }
+          /* The business branch stays: somebody who signed up to manage a
+             company and never finished belongs in the business portal, and
+             the consumer account page has nothing for them. */
+          if (!companyId && !welcomeSeen
+              && (currentUser.user_metadata?.account_origin as string | undefined) === "business") {
+            router.replace("/business/account");
             setLoading(false);
             return;
           }
+          /* The consumer branch is gone. It sent anybody without
+             welcome_seen_at to the slideshow, which made /account
+             unreachable for a new account — and onboarding is the composed
+             flow in /app now, so this was a second sequence competing with
+             it. The deck is still at /account/welcome for anyone who wants
+             to watch it. */
         }
         if (clientData) {
           const nameParts = (clientData.full_name || "").split(" ");
