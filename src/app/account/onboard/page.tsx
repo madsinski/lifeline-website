@@ -313,7 +313,7 @@ function ConsentStage({
   acceptHealth: boolean; setAcceptHealth: (v: boolean) => void;
   onBack: () => void; onContinue: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   return (
     <section className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
       <header>
@@ -325,7 +325,7 @@ function ConsentStage({
 
       <div>
         <h2 className="text-sm font-semibold text-[#0F172A] mb-2">
-          Upplýst samþykki fyrir heilsumat ({HEALTH_CONSENT_VERSION})
+          {tv("acct.p.consent-version", "Upplýst samþykki fyrir heilsumat ({{v}})", { v: HEALTH_CONSENT_VERSION })}
         </h2>
         <pre className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
 {renderHealthAssessmentConsent()}

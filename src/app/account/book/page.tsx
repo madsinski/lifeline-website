@@ -956,7 +956,7 @@ function GrantStage({
   onÁfram: () => void;
   onSkip: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   // A live fund is one we have a signed direct-settlement agreement with —
   // only those produce a discount. Everything else records the declaration.
   const isLive = previewGrantIsk > 0;
@@ -1012,7 +1012,7 @@ function GrantStage({
               <span>{pkg.priceIsk.toLocaleString("is-IS")} kr.</span>
             </div>
             <div className="flex items-center justify-between font-medium text-emerald-700">
-              <span>Styrkur frá {fund.name}</span>
+              <span>{tv("acct.book.grantfrom", "Styrkur frá {{fund}}", { fund: fund.name })}</span>
               <span>−{previewGrantIsk.toLocaleString("is-IS")} kr.</span>
             </div>
             <div className="h-px bg-emerald-200 my-1" />
@@ -1021,7 +1021,7 @@ function GrantStage({
               <span>{net.toLocaleString("is-IS")} kr.</span>
             </div>
             <p className="text-[11px] text-emerald-900/80 pt-1">
-              Skilyrði sjóðsins: {fund.seniority} Styrkurinn er í boði á {fund.periodMonths} mánaða fresti.
+              {tv("acct.book.fundterms", "Skilyrði sjóðsins: {{seniority}} Styrkurinn er í boði á {{months}} mánaða fresti.", { seniority: fund.seniority, months: fund.periodMonths })}
             </p>
           </div>
 
@@ -1132,7 +1132,7 @@ function ReviewStage({
   onÁfram: () => void;
   error: string | null;
 }) {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
       <h2 className="text-lg font-semibold text-[#0F172A]">{t("acct.book.review", "Farðu yfir bókunina")}</h2>
@@ -1162,7 +1162,8 @@ function ReviewStage({
               {/* The member should see that their union paid — that visibility
                   is part of what the fund is buying from us. */}
               <div className="flex items-center justify-between text-emerald-700 font-medium">
-                <span>Styrkur frá {grantFundName ?? t("acct.book.unionword", "stéttarfélagi")}</span>
+                <span>{tv("acct.book.grantfrom", "Styrkur frá {{fund}}",
+                  { fund: grantFundName ?? t("acct.book.unionword", "stéttarfélagi") })}</span>
                 <span>−{grantIsk.toLocaleString("is-IS")} ISK</span>
               </div>
               <div className="h-px bg-blue-100 my-1" />

@@ -26,7 +26,7 @@ type State =
   | { k: "declined" };
 
 export default function PartnerInvitePage() {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   /* From the URL, once. It cannot change without a navigation, so there is
      nothing for an effect to do here. */
   const [token] = useState<string | null>(() =>
@@ -90,7 +90,7 @@ export default function PartnerInvitePage() {
         {s.k === "ready" && (
           <>
             <h1 className="mt-4 text-xl font-bold text-slate-900">
-              {s.inviter ? `${s.inviter} bað þig um að vera félagi` : t("acct.partner.invited", "Þú fékkst boð um að vera félagi")}
+              {s.inviter ? tv("acct.partner.askedyou", "{{name}} bað þig um að vera félagi", { name: s.inviter }) : t("acct.partner.invited", "Þú fékkst boð um að vera félagi")}
             </h1>
             {/* What they are agreeing to, before they agree. The whole point
                 of the feature is that it is one number and nothing else, so
@@ -125,7 +125,7 @@ export default function PartnerInvitePage() {
           <>
             <h1 className="mt-4 text-xl font-bold text-slate-900">{t("acct.partner.connected", "Þá eruð þið tengd")}</h1>
             <p className="mt-1.5 text-sm text-slate-600">
-              {s.inviter ? `${s.inviter} getur nú valið þig sem félaga.` : t("acct.partner.answered", "Boðinu er svarað.")}
+              {s.inviter ? tv("acct.partner.cannow", "{{name}} getur nú valið þig sem félaga.", { name: s.inviter }) : t("acct.partner.answered", "Boðinu er svarað.")}
               {" "}Þú getur gert það sama úr þínum stillingum.
             </p>
             <Link href="/app/adgangur"

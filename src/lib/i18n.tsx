@@ -13,6 +13,16 @@ interface I18nContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   t: (key: string, fallback?: string) => string;
+  /**
+   * A string with values in it.
+   *
+   * Word order is not the same in every language — "Access from March" and
+   * "Aðgangur frá mars" happen to agree, but plenty do not, and a sentence
+   * assembled from fragments in JSX can only ever be in one order. So the
+   * whole sentence is one translatable string with {{named}} holes, and the
+   * translation decides where the holes go.
+   */
+  tv: (key: string, fallback: string, vars: Record<string, string | number>) => string;
   loading: boolean;
 }
 
@@ -22,6 +32,8 @@ const I18nContext = createContext<I18nContextType>({
   locale: "is",
   setLocale: () => {},
   t: (_key: string, fallback?: string) => fallback || "",
+  tv: (_key: string, fallback: string, vars: Record<string, string | number>) =>
+    fallback.replace(/\{\{(\w+)\}\}/g, (_m, k: string) => String(vars[k] ?? "")),
   loading: true,
 });
 
@@ -87,8 +99,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     return locale === "is" ? entry.is : entry.en;
   }, [translations, locale]);
 
+  const tv = useCallback(
+    (key: string, fallback: string, vars: Record<string, string | number>) =>
+      t(key, fallback).replace(/\{\{(\w+)\}\}/g, (_m, k: string) => String(vars[k] ?? "")),
+    [t]);
+
   return (
-    <I18nContext.Provider value={{ locale, setLocale, t, loading }}>
+    <I18nContext.Provider value={{ locale, setLocale, t, tv, loading }}>
       {children}
     </I18nContext.Provider>
   );

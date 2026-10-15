@@ -126,7 +126,7 @@ function AccountPageInner() {
   /* Labels follow the locale. The Icelandic sits inline as each key's
      fallback, so a missing row degrades to the main language rather than to
      a bare key. */
-  const { t, locale } = useI18n();
+  const { t, tv, locale } = useI18n();
   const navItems = useMemo(() => navItemsFor(t), [t]);
 
   /* profile fields */
@@ -1284,7 +1284,7 @@ function AccountPageInner() {
                               information nor Icelandic. The greetings file
                               stays for /admin, where it is a staff tool
                               rather than somebody's account page. */}
-                          {profileFirstName ? `Hæ, ${profileFirstName}` : t("acct.nav.mypages", "Mínar síður")}
+                          {profileFirstName ? tv("acct.p.hi-name", "Hæ, {{name}}", { name: profileFirstName }) : t("acct.nav.mypages", "Mínar síður")}
                         </h1>
                         {companyName ? (
                           <p className="text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -1296,7 +1296,7 @@ function AccountPageInner() {
                             </span>
                             <span className="text-sm font-semibold text-[#1F2937]">{companyName}</span>
                             <span className="text-[#9CA3AF]">·</span>
-                            <span>Aðgangur frá {memberSince}</span>
+                            <span>{tv("acct.p.member-since", "Aðgangur frá {{date}}", { date: memberSince })}</span>
                           </p>
                         ) : (
                           <p className="text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -1308,7 +1308,7 @@ function AccountPageInner() {
                                 <span className="text-xs font-medium">{activeTier.name}</span>
                               </span>
                             )}
-                            <span>Aðgangur frá {memberSince}</span>
+                            <span>{tv("acct.p.member-since", "Aðgangur frá {{date}}", { date: memberSince })}</span>
                           </p>
                         )}
                       </div>
@@ -2761,7 +2761,7 @@ function AccountPageInner() {
                         <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.askrift-ad-lifeline-appinu", "Áskrift að Lifeline appinu")}</h2>
                         <p className="mt-1 text-sm text-[#6B7280]">
                           <span className={`mr-2 px-2.5 py-0.5 rounded-full text-xs font-bold ${activeTier.badgeColor}`}>{activeTier.name}</span>
-                          {subscription?.current_period_end && <>Næsta greiðsla {new Date(subscription.current_period_end).toLocaleDateString("is-IS")}</>}
+                          {subscription?.current_period_end && <>{tv("acct.p.next-payment", "Næsta greiðsla {{date}}", { date: new Date(subscription.current_period_end).toLocaleDateString(locale === "en" ? "en-GB" : "is-IS") })}</>}
                         </p>
                       </div>
                       {!showCancelConfirm && (
@@ -3272,7 +3272,7 @@ function CheckinJourney({
   videoConfirmBusy: boolean;
   onChangePackage: () => void | Promise<void>;
 }) {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   const slotLabel = bodyCompBookingAt
     ? new Date(bodyCompBookingAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
     : null;
@@ -3300,7 +3300,7 @@ function CheckinJourney({
       description: completed
         ? t("acct.p.maelingu-lokid-framvinduskyrslan-t", "Mælingu lokið. Framvinduskýrslan þín er í vinnslu.")
         : slotLabel
-          ? `Áætlaður ${slotLabel}. See Current bookings below for directions.`
+          ? tv("acct.p.est-slot", "Áætlaður {{slot}}. Sjá „Bókanir“ hér fyrir neðan fyrir leiðbeiningar.", { slot: slotLabel })
           : t("acct.p.vid-stadfestum-timann-thegar-maeli", "Við staðfestum tímann þegar mælingatíminn þinn er frágenginn."),
       state: completed ? "done" : biodyActivated ? "active" : "pending",
     },
@@ -3440,7 +3440,7 @@ function JourneyTimeline({
   journeyChecks?: { questionnaire?: string; blood_test?: string; results_viewed?: string };
   onToggleJourneyCheck?: (key: JourneyCheckKey) => void;
 }) {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   const eventLabel = companyEvent
     ? `${new Date(companyEvent.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}, ${companyEvent.start_time.slice(0,5)}–${companyEvent.end_time.slice(0,5)}${companyEvent.location ? ` · ${companyEvent.location}` : ""}`
     : "";
@@ -3516,7 +3516,7 @@ function JourneyTimeline({
     description: hasBodyCompSlot
       ? t("acct.p.timinn-thinn-er-bokadur-sja", "Tíminn þinn er bókaður. Sjá „Bókanir“ hér fyrir neðan.")
       : companyEvent
-        ? `Á staðnum at ${eventLabel}. Pick a 5-minute slot.`
+        ? tv("acct.p.onsite-at", "Á staðnum hjá {{event}}. Veldu 5 mínútna tíma.", { event: eventLabel })
         : t("acct.p.fyrirtaekid-thitt-akvedur-maelinga", "Fyrirtækið þitt ákveður mælingadaginn. Þú færð tilkynningu."),
     cta: !hasBodyCompSlot && companyEvent ? { label: t("acct.p.veldu-tima", "Veldu tíma"), onClick: onPickBodyCompSlot } : undefined,
   };
@@ -4745,7 +4745,7 @@ function BiodyProfileModal({
   onClose: () => void;
   onActivated?: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   const [biodyActive, setBiodyActive] = useState(false);
   const [sex, setSex] = useState<"male" | "female" | "">("");
   const [heightCm, setHeightCm] = useState("");
@@ -4919,7 +4919,7 @@ function BiodyProfileModal({
               <div className="border-t border-gray-100 pt-4 space-y-2">
                 <div>
                   <p className="text-xs font-semibold text-[#0F172A]">
-                    Upplýst samþykki fyrir heilsumat ({HEALTH_CONSENT_VERSION})
+                    {tv("acct.p.consent-version", "Upplýst samþykki fyrir heilsumat ({{v}})", { v: HEALTH_CONSENT_VERSION })}
                   </p>
                   <p className="text-[11px] text-gray-500 mt-0.5">
                     9. gr. (2)(a) GDPR · krafa fyrir vinnslu heilsugagna

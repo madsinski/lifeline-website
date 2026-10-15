@@ -683,12 +683,12 @@ function TermsConsentStage({
   onBack: () => void;
   onConfirm: (e: React.FormEvent) => void;
 }) {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   return (
     <form onSubmit={onConfirm} className="space-y-5">
       <div id="signup-terms-top" className="scroll-mt-4">
         <h2 className="text-lg font-semibold text-[#0F172A]">
-          {firstName ? `Næstum þar, ${firstName}` : t("acct.login.almost", "Næstum þar")}
+          {firstName ? tv("acct.login.almostname", "Næstum þar, {{name}}", { name: firstName }) : t("acct.login.almost", "Næstum þar")}
         </h2>
         <p className="text-sm text-gray-500 mt-1 leading-relaxed">
           {t("acct.login.beforecreate", t("acct.login.beforecreate", "Áður en aðgangurinn er stofnaður þarftu að lesa og samþykkja notkunarskilmála og persónuverndarstefnu Lifeline Health."))}
@@ -702,7 +702,7 @@ function TermsConsentStage({
 
       <div>
         <p className="text-xs font-semibold text-[#0F172A] uppercase tracking-wide mb-2">
-          Notkunarskilmálar ({PUBLIC_TERMS_VERSION})
+          {tv("acct.login.termsv", "Notkunarskilmálar ({{v}})", { v: PUBLIC_TERMS_VERSION })}
         </p>
         <pre className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50/60 whitespace-pre-wrap font-sans">
 {renderPublicTermsOfService("is")}
@@ -711,7 +711,7 @@ function TermsConsentStage({
 
       <div>
         <p className="text-xs font-semibold text-[#0F172A] uppercase tracking-wide mb-2">
-          Persónuverndarstefna ({PUBLIC_PRIVACY_VERSION})
+          {tv("acct.login.privacyv", "Persónuverndarstefna ({{v}})", { v: PUBLIC_PRIVACY_VERSION })}
         </p>
         <pre className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50/60 whitespace-pre-wrap font-sans">
 {renderPublicPrivacyPolicy("is")}
@@ -742,7 +742,7 @@ function TermsConsentStage({
           />
           <span className="text-xs text-gray-700 leading-snug">
             <strong>{t("acct.login.noresearch", "Afþakka rannsóknanotkun.")}</strong>{" "}
-            Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.
+            {t("acct.login.optout-research", "Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.")}
           </span>
         </label>
         <label className="flex items-start gap-2.5 cursor-pointer">
@@ -754,7 +754,7 @@ function TermsConsentStage({
           />
           <span className="text-xs text-gray-700 leading-snug">
             <strong>{t("acct.login.nomarketing", "Afþakka markaðspóst.")}</strong>{" "}
-            Ekki senda mér vörufréttir eða kynningar frá Lifeline.
+            {t("acct.login.optout-marketing", "Ekki senda mér vörufréttir eða kynningar frá Lifeline.")}
           </span>
         </label>
       </div>

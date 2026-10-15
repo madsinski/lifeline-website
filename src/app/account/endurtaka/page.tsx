@@ -24,7 +24,7 @@ import { RotateCcw, Check, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 export default function ReplayOnboardingPage() {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   const router = useRouter();
   const [who, setWho] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -95,7 +95,7 @@ export default function ReplayOnboardingPage() {
           <>
             <p className="mt-4 flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
               <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-              Núllstillt{done.consents ? ` · ${done.consents} samþykki fjarlægð` : ""}.
+              {done.consents ? tv("acct.replay.resetn", "Núllstillt · {{n}} samþykki fjarlægð.", { n: done.consents }) : t("acct.replay.reset", "Núllstillt.")}
             </p>
             <button
               type="button"

@@ -35,7 +35,7 @@ const DOC_TITLE_IS = (t: (k: string, f?: string) => string): Record<string, stri
 );
 
 export default function SignedDocumentsList() {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   const [rows, setRows] = useState<AcceptanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,8 @@ export default function SignedDocumentsList() {
         .from("platform-acceptance-pdfs")
         .createSignedUrl(row.pdf_storage_path, 300);
       if (signErr || !data?.signedUrl) {
-        alert(`Tókst ekki að sækja PDF: ${signErr?.message || t("acct.docs.nourl", "engin slóð")}`);
+        alert(tv("acct.docs.pdffail", "Tókst ekki að sækja PDF: {{err}}",
+          { err: signErr?.message || t("acct.docs.nourl", "engin slóð") }));
         return;
       }
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
