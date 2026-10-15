@@ -198,7 +198,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
       )}
 
       {/* The code. A trial is not priced, so there is nothing for one to take off. */}
-      {!trial && <div className="mt-3">
+      {!trial && packageKey !== "coaching-monthly" && <div className="mt-3">
         <label htmlFor="disc" className="block text-xs font-semibold text-hc-ink-2">Afsláttarkóði</label>
         <div className="mt-1 flex flex-wrap gap-2">
           <input id="disc" value={code}

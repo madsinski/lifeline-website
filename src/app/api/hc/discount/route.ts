@@ -65,6 +65,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, slow_down: true }, { status: 429 });
   }
 
+  /* Subscription codes are written for the app tier; until codes can name a
+     tier, none applies to coaching (a 3.490 kr. promo would otherwise come
+     off 7.990 kr.). Same opaque answer as any other code that fails. */
+  if (body?.package === COACHING_PACKAGE_KEY) return NextResponse.json({ ok: false });
   const price = await listPrice(target, typeof body?.package === "string" ? body.package : undefined);
   if (price == null) return NextResponse.json({ ok: false });
 

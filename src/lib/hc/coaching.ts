@@ -182,11 +182,12 @@ export async function coachingAccess(clientId: string, journey: HcJourney | null
     ? { id: sub.id, current_period_end: sub.current_period_end, cancelled: sub.status === "cancelled" }
     : null;
 
-  /* Anyone on the health-check track — paid or about to pay — keeps the
-     nurse: asking about the check before buying it is part of selling it.
-     Only the coach/app track is gated by the coaching tier. */
-  const care = (journey && (journey.entry === "b2c" || journey.entry === "b2b" || journey.entry === "heilsugaesla"))
-    || await healthAccess(clientId, journey
+  /* Care = a health check that is paid, an employer (B2B), or a referral.
+     NOT the bare entry: 'b2c' is every new journey's default and anyone can
+     choose the check track, so trusting it would hand out the coach for free
+     (security review 2026-10-15). healthAccess checks paid_at, paid orders,
+     B2B and staff-written plans. Questions before buying go to contact@. */
+  const care = journey?.entry === "heilsugaesla" || await healthAccess(clientId, journey
     ? { id: journey.id, entry: journey.entry, paid_at: journey.paid_at, plan_published_at: journey.plan_published_at }
     : null);
   if (care) return { ok: true, mode: "care", quota, subscription };

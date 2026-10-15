@@ -180,7 +180,20 @@ export async function POST(req: NextRequest) {
   if (noWaiver) return noWaiver;
   const waiverAt = body?.withdrawal_waiver === true ? new Date().toISOString() : null;
 
+  /*
+   * Attempt cap, from the audit trail (as /api/hc/discount does). Once
+   * Straumur is live every POST can be a real charge, so a loop must not be.
+   */
+  const since = new Date(Date.now() - 10 * 60_000).toISOString();
+  const { count: tries } = await supabaseAdmin.from("hc_audit").select("id", { count: "exact", head: true })
+    .eq("actor", `self:${user.id}`).eq("action", "subscribe_try").gte("created_at", since);
+  if ((tries ?? 0) >= 10) return NextResponse.json({ error: "Of margar tilraunir. Reyndu aftur eftir smástund." }, { status: 429 });
+  await supabaseAdmin.from("hc_audit").insert({ actor: `self:${user.id}`, action: "subscribe_try", journey_id: null, detail: {} });
+
   const key: SubscriptionPackageKey = isPackageKey(body?.package) ? body.package : APP_PACKAGE_KEY;
+  if (key === COACHING_PACKAGE_KEY && typeof body?.code === "string" && body.code.trim()) {
+    return NextResponse.json({ error: "Afsláttarkóðar gilda ekki fyrir þjálfun að svo stöddu." }, { status: 400 });
+  }
   const tier = tierForPackage(key);
   const [p, existing, running] = await Promise.all([pkg(key), current(user.id), shown(user.id)]);
   if (!p) return NextResponse.json({ error: "package_not_found" }, { status: 404 });
@@ -315,7 +328,9 @@ export async function POST(req: NextRequest) {
       if (journey.entry === "app") {
         await patchJourney(journey.id, { entry: "coach" }, `self:${user.id}`, "journey_track_coach", { via: "coaching_subscription" });
       }
-      await assignCoachIfNone(journey, (p as { quota?: { region: string } }).quota?.region ?? "vestmannaeyjar");
+      const coach = await assignCoachIfNone(journey, (p as { quota?: { region: string } }).quota?.region ?? "vestmannaeyjar");
+      /* Paid and nobody to answer: say so where staff look, not only in a log. */
+      if (!coach) await hcAudit(`self:${user.id}`, "coaching_unassigned", journey.id, { subscription_id: sub.id });
     } catch (e) {
       // The subscription stands; staff can assign by hand. Say so in the log.
       console.error("[hc] coaching set-up after purchase failed", e instanceof Error ? e.message : e);
