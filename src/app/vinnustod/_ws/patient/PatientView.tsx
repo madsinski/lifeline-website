@@ -267,7 +267,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
           )}
           {target.sheet !== "referral" && (
             <button type="button" onClick={() => onNav({ sheet: "referral" })} className={wsBtn.ghost}>
-              <Stethoscope className="h-4 w-4" aria-hidden /> Tilvísanir{openRefs ? ` (${openRefs})` : ""}
+              <Stethoscope className="h-4 w-4" aria-hidden /> Læknismat og samstarfsaðilar{openRefs ? ` (${openRefs})` : ""}
             </button>
           )}
           <a href="https://provider.medalia.is" target="_blank" rel="noopener noreferrer" className={wsBtn.secondary}>
@@ -364,7 +364,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
               <p className="text-xs text-hc-ink-2">{resultsStatus(d)}</p>
             </div>
             <button type="button" onClick={() => onNav({ sheet: "referral" })} className={wsBtn.secondary}>
-              <Stethoscope className="h-4 w-4" aria-hidden /> Læknir og tilvísanir{openRefs ? ` (${openRefs})` : ""}
+              <Stethoscope className="h-4 w-4" aria-hidden /> Læknismat og samstarfsaðilar{openRefs ? ` (${openRefs})` : ""}
             </button>
           </div>
           <ResultsStep d={d} api={api} isDoctor={isDoctor} record={record} reload={load} />

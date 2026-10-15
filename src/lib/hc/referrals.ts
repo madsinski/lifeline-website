@@ -77,9 +77,9 @@ export const PROFESSION_IS: Record<PartnerProfession, { one: string; service: st
 export const TARGET_IS: Record<ReferralTarget, { label: string; blurb: string; color: string }> = {
   lifeline_doctor: { label: "Læknir Lifeline", blurb: "Læknir metur niðurstöðu eða spurningu áður en lengra er haldið", color: "#0F172A" },
   heilsugaesla: { label: "Heilsugæslan", blurb: "Ráðlegging til skjólstæðings um að leita til heilsugæslu. Læknir staðfestir.", color: "#E11D48" },
-  physio: { label: "Sjúkraþjálfari (Vera)", blurb: "Samstarfsaðili hjá Vera heilsusetri hefur samband við skjólstæðinginn.", color: "#F59E0B" },
-  psychologist: { label: "Sálfræðingur (Vera)", blurb: "Samstarfsaðili hjá Vera heilsusetri hefur samband við skjólstæðinginn.", color: "#8B5CF6" },
-  nutritionist: { label: "Næringarfræðingur (Vera)", blurb: "Samstarfsaðili hjá Vera heilsusetri hefur samband við skjólstæðinginn.", color: "#10B981" },
+  physio: { label: "Sjúkraþjálfari (Vera)", blurb: "Samstarfsaðili (Vera heilsusetur) hefur samband við skjólstæðinginn.", color: "#F59E0B" },
+  psychologist: { label: "Sálfræðingur (Vera)", blurb: "Samstarfsaðili (Vera heilsusetur) hefur samband við skjólstæðinginn.", color: "#8B5CF6" },
+  nutritionist: { label: "Næringarfræðingur (Vera)", blurb: "Samstarfsaðili (Vera heilsusetur) hefur samband við skjólstæðinginn.", color: "#10B981" },
   specialist: { label: "Sérfræðingur", blurb: "Ráðlegging til skjólstæðings um að leita til sérfræðings. Læknir staðfestir.", color: "#0EA5E9" },
 };
 
@@ -129,9 +129,9 @@ export function partnerEmail(o: {
 /** The client's copy: what was shared, with whom. */
 export function clientShareEmail(o: { clientName: string; partnerName: string; profession: PartnerProfession; organization: string }) {
   const first = o.clientName.split(" ")[0];
-  const body = `Eins og við ræddum höfum við sent nafn þitt, kennitölu og samskiptaupplýsingar til ${o.partnerName}, ${PROFESSION_IS[o.profession].one} hjá ${o.organization}, sem hefur samband við þig. Engar heilsufarsupplýsingar voru sendar.`;
+  const body = `Eins og við ræddum höfum við sent nafn þitt, kennitölu og samskiptaupplýsingar til ${o.partnerName}, ${PROFESSION_IS[o.profession].one} (${o.organization}), sem hefur samband við þig. Engar heilsufarsupplýsingar voru sendar.`;
   return {
-    subject: `Við létum ${o.organization} vita`,
+    subject: `Við sendum upplýsingar þínar til ${o.partnerName}`,
     body,
     text: `Hæ ${first}.\n\n${body}\n\nKveðja,\nLifeline Health`,
   };

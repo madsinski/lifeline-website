@@ -442,7 +442,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
                 <button type="button" onClick={() => setStep(3)} className={`${wsBtn.primary} mt-3`}>Áfram í áætlun <ChevronRight className="h-4 w-4" aria-hidden /></button>
               </div>
               <div className="rounded-xl border border-hc-warn-ink/30 bg-hc-warn-surface p-4">
-                <p className="font-semibold text-hc-warn-ink">{isDoctor ? "Já, skrá tilvísun" : "Já eða óviss: læknir metur eða vísað áfram"}</p>
+                <p className="font-semibold text-hc-warn-ink">{isDoctor ? "Já, skrá" : "Já eða óviss: læknir metur, ráðlegging eða samstarfsaðili"}</p>
                 <p className="mt-1 text-sm text-hc-warn-ink">Veldu „Læknir Lifeline“ hér að neðan ef læknir á að líta á eitthvað, eða hvert á að vísa. Læknir fær skeyti.</p>
               </div>
             </div>
