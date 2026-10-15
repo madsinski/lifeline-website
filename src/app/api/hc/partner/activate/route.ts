@@ -23,11 +23,15 @@ export async function POST(req: NextRequest) {
   if (!(await throttle(`partner:${clientIp(req)}`, 300, 60))) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
   const body = await req.json().catch(() => ({}));
-  const code = normalizeCode(String(body.code || ""));
+  /* Old LL-XXXX-XXXX codes normalise; Medalia's pool codes are stored as
+     Medalia wrote them, so match those as typed (trimmed, upper-cased). */
+  const raw = String(body.code || "").trim();
+  const candidates = Array.from(new Set([normalizeCode(raw), raw, raw.toUpperCase()].filter(Boolean)));
   const { data: order } = await supabaseAdmin
     .from("hc_orders")
     .select("id, journey_id, client_id, package_key, kind, status, activation_redeemed_at")
-    .eq("activation_code", code)
+    .in("activation_code", candidates)
+    .limit(1)
     .maybeSingle();
   if (!order || order.status !== "paid") return NextResponse.json({ error: "invalid_code" }, { status: 404 });
 
