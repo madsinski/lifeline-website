@@ -9,12 +9,15 @@ import { hcPage } from "@/app/components/hc/ui";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, RotateCcw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import BackLink from "@/app/components/hc/BackLink";
 import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import { Markdown, SlideDeck, VideoEmbed } from "@/app/components/hc/LectureContent";
 import type { HcLecture } from "@/lib/hc/types";
+import { Skeleton } from "@/app/components/hc/Loading";
+import { SAVE_FAILED, useToast } from "@/app/components/hc/Toast";
+import { hcBtn } from "@/app/components/hc/ui";
 
 async function authed(url: string, init: RequestInit = {}) {
   const { data } = await supabase.auth.getSession();
@@ -28,25 +31,58 @@ export default function LecturePage() {
   const [lecture, setLecture] = useState<HcLecture | null>(null);
   const [done, setDone] = useState(false);
   const [next, setNext] = useState<{ slug: string; title: string } | null>(null);
-  const [error, setError] = useState("");
+  /*
+   * Only a 404 means "not found". Offline, a 5xx or a timeout used to say
+   * the same thing — or leave the page blank — so a lecture that exists
+   * looked deleted to anybody on a bad connection, with no way to retry.
+   */
+  const [error, setError] = useState<"" | "missing" | "failed">("");
+  const [attempt, setAttempt] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
+    let alive = true;
     (async () => {
-      const r = await authed(`/api/hc/lectures/${slug}`);
+      let r: Response;
+      try {
+        r = await authed(`/api/hc/lectures/${slug}`);
+      } catch {
+        if (alive) setError("failed");
+        return;
+      }
+      if (!alive) return;
       if (r.status === 401) { router.replace(`/account/login?next=${encodeURIComponent(`/app/fraedsla/${slug}`)}`); return; }
-      if (!r.ok) { setError("Fyrirlesturinn fannst ekki."); return; }
-      const j = await r.json();
+      if (r.status === 404) { setError("missing"); return; }
+      if (!r.ok) { setError("failed"); return; }
+      const j = await r.json().catch(() => null);
+      if (!alive) return;
+      if (!j?.lecture) { setError("failed"); return; }
+      setError("");
       setLecture(j.lecture);
       setDone(!!j.completed_at);
       setNext(j.next);
     })();
-  }, [slug, router]);
+    return () => { alive = false; };
+  }, [slug, router, attempt]);
 
   const complete = useCallback(async () => {
-    if (done) return;
+    if (done || saving) return;
+    // Optimistic, and taken back if the server did not record it — a
+    // "Lokið" that is not stored would reappear as unfinished next visit.
     setDone(true);
-    await authed(`/api/hc/lectures/${slug}`, { method: "POST", body: JSON.stringify({ action: "complete" }) });
-  }, [done, slug]);
+    setSaving(true);
+    let ok = false;
+    try {
+      const r = await authed(`/api/hc/lectures/${slug}`, { method: "POST", body: JSON.stringify({ action: "complete" }) });
+      ok = r.ok;
+    } catch { ok = false; }
+    setSaving(false);
+    if (!ok) {
+      setDone(false);
+      toast.show(SAVE_FAILED, { tone: "bad" });
+    }
+  }, [done, saving, slug, toast]);
 
   return (
     <div className={hcPage.participant}>
@@ -58,11 +94,26 @@ export default function LecturePage() {
         <JourneyHeader />
         <div className="sm:mb-4"><JourneyNav active="fraedsla" /></div>
         <BackLink href="/app/fraedsla" label="Fræðslan" />
-        {error && <p className="mt-8 text-hc-ink-2">{error}</p>}
+        {error === "missing" && <p className="mt-8 text-hc-ink-2">Fyrirlesturinn fannst ekki.</p>}
+        {error === "failed" && (
+          <div className="mt-8 space-y-3" role="alert">
+            <p className="text-hc-ink-2">Ekki tókst að sækja fyrirlesturinn. Athugaðu nettenginguna.</p>
+            <button type="button" onClick={() => { setError(""); setAttempt((n) => n + 1); }} className={hcBtn.secondary}>
+              <RotateCcw className="h-4 w-4" aria-hidden /> Reyna aftur
+            </button>
+          </div>
+        )}
+        {!error && !lecture && (
+          <div className="mt-5 space-y-3" aria-busy="true" aria-label="Sæki fyrirlesturinn">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-9 w-3/4" />
+            <Skeleton className="mt-6 h-56 w-full" />
+          </div>
+        )}
         {lecture && (
           <article className="mt-5">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-hc-ok-ink">Fræðsla{lecture.duration_min ? ` · ${lecture.duration_min} mín.` : ""}</p>
-            <h1 className="mt-2 text-3xl font-bold text-[#0F172A]">{lecture.title}</h1>
+            <h1 className="mt-2 text-3xl font-bold text-hc-ink">{lecture.title}</h1>
             {lecture.subtitle && <p className="mt-1 text-lg text-hc-ink-3">{lecture.subtitle}</p>}
 
             <div className="mt-6">
@@ -79,7 +130,7 @@ export default function LecturePage() {
               {done
                 ? <span className="inline-flex items-center gap-1.5 rounded-full bg-hc-ok-surface px-4 py-2 text-sm font-semibold text-hc-ok-ink"><CheckCircle2 className="h-4 w-4" aria-hidden /> Lokið</span>
                 : lecture.kind !== "slides" && (
-                  <button type="button" onClick={() => void complete()} className="min-h-11 rounded-full bg-[#10B981] px-5 font-semibold text-white hover:bg-[#047857]">
+                  <button type="button" onClick={() => void complete()} disabled={saving} className="min-h-11 rounded-full bg-hc-brand-dark px-5 font-semibold text-white hover:bg-emerald-800 disabled:opacity-60">
                     Merkja sem lokið
                   </button>
                 )}
@@ -89,7 +140,7 @@ export default function LecturePage() {
                     className="inline-flex min-h-11 items-center gap-1 rounded-full border border-slate-200 bg-hc-surface px-4 text-sm font-semibold text-hc-ink-2 shadow-sm hover:bg-hc-sunken">
                     Næsti: {next.title} <ChevronRight className="h-4 w-4" aria-hidden />
                   </Link>
-                : <BackLink href="/app" label="Aftur í heilsuferðina" />}
+                : <BackLink href="/app/fraedsla" label="Aftur í fræðsluna" />}
             </div>
           </article>
         )}

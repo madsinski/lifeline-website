@@ -22,7 +22,7 @@ export default function StepHeader({ n, total, onBack, busy = false, sticky = tr
   const safeTotal = Math.max(total, 1);
   const at = Math.min(Math.max(n, 1), safeTotal);
   return (
-    <header className={`${sticky ? "sticky top-0 z-10 -mx-4 bg-hc-page/95 px-4 backdrop-blur" : ""} mb-5 py-3`}>
+    <header className={`${sticky ? "sticky top-[var(--hc-sticky-top)] z-10 -mx-4 bg-hc-page/95 px-4 backdrop-blur" : ""} mb-5 py-3`}>
       <div className="flex items-center gap-3">
         <button type="button" onClick={onBack} disabled={!onBack || at === 1 || busy}
           aria-label="Til baka" className="grid min-h-11 min-w-11 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:opacity-30">

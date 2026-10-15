@@ -33,7 +33,10 @@
 // people who only wanted to look around.
 
 import { useCallback, useEffect, useState } from "react";
-import { Bell, CalendarDays, Check, ChevronDown, PlayCircle, UserRound, Users } from "lucide-react";
+import { Bell, CalendarDays, ChevronDown, PlayCircle, UserRound, Users } from "lucide-react";
+import StepDot from "./StepDot";
+import Badge from "./Badge";
+import { hcBtn, hcCard } from "./ui";
 import SetupWalkthrough, { SetupStepBody, useSetupData } from "./SetupWalkthrough";
 import CalendarConnect from "./CalendarConnect";
 import type { ProfileFormData } from "./ProfileForm";
@@ -144,10 +147,10 @@ export default function SetupFlow({ api, place = "onboarding" }: {
   const settings = place === "settings";
 
   return (
-    <section className="rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-hairline sm:p-6">
+    <section className={`${hcCard.base} p-5 sm:p-6`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand">
+          <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand-text">
             {settings ? "Uppsetningin þín" : "Komdu þér af stað"}
           </p>
           <h3 className="mt-0.5 text-xl font-bold text-hc-ink">
@@ -187,11 +190,13 @@ export default function SetupFlow({ api, place = "onboarding" }: {
             const Icon = row.icon;
             const ok = done[row.key];
             return (
-              <section key={row.key} className="rounded-2xl p-4 ring-1 ring-hc-hairline">
+              <section key={row.key} className="rounded-hc-card p-4 ring-1 ring-hc-hairline">
                 <div className="flex items-start gap-3">
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-hc-sunken text-hc-ink-2"}`}>
-                    {ok ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
-                  </span>
+                  {ok ? <StepDot state="done" size="lg" label="Lokið" /> : (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-hc-sunken-2 text-hc-ink-2 ring-1 ring-hc-border">
+                      <Icon className="h-4 w-4" aria-hidden />
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <h4 className="font-semibold leading-tight text-hc-ink">{row.title}</h4>
                     <p className="text-xs leading-snug text-hc-ink-2">{row.why}</p>
@@ -207,15 +212,17 @@ export default function SetupFlow({ api, place = "onboarding" }: {
         </div>
       ) : (
         <>
-      <ul className="mt-4 overflow-hidden rounded-2xl ring-1 ring-hc-hairline">
+      <ul className="mt-4 overflow-hidden rounded-hc-card ring-1 ring-hc-hairline">
             {rows.map((row) => {
               const Icon = row.icon;
               const ok = done[row.key];
               return (
                 <li key={row.key} className="flex items-center gap-3 border-b border-hc-hairline p-3 last:border-b-0">
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
-                    {ok ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
-                  </span>
+                  {ok ? <StepDot state="done" size="lg" label="Lokið" /> : (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-hc-sunken-2 text-hc-ink-2 ring-1 ring-hc-border">
+                      <Icon className="h-4 w-4" aria-hidden />
+                    </span>
+                  )}
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold leading-tight text-hc-ink">{row.title}</span>
                     <span className="block text-xs leading-snug text-hc-ink-2">{row.why}</span>
@@ -231,7 +238,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
           there. On the settings page the controls are already open. */}
       {!settings && (
         <button type="button" onClick={() => setWalk(true)}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-hc-brand-dark px-5 py-3 font-bold text-white transition hover:bg-hc-brand">
+          className={`${hcBtn.cta} mt-3 w-full rounded-full py-3`}>
           <PlayCircle className="h-4 w-4" aria-hidden />
           {count === 0 ? "Leiða mig í gegnum það" : all ? "Skoða skref fyrir skref" : "Halda áfram"}
         </button>
@@ -287,8 +294,8 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
   if (coaches === null) {
     return (
       <div className="space-y-2" aria-busy="true">
-        <div className="h-16 rounded-xl hc-shimmer" />
-        <div className="h-16 rounded-xl hc-shimmer" />
+        <div className="h-16 rounded-hc-element hc-shimmer" />
+        <div className="h-16 rounded-hc-element hc-shimmer" />
       </div>
     );
   }
@@ -318,8 +325,8 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
           const openBio = bioOpen === c.id;
           return (
             <li key={c.id}
-              className={`overflow-hidden rounded-xl border transition ${
-                on ? "border-hc-brand bg-hc-brand/5" : "border-hc-hairline bg-hc-surface"}`}>
+              className={`overflow-hidden rounded-hc-element border transition ${
+                on ? "border-hc-brand-dark bg-hc-brand-surface" : "border-hc-hairline bg-hc-surface"}`}>
               {/* A row, not a button wrapping a button.
                   The card used to be one big <button aria-pressed>, and a
                   bio toggle inside it would have been a button inside a
@@ -333,7 +340,7 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={c.photo_url} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
                   ) : (
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-hc-brand/10 text-hc-brand" aria-hidden>
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-hc-brand-surface text-hc-brand-text" aria-hidden>
                       <UserRound className="h-5 w-5" />
                     </span>
                   )}
@@ -343,13 +350,13 @@ export function CoachStep({ myCoach, coaches, busy, onPick }: {
                   </span>
                 </button>
                 {on && (
-                  <span className="shrink-0 rounded-full bg-hc-brand px-2 py-0.5 text-[10px] font-bold text-white">valinn</span>
+                  <Badge tone="brand">valinn</Badge>
                 )}
                 {c.bio && (
                   <button type="button" onClick={() => setBioOpen(openBio ? null : c.id)}
                     aria-expanded={openBio}
                     aria-label={`Um ${c.name ?? "þjálfarann"}`}
-                    className="shrink-0 rounded-full p-1.5 text-hc-ink-3 transition hover:bg-hc-sunken-2 hover:text-hc-ink-2">
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-hc-ink-2 transition hover:bg-hc-sunken-2 hover:text-hc-ink">
                     <ChevronDown className={`h-4 w-4 transition ${openBio ? "rotate-180" : ""}`} aria-hidden />
                   </button>
                 )}

@@ -13,16 +13,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ensureSignupConsentRecorded } from "@/lib/signup-consent";
 import LifelineLogo from "@/app/components/LifelineLogo";
-import SettingsCard from "@/app/components/hc/SettingsCard";
 import OnboardingPlayer from "@/app/components/hc/OnboardingPlayer";
 import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey, STEP_SHORT } from "@/lib/hc/stages";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import ReportApproval from "@/app/components/hc/ReportApproval";
 import RetentionReview from "@/app/components/hc/RetentionReview";
-import JourneyNav from "@/app/components/hc/JourneyNav";
+import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
+import StepDot from "@/app/components/hc/StepDot";
+import { Alert, Button, ButtonLink, fmtDate as fmtDay, useDialog } from "@/app/components/account/ui";
+import { Check } from "lucide-react";
 import ProfileForm, { ConsentBox } from "@/app/components/hc/ProfileForm";
-import Paywall from "@/app/components/hc/Paywall";
+import { WITHDRAWAL_WAIVER_LABEL } from "@/app/components/hc/Paywall";
 import NextStepCard from "@/app/components/hc/NextStepCard";
 import StepHeader from "@/app/components/hc/StepHeader";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
@@ -67,11 +69,7 @@ const fmtDateTime = (iso: string | null) => {
   const d = new Date(iso);
   return `${WD_IS[d.getDay()]} ${d.getDate()}. ${MO_IS[d.getMonth()]} kl. ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
-const fmtDate = (iso: string | null) => {
-  if (!iso) return null;
-  const d = new Date(iso);
-  return `${d.getDate()}. ${MO_IS[d.getMonth()]} ${d.getFullYear()}`;
-};
+const fmtDate = (iso: string | null) => (iso ? fmtDay(iso) : null);
 
 export default function HeilsuferdPage() {
   return (
@@ -233,7 +231,14 @@ function Heilsuferd() {
   if (!data) {
     return (
       <Shell>
-        <div className="rounded-3xl bg-hc-surface p-10 text-center text-hc-ink-3 shadow-sm">{error || "Hleð heilsuferðinni…"}</div>
+        {error
+          ? (
+            <Alert tone="bad" title="Ekki tókst að sækja heilsuferðina"
+              actions={<Button variant="secondary" onClick={() => { setError(""); void load(true); }}>Reyna aftur</Button>}>
+              Athugaðu nettenginguna og reyndu aftur.
+            </Alert>
+          )
+          : <div className="rounded-3xl bg-hc-surface p-10 text-center text-hc-ink-3 shadow-sm">Hleð heilsuferðinni…</div>}
       </Shell>
     );
   }
@@ -270,9 +275,11 @@ function Heilsuferd() {
 
   return (
     <Shell>
-      {/* sm:mb-4 — on a phone JourneyNav draws nothing here (its bar is
-          fixed to the bottom), so the margin was 16px of nothing. */}
-      {(data.plan || coaching) && <div className="sm:mb-4"><JourneyNav active="journey" /></div>}
+      {/* The bar on every state of this page. With a plan this is the
+          journey map under Ég; before one, it is Í dag. sm:mb-4 — on a
+          phone the bar is fixed to the bottom and takes no room here. */}
+      <JourneyHeader />
+      <div className="sm:mb-4"><JourneyNav active={data.plan ? "journey" : "today"} /></div>
       {/* First thing on the page: a report somebody else entered is not
           shown anywhere until the person says it is theirs. */}
       <div className="mb-4"><ReportApproval api={api} onDone={() => load(true)} /></div>
@@ -353,11 +360,11 @@ function Heilsuferd() {
               const on = st.key === shownStep?.key;
               return (
                 <button key={st.key} type="button" onClick={() => setOpen(st.key)} aria-pressed={on}
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
+                  className={`inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand ${
                     on ? "bg-hc-brand-dark text-white"
                       : st.state === "done" ? "text-hc-brand-text hover:bg-hc-sunken"
                       : "text-hc-ink-3 hover:bg-hc-sunken"}`}>
-                  {st.state === "done" && !on && <CheckIcon />}
+                  {st.state === "done" && !on && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />}
                   {STEP_SHORT[st.key]}
                 </button>
               );
@@ -374,7 +381,7 @@ function Heilsuferd() {
                       <li key={ph.title} className="min-w-0">
                         <button type="button" aria-pressed={on}
                           onClick={() => setOpen((ph.steps.find((st) => st.state === "current") ?? ph.steps.find((st) => st.state !== "done") ?? ph.steps[0]).key)}
-                          className="w-full text-left">
+                          className="min-h-11 w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
                           <span className={`block h-1.5 rounded-full ${allDone ? "bg-hc-brand-dark" : here ? "bg-hc-brand/60" : "bg-hc-sunken-2"}`} />
                           <span className={`mt-1.5 block truncate text-xs font-bold ${on ? "text-hc-ink" : "text-hc-ink-3"}`}>
                             {ph.title}
@@ -412,7 +419,7 @@ function Heilsuferd() {
                   </p>
                   {shownStep.state === "done" && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-hc-brand/10 px-2.5 py-0.5 text-xs font-bold text-hc-brand-text">
-                      <CheckIcon /> Lokið
+                      <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> Lokið
                     </span>
                   )}
                   {shownStep.optional && shownStep.state !== "done" && (
@@ -431,7 +438,7 @@ function Heilsuferd() {
                 <div className="mt-5 flex items-center justify-between gap-3 border-t border-hc-hairline pt-4">
                   {prev ? (
                     <button type="button" onClick={() => setOpen(prev.key)}
-                      className="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-hc-ink-3 hover:text-hc-ink-2">
+                      className="inline-flex min-h-11 min-w-0 items-center gap-1 text-sm font-semibold text-hc-ink-2 hover:text-hc-ink">
                       ← <span className="truncate">{STEP_SHORT[prev.key]}</span>
                     </button>
                   ) : <span />}
@@ -453,7 +460,7 @@ function Heilsuferd() {
         {/* Side */}
         <aside className="space-y-4">
           {healthOrder?.activation_code && (
-            <div className="rounded-2xl border border-emerald-100 bg-hc-surface p-5 shadow-sm">
+            <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-5 shadow-sm">
               <p className="text-xs font-bold uppercase tracking-wide text-hc-ok-ink">Virkjunarkóði</p>
               <CodeBox code={healthOrder.activation_code} />
               <p className="mt-2 text-xs text-hc-ink-3">{healthOrder.activation_redeemed_at ? "Virkjaður í sjúklingagátt." : "Sláðu kóðann inn í sjúklingagáttina."}</p>
@@ -463,9 +470,9 @@ function Heilsuferd() {
               navbar, and this page is for keeping track of the health
               check — which lectures are not a step of. */}
           <HistoryCard history={data.history ?? []} />
-          <Link href="/app/adgangur" className="block rounded-2xl border border-hc-hairline bg-hc-surface p-4 text-sm font-semibold text-hc-ink-2 shadow-sm hover:bg-hc-sunken">Aðgangur og greiðslur →</Link>
+          {/* Settings, the PIN and the calendar live under Ég → Stillingar
+              og áskrift; a second copy here was the same card twice. */}
           <ClaimsCard claims={data.claims} reload={async () => { await load(true); }} />
-          <SettingsCard />
           {/* break-words, because this is where the side scroll came from.
               "contact@lifelinehealth.is" has no break opportunity, so the
               paragraph measured 402px inside a 358px column and body's
@@ -492,10 +499,6 @@ const PHASES: { title: string; keys: StepKey[] }[] = [
 /** On the health check, the steps where the next move is Lifeline's. */
 const OURS_KEYS = new Set<StepKey>(["report", "plan"]);
 
-const CheckIcon = () => (
-  <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden><path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 111.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clipRule="evenodd" /></svg>
-);
-
 /** Progress as a ring (done of required), for the hero. */
 function ProgressRing({ done, total }: { done: number; total: number }) {
   const r = 30, c = 2 * Math.PI * r, pct = total ? done / total : 0;
@@ -503,7 +506,7 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
     <div className="relative h-20 w-20 shrink-0" aria-label={`${done} af ${total} skrefum lokið`}>
       <svg viewBox="0 0 72 72" className="h-20 w-20 -rotate-90">
         <circle cx="36" cy="36" r={r} fill="none" stroke="rgb(255 255 255 / 0.15)" strokeWidth="7" />
-        <circle cx="36" cy="36" r={r} fill="none" stroke="#6EE7B7" strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
+        <circle cx="36" cy="36" r={r} fill="none" stroke="currentColor" className="text-emerald-300" strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} />
       </svg>
       <span className="absolute inset-0 flex flex-col items-center justify-center leading-none">
         <span className="text-lg font-bold">{done}/{total}</span>
@@ -658,12 +661,9 @@ function InterviewBooking({ j, portal }: { j: HcJourney; portal: string }) {
 /** One of the three things inside the tests step, ticked when it is done. */
 function TestTask({ n, title, done, children }: { n: number; title: string; done: boolean; children: React.ReactNode }) {
   return (
-    <div className={`rounded-xl border p-3 ${done ? "border-hc-ok-ink/30 bg-emerald-50/50" : "border-slate-200 bg-hc-surface"}`}>
+    <div className={`rounded-xl border p-3 ${done ? "border-hc-ok-ink/30 bg-hc-ok-surface/60" : "border-hc-hairline bg-hc-surface"}`}>
       <p className="flex items-center gap-2 font-semibold text-hc-ink">
-        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-          done ? "bg-emerald-500 text-white" : "bg-slate-900 text-white"}`}>
-          {done ? "✓" : n}
-        </span>
+        <StepDot state={done ? "done" : "todo"} n={n} size="sm" />
         {title}
       </p>
       <div className="mt-2">{children}</div>
@@ -679,9 +679,8 @@ function TestTask({ n, title, done, children }: { n: number; title: string; done
  * has to handle "already subscribed" — a paywall never does, since it only
  * appears to people who are not.
  */
-function SubscriptionStep({ api, reload }: {
+function SubscriptionStep({ api }: {
   api: (url: string, init?: RequestInit) => Promise<Response>;
-  reload: () => Promise<void>;
 }) {
   const [state, setState] = useState<{ package: Record<string, unknown> | null; subscription: { tier: string; status: string; current_period_end: string | null } | null } | null>(null);
 
@@ -702,15 +701,26 @@ function SubscriptionStep({ api, reload }: {
         <p className="font-semibold text-hc-ink">Áskriftin er aktív.</p>
         {until && (
           <p>
-            Næsta greiðsla {new Date(until).toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" })}.
+            Næsta greiðsla {fmtDate(until)}.
           </p>
         )}
         <p>Þú getur sagt upp hvenær sem er í stillingum — appið er opið til loka þess tímabils sem er greitt.</p>
+        <ButtonLink href="/app/adgangur#askrift" variant="secondary">Sjá áskriftina</ButtonLink>
       </div>
     );
   }
 
-  return <Paywall api={api} pkg={state.package as never} onDone={reload} />;
+  /* One place sells the subscription: Stillingar og áskrift. The step says
+     what it is and links there, rather than being a second checkout. */
+  return (
+    <div className="space-y-3 text-sm text-hc-ink-2">
+      <p>
+        Appið — æfingar, næring og dagleg eftirfylgd — er sjálfstæð mánaðarleg áskrift. Verðið,
+        það sem fylgir og hvernig þú segir upp sérðu áður en þú byrjar.
+      </p>
+      <ButtonLink href="/app/adgangur#askrift">Sjá áskriftina</ButtonLink>
+    </div>
+  );
 }
 
 function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyStep; data: JourneyData; reload: () => Promise<void>; advance: () => Promise<void>; healthOrder: HcOrder | null }) {
@@ -764,7 +774,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           <p className="rounded-hc-element bg-hc-sunken px-3 py-2.5 text-xs text-hc-ink-2">
             Heilsufarsskoðunin er staðgreidd, eitt gjald. Appið — æfingar, næring og dagleg
             eftirfylgd — er sjálfstæð mánaðarleg áskrift og er ekki innifalin í þessu verði.{" "}
-            <Link href="/app/adgangur" className="font-semibold underline">Sjá áskriftina</Link>.
+            <Link href="/app/adgangur#askrift" className="font-semibold underline">Sjá áskriftina</Link>.
           </p>
         </div>
       );
@@ -786,7 +796,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <a href={portal} target="_blank" rel="noreferrer"
-                    className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+                    className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
                     Opna sjúklingagátt
                   </a>
                   {!j.protocol_activated_at && <CompleteButton label="Ég hef virkjað" action="confirm_activated" onDone={advance} />}
@@ -844,7 +854,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
               {/* The location's own portal where it has one, which is what
                   the rest of this page already uses. */}
               <a href={portal} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+                className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
                 Opna sjúklingagátt
               </a>
             </>
@@ -867,7 +877,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           {(j.report_generated_at || j.own_report_at)
             ? (
               <div className="flex flex-wrap gap-2">
-                <Link href="/app/aaetlun?tab=report" className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">Skoða niðurstöðurnar</Link>
+                <Link href="/app/aaetlun?tab=report" className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">Skoða niðurstöðurnar</Link>
                 {!data.plan && <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Búa til áætlun sjálf(ur)</Link>}
               </div>
             )
@@ -900,7 +910,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
             <p className="text-hc-ink-2"><strong>{data.plan.headline || "Aðgerðaáætlunin þín"}</strong>{data.plan.review_date ? ` · endurmat ${fmtDate(data.plan.review_date)}` : ""}</p>
             <div className="flex flex-wrap gap-2">
               <Link href="/app/aaetlun" className={hcBtn.cta}>Opna áætlunina</Link>
-              <Link href="/app/aaetlun?breyta=1" className="inline-block rounded-full border border-slate-300 bg-hc-surface px-5 py-2.5 font-semibold text-hc-ink-2 hover:bg-hc-sunken">Breyta áætluninni</Link>
+              <Link href="/app/aaetlun?breyta=1" className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-5 font-semibold text-hc-ink-2 hover:bg-hc-sunken">Breyta áætluninni</Link>
             </div>
           </div>
         )
@@ -928,7 +938,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
        * trial has run out — one place where the price and what it includes
        * are written down.
        */
-      return <SubscriptionStep api={api} reload={reload} />;
+      return <SubscriptionStep api={api} />;
     case "followup":
       return <FollowupStep data={data} kind="followup_3m" reload={reload} />;
     case "reevaluation":
@@ -957,7 +967,7 @@ function CompleteButton({ label, action, onDone }: { label: string; action: stri
         <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         {busy ? "Augnablik…" : label}
       </button>
-      {err && <p role="alert" className="w-full text-sm text-red-600">{err}</p>}
+      {err && <p role="alert" className="w-full text-sm text-hc-bad-ink">{err}</p>}
     </>
   );
 }
@@ -969,7 +979,7 @@ function CodeBox({ code }: { code: string }) {
       <span className="flex-1 rounded-xl bg-hc-ok-surface px-4 py-3 text-center font-mono text-xl font-bold tracking-[0.15em] text-hc-ok-ink">{code}</span>
       <button
         onClick={async () => { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-        className="rounded-xl border border-slate-200 px-3 py-3 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken"
+        className="min-h-11 rounded-xl border border-hc-control px-3 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken"
       >
         {copied ? "Afritað" : "Afrita"}
       </button>
@@ -1038,9 +1048,9 @@ function ContributionToggle({ on, onToggle, title, hint, disabled, children }: {
   on: boolean; onToggle: () => void; title: string; hint: string; disabled?: boolean; children?: React.ReactNode;
 }) {
   return (
-    <div className={`rounded-2xl border transition ${on ? "border-[#10B981] bg-emerald-50/40 ring-2 ring-[#10B981]/20" : "border-slate-200 bg-hc-surface"} ${disabled ? "opacity-50" : ""}`}>
+    <div className={`rounded-2xl border transition ${on ? "border-hc-brand bg-hc-brand-surface ring-2 ring-hc-brand/20" : "border-hc-hairline bg-hc-surface"} ${disabled ? "opacity-50" : ""}`}>
       <button type="button" aria-pressed={on} disabled={disabled} onClick={onToggle} className="flex w-full items-start gap-3 p-4 text-left disabled:cursor-not-allowed">
-        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${on ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-slate-300 bg-hc-surface"}`}>
+        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${on ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-hc-control bg-hc-surface"}`}>
           {on && <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
         </span>
         <span><span className="block text-sm font-semibold text-hc-ink-2">{title}</span><span className="block text-xs text-hc-ink-3">{hint}</span></span>
@@ -1060,6 +1070,8 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
   const [codeState, setCodeState] = useState<CheckoutInfo["company_code"]>(null);
   const [consent, setConsent] = useState(false);
   const [terms, setTerms] = useState(false);
+  /** §8 söluskilmála / d-liður 1. mgr. 18. gr. laga nr. 16/2016: asked for, never assumed. */
+  const [waiver, setWaiver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -1095,6 +1107,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
         use_company: useCompany, company_code: useCompany ? code : undefined,
         use_union: useUnion, union_id: useUnion ? unionId : undefined,
         union_consent: consent, accept_terms: terms,
+        withdrawal_waiver: waiver, withdrawal_waiver_at: waiver ? new Date().toISOString() : null,
       }),
     });
     const j = await r.json().catch(() => ({}));
@@ -1107,7 +1120,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
   if (!info) return <p className="text-sm text-hc-ink-3">Hleð…</p>;
 
   const companyCovers = company ? (company.contribution_isk != null ? formatIsk(company.contribution_isk) : `${company.contribution_percent}%`) : "";
-  const canPay = terms && !busy && !info.eligibility_error &&
+  const canPay = terms && waiver && !busy && !info.eligibility_error &&
     (!useCompany || codeState?.ok === true) &&
     (!useUnion || (!!union && (union.settlement !== "direct" || consent)));
 
@@ -1116,23 +1129,23 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
       {packages.length > 1 && (
         <div className="grid gap-3 sm:grid-cols-2">
           {packages.map((p) => (
-            <button key={p.key} type="button" aria-pressed={p.key === pkgKey} onClick={() => setPkgKey(p.key)} className={`rounded-2xl border p-4 text-left ${p.key === pkgKey ? "border-[#10B981] ring-2 ring-[#10B981]/30" : "border-slate-200"}`}>
+            <button key={p.key} type="button" aria-pressed={p.key === pkgKey} onClick={() => setPkgKey(p.key)} className={`rounded-2xl border p-4 text-left ${p.key === pkgKey ? "border-hc-brand ring-2 ring-hc-brand/30" : "border-hc-hairline"}`}>
               <p className="font-semibold">{p.name}</p><p className="text-sm text-hc-ink-3">{formatIsk(p.price_isk)}</p>
             </button>
           ))}
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-200 p-5">
+      <div className="rounded-2xl border border-hc-hairline p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-lg font-bold text-[#0F172A]">{info.package.name}</h3>
-          <span className="text-lg font-bold text-[#047857]">{formatIsk(info.package.price_isk)}</span>
+          <h3 className="text-lg font-bold text-hc-ink">{info.package.name}</h3>
+          <span className="text-lg font-bold text-hc-brand-text">{formatIsk(info.package.price_isk)}</span>
         </div>
         {info.package.tagline && <p className="text-sm font-medium text-hc-ink-3">{info.package.tagline}</p>}
         {info.package.description && <p className="mt-2 text-sm leading-relaxed text-hc-ink-2">{info.package.description}</p>}
         <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
           {info.package.includes.map((x) => (
-            <li key={x} className="flex gap-2 text-sm text-hc-ink-2"><span className="text-[#10B981]">✓</span>{x}</li>
+            <li key={x} className="flex gap-2 text-sm text-hc-ink-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-text" aria-hidden />{x}</li>
           ))}
         </ul>
       </div>
@@ -1144,17 +1157,17 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
           title="Vinnuveitandinn minn tekur þátt" hint="Þú slærð inn persónulegan kóða frá fyrirtækinu þínu.">
           <label className="block text-sm font-medium text-hc-ink-2" htmlFor="company-code">Kóði frá vinnuveitanda</label>
           <div className="mt-1 flex gap-2">
-            <input id="company-code" value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeState(null); }} placeholder="FY-XXXX-XXXX" className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5 font-mono uppercase tracking-wider" />
-            <button type="button" onClick={checkCode} disabled={code.length < 8} className="rounded-lg bg-slate-800 px-4 text-sm font-semibold text-white disabled:opacity-40">Staðfesta</button>
+            <input id="company-code" value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeState(null); }} placeholder="FY-XXXX-XXXX" className="flex-1 rounded-lg border border-hc-control px-3 py-2.5 font-mono uppercase tracking-wider" />
+            <button type="button" onClick={checkCode} disabled={code.length < 8} className="min-h-11 rounded-lg bg-hc-brand-dark px-4 text-sm font-semibold text-white disabled:opacity-40">Staðfesta</button>
           </div>
-          {codeState?.ok === true && <p className="mt-2 text-sm text-hc-ok-ink">✓ {codeState.company_name ?? "Vinnuveitandi"} greiðir {codeState.contribution_isk != null ? formatIsk(codeState.contribution_isk) : codeState.contribution_percent >= 100 ? "allt" : `${codeState.contribution_percent}%`}.</p>}
-          {codeState?.ok === false && <p className="mt-2 text-sm text-red-600">{codeState.error}</p>}
+          {codeState?.ok === true && <p className="mt-2 flex items-start gap-1.5 text-sm text-hc-ok-ink"><Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />{codeState.company_name ?? "Vinnuveitandi"} greiðir {codeState.contribution_isk != null ? formatIsk(codeState.contribution_isk) : codeState.contribution_percent >= 100 ? "allt" : `${codeState.contribution_percent}%`}.</p>}
+          {codeState?.ok === false && <p className="mt-2 text-sm text-hc-bad-ink">{codeState.error}</p>}
         </ContributionToggle>
         <ContributionToggle on={useUnion} onToggle={() => setUseUnion((v) => !v)} disabled={!info.unions.length}
           title="Stéttarfélagið mitt tekur þátt"
           hint={info.unions.length ? "Við reiknum endurgreiðsluna eftir reglum félagsins, af því sem þú greiðir sjálf(ur)." : "Ekkert félag er komið í samstarf enn."}>
           <label className="block text-sm font-medium text-hc-ink-2" htmlFor="union-select">Stéttarfélag</label>
-          <select id="union-select" value={unionId} onChange={(e) => setUnionId(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-hc-surface px-3 py-2.5">
+          <select id="union-select" value={unionId} onChange={(e) => setUnionId(e.target.value)} className="mt-1 w-full rounded-lg border border-hc-control bg-hc-surface px-3 py-2.5">
             <option value="">Veldu félag…</option>
             {info.unions.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
@@ -1175,7 +1188,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
         </ContributionToggle>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 p-4 text-sm">
+      <div className="rounded-2xl border border-hc-hairline p-4 text-sm">
         <Row label="Verð" value={formatIsk(q.priceIsk)} />
         {q.employerIsk > 0 && <Row label={`${company?.company_name ?? "Vinnuveitandi"} greiðir${company && company.contribution_isk == null && company.contribution_percent < 100 ? ` (${companyCovers})` : ""}`} value={`−${formatIsk(q.employerIsk)}`} />}
         {q.directGrantIsk > 0 && <Row label={`Styrkur ${union?.name ?? ""} (dreginn frá)`} value={`−${formatIsk(q.directGrantIsk)}`} />}
@@ -1193,10 +1206,14 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
 
       <label className="flex items-start gap-2 text-sm text-hc-ink-2">
         <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5" />
-        <span>Ég samþykki <a href="/soluskilmalar" target="_blank" className="underline">söluskilmála</a> Lifeline Health.</span>
+        <span>Ég samþykki <a href="/soluskilmalar" target="_blank" rel="noopener noreferrer" className="underline">söluskilmála</a> Lifeline Health.</span>
+      </label>
+      <label className="flex items-start gap-2 text-sm text-hc-ink-2">
+        <input type="checkbox" checked={waiver} onChange={(e) => setWaiver(e.target.checked)} className="mt-0.5" />
+        <span>{WITHDRAWAL_WAIVER_LABEL}</span>
       </label>
       {info.eligibility_error && <p className="text-sm text-hc-warn-ink">{info.eligibility_error}</p>}
-      {err && <p role="alert" className="text-sm text-red-600">{err}</p>}
+      {err && <p role="alert" className="text-sm text-hc-bad-ink">{err}</p>}
       <button type="button" onClick={pay} disabled={!canPay} className={`${hcBtn.cta} w-full`}>
         {busy ? "Augnablik…" : q.chargedIsk > 0 ? `Greiða ${formatIsk(q.chargedIsk)}` : "Staðfesta"}
       </button>
@@ -1206,7 +1223,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
 
 function Row({ label, value, strong, muted, accent }: { label: string; value: string; strong?: boolean; muted?: boolean; accent?: boolean }) {
   return (
-    <div className={`flex justify-between py-1 ${strong ? "font-semibold text-hc-ink" : muted ? "text-hc-ink-3" : "text-hc-ink-2"} ${accent ? "border-t border-hc-hairline pt-2 text-[#047857]" : ""}`}>
+    <div className={`flex justify-between py-1 ${strong ? "font-semibold text-hc-ink" : muted ? "text-hc-ink-3" : "text-hc-ink-2"} ${accent ? "border-t border-hc-hairline pt-2 text-hc-brand-text" : ""}`}>
       <span>{label}</span><span className="tabular-nums">{value}</span>
     </div>
   );
@@ -1251,9 +1268,9 @@ function TestStep({ kind, title, address, info, bookedFor, done, portal, reload 
           <div className="flex flex-wrap items-end gap-2">
             <label className="text-xs font-medium text-hc-ink-2">
               Bókaður tími (fer í dagatalið þitt)
-              <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+              <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} className="mt-1 block rounded-lg border border-hc-control px-3 py-2 text-sm" />
             </label>
-            <button onClick={save} disabled={saving} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">{saving ? "Vistar…" : "Vista tíma"}</button>
+            <button type="button" onClick={save} disabled={saving} className="min-h-11 rounded-lg border border-hc-control px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">{saving ? "Vistar…" : "Vista tíma"}</button>
           </div>
         </>
       )}
@@ -1293,17 +1310,17 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
       )}
       {pkgs.map((p) =>
         buying === p.key ? (
-          <div key={p.key} className="rounded-2xl border border-slate-200 p-4">
+          <div key={p.key} className="rounded-2xl border border-hc-hairline p-4">
             <Checkout packages={[p]} profileComplete={data.profile.complete} reload={async () => { setBuying(null); await reload(); }} />
-            <button onClick={() => setBuying(null)} className="mt-2 text-sm text-hc-ink-3">Hætta við</button>
+            <button type="button" onClick={() => setBuying(null)} className="mt-2 min-h-11 text-sm font-semibold text-hc-ink-2">Hætta við</button>
           </div>
         ) : (
-          <div key={p.key} className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 p-4">
+          <div key={p.key} className="flex flex-wrap items-center gap-3 rounded-2xl border border-hc-hairline p-4">
             <div className="flex-1">
               <p className="font-semibold text-hc-ink-2">{p.name}</p>
               <p className="text-sm text-hc-ink-3">{p.description}</p>
             </div>
-            <span className="font-semibold text-[#047857]">{formatIsk(p.price_isk)}</span>
+            <span className="font-semibold text-hc-brand-text">{formatIsk(p.price_isk)}</span>
             <button onClick={() => setBuying(p.key)} className={hcBtn.cta}>Velja</button>
           </div>
         ),
@@ -1324,7 +1341,7 @@ function HistoryCard({ history }: { history: NonNullable<JourneyData["history"]>
       <ul className="mt-2 space-y-1.5">
         {withPlan.map((h) => (
           <li key={h.id}>
-            <Link href={`/app/aaetlun?journey=${h.id}&tab=plan`} className="flex items-center justify-between rounded-xl px-3 py-2 text-sm ring-1 ring-slate-200 hover:bg-hc-sunken">
+            <Link href={`/app/aaetlun?journey=${h.id}&tab=today`} className="flex items-center justify-between rounded-xl px-3 py-2 text-sm ring-1 ring-hc-hairline hover:bg-hc-sunken">
               <span className="text-hc-ink-2">Áætlun frá {fmtDate(h.plan_published_at)}</span>
               <span className="text-hc-ok-ink">Opna →</span>
             </Link>
@@ -1339,6 +1356,7 @@ function HistoryCard({ history }: { history: NonNullable<JourneyData["history"]>
 function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload: () => Promise<void> }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<Record<string, string>>({});
+  const dialog = useDialog();
   if (!claims.length) return null;
 
   const download = async (orderId: string) => {
@@ -1350,7 +1368,12 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
     URL.revokeObjectURL(url);
   };
   const send = async (orderId: string, resend = false) => {
-    if (!confirm(resend ? "Senda umsóknina aftur á stéttarfélagið? Þú færð afrit í tölvupósti." : "Senda umsóknina á stéttarfélagið? Þú færð afrit í tölvupósti.")) return;
+    const ok = await dialog.confirm({
+      title: resend ? "Senda umsóknina aftur?" : "Senda umsóknina á stéttarfélagið?",
+      body: "Þú færð afrit í tölvupósti.",
+      confirmLabel: resend ? "Senda aftur" : "Senda",
+    });
+    if (!ok) return;
     setBusy(orderId);
     const r = await api(`/api/hc/claims/${orderId}`, { method: "POST", body: JSON.stringify({ action: "send", resend }) });
     const j = await r.json().catch(() => ({}));
@@ -1361,17 +1384,17 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
 
   return (
     <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-5 shadow-sm">
-      <p className="font-semibold text-[#0F172A]">Umsóknir til stéttarfélags</p>
+      <p className="font-semibold text-hc-ink">Umsóknir til stéttarfélags</p>
       <div className="mt-3 space-y-3">
         {claims.map((c) => (
           <div key={c.id} className="rounded-xl bg-hc-sunken p-3 text-sm">
             <p className="font-medium text-hc-ink-2">{c.union_name}</p>
             <p className="text-hc-ink-3">Endurgreiðsla: {formatIsk(c.reimbursable_isk)}</p>
-            <p className="text-xs text-slate-400">{c.sent_at ? `Send ${fmtDate(c.sent_at)} á ${c.sent_to}` : "Ekki send"}</p>
+            <p className="text-xs text-hc-ink-3">{c.sent_at ? `Send ${fmtDate(c.sent_at)} á ${c.sent_to}` : "Ekki send"}</p>
             <div className="mt-2 flex gap-2">
-              <button type="button" onClick={() => download(c.order_id)} className="rounded-lg border border-slate-300 bg-hc-surface px-3 py-1.5 text-xs font-semibold">Sækja PDF</button>
+              <button type="button" onClick={() => download(c.order_id)} className="min-h-11 rounded-lg border border-hc-control bg-hc-surface px-3 text-xs font-semibold">Sækja PDF</button>
               <button type="button" onClick={() => send(c.order_id, !!c.sent_at)} disabled={busy === c.order_id}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${c.sent_at ? "border border-slate-300 bg-hc-surface text-hc-ink-2" : "bg-hc-brand-dark text-white"}`}>
+                className={`min-h-11 rounded-lg px-3 text-xs font-semibold disabled:opacity-50 ${c.sent_at ? "border border-hc-control bg-hc-surface text-hc-ink-2" : "bg-hc-brand-dark text-white"}`}>
                 {busy === c.order_id ? "Sendir…" : c.sent_at ? "Senda aftur" : "Senda á félagið"}
               </button>
             </div>

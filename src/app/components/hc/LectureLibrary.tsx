@@ -16,6 +16,7 @@ import Sheet from "./Sheet";
 import { CheckCircle2, Library, Search } from "lucide-react";
 import { PILLAR_META, type Pillar } from "@/lib/hc/types";
 import { hcBtn } from "./ui";
+import Badge from "./Badge";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -107,8 +108,10 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
           const meta = p === "general" ? null : PILLAR_META[p as Pillar];
           return (
             <section key={p} className="overflow-hidden rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-hairline">
-              <p className="px-4 py-2.5 text-xs font-bold uppercase tracking-[0.14em]"
-                style={meta ? { background: meta.soft, color: meta.ink } : { background: "#F1F5F9", color: "#475569" }}>
+              {/* The pillar's soft/ink tokens (theme-aware) rather than
+                  inline hex; "Almennt" takes the neutral pair. */}
+              <p className={`px-4 py-2.5 text-xs font-bold uppercase tracking-[0.14em] ${meta ? "" : "bg-hc-sunken-2 text-hc-ink-2"}`}
+                style={meta ? { background: `var(--hc-${p}-soft)`, color: `var(--hc-${p}-ink)` } : undefined}>
                 {meta ? meta.label : "Almennt"}
               </p>
               <ul className="divide-y divide-hc-hairline">
@@ -128,9 +131,7 @@ export default function LectureLibrary({ api, onClose }: { api: Api; onClose: ()
                       {/* Says which ones the plan asked for, so the
                           catalogue does not read as a competing list. */}
                       {l.inPlan && (
-                        <span className="shrink-0 rounded-full bg-hc-brand/10 px-2 py-0.5 text-[11px] font-bold text-hc-brand-text">
-                          Í áætlun
-                        </span>
+                        <Badge tone="ok">Í áætlun</Badge>
                       )}
                       {l.duration_min ? (
                         <span className="shrink-0 text-sm tabular-nums text-hc-ink-3">{l.duration_min} mín.</span>

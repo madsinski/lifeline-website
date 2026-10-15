@@ -1,9 +1,45 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-/* Prevent third-party SDKs from locking page scroll */
-html, body {
-  overflow: auto !important;
+/*
+ * Prevent third-party SDKs from locking page scroll — without killing sticky.
+ *
+ * Why the guard exists (2221f27c): the Medalia SDK injects
+ * `overflow: hidden !important` on the page, which froze scrolling; only
+ * another !important can beat it, hence !important here.
+ *
+ * Why it is split per element now: it used to be
+ * `html, body { overflow: auto !important }`. When <html> is not
+ * `visible`, its value goes to the viewport and body's own value is NOT
+ * propagated — so body became a scroll container in its own right. With
+ * height:auto it never scrolls (the document does), but position:sticky
+ * binds to the nearest scroll container, so every sticky element on the
+ * site was pinned to a box that never moves: the AccountShell tab strip,
+ * StepHeader, plan tabs, editor bars, the workstation. Measured: a bare
+ * sticky bottom-0 probe sat at 1012px in an 844px viewport.
+ *
+ *   html  — overflow-y:auto keeps the document scrollable against the SDK
+ *           (html's value is what the viewport uses).
+ *   body  — overflow-x:clip / overflow-y:visible. Neither creates a scroll
+ *           container (clip is not a scroller, unlike hidden/auto), so sticky
+ *           resolves against the viewport again. clip on x also keeps the
+ *           old protection against a stray wide child (a long kicker, a tab
+ *           bar) turning the whole page into a sideways scroll on a phone —
+ *           it is now cut at the edge instead of scrollable. Browsers without
+ *           clip (pre-Safari 16) drop the declaration and fall back to
+ *           visible, i.e. the document scrolls sideways as it would anyway.
+ *
+ * The hc-scroll-lock rule below still outranks both (class + element).
+ */
+html {
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  overscroll-behavior: auto !important;
+  height: auto !important;
+}
+body {
+  overflow-x: clip !important;
+  overflow-y: visible !important;
   overscroll-behavior: auto !important;
   height: auto !important;
 }
@@ -44,6 +80,10 @@ body.hc-scroll-lock {
    */
   --hc-nav-h: 60px;
   --hc-dock-offset: calc(var(--hc-nav-h) + env(safe-area-inset-bottom, 0px));
+  /* Where a sticky tab strip pins at the top. The participant's pages have no
+     top bar, so it is just the notch inset (needs viewport-fit=cover); the
+     workstation sets it below its own sticky WsHeader (.hc-ws-scope rule). */
+  --hc-sticky-top: env(safe-area-inset-top, 0px);
 
   --background: #ecf0f3;
   --foreground: #1F2937;
@@ -72,6 +112,10 @@ body.hc-scroll-lock {
 :root {
   --hc-brand: #10B981;
   --hc-brand-dark: #047857;
+  /* Hover/pressed for anything filled with brand-dark: one step darker
+     (emerald-800), so the state change never costs contrast. White on it
+     is 7.6:1. */
+  --hc-brand-darker: #065F46;
   --hc-brand-surface: #ECFDF5;
   --hc-ink: #0F172A;
   --hc-ink-2: #475569;
@@ -125,6 +169,11 @@ body.hc-scroll-lock {
   --hc-page: #ECF0F3;
   --hc-hero-from: #0F2A23;
   --hc-hero-to: #065F46;
+  /* The exercise pillar's hero. orange-500 → amber-400 under white text
+     measured 1.7–2.8:1; these are orange-800 → orange-700, where white is
+     7.3:1 at the dark end and 5.2:1 at the light end — AA everywhere. */
+  --hc-exercise-hero-from: #9A3412;
+  --hc-exercise-hero-to: #C2410C;
 
   /* Where the eye should go.
      One accent for "this is the thing to do now", distinct from the brand
@@ -203,6 +252,9 @@ body.hc-scroll-lock {
   --color-hc-page: var(--hc-page);
   --color-hc-hero-from: var(--hc-hero-from);
   --color-hc-hero-to: var(--hc-hero-to);
+  --color-hc-brand-darker: var(--hc-brand-darker);
+  --color-hc-exercise-hero-from: var(--hc-exercise-hero-from);
+  --color-hc-exercise-hero-to: var(--hc-exercise-hero-to);
   --color-hc-sleep: var(--hc-sleep);
   --color-hc-sleep-soft: var(--hc-sleep-soft);
   --color-hc-sleep-ink: var(--hc-sleep-ink);
@@ -525,6 +577,10 @@ main.readonly-locked a {
   :root { --hc-dock-offset: 0px; }
 }
 
+/* WsHeader is sticky top-0 at h-16 plus a 1px border; anything sticky in the
+   workstation pins underneath it rather than sliding behind it (z-30). */
+.hc-ws-scope { --hc-sticky-top: calc(4rem + 1px); }
+
 /*
  * Loading, with something to look at.
  *
@@ -639,5 +695,8 @@ html[data-scheme="dark"] .hc-ws-scope {
   --hc-focus-ring: #6B5A1F;
   --hc-hero-from: #0A1F1A;
   --hc-hero-to: #044330;
+  --hc-brand-darker: #064E3B;
+  --hc-exercise-hero-from: #7C2D12;
+  --hc-exercise-hero-to: #9A3412;
   --background: #121922;
 }

@@ -17,7 +17,8 @@ import {
   MEASUREMENTS, MEETING_WAYS, REQUEST_IS, REQUEST_KINDS, STATUS_IS, TOPICS,
   needsDoctor, requestSummary, type RequestKind,
 } from "@/lib/hc/requests";
-import { hcBtn, hcCard } from "./ui";
+import { hcBtn, hcCard, hcInput } from "./ui";
+import { fmtDate } from "@/app/components/account/ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -38,7 +39,7 @@ const PILLARS = [
   { key: "sleep", label: "Svefn" }, { key: "mental", label: "Andleg líðan" },
 ];
 
-const fmt = (iso: string) => new Date(iso).toLocaleDateString("is-IS", { day: "numeric", month: "long" });
+const fmt = (iso: string) => fmtDate(iso, { year: false });
 
 export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: string | null }) {
   const [rows, setRows] = useState<HcRequest[] | null>(null);
@@ -94,7 +95,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
         <h3 className="font-bold text-hc-ink">Hafa samband</h3>
       </div>
       <p className="mt-1 text-sm text-hc-ink-2">
-        Þjálfarinn þinn les þetta á virkum dögum. Ef eitthvað er bráðatilfelli, hringdu í 112.
+        Við lesum þetta á virkum dögum. Ef eitthvað er bráðatilfelli, hringdu í 112.
       </p>
 
       {!kind ? (
@@ -124,7 +125,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
         <div className="mt-3 space-y-3 rounded-2xl border border-hc-hairline p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="font-semibold text-hc-ink">{REQUEST_IS[kind].label}</p>
-            <button type="button" onClick={reset} aria-label="Hætta við" className="rounded-full p-1 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
+            <button type="button" onClick={reset} aria-label="Hætta við" className="-my-2 grid h-11 w-11 place-items-center rounded-full text-hc-ink-2 hover:bg-hc-sunken-2 hover:text-hc-ink">
               <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
@@ -137,7 +138,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
                 {TOPICS[kind]!.options.map((o) => (
                   <button key={o.key} type="button" aria-pressed={topic === o.key}
                     onClick={() => setTopic(o.key)}
-                    className={`rounded-full px-3 py-1.5 text-sm transition ${
+                    className={`min-h-11 rounded-full px-4 text-sm transition ${
                       topic === o.key ? "bg-hc-brand-dark font-semibold text-white"
                                       : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                     {o.label}
@@ -163,7 +164,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
                 </p>
                 {portalUrl && (
                   <a href={portalUrl} target="_blank" rel="noreferrer"
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-sky-700 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-sky-800">
+                    className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-sky-700 px-4 text-sm font-semibold text-white transition hover:bg-sky-800">
                     Bóka tíma hjá lækni <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                   </a>
                 )}
@@ -194,7 +195,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
             <div className="flex flex-wrap gap-1.5">
               {MEETING_WAYS.map((w) => (
                 <button key={w.key} type="button" aria-pressed={way === w.key} onClick={() => setWay(w.key)}
-                  className={`rounded-full px-3 py-1.5 text-sm transition ${way === w.key ? "bg-hc-brand-dark font-semibold text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
+                  className={`min-h-11 rounded-full px-4 text-sm transition ${way === w.key ? "bg-hc-brand-dark font-semibold text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                   {w.label}
                 </button>
               ))}
@@ -205,7 +206,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
             <div className="flex flex-wrap gap-1.5">
               {PILLARS.map((p) => (
                 <button key={p.key} type="button" aria-pressed={pillar === p.key} onClick={() => setPillar(p.key)}
-                  className={`rounded-full px-3 py-1.5 text-sm transition ${pillar === p.key ? "bg-hc-brand-dark font-semibold text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
+                  className={`min-h-11 rounded-full px-4 text-sm transition ${pillar === p.key ? "bg-hc-brand-dark font-semibold text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                   {p.label}
                 </button>
               ))}
@@ -215,11 +216,11 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
           <label className="block">
             <span className="text-sm font-medium text-hc-ink">{REQUEST_IS[kind].prompt}</span>
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} maxLength={2000}
-              className="mt-1 w-full rounded-xl border border-slate-300 p-3 text-sm focus:border-hc-brand focus:outline-none"
+              className={`${hcInput} mt-1 p-3`}
               placeholder={kind === "injury" ? "T.d. „Verkur í vinstra hné eftir fótbolta á mánudag.“" : ""} />
           </label>
 
-          {err && <p role="alert" className="text-sm text-red-700">{err}</p>}
+          {err && <p role="alert" className="text-sm text-hc-bad-ink">{err}</p>}
           <button type="button" onClick={() => void send()} disabled={busy || (kind === "measurement" && !picked.length)} className={hcBtn.dark}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
             {busy ? "Sendi…" : "Senda"}
@@ -239,7 +240,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
                 </div>
                 {r.body && <p className="mt-0.5 opacity-80">{r.body}</p>}
                 {r.status === "open" && (
-                  <button type="button" onClick={() => void cancel(r.id)} className="mt-1 text-xs underline opacity-70 hover:opacity-100">
+                  <button type="button" onClick={() => void cancel(r.id)} className="mt-1 min-h-11 text-xs underline opacity-80 hover:opacity-100">
                     Hætta við
                   </button>
                 )}
@@ -251,7 +252,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
 
       {past.length > 0 && (
         <details className="mt-3">
-          <summary className="cursor-pointer text-sm font-semibold text-hc-ink-2">Fyrri erindi ({past.length})</summary>
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-hc-ink-2">Fyrri erindi ({past.length})</summary>
           <ul className="mt-2 space-y-2">
             {past.map((r) => (
               <li key={r.id} className="rounded-xl bg-hc-sunken px-3 py-2 text-sm">

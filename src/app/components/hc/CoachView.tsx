@@ -24,8 +24,11 @@ import {
   Dumbbell, Gauge, HeartPulse, MapPin, MessageCircle, MessageSquarePlus,
   Send, UserRound, Video, X,
 } from "lucide-react";
-import { hcBtn, hcCard } from "./ui";
+import { hcBtn, hcCard, hcInput } from "./ui";
 import Sheet from "./Sheet";
+import Segmented from "./Segmented";
+import { badgeClass } from "./Badge";
+import { Alert, Button } from "@/app/components/account/ui";
 import { MEASURE_PREP } from "@/lib/hc/appointment-kinds";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -73,6 +76,26 @@ const ROLE_IS: Record<string, string> = {
 };
 
 /**
+ * The person's role, declined, for the sentences that name them.
+ *
+ * "Þjálfarinn þinn" was written into the card for everybody, and on the
+ * care track the person on the other end is a nurse. The role comes from
+ * the assigned worker; before one is assigned, from the track.
+ */
+const ROLE_FORMS: Record<string, { nom: string; acc: string; dat: string; gen: string }> = {
+  coach: { nom: "Þjálfarinn", acc: "þjálfarann", dat: "þjálfaranum", gen: "þjálfarans" },
+  nurse: { nom: "Hjúkrunarfræðingurinn", acc: "hjúkrunarfræðinginn", dat: "hjúkrunarfræðingnum", gen: "hjúkrunarfræðingsins" },
+  doctor: { nom: "Læknirinn", acc: "lækninn", dat: "lækninum", gen: "læknisins" },
+  psychologist: { nom: "Sálfræðingurinn", acc: "sálfræðinginn", dat: "sálfræðingnum", gen: "sálfræðingsins" },
+};
+type RoleForms = (typeof ROLE_FORMS)[string];
+const formsFor = (role: string | null | undefined, track: "care" | "app" | undefined): RoleForms =>
+  ROLE_FORMS[role ?? ""] ?? (track === "care" ? ROLE_FORMS.nurse : ROLE_FORMS.coach);
+
+/** On a phone Enter is a new line; on a keyboard it sends. */
+const coarsePointer = () => typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+
+/**
  * The measurements, each with what it costs in minutes.
  *
  * Mirrors MEASURE_MINUTES in the endpoint, which adds the same numbers up
@@ -96,8 +119,10 @@ const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.g
 const when = (iso: string) => { const d = new Date(iso); return `${d.getDate()}. ${MO[d.getMonth()]} kl. ${hhmm(d)}`; };
 const longWhen = (iso: string) => { const d = new Date(iso); return `${DAYS_LONG[d.getDay()]} ${d.getDate()}. ${MO[d.getMonth()]}, kl. ${hhmm(d)}`; };
 
-export default function CoachView({ api, startOn, focusNewest = false, portalUrl }: {
+export default function CoachView({ api, startOn, focusNewest = false, portalUrl, track }: {
   api: Api;
+  /** The journey's track: "care" (health check, a nurse) or "app" (coaching). */
+  track?: "care" | "app";
   /** The location's Medalia portal, for the clinical path in AskFlow. */
   portalUrl?: string | null;
   /** "book" to open on Bóka, where an upcoming appointment lives. */
@@ -127,15 +152,17 @@ export default function CoachView({ api, startOn, focusNewest = false, portalUrl
   /** Sent, not yet acknowledged. */
   const [pending, setPending] = useState<string[]>([]);
   const [err, setErr] = useState("");
+  /** The thread could not be fetched — distinct from an empty thread. */
+  const [loadErr, setLoadErr] = useState(false);
   const seen = useRef(false);
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
 
   const load = useCallback(async () => {
     const r = await api("/api/hc/coach").catch(() => null);
-    if (!r?.ok) return;
-    const j = await r.json();
-    setTimeout(() => setData(j), 0);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
+    // A skeleton forever was the old failure mode; say so and offer a retry.
+    setTimeout(() => { if (j) { setData(j); setLoadErr(false); } else setLoadErr(true); }, 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
 
@@ -205,44 +232,49 @@ export default function CoachView({ api, startOn, focusNewest = false, portalUrl
     if (!ok) setDraft((d) => d || text);
   };
 
-  if (!data) return <div className="h-40 animate-pulse rounded-hc-card bg-hc-surface/70" aria-hidden />;
+  const forms = formsFor(data?.coach?.role, track);
+
+  if (!data && loadErr) {
+    return (
+      <Alert tone="bad" title="Ekki tókst að sækja samtalið"
+        actions={<Button variant="secondary" onClick={() => { setLoadErr(false); void load(); }}>Reyna aftur</Button>}>
+        Athugaðu nettenginguna og reyndu aftur. Ef eitthvað er bráðatilfelli, hringdu í 112.
+      </Alert>
+    );
+  }
+  if (!data) return <div className="h-40 animate-pulse rounded-hc-card bg-hc-surface/70" aria-busy="true" aria-label="Hleð samtalinu" />;
 
   return (
     <div className="space-y-4">
-      {/* Two tabs. The segmented control uses the brand green when active
-          rather than near-black: this page is the warm one in the journey,
-          and ink on a chat surface reads as a disabled state. */}
-      <nav aria-label="Þjálfari" className="flex rounded-hc-element bg-hc-surface p-1 shadow-hc-card ring-1 ring-hc-hairline">
-        {[{ key: "talk" as const, label: "Skilaboð", Icon: MessageCircle },
-          { key: "book" as const, label: "Bóka", Icon: CalendarPlus }].map((t) => (
-          <button key={t.key} type="button" onClick={() => setTab(t.key)}
-            aria-current={tab === t.key ? "page" : undefined}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold transition ${
-              tab === t.key ? "bg-hc-brand text-white shadow-sm" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
-            <span className="relative">
-              <t.Icon className="h-4 w-4" aria-hidden />
-              {t.key === "talk" && data.unread > 0 && (
-                <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${data.unread} ný`} />
-              )}
-            </span>
-            {t.label}
-          </button>
-        ))}
-      </nav>
+      {/* Two tabs on the shared segmented control: real tab semantics,
+          44px segments, and the active one in brand-dark, where white text
+          passes AA (on hc-brand it measured about 2.5:1). */}
+      <Segmented mode="tabs" label={forms.nom} value={tab} onChange={setTab}
+        panelId={(v) => `coach-panel-${v}`}
+        options={[
+          { value: "talk", label: <><MessageCircle className="h-4 w-4" aria-hidden />Skilaboð</>,
+            extra: data.unread > 0 ? <span className={badgeClass("count")}>{data.unread > 9 ? "9+" : data.unread}<span className="sr-only"> ólesin</span></span> : undefined },
+          { value: "book", label: <><CalendarPlus className="h-4 w-4" aria-hidden />Bóka</> },
+        ]} />
 
-      {err && <p className="rounded-hc-element bg-hc-bad-surface px-4 py-2.5 text-sm font-semibold text-hc-bad-ink ring-1 ring-hc-bad-ink/30">{err}</p>}
+      {/* A failed send belongs beside the composer, where the words went
+          back; this line is for Bóka. */}
+      {err && tab === "book" && <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-4 py-2.5 text-sm font-semibold text-hc-bad-ink ring-1 ring-hc-bad-ink/30">{err}</p>}
 
-      {tab === "talk" && <Talk data={data} draft={draft} setDraft={setDraft} busy={busy} pending={pending}
-        box={box} end={end} onSend={send} onPost={post} portalUrl={portalUrl} />}
-      {tab === "book" && <Book data={data} busy={busy} onPost={post} />}
+      <div id={`coach-panel-${tab}`} role="tabpanel" className="space-y-4">
+        {tab === "talk" && <Talk data={data} draft={draft} setDraft={setDraft} busy={busy} pending={pending}
+          box={box} end={end} onSend={send} onPost={post} portalUrl={portalUrl} forms={forms} err={err} />}
+        {tab === "book" && <Book data={data} busy={busy} onPost={post} forms={forms} />}
+      </div>
     </div>
   );
 }
 
 /* ── Skilaboð: the coach, then the thread ──────────────────────────────── */
 
-function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, portalUrl }: {
+function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, portalUrl, forms, err }: {
   data: CoachData; draft: string; setDraft: (s: string) => void; busy: boolean; pending: string[];
+  forms: RoleForms; err: string;
   box: React.RefObject<HTMLTextAreaElement | null>; end: React.RefObject<HTMLDivElement | null>;
   onSend: () => Promise<void>; onPost: (p: Record<string, unknown>) => Promise<boolean>;
   /** The location's Medalia portal, for the clinical path in AskFlow. */
@@ -299,7 +331,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
     return () => io.disconnect();
   }, []);
   const c = data.coach;
-  const first = c?.name?.split(" ")[0] ?? "þjálfarann þinn";
+  const first = c?.name?.split(" ")[0] ?? `${forms.acc} þinn`;
 
   const start = (text: string) => {
     setDraft(text);
@@ -326,15 +358,17 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
       {host && createPortal(
         <div className={`pointer-events-none fixed inset-x-0 top-0 z-40 transition-all duration-200 ${
           pinned ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}>
-          <div className="pointer-events-auto mx-auto flex max-w-4xl items-center gap-3 bg-gradient-to-br from-hc-hero-from to-hc-hero-to px-4 py-2.5 text-white shadow-md sm:rounded-b-2xl">
+          <div className="pointer-events-auto mx-auto flex max-w-4xl items-center gap-3 bg-gradient-to-br from-hc-hero-from to-hc-hero-to px-4 pb-2.5 text-white shadow-md sm:rounded-b-2xl"
+            /* Below the notch or status bar, not under it. */
+            style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}>
           {c?.photo_url
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={c.photo_url} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-white/40" />
             : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-hc-surface/15 ring-1 ring-white/30"><UserRound className="h-5 w-5" aria-hidden /></span>}
-          <p className="min-w-0 flex-1 truncate font-bold">{c?.name ?? "Þjálfarinn þinn"}</p>
+          <p className="min-w-0 flex-1 truncate font-bold">{c?.name ?? `${forms.nom} þinn`}</p>
             <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               aria-label="Upp á toppinn"
-              className="shrink-0 rounded-full p-1 text-white/80 transition hover:bg-hc-surface/15 hover:text-white">
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-white/80 transition hover:bg-hc-surface/15 hover:text-white">
               <ChevronDown className="h-5 w-5 rotate-180" aria-hidden />
             </button>
           </div>
@@ -352,11 +386,11 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
             ? <img src={c.photo_url} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-white/40" />
             : <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-hc-surface/15 ring-2 ring-white/30"><UserRound className="h-8 w-8" aria-hidden /></span>}
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/70">Þjálfarinn þinn</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/70">{forms.nom} þinn</p>
             <p className="text-lg font-bold leading-tight">{c?.name ?? "Ekki kominn enn"}</p>
             <p className="text-sm text-white/85">
               {[c?.role ? ROLE_IS[c.role] ?? c.role : null, c?.credentials].filter(Boolean).join(" · ")
-                || "Þú fær þjálfara í viðtalinu."}
+                || (forms === ROLE_FORMS.nurse ? "Þú færð hjúkrunarfræðing í viðtalinu." : "Enginn tengiliður valinn enn.")}
             </p>
           </div>
         </div>
@@ -364,14 +398,14 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 sm:px-5">
             {(c?.bio || !!c?.specialties?.length) && (
               <button type="button" onClick={() => setAbout(!about)} aria-expanded={about}
-                className="flex items-center gap-1 text-sm font-semibold text-hc-ink-2 hover:text-hc-ink-2">
+                className="flex min-h-11 items-center gap-1 text-sm font-semibold text-hc-ink-2 hover:text-hc-ink">
                 Um {first}
                 <ChevronDown className={`h-4 w-4 transition ${about ? "rotate-180" : ""}`} aria-hidden />
               </button>
             )}
             {data.coaches.length > 0 && (
               <button type="button" onClick={() => setSwitching(!switching)} aria-expanded={switching}
-                className="text-sm font-semibold text-hc-brand-text hover:underline">Skipta um þjálfara</button>
+                className="inline-flex min-h-11 items-center text-sm font-semibold text-hc-brand-text hover:underline">Skipta um tengilið</button>
             )}
           </div>
         )}
@@ -435,21 +469,21 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           )}
           {data.thread.length === 0 && (
             <p className="py-6 text-center text-sm text-hc-ink-2">
-              Skrifaðu {first} hvað sem er. Svarið kemur hingað.
+              Skrifaðu {c?.name ? first : `${forms.dat} þínum`} hvað sem er. Svarið kemur hingað.
             </p>
           )}
           {data.thread.slice(-shownCount).map((m) => (
             <div key={m.id} className={`flex ${m.author_kind === "client" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${
                 m.author_kind === "client"
-                  ? "bg-hc-brand text-white"
+                  ? "bg-hc-brand-dark text-white"
                   : m.kind === "nudge"
                     ? "bg-hc-warn-surface text-amber-950 ring-1 ring-hc-warn-ink/30"
                     : "bg-hc-surface text-hc-ink ring-1 ring-hc-hairline"}`}>
                 {m.author_kind === "coach" && (
                   <p className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide opacity-60">
                     
-                    {m.author_name || c?.name || "Þjálfarinn"}
+                    {m.author_name || c?.name || forms.nom}
                   </p>
                 )}
                 <p className="whitespace-pre-wrap leading-snug">{m.body}</p>
@@ -460,7 +494,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
           {/* In flight: there, but visibly not landed yet. */}
           {pending.map((t, i) => (
             <div key={`p${i}`} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl bg-hc-brand/60 px-3.5 py-2.5 text-sm text-white shadow-sm">
+              <div className="max-w-[85%] rounded-2xl bg-hc-brand-dark px-3.5 py-2.5 text-sm text-white shadow-sm">
                 <p className="whitespace-pre-wrap leading-snug">{t}</p>
                 <p className="mt-1 text-[10px] text-white/70">Sendi…</p>
               </div>
@@ -500,20 +534,31 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
 {host && createPortal(
         <div className="fixed inset-x-0 z-30"
           style={{ bottom: keyboard.open ? keyboard.inset : "var(--hc-dock-offset)" }}>
-          <div className="mx-auto flex max-w-4xl items-end gap-2 border-t border-hc-hairline bg-hc-surface/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
+          <div className="mx-auto max-w-4xl border-t border-hc-hairline bg-hc-surface/95 px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] backdrop-blur">
+          {/* Beside the composer, where the unsent words went back. */}
+          {err && <p role="alert" className="mb-2 rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm font-semibold text-hc-bad-ink ring-1 ring-hc-bad-ink/30">{err}</p>}
+          <div className="flex items-end gap-2">
             <button type="button" onClick={() => setPrompts(true)}
               aria-label="Tilbúin skilaboð"
               className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-2 ring-1 ring-hc-hairline transition hover:bg-hc-sunken hover:text-hc-brand-text">
               <MessageSquarePlus className="h-5 w-5" aria-hidden />
             </button>
             <textarea ref={box} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void onSend(); } }}
-              placeholder="Skrifaðu skilaboð…" aria-label="Skilaboð til þjálfarans"
-              className="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-hc-element border border-hc-control px-3 py-2.5 text-sm outline-none focus:border-hc-brand focus:ring-2 focus:ring-hc-brand/20" />
+              /* ⌘/Ctrl+Enter always sends. Plain Enter sends with a
+                 keyboard, but on a touch screen it is a new line — the
+                 send button is right there, and a phone keyboard's return
+                 key sending half a message was the complaint. */
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                if (e.metaKey || e.ctrlKey || (!e.shiftKey && !coarsePointer())) { e.preventDefault(); void onSend(); }
+              }}
+              placeholder="Skrifaðu skilaboð…" aria-label={`Skilaboð til ${forms.gen}`}
+              className={`${hcInput} max-h-28 min-h-11 min-w-0 flex-1 resize-y py-2.5`} />
             <button type="button" onClick={() => void onSend()} disabled={busy || !draft.trim()}
               aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
               <Send className="h-4 w-4" aria-hidden />
             </button>
+          </div>
           </div>
         </div>,
         host,
@@ -545,8 +590,8 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
 
 /* ── Bóka: a menu, then a day, then a time ─────────────────────────────── */
 
-function Book({ data, busy, onPost }: {
-  data: CoachData; busy: boolean; onPost: (p: Record<string, unknown>) => Promise<boolean>;
+function Book({ data, busy, onPost, forms }: {
+  data: CoachData; busy: boolean; onPost: (p: Record<string, unknown>) => Promise<boolean>; forms: RoleForms;
 }) {
   const [choice, setChoice] = useState<"video" | "measurement" | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
@@ -610,7 +655,7 @@ function Book({ data, busy, onPost }: {
 
       {openBooking && (
         <BookingSheet booking={openBooking} place={data.place ?? null} busy={busy}
-          onClose={() => setOpenBooking(null)} onPost={onPost} />
+          onClose={() => setOpenBooking(null)} onPost={onPost} forms={forms} />
       )}
 
       {/* The menu. Two things to book, as cards you pick rather than two
@@ -622,7 +667,7 @@ function Book({ data, busy, onPost }: {
             className="flex flex-col items-start gap-1 rounded-hc-card bg-hc-brand/5 p-5 text-left shadow-hc-card ring-1 ring-hc-brand/25 transition hover:bg-hc-brand/10 hover:shadow-hc-raised disabled:opacity-50 disabled:hover:bg-hc-brand/5 disabled:hover:shadow-hc-card">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-hc-brand/10 text-hc-brand-text"><Video className="h-5 w-5" aria-hidden /></span>
             <span className="mt-1 font-bold text-hc-ink">Myndsímtal</span>
-            <span className="text-sm text-hc-ink-2">30 mínútur með þjálfaranum.</span>
+            <span className="text-sm text-hc-ink-2">30 mínútur með {forms.dat}.</span>
             <span className="mt-2 flex items-center gap-1.5" aria-label={`${left} af ${allowance} eftir í þessum mánuði`}>
               {Array.from({ length: allowance }, (_, i) => (
                 <span key={i} className={`h-2.5 w-2.5 rounded-full ${i < left ? "bg-hc-brand" : "bg-slate-200"}`} aria-hidden />
@@ -648,7 +693,7 @@ function Book({ data, busy, onPost }: {
           <div className="flex items-center gap-2 border-b border-hc-hairline px-4 py-3 sm:px-5">
             <p className="min-w-0 flex-1 font-bold text-hc-ink">{choice === "video" ? "Myndsímtal" : "Hvað á að mæla?"}</p>
             <button type="button" onClick={() => { setChoice(null); setPicked([]); }}
-              aria-label="Til baka" className="rounded-lg p-1.5 text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-4 w-4" aria-hidden /></button>
+              aria-label="Til baka" className="-my-1.5 grid h-11 w-11 place-items-center rounded-lg text-hc-ink-2 hover:bg-hc-sunken-2"><X className="h-5 w-5" aria-hidden /></button>
           </div>
 
           {choice === "measurement" && (
@@ -661,7 +706,7 @@ function Book({ data, busy, onPost }: {
                       onClick={() => setPicked((p) => (on ? p.filter((x) => x !== m.key) : [...p, m.key]))}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-hc-sunken sm:px-5">
                       <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border-2 transition ${
-                        on ? "border-hc-brand bg-hc-brand text-white" : "border-slate-300"}`}>
+                        on ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-hc-control"}`}>
                         {on && <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />}
                       </span>
                       <m.Icon className={`h-5 w-5 shrink-0 ${on ? "text-hc-brand-text" : "text-hc-ink-3"}`} aria-hidden />
@@ -683,7 +728,7 @@ function Book({ data, busy, onPost }: {
                 <span>{choice === "video" ? "Myndsímtal" : `${picked.length} ${picked.length === 1 ? "mæling" : "mælingar"}`}</span>
                 <span className="tabular-nums">{minutes} mínútur í allt</span>
               </p>
-              <Slots minutes={minutes} busy={busy} onBook={book} />
+              <Slots minutes={minutes} busy={busy} onBook={book} forms={forms} />
             </>
           )}
           {choice === "measurement" && minutes === 0 && (
@@ -708,8 +753,8 @@ function Book({ data, busy, onPost }: {
  * availability source yet — hc_bookings holds what is booked, not what is
  * open — so the honest wording is that the coach confirms.
  */
-function Slots({ minutes, busy, onBook }: {
-  minutes: number; busy: boolean; onBook: (iso: string) => Promise<boolean>;
+function Slots({ minutes, busy, onBook, forms }: {
+  minutes: number; busy: boolean; onBook: (iso: string) => Promise<boolean>; forms: RoleForms;
 }) {
   const [days] = useState(() => {
     const out: Date[] = [];
@@ -748,7 +793,7 @@ function Slots({ minutes, busy, onBook }: {
             return (
               <button key={d.toISOString()} type="button" onClick={() => setDay(d)}
                 className={`flex w-16 shrink-0 flex-col items-center gap-0.5 rounded-xl px-2 py-2.5 text-center transition ${
-                  on ? "bg-hc-brand text-white shadow-sm" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
+                  on ? "bg-hc-brand-dark text-white shadow-sm" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}>
                 <span className="text-[11px] font-bold uppercase opacity-70">{DAY_SHORT[d.getDay()]}</span>
                 <span className="text-xl font-bold leading-none tabular-nums">{d.getDate()}</span>
                 <span className="text-[11px] opacity-70">{MO[d.getMonth()]}</span>
@@ -765,13 +810,13 @@ function Slots({ minutes, busy, onBook }: {
             {slots.map((t) => (
               <button key={t.toISOString()} type="button" disabled={busy}
                 onClick={() => void onBook(t.toISOString())}
-                className="rounded-lg bg-hc-sunken-2 py-2 text-sm font-semibold tabular-nums text-hc-ink-2 transition hover:bg-hc-brand hover:text-white disabled:opacity-40">
+                className="min-h-11 rounded-lg bg-hc-sunken-2 py-2 text-sm font-semibold tabular-nums text-hc-ink-2 transition hover:bg-hc-brand-dark hover:text-white disabled:opacity-40">
                 {hhmm(t)}
               </button>
             ))}
           </div>
           <p className="mt-2 text-xs text-hc-ink-2">
-            Þjálfarinn staðfestir tímann. Þú fær skilaboð ef hann þarf að færa hann.
+            {forms.nom} staðfestir tímann. Þú færð skilaboð ef færa þarf hann.
           </p>
         </div>
       )}
@@ -790,7 +835,8 @@ function Slots({ minutes, busy, onBook }: {
  * the only one of the four that cannot be undone — the old row put it
  * first, as a small x, and offered none of the rest.
  */
-function BookingSheet({ booking, place, busy, onClose, onPost }: {
+function BookingSheet({ booking, place, busy, onClose, onPost, forms }: {
+  forms: RoleForms;
   booking: Booking;
   place: { site: string | null; address: string | null; info: string | null } | null;
   busy: boolean;
@@ -831,7 +877,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
         )}
         {isVideo && !booking.meeting_url && (
           <p className="rounded-hc-element bg-hc-sunken px-3 py-2.5 text-xs text-hc-ink-2 ring-1 ring-hc-hairline">
-            Hlekkurinn á fundinn birtist hér þegar þjálfarinn hefur staðfest tímann.
+            Hlekkurinn á fundinn birtist hér þegar {forms.nom.toLowerCase()} hefur staðfest tímann.
           </p>
         )}
 
@@ -870,7 +916,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost }: {
         {moving ? (
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Nýr tími</p>
-            <Slots minutes={booking.minutes} busy={busy} onBook={move} />
+            <Slots minutes={booking.minutes} busy={busy} onBook={move} forms={forms} />
             <button type="button" onClick={() => setMoving(false)}
               className="mt-2 w-full text-center text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2 hover:underline">
               Hætta við að færa

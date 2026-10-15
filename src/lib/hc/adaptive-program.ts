@@ -194,13 +194,13 @@ export const ACTIVITY_PRESETS: ActivityPreset[] = [
   { group: "Styrkur", name: "TRX eða hringir", covers: ["strength"], intensity: "moderate", minutes: 45, icon: "Cable" },
 
   // ── Íþróttir: spretta-og-stopp ────────────────────────────────────────
-  { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "SoccerBall", why: "Spretta-og-stopp — telst sem HIIT, ekki sem rólegt þol." },
-  { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 90, icon: "SoccerBall", why: "Spretta-og-stopp — telst sem HIIT." },
-  { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Goal", why: "Spretta-og-stopp — telst sem HIIT." },
-  { group: "Íþróttir", name: "Körfubolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "CircleDot", why: "Spretta-og-stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Innanhússfótbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "SoccerBall", why: "Sprettir og stopp — telst sem HIIT, ekki sem rólegt þol." },
+  { group: "Íþróttir", name: "Fótbolti úti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 90, icon: "SoccerBall", why: "Sprettir og stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Handbolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Goal", why: "Sprettir og stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Körfubolti", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "CircleDot", why: "Sprettir og stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Blak", covers: ["hiit"], partial: ["cardio"], intensity: "moderate", minutes: 60, icon: "Volleyball" },
-  { group: "Íþróttir", name: "Badminton", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Spretta-og-stopp — telst sem HIIT." },
-  { group: "Íþróttir", name: "Tennis eða padel", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Spretta-og-stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Badminton", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Sprettir og stopp — telst sem HIIT." },
+  { group: "Íþróttir", name: "Tennis eða padel", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Volleyball", why: "Sprettir og stopp — telst sem HIIT." },
   { group: "Íþróttir", name: "Skvass", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 45, icon: "Volleyball" },
   { group: "Íþróttir", name: "Íshokkí", covers: ["hiit"], partial: ["cardio"], intensity: "hard", minutes: 60, icon: "Disc" },
   { group: "Íþróttir", name: "Bardagaíþróttir", covers: ["hiit", "strength"], partial: ["cardio"], intensity: "hard", minutes: 75, icon: "Swords", why: "Lotur á fullu og mikil líkamleg vinna." },
@@ -405,7 +405,7 @@ interface Stage {
 }
 const STAGES: Record<StageKey, Stage> = {
   adapt: {
-    key: "adapt", title: "Aðlögun", weeks: 4,
+    key: "adapt", title: "Fyrstu vikurnar", weeks: 4,
     text: "Vöðvar og sinar venjast álaginu. Létt, rólegt og tæknin í forgangi. Sinar aðlagast hægar en vöðvar og því er byrjað svona.",
     sets: 2, reps: "12–15", rir: 4, tempo: "3 sek. niður, 1 sek. upp",
     hiit: { rounds: 6, work: 20, rest: 70 },
@@ -806,7 +806,7 @@ export function hiitOnAt(s: TrainingSettings, planStart: string | null): boolean
 
 export function hiitState(s: TrainingSettings, st: Stage): { on: boolean; why: string | null } {
   if (s.cardio === "limited") return { on: false, why: "HIIT bíður þar til læknir gefur grænt ljós. Rólegt þol byggir undir það." };
-  if (st.key === "adapt") return { on: false, why: "HIIT bætist við eftir aðlögunina — fyrst venjast sinar og vöðvar álaginu." };
+  if (st.key === "adapt") return { on: false, why: "HIIT bætist við eftir fyrstu vikurnar — fyrst venjast sinar og vöðvar álaginu." };
   return { on: true, why: null };
 }
 
@@ -1160,7 +1160,7 @@ export function buildSessions(s: TrainingSettings, st: Stage): ExerciseSession[]
       aerobic++;
       out.push(useHiit
         ? { day: dayName(d), title: `${primaryMode(hiitMode(s.injuries, effectivePlace(s.places)).mode)} — lotur`, focus: "HIIT", minutes: 25, items: [WARMUP, hiitItem(st, s, s.cardio === "easy" ? -2 : 0)] }
-        : { day: dayName(d), title: primaryMode(hiitMode(s.injuries, effectivePlace(s.places)).mode), focus: "Rólegt þol · Zone 2", minutes: 45, items: [zone2Item(st, s)] });
+        : { day: dayName(d), title: primaryMode(hiitMode(s.injuries, effectivePlace(s.places)).mode), focus: "Rólegt þol (þú getur spjallað)", minutes: 45, items: [zone2Item(st, s)] });
     }
   }
   // Every chosen day went to strength and no aerobic day was left — but

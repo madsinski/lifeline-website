@@ -18,6 +18,8 @@ import { FIBRE_TARGET, proteinTarget } from "@/lib/hc/nutrition-log";
 import MealLogger from "./MealLogger";
 import ShoppingList, { ShoppingListButton } from "./ShoppingList";
 import DescribeMeal from "./DescribeMeal";
+import Segmented from "./Segmented";
+import { DayMealsScope, useDayMealsRoot } from "./useDayMeals";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -190,8 +192,12 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
     if (target) el.scrollLeft = target.offsetLeft - el.offsetLeft;
   }, [week, todayIdx]);
   const emphasis = prefs ? emphasisFor(signals ?? {}) : [];
+  /* One copy of today's meal_log for the card's tick and the "eitthvað
+     annað" sheet, so describing a meal updates the card straight away. */
+  const dayMeals = useDayMealsRoot();
 
   return (
+    <DayMealsScope value={dayMeals}>
     <div className="space-y-6">
       {/* No outer card.
           Æfingar is bare sections on the page background with its day cards
@@ -208,7 +214,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
             {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
           </h3>
           {pickedDay !== null && pickedDay !== todayIdx && (
-            <button type="button" onClick={() => setPickedDay(null)} className="text-xs font-semibold text-lime-800 hover:underline">
+            <button type="button" onClick={() => setPickedDay(null)} className="inline-flex min-h-11 items-center text-xs font-semibold text-lime-800 hover:underline">
               Fara aftur á daginn í dag
             </button>
           )}
@@ -287,11 +293,11 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                   )}
                   <div className="mt-3 flex flex-wrap gap-2 text-sm font-semibold">
                     <button type="button" onClick={() => setRecipe(m)}
-                      className="rounded-full border border-hc-hairline bg-hc-surface px-3 py-1.5 text-hc-ink-2 hover:bg-hc-sunken">
+                      className="inline-flex min-h-11 items-center rounded-full border border-hc-hairline bg-hc-surface px-3 py-1.5 text-hc-ink-2 hover:bg-hc-sunken">
                       Uppskriftin
                     </button>
                     <button type="button" onClick={() => setSlotOpen(nextSlot)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-lime-200 px-3 py-1.5 text-lime-800 hover:bg-lime-50">
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-lime-200 px-3 py-1.5 text-lime-800 hover:bg-lime-50">
                       <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta um máltíð
                     </button>
                   </div>
@@ -314,7 +320,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                       meal is what happened — but one tap away, because the
                       days it is not are the days the diary goes wrong. */}
                   <button type="button" onClick={() => setDescribe(nextSlot)}
-                    className="w-full rounded-2xl px-4 py-2 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-sunken">
+                    className="min-h-11 w-full rounded-2xl px-4 py-2 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-sunken">
                     Ég borðaði eitthvað annað
                   </button>
                 </div>
@@ -353,7 +359,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
           <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
             <h2 className="min-w-0 text-2xl font-bold text-hc-ink">{nutrition.name}</h2>
             {onChangeProgram && !onCustomise && (
-              <button type="button" onClick={onChangeProgram} className="rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
+              <button type="button" onClick={onChangeProgram} className="inline-flex min-h-11 items-center rounded-full border border-lime-200 px-3 py-1 text-sm font-semibold text-lime-800 hover:bg-lime-50">Skipta um næringaráætlun</button>
             )}
             {/* Was a full-width 816×48 block at the end of the page. The page
                 is for what to eat; changing the plan is the rarer errand. */}
@@ -361,7 +367,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                 "Prógrammið": where am I, how is the week, what do I change,
                 in the order you would ask. */}
             <button type="button" onClick={() => setDetail(true)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-lime-100 px-3 py-1 text-sm font-semibold text-lime-900 ring-1 ring-lime-200 transition hover:bg-lime-200">
+              className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-lime-100 px-3 py-1 text-sm font-semibold text-lime-900 ring-1 ring-lime-200 transition hover:bg-lime-200">
               <Sliders className="h-3.5 w-3.5" aria-hidden /> Prógrammið
             </button>
           </div>
@@ -386,7 +392,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                     stripRef.current?.children[i]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
                   }}
                   aria-pressed={i === shownDay}
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase transition ${
+                  className={`min-h-11 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase transition ${
                     i === shownDay ? "bg-lime-700 text-white"
                       : i === todayIdx ? "bg-lime-50 text-lime-800 ring-1 ring-lime-200"
                       : "text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken"}`}>
@@ -737,16 +743,12 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
               <div className="p-3">
                 {/* Three ways to look at it, which is as many as anybody
                     wants while choosing supper. */}
-                <div className="mb-3 flex gap-1.5">
-                  {([["all", "Allt"], ["fav", "Eftirlæti"], ["protein", "Mest prótein"]] as const).map(([k, label]) => (
-                    <button key={k} type="button" onClick={() => setLibFilter(k)}
-                      aria-pressed={libFilter === k}
-                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                        libFilter === k ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken"}`}>
-                      {label}{k === "fav" && favourites.length > 0 ? ` (${favourites.length})` : ""}
-                    </button>
-                  ))}
-                </div>
+                <Segmented className="mb-3" size="sm" label="Sía máltíðir" value={libFilter} onChange={setLibFilter}
+                  options={[
+                    { value: "all", label: "Allt" },
+                    { value: "fav", label: "Eftirlæti", extra: favourites.length > 0 ? ` (${favourites.length})` : undefined },
+                    { value: "protein", label: "Mest prótein" },
+                  ]} />
 
                 {list.length === 0 && (
                   <p className="rounded-2xl bg-hc-surface p-4 text-sm text-hc-ink-2 ring-1 ring-hc-hairline">
@@ -804,7 +806,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                           <button type="button" onClick={() => onFavourite?.(m.id, !fav)}
                             aria-pressed={fav}
                             aria-label={fav ? `Taka ${mealName(m)} úr eftirlæti` : `Setja ${mealName(m)} í eftirlæti`}
-                            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full transition ${
+                            className={`grid h-11 w-11 shrink-0 place-items-center rounded-full transition ${
                               fav ? "text-amber-500 hover:bg-hc-warn-surface" : "text-slate-300 hover:bg-hc-sunken-2 hover:text-hc-ink-2"}`}>
                             <Star className={`h-5 w-5 ${fav ? "fill-current" : ""}`} aria-hidden />
                           </button>
@@ -857,6 +859,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
         </details>
       )}
     </div>
+    </DayMealsScope>
   );
 }
 
@@ -914,7 +917,7 @@ export function Recipe({ m, onClose }: { m: Meal; onClose: () => void }) {
             <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-hc-ink-2">{t.instructions.map((x, i) => <li key={i}>{x}</li>)}</ol>
           </div>
         )}
-        <button type="button" onClick={onClose} className="inline-flex items-center gap-1 text-sm font-semibold text-hc-ink-2"><ChevronLeft className="h-4 w-4" />Til baka</button>
+        <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-hc-ink-2"><ChevronLeft className="h-4 w-4" />Til baka</button>
       </div>
     </Sheet>
   );

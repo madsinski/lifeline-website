@@ -12,6 +12,7 @@
 
 import { useState } from "react";
 import { renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
+import { hcBtn, hcInput } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -36,9 +37,9 @@ export interface ProfileFormData {
 /** GDPR 9. gr.: informed consent for processing health data, with the full text one tap away. */
 export function ConsentBox({ checked, onChange, error }: { checked: boolean; onChange: (v: boolean) => void; error?: string }) {
   return (
-    <div className={`rounded-xl border p-3 text-sm ${error ? "border-red-300 bg-red-50" : "border-hc-hairline bg-hc-surface"}`}>
+    <div className={`rounded-hc-element border p-3 text-sm ${error ? "border-hc-bad-ink/40 bg-hc-bad-surface" : "border-hc-hairline bg-hc-surface"}`}>
       <label className="flex cursor-pointer items-start gap-3">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#10B981]" />
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-[#047857]" />
         <span className="text-hc-ink-2">
           Ég hef lesið <strong>upplýst samþykki fyrir heilsumat</strong> og samþykki að Lifeline Health vinni með heilsufarsupplýsingar mínar vegna heilsufarsskoðunarinnar. Ég get dregið samþykkið til baka hvenær sem er.
         </span>
@@ -47,7 +48,7 @@ export function ConsentBox({ checked, onChange, error }: { checked: boolean; onC
         <summary className="cursor-pointer text-xs font-semibold text-hc-ok-ink">Lesa samþykkið í heild</summary>
         <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-hc-sunken p-3 font-sans text-xs leading-relaxed text-hc-ink-2">{renderHealthAssessmentConsent()}</pre>
       </details>
-      {error && <p className="mt-2 pl-8 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 pl-8 text-xs text-hc-bad-ink">{error}</p>}
     </div>
   );
 }
@@ -103,10 +104,10 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
         value={f[k]}
         onChange={(e) => setF({ ...f, [k]: e.target.value })}
         aria-invalid={!!errors[k]}
-        className={`mt-1 w-full rounded-lg border px-3 py-2.5 text-hc-ink outline-none focus:ring-2 focus:ring-[#10B981] ${errors[k] ? "border-red-300" : "border-slate-300"}`}
+        className={`${errors[k] ? hcInput.replace("border-hc-control", "border-hc-bad-ink") : hcInput} mt-1 min-h-11`}
         {...props}
       />
-      {errors[k] && <span className="mt-1 block text-xs text-red-600">{errors[k]}</span>}
+      {errors[k] && <span className="mt-1 block text-xs text-hc-bad-ink">{errors[k]}</span>}
     </label>
   );
 
@@ -133,9 +134,9 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
         )}
       </div>
       {!data.profile.health_consent && <ConsentBox checked={consent} onChange={setConsent} error={errors.consent} />}
-      {errors.form && <p className="text-sm text-red-600">{errors.form}</p>}
+      {errors.form && <p role="alert" className="text-sm text-hc-bad-ink">{errors.form}</p>}
       <div className="flex items-center gap-3">
-        <button disabled={busy} className="inline-flex min-h-11 items-center justify-center rounded-hc-element bg-hc-brand-dark px-5 font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
+        <button disabled={busy} className={`${hcBtn.cta} disabled:opacity-50`}>
           {busy ? "Vistar…" : "Vista upplýsingar"}
         </button>
         {saved && <span className="text-sm text-hc-ok-ink">Vistað</span>}
@@ -143,7 +144,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
       {track === "care" && (
         <p className="text-xs text-hc-ink-2">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir sjálf(ur).</p>
       )}
-      <div className="rounded-xl bg-hc-sunken p-3 text-xs text-hc-ink-2">
+      <div className="rounded-hc-element bg-hc-sunken p-3 text-xs text-hc-ink-2">
         Ábending: Í stillingum hér til hliðar getur þú sett upp <strong>PIN</strong> fyrir fljótlegri innskráningu og tengt ferðina við <strong>Google eða Apple dagatal</strong>.
       </div>
     </form>

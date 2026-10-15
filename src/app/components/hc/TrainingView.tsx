@@ -25,7 +25,8 @@ import Sheet from "./Sheet";
 import SessionAlternatives from "./SessionAlternatives";
 import AddDayActivity from "./AddDayActivity";
 import ActivityIcon from "./ActivityIcon";
-import { hcBtn } from "./ui";
+import { hcBtn, hcInput } from "./ui";
+import { useToast } from "./Toast";
 import type { BodyData } from "@/lib/hc/start-weight";
 import WorkoutRunner from "./WorkoutRunner";
 
@@ -62,7 +63,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   training?: TrainingSettings;
   planStart?: string | null;
   /** A finished workout: minutes, RPE and which session it was. */
-  onFinish?: (info: { minutes: number; rpe: number; session: PSession }) => void;
+  onFinish?: (info: { minutes: number; rpe: number; session: PSession }) => void | Promise<boolean | void>;
   /** Weight, body fat and sex, for suggesting a starting load. */
   body?: BodyData;
   /** They did something else instead of this session. */
@@ -117,6 +118,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   const [running, setRunning] = useState<PSession | null>(null);
   const [swapSession, setSwapSession] = useState<PSession | null>(null);
   const [addDay, setAddDay] = useState<number | null>(null);
+  /** The weekday whose removal is waiting for a yes. */
+  const [confirmRemove, setConfirmRemove] = useState<number | null>(null);
+  const toast = useToast();
   const [openSession, setOpenSession] = useState<string | null>(() => view.sessions.find((s) => s.weekday === todayIdx)?.id ?? view.sessions[0]?.id ?? null);
   const mine = !personal.program_key || personal.program_key === exercise.key;
   /**
@@ -201,7 +205,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               {shownDay === todayIdx ? "Í dag" : WEEKDAYS[shownDay]}
             </h3>
             {pickedDay !== null && pickedDay !== todayIdx && (
-              <button type="button" onClick={() => setPickedDay(null)} className="text-xs font-semibold text-orange-800 hover:underline">
+              <button type="button" onClick={() => setPickedDay(null)} className="inline-flex min-h-11 items-center text-xs font-semibold text-orange-800 hover:underline">
                 Fara aftur á daginn í dag
               </button>
             )}
@@ -232,7 +236,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               onDid={() => onFinish?.({ minutes: s.minutes ?? 45, rpe: s.modality === "hiit" ? 7 : 4, session: s })}
               onInstead={() => setSwapSession(s)}
               onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
-              onRemove={onRemoveDay ? () => onRemoveDay(s.weekday) : undefined}
+              onRemove={onRemoveDay ? () => setConfirmRemove(s.weekday) : undefined}
               dragOver={drag?.over ?? null} swapFor={swapItem?.slot ?? null}
               onSwap={(slot, it) => setSwapItem({ slot, item: it })} onUnswap={unswap}
               onDropItem={dropItem}
@@ -363,13 +367,13 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                           <span className="flex items-center gap-1.5 sm:flex-col sm:items-stretch sm:gap-2">
                             <button type="button"
                               onClick={() => { setEditing(null); document.getElementById(`session-${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }); }}
-                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken sm:w-full sm:py-1.5 sm:text-xs">
+                              className="min-h-11 shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken sm:w-full sm:py-1.5 sm:text-xs">
                               Sjá æfinguna
                             </button>
                             {onRemoveDay && (
                               <button type="button" aria-label={`Taka ${WEEKDAYS[i].toLowerCase()} af`}
-                                onClick={() => { onRemoveDay(i); setEditing(null); }}
-                                className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-red-700 ring-1 ring-red-200 hover:bg-red-50 sm:w-full sm:py-1.5 sm:text-xs">
+                                onClick={() => { setConfirmRemove(i); setEditing(null); }}
+                                className="min-h-11 shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-red-700 ring-1 ring-red-200 hover:bg-red-50 sm:w-full sm:py-1.5 sm:text-xs">
                                 Taka daginn af
                               </button>
                             )}
@@ -441,15 +445,15 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                           <span className="flex items-center gap-1.5 sm:flex-col sm:items-stretch sm:gap-2">
                             <input type="time" defaultValue={a.at ?? ""} aria-label={`Klukkan fyrir ${a.name}`}
                               onChange={(e) => onActivityTime?.(a.id, e.target.value || null)}
-                              className="min-w-0 flex-1 rounded-md bg-hc-sunken-2 px-2 py-1 text-[11px] outline-none sm:w-full sm:flex-none sm:py-1.5 sm:text-xs" />
+                              className={`${hcInput} min-h-11 min-w-0 flex-1 sm:w-full sm:flex-none`} />
                             <button type="button" aria-label={`Skipta um ${a.name}`}
                               onClick={() => { onRemoveActivity?.(a.id); setAddDay(a.day); setEditing(null); }}
-                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken sm:w-full sm:py-1.5 sm:text-xs">
+                              className="min-h-11 shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken sm:w-full sm:py-1.5 sm:text-xs">
                               Skipta um
                             </button>
                             <button type="button" aria-label={`Taka ${a.name} af`}
                               onClick={() => { onRemoveActivity?.(a.id); setEditing(null); }}
-                              className="shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-red-700 ring-1 ring-red-200 hover:bg-red-50 sm:w-full sm:py-1.5 sm:text-xs">
+                              className="min-h-11 shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold text-red-700 ring-1 ring-red-200 hover:bg-red-50 sm:w-full sm:py-1.5 sm:text-xs">
                               Taka af
                             </button>
                           </span>
@@ -473,8 +477,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                          already there — seven of them down the week, each
                          competing with the thing it sits next to. Still a
                          44px target; just not a second card. */
-                      className="grid h-9 w-9 shrink-0 place-items-center self-center rounded-lg text-base font-semibold text-slate-300 transition hover:bg-orange-50 hover:text-orange-700 sm:mt-auto sm:h-7 sm:w-full">
-                      <span aria-hidden>+</span>
+                      className="grid h-11 w-11 shrink-0 place-items-center self-center rounded-lg text-hc-ink-3 transition hover:bg-orange-50 hover:text-orange-700 sm:mt-auto sm:h-9 sm:w-full">
+                      <Plus className="h-4 w-4" aria-hidden />
                     </button>
                   )}
                   {here.length === 0 && mine.length === 0 && (
@@ -499,7 +503,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               {canSplitHiit(exercise) && (
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-hc-hairline px-3 py-1.5 text-sm font-semibold text-hc-ink-2">
                   <input type="checkbox" checked={mine && personal.hiit_split} onChange={(e) => save({ hiit_split: e.target.checked })} className="h-4 w-4 accent-orange-600" />
-                  HIIT á sér dögum
+                  HIIT á sérstökum dögum
                 </label>
               )}
               {custom && (
@@ -580,7 +584,34 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
         <WorkoutRunner session={running} body={body}
           onClose={() => setRunning(null)}
           onSwap={(slot, it) => setSwapItem({ slot, item: it })}
-          onDone={(info) => { setRunning(null); onFinish?.({ ...info, session: running }); }} />
+          onDone={async (info) => {
+            const session = running;
+            setRunning(null);
+            // The page owns the save; false from it means it did not land
+            // (and the page has said so). Anything else is a saved workout.
+            const ok = await onFinish?.({ ...info, session });
+            if (ok !== false) toast.show("Æfingin vistuð", { tone: "ok" });
+          }} />
+      )}
+
+      {/* Taking a day off the programme is not undone by tapping it again —
+          the weekday stops being a training day — so it asks first. */}
+      {confirmRemove !== null && onRemoveDay && (
+        <Sheet title="Taka daginn af?" onClose={() => setConfirmRemove(null)}>
+          <div className="space-y-2 p-4">
+            <p className="text-sm text-hc-ink-2">
+              {WEEKDAYS[confirmRemove]} verður ekki lengur æfingadagur í áætluninni. Annað sem þú settir á daginn verður áfram.
+            </p>
+            <button type="button" data-autofocus
+              onClick={() => { onRemoveDay(confirmRemove); setConfirmRemove(null); }}
+              className={`${hcBtn.base} w-full bg-red-700 text-white hover:bg-red-800`}>
+              Taka daginn af
+            </button>
+            <button type="button" onClick={() => setConfirmRemove(null)} className={`${hcBtn.secondary} w-full`}>
+              Hætta við
+            </button>
+          </div>
+        </Sheet>
       )}
 
       {addTo && (
@@ -616,9 +647,9 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
  * an orange chip in the week opens an orange card below it.
  */
 const TONE: Record<Modality, { band: string; ring: string; today: string; tile: string; ink: string; pill: string; go: string }> = {
-  strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-600", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-600 hover:bg-orange-700" },
-  hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-hc-bad-ink",   pill: "text-hc-bad-ink ring-hc-bad-ink/30",     go: "bg-rose-600 hover:bg-rose-700" },
-  cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-600",    ink: "text-hc-info-ink",    pill: "text-hc-info-ink ring-hc-info-ink/30",       go: "bg-sky-600 hover:bg-sky-700" },
+  strength: { band: "bg-orange-50/70", ring: "ring-orange-100", today: "ring-orange-500", tile: "bg-orange-700", ink: "text-orange-700", pill: "text-orange-700 ring-orange-200", go: "bg-orange-800 hover:bg-orange-900" },
+  hiit:     { band: "bg-rose-50/70",   ring: "ring-rose-100",   today: "ring-rose-500",   tile: "bg-rose-600",   ink: "text-hc-bad-ink",   pill: "text-hc-bad-ink ring-hc-bad-ink/30",     go: "bg-rose-700 hover:bg-rose-800" },
+  cardio:   { band: "bg-sky-50/70",    ring: "ring-sky-100",    today: "ring-sky-500",    tile: "bg-sky-700",    ink: "text-hc-info-ink",    pill: "text-hc-info-ink ring-hc-info-ink/30",       go: "bg-sky-800 hover:bg-sky-900" },
   other:    { band: "bg-hc-sunken",     ring: "ring-hc-hairline",  today: "ring-slate-500",  tile: "bg-slate-500",  ink: "text-hc-ink-2",  pill: "text-hc-ink-2 ring-hc-hairline",   go: "bg-slate-700 hover:bg-hc-brand-dark" },
 };
 
@@ -772,19 +803,20 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
             <button type="button" onClick={onDid}
               className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition ${
                 today ? "py-3" : "py-2.5"} ${TONE[s.modality].go}`}>
-              <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
+              {/* On another day's card this still records today — say so. */}
+              <Check className="h-4 w-4" aria-hidden /> {today ? "Ég gerði þetta" : "Ég gerði þetta í dag"}
             </button>
           )}
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-x-4">
             {onInstead && !done && (
               <button type="button" onClick={onInstead}
-                className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
+                className="inline-flex min-h-11 items-center px-1 text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
                 Gera annað
               </button>
             )}
             {onRemove && (
               <button type="button" onClick={onRemove}
-                className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-red-700 hover:underline">
+                className="inline-flex min-h-11 items-center px-1 text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-red-700 hover:underline">
                 Taka daginn af
               </button>
             )}
@@ -843,13 +875,13 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
                   {onAdd && (
                     <button type="button" onClick={onAdd}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink hover:underline">
+                      className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink hover:underline">
                       <Plus className="h-3.5 w-3.5" aria-hidden /> Bæta við æfingu
                     </button>
                   )}
                   {dropped.length > 0 && onUndrop && (
                     <button type="button" onClick={() => dropped.forEach((d) => onUndrop(d))}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink hover:underline">
+                      className="inline-flex min-h-11 items-center gap-1.5 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink hover:underline">
                       <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Sækja aftur {dropped.length} sem þú tókst út
                     </button>
                   )}
@@ -898,25 +930,25 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
           {it.note && <p className="mt-1 text-sm text-hc-ink-2">{it.note}</p>}
           <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs font-semibold">
             {how && (
-              <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="text-orange-700 hover:underline">
+              <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="inline-flex min-h-11 items-center text-orange-700 hover:underline">
                 {open ? "Fela" : it.video ? "▶ Sjá hvernig" : "Hvernig?"}
               </button>
             )}
             {swappable && onSwap && (
               <button type="button" onClick={() => onSwap(it.slot!, it)}
                 aria-label={`Skipta út æfingunni ${it.name}`}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-slate-300 bg-hc-surface px-3 text-hc-ink-2 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-800">
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-slate-300 bg-hc-surface px-3 text-hc-ink-2 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-800">
                 <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden /> Skipta um æfingu
               </button>
             )}
             {onDrop && (
               <button type="button" onClick={onDrop} aria-label={`Taka ${it.name} út úr æfingunni`}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-full px-2 text-hc-ink-2 transition hover:bg-red-50 hover:text-red-700">
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-hc-ink-2 transition hover:bg-red-50 hover:text-red-700">
                 <X className="h-3.5 w-3.5" aria-hidden /> Taka út
               </button>
             )}
             {it.swapped && it.slot && onSwap && (
-              <button type="button" onClick={() => onUnswap(it.slot!)} className="inline-flex items-center gap-1 text-hc-ink-2 hover:text-hc-ink">
+              <button type="button" onClick={() => onUnswap(it.slot!)} className="inline-flex min-h-11 items-center gap-1 text-hc-ink-2 hover:text-hc-ink">
                 <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Upprunaleg
               </button>
             )}
@@ -998,7 +1030,7 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                       <button type="button" onClick={() => onComplete(a)}
                         className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition ${
                           today ? "py-3" : "py-2.5"} ${TONE[am === "other" ? "other" : am].go}`}>
-                        <Check className="h-4 w-4" aria-hidden /> Ég gerði þetta
+                        <Check className="h-4 w-4" aria-hidden /> {today ? "Ég gerði þetta" : "Ég gerði þetta í dag"}
                       </button>
                     ) : null}
 
@@ -1009,19 +1041,19 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                     <span className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-0.5">
                       {onBuild && a.focus && (
                         <button type="button" onClick={() => onBuild(a)}
-                          className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
+                          className="inline-flex min-h-11 items-center px-1 text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
                           Sjá æfingar
                         </button>
                       )}
                       {onRun && a.focus && onComplete && (
                         <button type="button" onClick={() => onComplete(a)}
-                          className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
-                          Ég gerði þetta
+                          className="inline-flex min-h-11 items-center px-1 text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
+                          {today ? "Ég gerði þetta" : "Ég gerði þetta í dag"}
                         </button>
                       )}
                       {onRemove && (
                         <button type="button" onClick={() => onRemove(a.id)}
-                          className="text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-red-700 hover:underline">
+                          className="inline-flex min-h-11 items-center px-1 text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-red-700 hover:underline">
                           Taka af
                         </button>
                       )}
@@ -1038,15 +1070,17 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                       <span className="ml-1.5 font-normal text-hc-ink-2">{LOAD_IS[a.load ?? 0] ?? "eins og venjulega"}</span>
                     </span>
                     <span className="flex items-center gap-1">
-                      <button type="button" aria-label="Minnka álag" disabled={(a.load ?? 0) <= -2}
+                      <button type="button" disabled={(a.load ?? 0) <= -2}
                         onClick={() => onLoad(a.id, Math.max(-2, (a.load ?? 0) - 1))}
-                        className="grid h-8 w-8 place-items-center rounded-full bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline disabled:opacity-30">−</button>
+                        className="inline-flex min-h-11 items-center gap-1 rounded-full bg-hc-surface px-3 text-xs font-semibold text-hc-ink-2 ring-1 ring-hc-hairline disabled:opacity-30">
+                        <span aria-hidden>−</span> Léttara</button>
                       <span className="w-6 text-center text-sm font-bold tabular-nums text-hc-ink">
                         {(a.load ?? 0) > 0 ? `+${a.load}` : a.load ?? 0}
                       </span>
-                      <button type="button" aria-label="Auka álag" disabled={(a.load ?? 0) >= 2}
+                      <button type="button" disabled={(a.load ?? 0) >= 2}
                         onClick={() => onLoad(a.id, Math.min(2, (a.load ?? 0) + 1))}
-                        className="grid h-8 w-8 place-items-center rounded-full bg-hc-surface text-hc-ink-2 ring-1 ring-hc-hairline disabled:opacity-30">+</button>
+                        className="inline-flex min-h-11 items-center gap-1 rounded-full bg-hc-surface px-3 text-xs font-semibold text-hc-ink-2 ring-1 ring-hc-hairline disabled:opacity-30">
+                        Þyngra <span aria-hidden>+</span></button>
                     </span>
                   </div>
                 )}

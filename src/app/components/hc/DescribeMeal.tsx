@@ -22,8 +22,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Loader2, Mic, Square, Utensils } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import { SLOT_IS, type MealSlot } from "@/lib/hc/meals";
+import { useDayMeals } from "./useDayMeals";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -58,11 +58,6 @@ function recogniser(): SpeechRecognitionLike | null {
   return r;
 }
 
-const localDate = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
-
 export default function DescribeMeal({ api, slot, onLogged, onClose }: {
   api: Api;
   /** Which planned meal this replaces. One row per slot per day. */
@@ -72,6 +67,20 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
 }) {
   const [text, setText] = useState("");
   const [macros, setMacros] = useState<Macros | null>(null);
+  /** The numbers on screen came from the model, not from an empty fallback. */
+  const [estimated, setEstimated] = useState(false);
+  /** An estimate was made and then the text changed under it. */
+  const [stale, setStale] = useState(false);
+  const { logDescribed } = useDayMeals();
+  /*
+   * Editing the description after an estimate throws the estimate away.
+   * The numbers described the old sentence; saving them against the new
+   * one would log "lasagne" with the macros of "salat".
+   */
+  const changeText = (next: string | ((prev: string) => string)) => {
+    setText(next);
+    if (macros) { setMacros(null); setEstimated(false); setStale(true); }
+  };
   const [busy, setBusy] = useState<"parse" | "save" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
@@ -97,17 +106,18 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
       const said = Array.from({ length: e.results.length }, (_, i) => e.results[i]?.[0]?.transcript ?? "").join(" ").trim();
       /* Appended, not replaced: somebody adding "og epli" to what they
          already typed should keep the typing. */
-      if (said) setText((prev) => (prev ? `${prev} ${said}` : said));
+      if (said) changeText((prev) => (prev ? `${prev} ${said}` : said));
     };
     r.onerror = () => setListening(false);
     r.onend = () => setListening(false);
     setListening(true);
     try { r.start(); } catch { setListening(false); }
-  }, [listening]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- changeText only reads macros to decide whether to clear them
+  }, [listening, macros]);
 
   const estimate = async () => {
     if (text.trim().length < 3) return;
-    setBusy("parse"); setErr(null); setMacros(null);
+    setBusy("parse"); setErr(null); setMacros(null); setEstimated(false); setStale(false);
     const r = await api("/api/hc/meal-parse", {
       method: "POST", body: JSON.stringify({ description: text.trim() }),
     }).catch(() => null);
@@ -123,28 +133,20 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
       return;
     }
     setMacros(j.macros);
+    setEstimated(true);
   };
 
+  const allZero = !!macros && macros.kcal === 0 && macros.protein === 0 && macros.carbs === 0 && macros.fat === 0;
   const save = async () => {
-    if (!macros) return;
+    if (!macros || (allZero && !estimated)) return;
     setBusy("save"); setErr(null);
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { setBusy(null); setErr("Þú þarft að vera innskráð(ur)."); return; }
-    /* One row per slot per day, as MealLogger has it: delete first so a
-       described lunch replaces the planned one rather than sitting beside
-       it and double-counting the day. */
-    await supabase.from("meal_log").delete()
-      .eq("client_id", u.user.id).eq("date", localDate()).eq("action_key", slot);
-    const { error } = await supabase.from("meal_log").insert({
-      client_id: u.user.id, date: localDate(), action_key: slot,
-      /* "described" rather than "planned", so the diary can always tell an
-         estimate from a meal with known macros. */
-      source: "described",
-      description: text.trim().slice(0, 200),
-      kcal: macros.kcal, protein: macros.protein, carbs: macros.carbs, fat: macros.fat,
-    });
+    /* One row per slot per day: the described lunch replaces the planned
+       one rather than sitting beside it and double-counting the day. The
+       shared day-meals state inserts first and removes the old row only
+       once the new one is in, and toasts if it fails. */
+    const ok = await logDescribed(slot, text, macros);
     setBusy(null);
-    if (error) { setErr("Vistun mistókst. Reyndu aftur."); return; }
+    if (!ok) { setErr("Vistaðist ekki – reyndu aftur."); return; }
     onLogged?.();
     onClose();
   };
@@ -169,7 +171,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
       </p>
 
       <div className="relative">
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3}
+        <textarea value={text} onChange={(e) => changeText(e.target.value)} rows={3}
           placeholder="T.d. kjúklingabringa með hrísgrjónum og salati úr mötuneytinu"
           className="w-full rounded-2xl border border-slate-300 p-3 pr-12 text-hc-ink outline-none focus:ring-2 focus:ring-lime-600" />
         {canHear && (
@@ -189,7 +191,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
           disabled={text.trim().length < 3 || busy === "parse"}
           className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-lime-700 px-4 py-3 font-bold text-white disabled:opacity-50">
           {busy === "parse" ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Utensils className="h-5 w-5" aria-hidden />}
-          Áætla næringu
+          {stale ? "Áætla aftur" : "Áætla næringu"}
         </button>
       ) : (
         <>
@@ -204,9 +206,12 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
           {/* Said plainly, every time, because it is the whole caveat: a
               sentence read by a model is not a weighed plate. */}
           <p className="text-xs text-hc-ink-2">
-            Þetta er áætlun út frá textanum, ekki mæling. Breyttu tölunum ef þú veit betur.
+            Þetta er áætlun út frá textanum, ekki mæling. Breyttu tölunum ef þú veist betur.
           </p>
-          <button type="button" onClick={() => void save()} disabled={busy === "save"}
+          {allZero && !estimated && (
+            <p className="text-xs text-hc-ink-2">Sláðu inn að minnsta kosti eina tölu til að skrá máltíðina.</p>
+          )}
+          <button type="button" onClick={() => void save()} disabled={busy === "save" || (allZero && !estimated)}
             className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-hc-brand-dark px-4 py-3 font-bold text-white disabled:opacity-50">
             {busy === "save" ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Check className="h-5 w-5" aria-hidden />}
             Skrá máltíðina

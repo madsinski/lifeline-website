@@ -1,10 +1,19 @@
 "use client";
 
-// Participant navigation once the plan exists: Í dag, Æfingar, Næring,
-// Fræðsla, Þjálfari, Skýrslan, Ferðin (the programme tabs only when the plan
-// has them).
-// Bottom bar on a phone (thumb reach, safe area), a segmented bar on top on
-// larger screens.
+// Participant navigation: five fixed tabs, the same on a phone and on a
+// laptop, on every page of the app.
+//
+//   Í dag · Æfingar · Næring · Þjálfari (or Hjúkrun) · Ég
+//
+// Æfingar and Næring only when the plan has them. Everything occasional —
+// the report, the journey map, fræðsla, notifications, settings — lives
+// under Ég (/app/eg), so there is no overflow menu: nine items behind a
+// "Meira" that differed between phone and desktop meant the two bars
+// disagreed about what mattered, and whatever was behind it went unfound.
+//
+// The bar works out for itself what to show (from the cached
+// /api/hc/journey/exists and /api/hc/plan), so every page draws the same
+// one rather than each passing its own guess.
 
 import Link from "next/link";
 import { hcTabs } from "./ui";
@@ -13,75 +22,87 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useKeyboard } from "@/lib/hc/use-keyboard";
 import { supabase } from "@/lib/supabase";
-import { BookOpen, Compass, Dumbbell, ExternalLink, FileHeart, MoreHorizontal, Settings, Sun, UserRound, Utensils, Zap } from "lucide-react";
+import * as cache from "@/lib/hc/client-cache";
+import { badgeClass } from "./Badge";
+import { CircleUserRound, Dumbbell, Stethoscope, Sun, UserRound, Utensils } from "lucide-react";
 
-export type JourneyPlace = "today" | "exercise" | "nutrition" | "fraedsla" | "coach" | "report" | "journey" | "notifications" | "account";
+type Tab = "today" | "exercise" | "nutrition" | "coach" | "me";
 
 /**
- * `primary` is what earns a slot in the bar itself. Nine items laid flat
- * overflowed the bar on a laptop and it scrolled sideways — a nav you have
- * to drag is a nav whose last items nobody finds.
- *
- * The five primary ones are the surfaces someone opens on a given day. The
- * rest are real destinations but occasional: a lecture, the journey map,
- * settings. Tilkynningar is deliberately never primary — the bell beside the
- * greeting is its entry point, and a tab as well would be the same door
- * twice.
+ * Where the page is. The first five are the tabs; the rest are pages that
+ * live under Ég and light that tab.
  */
-const ITEMS: { key: JourneyPlace; label: string; href: string; Icon: typeof Sun; primary?: boolean }[] = [
-  { primary: true, key: "today", label: "Í dag", href: "/app/aaetlun?tab=today", Icon: Sun },
-  { primary: true, key: "exercise", label: "Æfingar", href: "/app/aaetlun?tab=exercise", Icon: Dumbbell },
-  { primary: true, key: "nutrition", label: "Næring", href: "/app/aaetlun?tab=nutrition", Icon: Utensils },
-  { key: "fraedsla", label: "Fræðsla", href: "/app/fraedsla", Icon: BookOpen },
-  /*
-   * A person, not a speech bubble.
-   *
-   * MessageCircle said "messages", which was true when the tab was only a
-   * contact form and is not now it holds the coach, the thread and the
-   * diary. The evidence on tab icons is that the label does the work and
-   * the clearest icon for "a human who helps me" is simply a person — a
-   * stethoscope reads as clinician and sets an expectation of diagnosis,
-   * which is the one thing this product must not imply, and a handshake
-   * is the least recognised of the obvious candidates.
-   *
-   * Aðgangur gives up CircleUser for a gear so the two are not two people
-   * side by side; settings behind a cog is as conventional as it gets.
-   */
-  { primary: true, key: "coach", label: "Þjálfari", href: "/app/aaetlun?tab=coach", Icon: UserRound },
-  { primary: true, key: "report", label: "Skýrslan", href: "/app/aaetlun?tab=report", Icon: FileHeart },
-  { key: "journey", label: "Ferðin", href: "/app?ferd=1", Icon: Compass },
-  { key: "notifications", label: "Tilkynningar", href: "/app/tilkynningar", Icon: Zap },
-  { key: "account", label: "Stillingar", href: "/app/adgangur", Icon: Settings },
-];
+export type JourneyPlace = Tab | "fraedsla" | "report" | "journey" | "notifications" | "account";
+
+type Api = (url: string, init?: RequestInit) => Promise<Response>;
+
+const api: Api = async (url, init = {}) => {
+  const { data } = await supabase.auth.getSession();
+  const t = data.session?.access_token;
+  return fetch(url, { ...init, headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(init.headers as Record<string, string> | undefined) } });
+};
+
+interface Exists { exists?: boolean; has_plan?: boolean; entry?: string | null }
+interface PlanBody { plan?: { exercise?: unknown; nutrition?: unknown } | null }
+
+/** What the bar needs to know, read from the cache first so it is there on the first paint. */
+function useAvailability() {
+  const seed = () => {
+    const e = cache.peek<Exists>("/api/hc/journey/exists")?.body;
+    const p = cache.peek<PlanBody>("/api/hc/plan")?.body;
+    return {
+      hasPlan: e?.has_plan ?? !!p?.plan,
+      exercise: !!p?.plan?.exercise,
+      nutrition: !!p?.plan?.nutrition,
+      entry: e?.entry ?? null,
+    };
+  };
+  const [state, setState] = useState(seed);
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const e = await cache.load(api, "/api/hc/journey/exists");
+        if (e.status >= 400) return;
+        const eb = e.body as Exists;
+        let exercise = false, nutrition = false;
+        if (eb.has_plan) {
+          const p = await cache.load(api, "/api/hc/plan");
+          const pb = p.body as PlanBody;
+          exercise = !!pb.plan?.exercise;
+          nutrition = !!pb.plan?.nutrition;
+        }
+        if (alive) setState({ hasPlan: !!eb.has_plan, exercise, nutrition, entry: eb.entry ?? null });
+      } catch { /* offline: keep what the cache said */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+  return state;
+}
 
 /*
- * How many things are waiting, when the page has not said.
+ * How many things are waiting: coach messages on the coach tab, everything
+ * else (a report to confirm, a kveðja) on Ég, where Tilkynningar lives.
  *
- * `unread` was a prop with a default of 0, and five of the six pages that
- * render this nav never passed it — so the dot was missing everywhere
- * except the plan page. Six callers, five of them wrong, is a sign the
- * prop was the wrong shape: showing the dot is this component's job, not
- * something every page has to remember to supply.
- *
- * A page that already has the number still passes it and skips the fetch.
+ * From /api/hc/notifications, which already folds the coach thread into
+ * one row with its own unread flag — a poll while visible and on return,
+ * the same cadence as the bell.
  */
 function useNavUnread(enabled: boolean) {
-  const [n, setN] = useState(0);
+  const [n, setN] = useState({ coach: 0, other: 0 });
   useEffect(() => {
     if (!enabled) return;
     let alive = true;
     const load = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) return;
-      const r = await fetch("/api/hc/notifications", {
-        headers: { Authorization: `Bearer ${data.session.access_token}` },
-      }).catch(() => null);
+      const r = await api("/api/hc/notifications").catch(() => null);
       if (!r?.ok || !alive) return;
-      const j = await r.json().catch(() => null);
-      if (alive) setTimeout(() => setN(Number(j?.unread ?? 0)), 0);
+      const j = (await r.json().catch(() => null)) as { items?: { kind: string; unread: boolean; count?: number }[] } | null;
+      const items = j?.items ?? [];
+      const coach = items.filter((i) => i.kind === "coach" && i.unread).reduce((s, i) => s + (i.count ?? 1), 0);
+      const other = items.filter((i) => i.kind !== "coach" && i.unread).length;
+      if (alive) setN({ coach, other });
     };
     void load();
-    // Same cadence as the bell: a poll while visible, and on return.
     const tick = () => { if (document.visibilityState === "visible") void load(); };
     const id = window.setInterval(tick, 15_000);
     window.addEventListener("focus", tick);
@@ -97,20 +118,12 @@ function useNavUnread(enabled: boolean) {
 /**
  * The mark, at the top of the journey.
  *
- * Suppressing the marketing header took 1300px of sitemap off these pages
- * and the logo with it, which left the app looking like it belonged to
- * nobody. This is the brand and nothing else: no menu, no links out — the
- * bottom bar is the navigation here.
- *
- * It is part of JourneyNav so that every page which has the nav gets the
- * header too, rather than six pages each remembering to add one.
+ * Suppressing the marketing header took the logo with it, which left the
+ * app looking like it belonged to nobody. This is the brand and nothing
+ * else: no menu, no links out — the tab bar is the navigation here.
  */
 export function JourneyHeader() {
   return (
-    /* Room around it. Pinned to the very top of the viewport with 12px
-       under it, the mark read as something that had slipped rather than a
-       header — the site header it replaced had the whole chrome bar's
-       breathing space. */
     <div className="flex items-center justify-between pb-5 pt-2 sm:pb-6 sm:pt-3">
       <Link href="/app" aria-label="Heilsuferðin">
         <LifelineLogo size="sm" />
@@ -119,167 +132,93 @@ export function JourneyHeader() {
   );
 }
 
-export default function JourneyNav({ active, hasReport = true, hasExercise = true, hasNutrition = true, hasPlan = true, unread, onSelect }: {
+const ME_PLACES: JourneyPlace[] = ["me", "fraedsla", "report", "journey", "notifications", "account"];
+
+export default function JourneyNav({ active, counts, onSelect }: {
   active: JourneyPlace;
-  /** Lights the dot on the Tilkynningar tab. Omit it and the nav counts. */
-  unread?: number;
+  /**
+   * Unread coach messages and other notifications, when the page already
+   * polls them (the plan page does). Omit it and the nav counts for itself.
+   */
+  counts?: { coach: number; other: number };
+  /** On the plan page the plan tabs switch in place; return true to stop the link. */
+  onSelect?: (k: Tab) => boolean;
+  /** @deprecated The bar works these out itself; kept so older callers still compile. */
   hasReport?: boolean;
-  hasExercise?: boolean;
-  hasNutrition?: boolean;
+  /** @deprecated */
   hasPlan?: boolean;
-  /** On the plan page the first three switch tabs in place. */
-  onSelect?: (k: JourneyPlace) => boolean;
+  /** @deprecated */
+  hasExercise?: boolean;
+  /** @deprecated */
+  hasNutrition?: boolean;
+  /** @deprecated Use counts. */
+  unread?: number;
 }) {
-  const [more, setMore] = useState(false);
   /*
-   * Out of the way while typing.
-   *
-   * iOS does not resize the viewport for the keyboard, so this bar — fixed
-   * to the bottom of the page — ends up sitting on top of whatever is
-   * being typed into. Victor could not fill in his kennitala on an iPhone
-   * for exactly this reason: the field was under the navbar with the
-   * keyboard up.
-   *
-   * Hiding it is right rather than merely expedient: nobody navigates
-   * between tabs mid-sentence, and it comes back the moment the field is
-   * dismissed.
+   * Out of the way while typing. iOS does not resize the viewport for the
+   * keyboard, so a bar fixed to the bottom sits on whatever is being typed
+   * into. Nobody changes tab mid-sentence; it is back when the field closes.
    */
   const keyboard = useKeyboard();
-  const own = useNavUnread(unread === undefined);
-  const count = unread ?? own;
-  const items = ITEMS.filter((i) =>
-    (i.key !== "report" || hasReport) && (i.key !== "exercise" || (hasPlan && hasExercise)) && (i.key !== "nutrition" || (hasPlan && hasNutrition)) && (i.key !== "today" || hasPlan));
-  const primary = items.filter((i) => i.primary);
-  const rest = items.filter((i) => !i.primary);
-  const restActive = rest.some((i) => i.key === active);
-  /** Unread lives on a hidden item, so the overflow button has to say so. */
-  const restUnread = rest.some((i) => i.key === "notifications") && count > 0;
+  const avail = useAvailability();
+  const own = useNavUnread(!counts);
+  const counted = counts ?? own;
+  const coachCount = counted.coach;
+  const care = avail.entry !== null && avail.entry !== "coach" && avail.entry !== "app";
+  const on: Tab = ME_PLACES.includes(active) ? "me" : (active as Tab);
 
-  const item = (i: (typeof ITEMS)[number], mobile: boolean) => {
-    const on = i.key === active;
+  const items: { key: Tab; label: string; href: string; Icon: typeof Sun; count?: number; dot?: boolean }[] = [
+    { key: "today", label: "Í dag", href: avail.hasPlan ? "/app/aaetlun?tab=today" : "/app", Icon: Sun },
+    ...(avail.hasPlan && avail.exercise ? [{ key: "exercise" as const, label: "Æfingar", href: "/app/aaetlun?tab=exercise", Icon: Dumbbell }] : []),
+    ...(avail.hasPlan && avail.nutrition ? [{ key: "nutrition" as const, label: "Næring", href: "/app/aaetlun?tab=nutrition", Icon: Utensils }] : []),
+    /* A person for the coach; a stethoscope only on the care track, where
+       the person on the other end is a nurse and the label says so. */
+    { key: "coach", label: care ? "Hjúkrun" : "Þjálfari", href: "/app/aaetlun?tab=coach", Icon: care ? Stethoscope : UserRound, count: coachCount },
+    { key: "me", label: "Ég", href: "/app/eg", Icon: CircleUserRound, dot: counted.other > 0 },
+  ];
+
+  const item = (i: (typeof items)[number], mobile: boolean) => {
+    const current = i.key === on;
+    const badge = i.count && i.count > 0
+      ? <span className={`${badgeClass("count")} absolute -right-2.5 -top-1.5 ring-2 ring-hc-surface`} aria-hidden>{i.count > 9 ? "9+" : i.count}</span>
+      : i.dot ? <span className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full bg-hc-bad-ink ring-2 ring-hc-surface" aria-hidden /> : null;
+    const sr = i.count && i.count > 0 ? `, ${i.count} ólesin` : i.dot ? ", nýtt" : "";
     return (
-      <Link key={i.key} href={i.href} aria-current={on ? "page" : undefined}
-        /* Close the overflow menu too. Tapping Í dag while Meira was open
-           switched the tab and left the menu hanging over it until Meira
-           was pressed again — the menu is a thing you opened to choose
-           from, and choosing anything at all is done with it. */
-        onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
+      <Link key={i.key} href={i.href} aria-current={current ? "page" : undefined}
+        onClick={(e) => { if (onSelect?.(i.key)) e.preventDefault(); }}
         className={mobile
-          ? `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${on ? "text-hc-brand-text" : "text-hc-ink-2"}`
-          : `${hcTabs.tab(on)} flex items-center justify-center gap-2`}>
+          ? `flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-hc-brand ${current ? "text-hc-brand-text" : "text-hc-ink-2"}`
+          : `${hcTabs.tab(current)} flex min-h-11 items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand`}>
         <span className="relative">
-          <i.Icon className={mobile ? "h-6 w-6" : "h-4 w-4"} strokeWidth={on && mobile ? 2.4 : 2} aria-hidden />
-          {i.key === "notifications" && count > 0 && (
-            <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${count} ný`} />
-          )}
+          <i.Icon className={mobile ? "h-6 w-6" : "h-4 w-4"} strokeWidth={current && mobile ? 2.4 : 2} aria-hidden />
+          {badge}
         </span>
-        {i.label}
+        <span className="truncate">{i.label}<span className="sr-only">{sr}</span></span>
       </Link>
     );
   };
+
+  /*
+   * Into <body>, like the sheets: a bottom margin from a space-y parent on a
+   * fixed bottom-0 element lifts it off the edge, so the phone bar is
+   * mounted on the viewport's own element instead.
+   */
+  const bar = (
+    <nav aria-label="Heilsuferðin" hidden={keyboard.open}
+      className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hc-hairline bg-hc-surface/95 backdrop-blur sm:hidden print:hidden"
+      /* Height from the shared token, so a docked bar can offset itself by
+         exactly this and stay right if it changes. */
+      style={{ height: "var(--hc-nav-h)", paddingBottom: "env(safe-area-inset-bottom)", boxSizing: "content-box" }}>
+      {items.map((i) => item(i, true))}
+    </nav>
+  );
+
   return (
     <>
       <nav aria-label="Heilsuferðin" className={`hidden sm:flex print:hidden ${hcTabs.bar}`}>
-        {primary.map((i) => item(i, false))}
-        {rest.length > 0 && (
-          <div className="relative flex shrink-0">
-            <button type="button" onClick={() => setMore(!more)} aria-expanded={more}
-              className={`${hcTabs.tab(restActive)} flex items-center justify-center gap-2`}>
-              <span className="relative">
-                <MoreHorizontal className="h-4 w-4" aria-hidden />
-                {restUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${count} ný`} />}
-              </span>
-              Meira
-            </button>
-            {more && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl bg-hc-surface shadow-xl ring-1 ring-hc-hairline">
-                {rest.map((i) => (
-                  <Link key={i.key} href={i.href} onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
-                    className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-hc-ok-surface text-hc-brand-text" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
-                    <i.Icon className="h-5 w-5" aria-hidden />{i.label}
-                    {i.key === "notifications" && count > 0 && (
-                      <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">{count > 9 ? "9+" : count}</span>
-                    )}
-                  </Link>
-                ))}
-                {/* Out of the app and onto the website.
-                    Separated by a rule because it leaves: the items above
-                    move you within the journey, this one does not. The
-                    in-app "Stillingar" above still points at /app/adgangur,
-                    which is a different thing — the journey's own settings
-                    rather than the account. */}
-                <Link href="/account"
-                  className="flex items-center gap-3 border-t border-hc-hairline px-4 py-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
-                  <ExternalLink className="h-5 w-5" aria-hidden /> Mínar síður
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
+        {items.map((i) => item(i, false))}
       </nav>
-      {/* The phone bar took the first four by position while the desktop bar
-          took all nine, so the two disagreed about what mattered. Same split
-          now — four primary and Meira, since five plus Meira is too many
-          thumbs wide. */}
-      {(() => {
-        const slots = primary.length > 4 ? primary.slice(0, 4) : primary;
-        const spill = [...primary.slice(slots.length), ...rest];
-        const spillActive = spill.some((i) => i.key === active);
-        const spillUnread = spill.some((i) => i.key === "notifications") && count > 0;
-        /*
-         * Into <body>, like the sheets.
-         *
-         * This is position:fixed, and on Stillingar it was a child of a
-         * space-y-4 wrapper — Tailwind puts margin-bottom on every child
-         * but the last, and a bottom margin on a fixed, bottom-0 element
-         * lifts it off the edge. Measured: margin 0 0 16px, a 16px strip of
-         * page under the navbar, on that page and no other. Resetting the
-         * margin would fix this page and wait for the next one, so the bar
-         * is mounted on the viewport's own element instead.
-         */
-        const bar = (
-          <nav aria-label="Heilsuferðin" hidden={keyboard.open}
-            className="fixed inset-x-0 bottom-0 z-40 flex border-t border-hc-hairline bg-hc-surface/95 backdrop-blur sm:hidden print:hidden"
-            /* Height from the shared token, so a sticky dock can offset
-               itself by exactly this and stay correct if it changes. */
-            style={{ height: "var(--hc-nav-h)", paddingBottom: "env(safe-area-inset-bottom)", boxSizing: "content-box" }}>
-            {slots.map((i) => item(i, true))}
-            {spill.length > 0 && (
-              <div className="relative flex flex-1">
-                <button type="button" onClick={() => setMore(!more)} aria-expanded={more}
-                  className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-semibold ${spillActive ? "text-hc-brand-text" : "text-hc-ink-2"}`}>
-                  <span className="relative">
-                    <MoreHorizontal className="h-6 w-6" aria-hidden />
-                    {spillUnread && <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" aria-label={`${count} ný`} />}
-                  </span>
-                  Meira
-                </button>
-                {more && (
-                  <div className="absolute bottom-full right-1 mb-2 w-48 overflow-hidden rounded-2xl bg-hc-surface shadow-xl ring-1 ring-hc-hairline">
-                    {spill.map((i) => (
-                      <Link key={i.key} href={i.href} onClick={(e) => { setMore(false); if (onSelect?.(i.key)) e.preventDefault(); }}
-                        className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold ${i.key === active ? "bg-hc-ok-surface text-hc-brand-text" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
-                        <i.Icon className="h-5 w-5" aria-hidden />{i.label}
-                      </Link>
-                    ))}
-                    {/* Out of the app and onto the website.
-                        Separated by a rule because it leaves: the items above
-                        move you within the journey, this one does not. The
-                        in-app "Stillingar" above still points at /app/adgangur,
-                        which is a different thing — the journey's own settings
-                        rather than the account. */}
-                    <Link href="/account"
-                      className="flex items-center gap-3 border-t border-hc-hairline px-4 py-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
-                      <ExternalLink className="h-5 w-5" aria-hidden /> Mínar síður
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </nav>
-        );
-        return typeof document === "undefined" ? bar : createPortal(bar, document.body);
-      })()}
+      {typeof document === "undefined" ? bar : createPortal(bar, document.body)}
     </>
   );
 }

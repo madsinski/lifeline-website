@@ -201,7 +201,7 @@ function Row({ x, urgent = false, onNavigate }: {
           and the text gets all of it. */}
       {video && (
         <a href={x.meetingUrl!} target="_blank" rel="noopener noreferrer"
-          className="relative z-10 w-full shrink-0 rounded-hc-element bg-hc-brand px-3 py-2 text-center text-sm font-bold text-white transition hover:bg-hc-brand-dark sm:w-auto sm:py-1.5 sm:text-left">
+          className="relative z-10 inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-hc-element bg-hc-brand-dark px-3 text-sm font-bold text-white transition hover:bg-emerald-800 sm:w-auto">
           Fara á fundinn
         </a>
       )}

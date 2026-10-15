@@ -1,10 +1,11 @@
 "use client";
 
-// "Aðgangur": the account, inside the heilsuferð. Everything that used to be
-// on "Mínar síður" and still matters — personal details, sign-in (password,
-// PIN, sign-out), calendar, reminders, payments and receipts, signed
-// documents, privacy and data requests, company access, deleting the account.
-// Lives under /app so it is reachable whatever the site gate.
+// "Stillingar og áskrift": the account, inside the heilsuferð. Everything
+// that used to be on "Mínar síður" and still matters — personal details,
+// sign-in (password, PIN, sign-out), calendar, reminders, the subscription
+// (#askrift, the one place it is sold and cancelled), payments and receipts,
+// signed documents, privacy and data requests, company access, deleting the
+// account. Reached from Ég; lives under /app so the site gate never hides it.
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -21,21 +22,17 @@ import SignedDocumentsList from "@/app/account/SignedDocumentsList";
 import DataPrivacyPanel from "@/app/components/account/DataPrivacyPanel";
 import { DeleteAccountCard, PasswordCard, ProfileCard, SignOutButton } from "@/app/components/account/AccountCards";
 import { hcPage } from "@/app/components/hc/ui";
+import { SubscriptionPanel } from "@/app/components/hc/Paywall";
+import { PageHero, SectionCard } from "@/app/components/account/ui";
 import * as cache from "@/lib/hc/client-cache";
 
 export default function AdgangurPage() {
   return <Suspense><Adgangur /></Suspense>;
 }
 
-const card = "rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-slate-200 sm:p-6";
-
 function Adgangur() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
-  // Seeded from the cache so the nav is there on the first paint when the
-  // participant has come from the plan — the other pages prefetch this.
-  const [hasPlan, setHasPlan] = useState(
-    () => !!cache.peek<{ has_plan?: boolean }>("/api/hc/journey/exists")?.body?.has_plan);
   /* Which route this journey is on, for "Skipta um leið" — offered only
      while it can still change (not paid, not an employer-paid check). */
   const [route, setRoute] = useState<{ entry: string | null; paid: boolean } | null>(null);
@@ -54,24 +51,34 @@ function Adgangur() {
       const { data } = await supabase.auth.getSession();
       if (!data.session) { router.replace(`/account/login?next=${encodeURIComponent("/app/adgangur")}`); return; }
       setUserId(data.session.user.id);
-      const e = await cache.load(api, "/api/hc/journey/exists");
-      const eb = e.body as { exists?: boolean; has_plan?: boolean; entry?: string | null; paid?: boolean };
-      setHasPlan(!!eb.has_plan);
+      const e = await cache.load(api, "/api/hc/journey/exists").catch(() => null);
+      const eb = (e && e.status < 400 ? e.body : {}) as { exists?: boolean; has_plan?: boolean; entry?: string | null; paid?: boolean };
       setRoute(eb.exists ? { entry: eb.entry ?? null, paid: !!eb.paid } : null);
       // Going back to the plan should be instant, so warm what it reads.
       cache.prefetch(api, ["/api/hc/actions", "/api/hc/plan"]);
     })();
   }, [api, router]);
 
+  /* The trial banner and the journey link to #askrift. The cards render
+     after the session check, so the browser's own jump on load found
+     nothing to jump to. */
+  useEffect(() => {
+    if (!userId || typeof window === "undefined" || window.location.hash !== "#askrift") return;
+    const t = setTimeout(() => document.getElementById("askrift")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    return () => clearTimeout(t);
+  }, [userId]);
+
+  const coaching = route?.entry === "coach" || route?.entry === "app";
+
   return (
     <div className={hcPage.participant}>
       <div className="mx-auto max-w-4xl space-y-4 px-4 pb-28 pt-4 sm:pb-16 sm:pt-8">
         <JourneyHeader />
-        {hasPlan && <JourneyNav active="account" />}
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="flex-1 text-2xl font-bold text-hc-ink sm:text-3xl">Stillingar</h1>
-          {userId && <SignOutButton />}
-        </div>
+        <div className="sm:mb-4"><JourneyNav active="account" /></div>
+        <PageHero kicker="Ég" title="Stillingar og áskrift"
+          body="Upplýsingarnar þínar, innskráning, áminningar, áskrift og greiðslur.">
+          {userId && <div className="mt-4"><SignOutButton /></div>}
+        </PageHero>
 
         {/* The heading and the way back are up already; the cards need the
             session, so they are the only part that waits. */}
@@ -86,12 +93,11 @@ function Adgangur() {
 
         <ProfileCard />
 
-        <section className={card} aria-labelledby="acc-login">
-          <h2 id="acc-login" className="text-lg font-bold text-hc-ink">Innskráning</h2>
-          <div className="mt-3 space-y-4">
+        <SectionCard id="acc-login" title="Innskráning">
+          <div className="space-y-4">
             <PasswordCard />
           </div>
-        </section>
+        </SectionCard>
 
         {/* The onboarding, reviewable.
             It runs at the profile step and then was gone for good, which
@@ -104,18 +110,15 @@ function Adgangur() {
         <SetupFlow api={api} place="settings" />
 
         {route && !route.paid && route.entry !== "b2b" && (
-          <section className={card} aria-labelledby="acc-route">
-            <h2 id="acc-route" className="text-lg font-bold text-hc-ink">Skipta um leið</h2>
-            <p className="mt-1 text-sm text-hc-ink-2">
-              Þú ert núna í {route.entry === "coach" || route.entry === "app" ? "þjálfun í appinu" : "heilsufarsskoðun"}.
-            </p>
-            <div className="mt-3">
+          <SectionCard id="acc-route" title="Skipta um leið"
+            description={`Þú ert núna í ${coaching ? "þjálfun í appinu" : "heilsufarsskoðun"}.`}>
+            <div>
               <TrackChoice api={api} bare onDone={async () => {
                 cache.invalidate("/api/hc/journey");
                 router.push("/app?ferd=1");
               }} />
             </div>
-          </section>
+          </SectionCard>
         )}
 
         <SettingsCard />
@@ -124,24 +127,29 @@ function Adgangur() {
             Everywhere else it appears is conditional — the report tab needs
             a report, the first-run card disappears once there is one — so
             somebody who simply has a new PDF had nowhere reliable to go. */}
+        {/* Worded for the track: the coaching track never had a nurse or a
+            Grunnheilsa report promised to it, so it is offered as an
+            option rather than an errand. */}
         <ReportUpload api={api} onDone={() => { /* nothing on this page reads it */ }}
-          heading="Hlaða upp skýrslu"
-          blurb="Sóttu Grunnheilsa-skýrsluna þína í sjúklingagáttina og settu hana hér inn. Þú getur gert þetta hvenær sem er, líka eftir endurmat." />
-        <section className={card} aria-labelledby="acc-pay">
-          <h2 id="acc-pay" className="mb-3 text-lg font-bold text-hc-ink">Greiðslur og kvittanir</h2>
+          heading={coaching ? "Áttu skýrslu úr heilsufarsskoðun?" : "Hlaða upp skýrslu"}
+          blurb={coaching
+            ? "Ef þú hefur farið í heilsufarsskoðun hjá Lifeline getur þú sett Grunnheilsu-skýrsluna (PDF úr sjúklingagáttinni) hér inn. Þess þarf ekki til að nota appið."
+            : "Sæktu Grunnheilsu-skýrsluna þína í sjúklingagáttina og settu hana hér inn. Þú getur gert þetta hvenær sem er, líka eftir endurmat."} />
+
+        <SubscriptionPanel api={api} />
+
+        <SectionCard id="acc-pay" title="Greiðslur og kvittanir">
           <BillingPanel ownerType="client" ownerId={userId} />
-        </section>
+        </SectionCard>
 
-        <section className={card} aria-labelledby="acc-docs">
-          <h2 id="acc-docs" className="mb-3 text-lg font-bold text-hc-ink">Undirrituð skjöl</h2>
+        <SectionCard id="acc-docs" title="Undirrituð skjöl">
           <SignedDocumentsList />
-        </section>
+        </SectionCard>
 
-        <section className={card} aria-labelledby="acc-privacy">
-          <h2 id="acc-privacy" className="mb-3 text-lg font-bold text-hc-ink">Persónuvernd</h2>
+        <SectionCard id="acc-privacy" title="Persónuvernd">
           <DataPrivacyPanel userId={userId} />
           <div className="mt-5 border-t border-hc-hairline pt-4"><DeleteAccountCard /></div>
-        </section>
+        </SectionCard>
 
         <ContextSwitcher current="personal" />
         </>)}

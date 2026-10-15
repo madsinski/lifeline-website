@@ -81,7 +81,7 @@ export default function ReportUpload({ api, onDone, compact, heading, blurb }: {
           not — the server refuses without it either way. */}
       <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-hc-element p-1">
         <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md border-2 transition ${
-          consent ? "border-hc-brand bg-hc-brand text-white" : "border-slate-300"}`}>
+          consent ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-hc-control"}`}>
           {consent && <Check className="h-4 w-4" strokeWidth={3} aria-hidden />}
         </span>
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="sr-only" />
@@ -96,7 +96,7 @@ export default function ReportUpload({ api, onDone, compact, heading, blurb }: {
       <p className="mt-2 text-xs text-hc-ink-2">
         Kennitalan á skýrslunni þarf að vera þín. Þú getur afturkallað samþykkið með því að eyða skýrslunni í Aðgangi.
       </p>
-      {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm ${msg.ok ? "text-hc-ok-ink" : "text-red-700"}`}>{msg.text}</p>}
+      {msg && <p role={msg.ok ? "status" : "alert"} className={`mt-2 text-sm ${msg.ok ? "text-hc-ok-ink" : "text-hc-bad-ink"}`}>{msg.text}</p>}
     </div>
   );
 }

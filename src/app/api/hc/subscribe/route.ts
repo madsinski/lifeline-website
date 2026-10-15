@@ -145,9 +145,18 @@ export async function POST(req: NextRequest) {
       discount.amountOffIsk ?? 0, monthsFree);
   }
 
+  /*
+   * The withdrawal-right waiver (söluskilmálar gr. 8, d-liður 1. mgr. 18. gr.
+   * laga nr. 16/2016), recorded with the start in hc_audit.detail (jsonb):
+   * subscriptions has no metadata column and this needed no migration. The
+   * paywall will not submit without it.
+   */
   await hcAudit(`self:${user.id}`, "subscription_started", null, {
     tier: PAID_TIER, price: p.price_isk, charged: chargeIsk,
     code: discount?.ok ? discount.code?.code : null, months_free: monthsFree,
+    withdrawal_waiver: body?.withdrawal_waiver === true,
+    withdrawal_waiver_at: body?.withdrawal_waiver === true && typeof body?.withdrawal_waiver_at === "string" ? body.withdrawal_waiver_at : null,
+    withdrawal_waiver_recorded_at: body?.withdrawal_waiver === true ? new Date().toISOString() : null,
   });
   return NextResponse.json({ ok: true, subscription: sub, charged_isk: chargeIsk, months_free: monthsFree });
 }

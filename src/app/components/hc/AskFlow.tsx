@@ -39,11 +39,19 @@ export interface AskTopic {
   options: { key: string; label: string; opener: string }[];
   /** Clinical: answered by a doctor, not the coach. */
   clinical?: boolean;
+  /**
+   * Offers pain, anxiety or symptoms as an answer, so the screen carries the
+   * emergency numbers. A message to a coach read on the next working day is
+   * the wrong place for chest pain or a crisis, and the screen should say so
+   * before anybody picks anything.
+   */
+  urgent?: boolean;
 }
 
 export const ASK_TOPICS: AskTopic[] = [
   {
     key: "exercise", label: "Æfingar", hint: "Álag, verkir eða eitthvað sem gengur ekki upp",
+    urgent: true,
     q: "Hvað á við?",
     options: [
       { key: "hard", label: "Of erfitt", opener: "Æfingarnar eru þyngri en ég ræð við eins og er. Getum við létt þær?" },
@@ -75,6 +83,7 @@ export const ASK_TOPICS: AskTopic[] = [
   },
   {
     key: "mental", label: "Andleg líðan", hint: "Streita, kvíði eða að tala við einhvern",
+    urgent: true,
     q: "Hvað á við?",
     options: [
       { key: "stress", label: "Streita", opener: "Ég finn fyrir mikilli streitu þessa dagana. " },
@@ -86,6 +95,7 @@ export const ASK_TOPICS: AskTopic[] = [
   {
     key: "medical", label: "Niðurstöður eða heilsufar", hint: "Blóðprufa, mælingar, einkenni eða lyf",
     clinical: true,
+    urgent: true,
     q: "Hvað viltu ræða?",
     options: [
       { key: "blood", label: "Blóðprufa", opener: "Mig langar að fara yfir niðurstöðurnar úr blóðprufunni. " },
@@ -143,10 +153,17 @@ export default function AskFlow({ onPick, onFree, portalUrl }: {
   return (
     <div>
       <button type="button" onClick={() => setTopic(null)}
-        className="flex items-center gap-1 px-4 pt-3 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink">
+        className="flex min-h-11 items-center gap-1 px-4 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink">
         <ChevronLeft className="h-3.5 w-3.5" aria-hidden /> Til baka
       </button>
-      <p className="px-4 pb-2 pt-1 text-sm font-semibold text-hc-ink">{topic.q}</p>
+      <p className="px-4 pb-2 text-sm font-semibold text-hc-ink">{topic.q}</p>
+
+      {topic.urgent && (
+        <p className="mx-4 mb-2 rounded-xl bg-hc-bad-surface px-3 py-2 text-xs font-semibold leading-snug text-hc-bad-ink">
+          Brjóstverkur eða bráð einkenni: hringdu í <a href="tel:112" className="underline">112</a>.
+          Hjálparsími Rauða krossins: <a href="tel:1717" className="underline">1717</a>.
+        </p>
+      )}
 
       {/* Said before the options, not after: somebody who came here about a
           blood test should know who answers it before they pick anything. */}

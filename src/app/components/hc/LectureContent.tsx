@@ -320,7 +320,7 @@ export function SlideDeck({ slides, onLastSlide, start = 0, pillar }: { slides: 
           ))}
         </div>
         <button type="button" onClick={() => setI(Math.min(last, idx + 1))} disabled={idx === last}
-          className="inline-flex min-h-11 items-center gap-1 rounded-full bg-hc-brand px-4 font-semibold text-white shadow-sm hover:bg-hc-brand-dark disabled:opacity-30">
+          className="inline-flex min-h-11 items-center gap-1 rounded-full bg-hc-brand-dark px-4 font-semibold text-white shadow-sm hover:bg-emerald-800 disabled:opacity-30">
           Næsta <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
       </div>

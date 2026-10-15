@@ -14,7 +14,8 @@ import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import { NotificationList, useNotifications } from "@/app/components/hc/Notifications";
 import { UpcomingList, useUpcoming } from "@/app/components/hc/Upcoming";
 import { hcPage } from "@/app/components/hc/ui";
-import { Zap, CalendarClock } from "lucide-react";
+import { Bell, CalendarClock } from "lucide-react";
+import { PageHero } from "@/app/components/account/ui";
 
 export default function Page() {
   return <Suspense><Tilkynningar /></Suspense>;
@@ -68,15 +69,17 @@ function Tilkynningar() {
             about next Tuesday — but this is the page people come to when
             they want to know what is happening, so both live here and the
             heading says which is which. */}
-        <h1 className="mb-4 flex items-center gap-2 text-2xl font-bold text-hc-ink sm:text-3xl">
+        <div className="mb-6"><PageHero kicker="Ég" title="Tilkynningar" icon={Bell}
+          body="Það sem er á döfinni og það sem hefur borist." /></div>
+        <h2 className="mb-4 flex items-center gap-2 text-xl font-bold text-hc-ink sm:text-2xl">
           <CalendarClock className="h-6 w-6 shrink-0 text-hc-brand-text" aria-hidden />Á döfinni
-        </h1>
+        </h2>
         {ready
           ? <UpcomingList items={upcoming} />
           : <div className="h-28 animate-pulse rounded-hc-card bg-hc-surface" aria-hidden />}
 
-        <h2 className="mb-4 mt-8 flex items-center gap-2 text-2xl font-bold text-hc-ink sm:text-3xl">
-          <Zap className="h-6 w-6 shrink-0 text-slate-400" aria-hidden />Tilkynningar
+        <h2 className="mb-4 mt-8 flex items-center gap-2 text-xl font-bold text-hc-ink sm:text-2xl">
+          <Bell className="h-6 w-6 shrink-0 text-hc-ink-3" aria-hidden />Borist hefur
         </h2>
         {ready
           ? <NotificationList items={items} />

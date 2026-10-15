@@ -13,10 +13,13 @@ import * as cache from "@/lib/hc/client-cache";
 import ActionSheet from "./ActionSheet";
 import Sheet from "./Sheet";
 import MealLogger from "./MealLogger";
+import { DayMealsScope, useDayMealsRoot } from "./useDayMeals";
+import { SAVE_FAILED, useToast } from "./Toast";
+import { hcBtn } from "./ui";
 import { Recipe } from "./NutritionView";
 import { type Meal, type MealSlot } from "@/lib/hc/meals";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronRight, EyeOff, Loader2, Plus, RotateCcw } from "lucide-react";
+import { Check, ChevronRight, EyeOff, Loader2, Play, Plus, RotateCcw } from "lucide-react";
 import { PILLAR_META, type ActionPlan, type Pillar, type PlanItem, type WhenOfDay } from "@/lib/hc/types";
 import { Sun, Sunrise, Moon, Clock } from "lucide-react";
 import { useSwipe } from "@/lib/hc/use-swipe";
@@ -118,7 +121,7 @@ export interface ActionLinks {
 }
 
 export default function MyActions({ api, journeyId, plan, logs: initialLogs, prefs: initialPrefs, links, onAddAction, meals, onEditPillar,
-  exercise, training, doneToday, onCompleteSession, onCompleteActivity, onLogs, onCounts }: {
+  exercise, training, doneToday, onOpenSession, onCompleteActivity, onLogs, onCounts }: {
   api: Api;
   journeyId: string;
   plan: ActionPlan;
@@ -130,8 +133,11 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
    *
    * The server does the appending (/api/hc/my-plan with add_key) so this
    * screen never holds the whole plan in order to add one habit to it.
+   *
+   * Resolve false (or throw) when it did not save: the picker then stays
+   * open and says so, instead of closing as if it had worked.
    */
-  onAddAction?: (key: string) => Promise<void>;
+  onAddAction?: (key: string) => Promise<boolean | void>;
   /**
    * Today's meals from the Næring plan, keyed by slot.
    *
@@ -154,7 +160,16 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   training?: TrainingSettings | null;
   /** Session ids and titles already finished today. */
   doneToday?: Set<string>;
-  /** Tick a session off here exactly as Æfingar would. */
+  /**
+   * Open a prescribed session in Æfingar (?tab=exercise&session=<id>).
+   *
+   * The row's circle used to finish the workout outright, with a made-up
+   * RPE and no way to take it back — one stray tap and the day's training
+   * was "done". A session is done by doing it, in the runner, so the
+   * circle opens it instead. Falls back to links.exercise when not given.
+   */
+  onOpenSession?: (sessionId: string) => void;
+  /** @deprecated No longer called: see onOpenSession. Kept so callers still type-check. */
   onCompleteSession?: (s: PSession) => void;
   /** Ticking off a commitment they added themselves. */
   onCompleteActivity?: (a: Activity) => void;
@@ -192,7 +207,10 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
    * tick something off should see the things, not four closed drawers.
    */
   const [shut, setShut] = useState<Set<string>>(() => new Set());
-  const [err, setErr] = useState("");
+  const toast = useToast();
+  /* Today's meal_log, shared with every MealLogger row below so a tick on
+     one is seen by the others and by the habit links (useDayMeals.tsx). */
+  const dayMeals = useDayMealsRoot();
   const queue = useRef<Promise<void>>(Promise.resolve());
   const waiting = useRef(0);
   const [today] = useState(() => isoDay());
@@ -201,7 +219,6 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   /** Apply now, send in order, roll back on failure. */
   const send = (body: Record<string, unknown>, apply: () => void, undo: () => void) => {
     apply();
-    setErr("");
     waiting.current += 1;
     queue.current = queue.current.then(async () => {
       let ok = false;
@@ -212,7 +229,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         ok = r.ok;
       } catch { ok = false; }
       waiting.current -= 1;
-      if (!ok) { undo(); setErr("Náðist ekki að vista síðustu breytingu. Athugaðu nettenginguna."); return; }
+      if (!ok) { undo(); toast.show(SAVE_FAILED, { tone: "bad" }); return; }
       cache.invalidate("/api/hc/actions");
       if (waiting.current === 0) { if (j.logs) setLogs(j.logs); if (j.prefs) setPrefs(j.prefs); }
     });
@@ -247,19 +264,35 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
    * row updates through the same `toggle` the tick uses, so the two agree
    * without a reload.
    */
-  const satisfyFromMeals = useCallback((logged: MealSlot[]) => {
-    const have = new Set(logged);
-    for (const link of MEAL_SATISFIES) {
-      const met = link.needsAll
-        ? link.slots.every((sl) => have.has(sl))
-        : link.slots.some((sl) => have.has(sl));
-      if (!met) continue;
-      const habit = plan.modules.find((m) => m.key === link.key);
-      if (!habit || doneOn(habit.uid, today)) continue;
-      toggle(habit.uid);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- toggle and doneOn are stable for a given day
-  }, [plan.modules, today]);
+  /*
+   * needsAll counts the slots the plan actually has today: a day with no
+   * snack planned should not hold "prótein í hverri máltíð" open forever.
+   * Read through a ref so the effect always sees the latest ticks — a stale
+   * doneOn would tick the habit twice, which is the same as unticking it.
+   */
+  const satisfyRef = useRef<(logged: MealSlot[]) => void>(() => {});
+  useEffect(() => {
+    satisfyRef.current = (logged: MealSlot[]) => {
+      const have = new Set(logged);
+      for (const link of MEAL_SATISFIES) {
+        const wanted = meals ? link.slots.filter((sl) => meals[sl]) : link.slots;
+        if (!wanted.length) continue;
+        const met = link.needsAll
+          ? wanted.every((sl) => have.has(sl))
+          : wanted.some((sl) => have.has(sl));
+        if (!met) continue;
+        const habit = plan.modules.find((m) => m.key === link.key);
+        if (!habit || doneOn(habit.uid, today)) continue;
+        toggle(habit.uid);
+      }
+    };
+  });
+  useEffect(() => {
+    if (!dayMeals.rows) return;
+    const slots = dayMeals.rows.map((r) => r.action_key as MealSlot);
+    const t = setTimeout(() => satisfyRef.current(slots), 0);
+    return () => clearTimeout(t);
+  }, [dayMeals.rows]);
 
   const setPref = (uid: string, patch: { hidden?: boolean; note?: string; at_time?: string | null }) => {
     const before = prefs;
@@ -332,7 +365,10 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
    * the row stays where it was dropped rather than springing back while the
    * request is in flight.
    */
+  const prefsRef = useRef(prefs);
+  useEffect(() => { prefsRef.current = prefs; }, [prefs]);
   const commitOrder = useCallback(async (order: string[]) => {
+    const before = prefsRef.current;
     setPrefs((ps) => {
       const next = ps.slice();
       order.forEach((uid, i) => {
@@ -342,8 +378,16 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       });
       return next;
     });
-    await api("/api/hc/actions", { method: "POST", body: JSON.stringify({ order }) }).catch(() => null);
-  }, [api]);
+    const r = await api("/api/hc/actions", { method: "POST", body: JSON.stringify({ order }) }).catch(() => null);
+    // A list that silently springs back on the next load is worse than one
+    // that springs back now and says why.
+    if (!r?.ok) {
+      setPrefs(before);
+      toast.show("Röðunin vistaðist ekki – reyndu aftur", { tone: "bad" });
+      return;
+    }
+    cache.invalidate("/api/hc/actions");
+  }, [api, toast]);
 
   const reorder = useReorder(commitOrder);
 
@@ -377,7 +421,13 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
     onCounts?.({ done: shownDone, of: shownOf });
   }, [shownDone, shownOf, onCounts]);
 
+  const openSession = (id: string) => {
+    if (onOpenSession) onOpenSession(id);
+    else links?.exercise?.();
+  };
+
   return (
+    <DayMealsScope value={dayMeals}>
     <section className="space-y-4">
       {/* The progress line that stood here is now the "Staðan þín" card
           beside the hero, which is where it was asked to go.
@@ -457,7 +507,6 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         </Sheet>
       )}
 
-      {err && <p role="alert" className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-800">{err}</p>}
 
       {/* An instruction line stood here explaining the circle and the week
           squares. A daily checklist should not need a legend — the controls
@@ -540,17 +589,32 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                     style={{
                       background: done ? "#FFFFFF" : PILLAR_META.exercise.soft,
                     }}>
-                    <button type="button"
-                      onClick={() => { if (done) return; if (s.session) onCompleteSession?.(s.session); else if (s.activity) onCompleteActivity?.(s.activity); }}
-                      disabled={done}
-                      aria-pressed={done} aria-label={`Merkja ${s.title} sem lokið`}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-hc-surface transition active:scale-90 disabled:opacity-100"
-                      style={{
-                        borderColor: done ? "transparent" : PILLAR_META.exercise.ring,
-                        background: done ? PILLAR_META.exercise.color : "#FFFFFF",
-                      }}>
-                      <Check className={`h-5 w-5 ${done ? "text-white" : "text-transparent"}`} strokeWidth={3} aria-hidden />
-                    </button>
+                    {/* A prescribed session is not ticked here: it opens in
+                        Æfingar, where finishing it records real minutes and
+                        a real RPE. A play mark, not an empty circle, so it
+                        does not promise a tick. Their own activities (a
+                        football match) have nothing to run and keep the tick. */}
+                    {s.session && !done ? (
+                      <button type="button"
+                        onClick={() => openSession(s.session!.id)}
+                        aria-label={`Opna ${s.title} í Æfingum`}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 bg-hc-surface transition active:scale-90"
+                        style={{ borderColor: PILLAR_META.exercise.ring, color: PILLAR_META.exercise.ink }}>
+                        <Play className="h-4 w-4" aria-hidden />
+                      </button>
+                    ) : (
+                      <button type="button"
+                        onClick={() => { if (done) return; if (s.activity) onCompleteActivity?.(s.activity); }}
+                        disabled={done}
+                        aria-pressed={done} aria-label={`Merkja ${s.title} sem lokið`}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 bg-hc-surface transition active:scale-90 disabled:opacity-100"
+                        style={{
+                          borderColor: done ? "transparent" : PILLAR_META.exercise.ring,
+                          background: done ? PILLAR_META.exercise.color : "#FFFFFF",
+                        }}>
+                        <Check className={`h-5 w-5 ${done ? "text-white" : "text-transparent"}`} strokeWidth={3} aria-hidden />
+                      </button>
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className={`block font-semibold ${done ? "text-hc-ink-3 line-through" : "text-hc-ink"}`}>
                         {s.title}
@@ -577,9 +641,9 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                       </button>
                     )}
                     {/* A prescribed session also opens its exercise list. */}
-                    {links?.exercise && s.session && (
-                      <button type="button" onClick={links.exercise}
-                        className="shrink-0 self-center text-sm font-semibold" style={{ color: PILLAR_META.exercise.ink }}>
+                    {(onOpenSession || links?.exercise) && s.session && (
+                      <button type="button" onClick={() => openSession(s.session!.id)}
+                        className="inline-flex min-h-11 shrink-0 items-center self-center px-1 text-sm font-semibold" style={{ color: PILLAR_META.exercise.ink }}>
                         Opna
                       </button>
                     )}
@@ -638,7 +702,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 ) : (
                   <MealLogger key={e.uid} day={meals!} part="list" only={e.slot}
                     flush tone={{ color: PILLAR_META.nutrition.color, ring: PILLAR_META.nutrition.ring, soft: PILLAR_META.nutrition.soft }}
-                    onOpenMeal={setRecipe} onLogged={satisfyFromMeals}
+                    onOpenMeal={setRecipe}
                     drag={reorder.handlers(e.uid, ids)} lifted={reorder.dragging === e.uid}
                     carryY={reorder.dragging === e.uid ? reorder.offset : 0}
                     settling={!!reorder.dragging && reorder.dragging !== e.uid} />
@@ -658,7 +722,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 <li className="border-t border-hc-hairline px-4 py-2.5">
                   <button type="button" onClick={() => setAdding(p)}
                     aria-label={`Bæta við aðgerð — ${meta.label}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-hc-ink-2 transition hover:border-slate-400 hover:text-hc-ink-2">
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-hc-ink-2 transition hover:border-slate-400 hover:text-hc-ink-2">
                     {/* Just "Bæta við". "Bæta við í morgunn" does not
                         decline — it would want "að morgni", "um daginn",
                         "um kvöldið" — and the button sits inside the
@@ -685,7 +749,12 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       {adding && onAddAction && (
         <Sheet title={`Bæta við — ${WHEN_META[adding].label}`} onClose={() => setAdding(null)} canvas>
           <AddPicker api={api} when={adding} inPlan={new Set(plan.modules.map((m) => m.key).filter((k): k is string => !!k))}
-            onAdd={async (key) => { await onAddAction(key); setAdding(null); }} />
+            onAdd={async (key) => {
+              let ok = true;
+              try { ok = (await onAddAction(key)) !== false; } catch { ok = false; }
+              if (ok) setAdding(null);
+              return ok;
+            }} />
         </Sheet>
       )}
 
@@ -707,7 +776,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
                 <li key={a.uid} className="flex items-center gap-3 rounded-xl bg-hc-sunken px-3 py-2">
                   <span className="min-w-0 flex-1 text-sm text-hc-ink-2">{a.title}</span>
                   <button type="button" onClick={() => setPref(a.uid, { hidden: false })}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-hc-ok-ink hover:underline">
+                    className="inline-flex min-h-11 items-center gap-1 text-xs font-semibold text-hc-ok-ink hover:underline">
                     <RotateCcw className="h-3.5 w-3.5" /> Taka aftur inn
                   </button>
                 </li>
@@ -721,6 +790,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
         Hjúkrunarfræðingurinn þinn sér hvernig gengur og hvað þú leggur til hliðar. Það sem þú merkir hér er ekki sjúkraskrá.
       </p>
     </section>
+    </DayMealsScope>
   );
 }
 
@@ -858,20 +928,41 @@ function AddPicker({ api, when, inPlan, onAdd }: {
   api: Api;
   when: WhenOfDay;
   inPlan: Set<string>;
-  onAdd: (key: string) => Promise<void>;
+  /** Resolves false when the add did not save. */
+  onAdd: (key: string) => Promise<boolean>;
 }) {
   const [lib, setLib] = useState<{ key: string; pillar: Pillar; title: string; summary: string; when?: WhenOfDay }[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  /* A failed library fetch used to fall through to an empty list, which
+     reads as "nothing fits" — wrong, and with no way to try again. */
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [addFailed, setAddFailed] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       const r = await api("/api/hc/my-plan").then((x) => (x.ok ? x.json() : null)).catch(() => null);
       if (!alive) return;
-      setTimeout(() => setLib(r?.library ?? r?.modules ?? []), 0);
+      setTimeout(() => {
+        if (!r) { setLoadFailed(true); return; }
+        setLoadFailed(false);
+        setLib(r.library ?? r.modules ?? []);
+      }, 0);
     })();
     return () => { alive = false; };
-  }, [api]);
+  }, [api, attempt]);
+
+  if (loadFailed && lib === null) {
+    return (
+      <div className="space-y-3 p-4" role="alert">
+        <p className="text-sm text-hc-bad-ink">Ekki tókst að sækja safnið. Athugaðu nettenginguna.</p>
+        <button type="button" onClick={() => { setLoadFailed(false); setAttempt((n) => n + 1); }} className={hcBtn.secondary}>
+          <RotateCcw className="h-4 w-4" aria-hidden /> Reyna aftur
+        </button>
+      </div>
+    );
+  }
 
   if (lib === null) {
     return (
@@ -896,10 +987,20 @@ function AddPicker({ api, when, inPlan, onAdd }: {
 
   return (
     <ul className="space-y-2 p-3">
+      {addFailed && (
+        <li role="alert" className="rounded-xl bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">
+          Vistaðist ekki – reyndu aftur.
+        </li>
+      )}
       {fits.slice(0, 30).map((m) => (
         <li key={m.key}>
           <button type="button" disabled={!!busy}
-            onClick={async () => { setBusy(m.key); await onAdd(m.key); setBusy(null); }}
+            onClick={async () => {
+              setBusy(m.key); setAddFailed(null);
+              const ok = await onAdd(m.key);
+              setBusy(null);
+              if (!ok) setAddFailed(m.key);
+            }}
             className="flex w-full items-start gap-3 rounded-2xl bg-hc-surface p-3 text-left ring-1 ring-hc-hairline transition hover:ring-slate-300 disabled:opacity-50">
             <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full"
               style={{ background: PILLAR_META[m.pillar].soft, color: PILLAR_META[m.pillar].ink }} aria-hidden>
