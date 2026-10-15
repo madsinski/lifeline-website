@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 import * as hcCache from "@/lib/hc/client-cache";
 import type { User } from "@supabase/supabase-js";
 import { Suspense } from "react";
@@ -70,12 +71,12 @@ type Section = "overview" | "profile" | "messages" | "assessment" | "education" 
 // "upgrade" (app soft-sell) and "assessment" (legacy package picker) still
 // render when linked to directly, but are no longer in the menu: the
 // health-check journey (/app) is the way in.
-const navItems: { id: Section; label: string; icon: string }[] = [
-  { id: "overview", label: "Yfirlit", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
-  { id: "assessment", label: "Heilsufarsskoðun", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
-  { id: "upgrade", label: "Þjálfun", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-  { id: "app", label: "Appið", icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" },
-  { id: "settings", label: "Stillingar", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
+const navItemsFor = (t: (k: string, f?: string) => string): { id: Section; label: string; icon: string }[] => [
+  { id: "overview", label: t("account.nav.overview", "Yfirlit"), icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1m-4 0h4" },
+  { id: "assessment", label: t("account.nav.assessment", "Heilsufarsskoðun"), icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+  { id: "upgrade", label: t("account.nav.coaching", "Þjálfun"), icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+  { id: "app", label: t("account.nav.app", "Appið"), icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" },
+  { id: "settings", label: t("account.nav.settings", "Stillingar"), icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
 
 /* ---------- custom program types ---------- */
@@ -119,6 +120,11 @@ function AccountPageInner() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<Section>("overview");
+  /* Labels follow the locale. The Icelandic sits inline as each key's
+     fallback, so a missing row degrades to the main language rather than to
+     a bare key. */
+  const { t } = useI18n();
+  const navItems = useMemo(() => navItemsFor(t), [t]);
 
   /* profile fields */
   const [profileFirstName, setProfileFirstName] = useState("");
@@ -1220,7 +1226,7 @@ function AccountPageInner() {
               ))}
               <Link href="/app" className="mt-1 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-[#065F46] bg-emerald-50 hover:bg-emerald-100 transition-all whitespace-nowrap">
                 <span className="w-5 text-center" aria-hidden>→</span>
-                Opna appið
+                {t("account.nav.openapp", "Opna appið")}
               </Link>
             </nav>
           </aside>
@@ -1516,6 +1522,7 @@ function AccountPageInner() {
                 )}
 
                 <NextSteps
+                  t={t}
                   assessmentDone={bodyCompStatus === "completed"}
                   onGo={(sec) => { setActiveSection(sec); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
                 />
@@ -3057,33 +3064,34 @@ function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGo
  * whether somebody has started using the app or taken up coaching, and a
  * tick that guesses is worse than no tick.
  */
-function NextSteps({ assessmentDone, onGo }: {
+function NextSteps({ assessmentDone, onGo, t }: {
   assessmentDone: boolean;
   onGo: (s: Section) => void;
+  t: (k: string, f?: string) => string;
 }) {
   const steps: { n: number; title: string; desc: string; go: () => void; done?: boolean; icon: string }[] = [
     {
-      n: 1, title: "Farðu í heilsumat",
-      desc: "Mælingar, blóðprufa og lífsstílsgreining — hjá okkur eða hjá Sameind.",
+      n: 1, title: t("account.steps.1.title", "Farðu í heilsumat"),
+      desc: t("account.steps.1.desc", "Mælingar, blóðprufa og lífsstílsgreining — hjá okkur eða hjá Sameind."),
       go: () => onGo("assessment"), done: assessmentDone,
       icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
     },
     {
-      n: 2, title: "Fáðu Lifeline appið",
-      desc: "Daglega áætlunin þín, æfingar og næring — í símanum.",
+      n: 2, title: t("account.steps.2.title", "Fáðu Lifeline appið"),
+      desc: t("account.steps.2.desc", "Daglega áætlunin þín, æfingar og næring — í símanum."),
       go: () => onGo("app"),
       icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z",
     },
     {
-      n: 3, title: "Byrjaðu heilsuþjálfun",
-      desc: "Þjálfari, eftirfylgd og áætlun sem breytist með þér.",
+      n: 3, title: t("account.steps.3.title", "Byrjaðu heilsuþjálfun"),
+      desc: t("account.steps.3.desc", "Þjálfari, eftirfylgd og áætlun sem breytist með þér."),
       go: () => onGo("upgrade"),
       icon: "M13 10V3L4 14h7v7l9-11h-7z",
     },
   ];
   return (
     <section>
-      <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-[#6B7280]">Næstu skref</h2>
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-[#6B7280]">{t("account.steps.title", "Næstu skref")}</h2>
       <div className="grid gap-3 sm:grid-cols-3">
         {steps.map((st) => (
           <button key={st.n} type="button" onClick={st.go}
@@ -3096,7 +3104,7 @@ function NextSteps({ assessmentDone, onGo }: {
                 </svg>
               </span>
               {st.done ? (
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-[#047857]">Lokið</span>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-[#047857]">{t("account.steps.done", "Lokið")}</span>
               ) : (
                 <span className="text-xs font-bold text-[#9CA3AF]">{st.n}</span>
               )}
@@ -3104,7 +3112,7 @@ function NextSteps({ assessmentDone, onGo }: {
             <span className="mt-3 block font-bold text-[#1F2937]">{st.title}</span>
             <span className="mt-1 block flex-1 text-sm leading-relaxed text-[#6B7280]">{st.desc}</span>
             <span className="mt-3 text-sm font-semibold text-[#047857] transition group-hover:translate-x-0.5">
-              {st.done ? "Sjá niðurstöður →" : "Áfram →"}
+              {st.done ? `${t("account.steps.seeresults", "Sjá niðurstöður")} →` : `${t("account.steps.go", "Áfram")} →`}
             </span>
           </button>
         ))}
