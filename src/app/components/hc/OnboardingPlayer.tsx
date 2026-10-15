@@ -242,7 +242,11 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
                         : "border border-hc-control text-hc-ink-3"}`}>
                       {done ? "✓" : n + 1}
                     </span>
-                    <span className="min-w-0">{s.title || d?.label || s.kind}</span>
+                    <span className="min-w-0">
+                      {s.title
+                        || (s.kind === "question" && s.questionKey ? QUESTIONS[s.questionKey].title : null)
+                        || d?.label || s.kind}
+                    </span>
                   </div>
                 </li>
               );
