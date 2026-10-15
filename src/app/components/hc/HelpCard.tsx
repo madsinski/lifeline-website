@@ -54,13 +54,15 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
   const [err, setErr] = useState("");
 
   const [cancelling, setCancelling] = useState<string | null>(null);
+  /* False on the app tier alone: no form to send into nobody (CoachView shows the offer). */
+  const [allowed, setAllowed] = useState(true);
   const toast = useToast();
 
   const load = useCallback(async () => {
     const r = await api("/api/hc/requests").catch(() => null);
     if (!r?.ok) return;
-    const j = (await r.json().catch(() => ({}))) as { requests?: HcRequest[] };
-    setTimeout(() => setRows(j.requests ?? []), 0);
+    const j = (await r.json().catch(() => ({}))) as { requests?: HcRequest[]; allowed?: boolean };
+    setTimeout(() => { setRows(j.requests ?? []); setAllowed(j.allowed !== false); }, 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
 
@@ -82,7 +84,11 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
     setBusy(false);
     /* Only the server's Icelandic reasons are shown as they are; a
        database message or a code is not for the participant. */
-    if (!r?.ok) { setErr(typeof j.error === "string" && /[áéíóúýþæöð]/i.test(j.error) ? j.error : "Tókst ekki að senda. Reyndu aftur."); return; }
+    if (!r?.ok) {
+      setErr(typeof j.message === "string" && j.message ? j.message
+        : typeof j.error === "string" && /[áéíóúýþæöð]/i.test(j.error) ? j.error : "Tókst ekki að senda. Reyndu aftur.");
+      return;
+    }
     setRows(j.requests ?? []);
     reset();
     toast.show("Beiðnin er send", { tone: "ok" });
@@ -108,6 +114,8 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
 
   const open = (rows ?? []).filter((r) => r.status === "open" || r.status === "in_progress");
   const past = (rows ?? []).filter((r) => r.status === "done" || r.status === "cancelled");
+  /* Nothing to show and nobody to send to: the coaching offer above says why. */
+  if (!allowed && !(rows ?? []).length) return null;
 
   return (
     <section className={`${hcCard.base} p-5`}>

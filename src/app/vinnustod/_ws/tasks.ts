@@ -21,6 +21,8 @@ export interface Row {
   id: string; client_id: string; client_name: string; client_phone: string | null; client_dob: string | null; stage: string; entry: string;
   /** The journey's client row is missing — a data fault, not a nameless person. */
   client_missing?: boolean;
+  /** On "Lifeline þjálfun" (the coaching subscription), not only the app. */
+  coaching?: boolean;
   paid_at: string | null; protocol_activated_at: string | null;
   blood_test_booked_for: string | null; blood_test_done_at: string | null; blood_results_at: string | null;
   measurements_booked_for: string | null; measurements_done_at: string | null;
@@ -39,6 +41,8 @@ export interface Journey extends Omit<Row, "client_id" | "client_name" | "client
 }
 
 export interface Detail {
+  /** On "Lifeline þjálfun": what is left of the tier's quota (null otherwise). */
+  coaching?: { video_left: number; video_allowance: number; measurement_next_at: string | null; service_weekday: number; ends_at: string | null } | null;
   journey: Journey;
   patient: { full_name: string | null; kennitala: string | null; email: string | null; phone: string | null; address: string | null; date_of_birth: string | null; sex: string | null };
   results: HcResult[];

@@ -55,21 +55,23 @@ const howStyles = [
 const planPopular = [false, false, true];
 
 // Comparison matrix stays in code — only the heading + column labels are CMS-editable.
-const comparisonFeatures: { feature: string; free: boolean | string; self: boolean | string; full: boolean | string }[] = [
-  { feature: "Daily action plans", free: false, self: true, full: true },
-  { feature: "Exercise programs", free: "Limited", self: true, full: true },
-  { feature: "Nutrition guidance", free: false, self: true, full: true },
-  { feature: "Sleep tracking", free: false, self: true, full: true },
-  { feature: "Progress tracking", free: false, self: true, full: true },
-  { feature: "Community access", free: true, self: true, full: true },
-  { feature: "Dedicated personal coach", free: false, self: false, full: true },
-  { feature: "Weekly check-ins", free: false, self: false, full: true },
-  { feature: "Custom meal plans", free: false, self: false, full: true },
-  { feature: "Priority support", free: false, self: false, full: true },
-  { feature: "Advanced analytics", free: false, self: false, full: true },
+// What each option really includes (Mads, 2026-10-15): the 14-day trial, the
+// app at 3.490 kr. and "Lifeline þjálfun" at 7.990 kr. in Vestmannaeyjar.
+// A string cell is [Icelandic, English].
+type Cell = boolean | [string, string];
+const comparisonFeatures: { feature: [string, string]; free: Cell; self: Cell; full: Cell }[] = [
+  { feature: ["Dagleg áætlun og gátlisti", "Daily plan and checklist"], free: true, self: true, full: true },
+  { feature: ["Æfingar sem aðlagast þér", "Training that adapts to you"], free: true, self: true, full: true },
+  { feature: ["Næring og máltíðir", "Nutrition and meals"], free: true, self: true, full: true },
+  { feature: ["Fræðsla", "Lessons"], free: true, self: true, full: true },
+  { feature: ["Skilaboð við heilsuþjálfa", "Messaging a health coach"], free: false, self: false, full: true },
+  { feature: ["Myndsamtal", "Video call"], free: false, self: false, full: ["20 mín. á mánuði", "20 min. a month"] },
+  { feature: ["Mæling á staðnum", "On-site measurement"], free: false, self: false, full: ["Á 2 mánaða fresti", "Every 2 months"] },
+  { feature: ["Lengd", "Length"], free: ["14 dagar", "14 days"], self: ["Mánaðarlega", "Monthly"], full: ["Mánaðarlega", "Monthly"] },
 ];
 
-function FeatureCell({ value }: { value: boolean | string }) {
+function FeatureCell({ value: raw, locale = "is" }: { value: Cell; locale?: Locale }) {
+  const value = Array.isArray(raw) ? raw[locale === "en" ? 1 : 0] : raw;
   if (value === true) return <svg className="w-5 h-5 text-[#10B981] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
   if (value === false) return <svg className="w-5 h-5 text-gray-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
   return <span className="text-xs text-[#6B7280] font-medium">{value}</span>;
@@ -255,7 +257,9 @@ function renderBand(id: string, c: LocaleContent, bg: string, locale: Locale, si
                       <p className={`text-sm mt-1 ${popular ? "text-gray-300" : "text-[#6B7280]"}`}>{c[`plan${n}_desc`]}</p>
                     </div>
                     <div className="mb-6">
-                      {n === 1 ? (
+                      {c[`plan${n}_price`] ? (
+                        <span className={`text-3xl font-bold ${popular ? "text-white" : "text-[#1F2937]"}`}>{c[`plan${n}_price`]}</span>
+                      ) : n === 1 ? (
                         <span className={`text-4xl font-bold ${popular ? "text-white" : "text-[#1F2937]"}`}>{c.pricing_free_label}</span>
                       ) : (
                         <span className={`text-2xl font-bold ${popular ? "text-white" : "text-[#1F2937]"}`}>{c.pricing_soon_label}</span>
@@ -301,11 +305,11 @@ function renderBand(id: string, c: LocaleContent, bg: string, locale: Locale, si
                 </thead>
                 <tbody>
                   {comparisonFeatures.map((row, i) => (
-                    <tr key={row.feature} className={`border-b border-gray-50 transition-colors hover:bg-[#10B981]/5 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
-                      <td className="px-6 py-3.5 text-[#1F2937] font-medium">{row.feature}</td>
-                      <td className="px-4 py-3.5 text-center"><FeatureCell value={row.free} /></td>
-                      <td className="px-4 py-3.5 text-center"><FeatureCell value={row.self} /></td>
-                      <td className="px-4 py-3.5 text-center bg-[#10B981]/5"><FeatureCell value={row.full} /></td>
+                    <tr key={row.feature[0]} className={`border-b border-gray-50 transition-colors hover:bg-[#10B981]/5 ${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}>
+                      <td className="px-6 py-3.5 text-[#1F2937] font-medium">{row.feature[locale === "en" ? 1 : 0]}</td>
+                      <td className="px-4 py-3.5 text-center"><FeatureCell value={row.free} locale={locale} /></td>
+                      <td className="px-4 py-3.5 text-center"><FeatureCell value={row.self} locale={locale} /></td>
+                      <td className="px-4 py-3.5 text-center bg-[#10B981]/5"><FeatureCell value={row.full} locale={locale} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -313,8 +317,8 @@ function renderBand(id: string, c: LocaleContent, bg: string, locale: Locale, si
             </div>
             <div className="sm:hidden space-y-3">
               {comparisonFeatures.map((row) => (
-                <div key={row.feature} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                  <p className="text-sm font-semibold text-[#1F2937] mb-3">{row.feature}</p>
+                <div key={row.feature[0]} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <p className="text-sm font-semibold text-[#1F2937] mb-3">{row.feature[locale === "en" ? 1 : 0]}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { label: c.compare_h_free, value: row.free, color: "text-gray-500", key: "free" },
@@ -323,7 +327,7 @@ function renderBand(id: string, c: LocaleContent, bg: string, locale: Locale, si
                     ].map((col) => (
                       <div key={col.key} className={`text-center py-2 rounded-lg ${col.key === "full" ? "bg-[#10B981]/8" : "bg-gray-50"}`}>
                         <p className={`text-[10px] font-semibold uppercase tracking-wider ${col.color} mb-1`}>{col.label}</p>
-                        <FeatureCell value={col.value} />
+                        <FeatureCell value={col.value} locale={locale} />
                       </div>
                     ))}
                   </div>
