@@ -270,10 +270,10 @@ const FOLLOWUP_PROMPTS: Partial<Record<keyof InterviewNotes, string[]>> = {
 
 const TOPICS: { key: keyof InterviewNotes; title: string; color: string; prompts: string[] }[] = [
   { key: "goals", title: "Hvað vill skjólstæðingurinn?", color: "#10B981", prompts: ["Hvað viltu fá út úr þessu?", "Hvað myndi breyta mestu fyrir þig næstu þrjá mánuði?"] },
-  { key: "sleep", title: PILLAR_META.sleep.label, color: PILLAR_META.sleep.color, prompts: ["Hvenær ferðu að sofa og á fætur?", "Vaknarðu úthvíld(ur)?", "Skjánotkun, koffín, áfengi á kvöldin?"] },
-  { key: "exercise", title: PILLAR_META.exercise.label, color: PILLAR_META.exercise.color, prompts: ["Hvernig hreyfingu stundar þú í dag?", "Hvað finnst þér skemmtilegt?", "Verkir eða takmarkanir?"] },
-  { key: "nutrition", title: PILLAR_META.nutrition.label, color: PILLAR_META.nutrition.color, prompts: ["Hvernig lítur venjulegur dagur út?", "Reglulegar máltíðir? Sykraðir drykkir?", "Hver sér um innkaup og eldamennsku?"] },
-  { key: "mental", title: PILLAR_META.mental.label, color: PILLAR_META.mental.color, prompts: ["Hvernig er álagið núna?", "Hvað gefur þér orku?", "Stuðningur, tengsl, hvíld?"] },
+  { key: "sleep", title: PILLAR_META.sleep.label, color: "var(--hc-sleep)", prompts: ["Hvenær ferðu að sofa og á fætur?", "Vaknarðu úthvíld(ur)?", "Skjánotkun, koffín, áfengi á kvöldin?"] },
+  { key: "exercise", title: PILLAR_META.exercise.label, color: "var(--hc-exercise)", prompts: ["Hvernig hreyfingu stundar þú í dag?", "Hvað finnst þér skemmtilegt?", "Verkir eða takmarkanir?"] },
+  { key: "nutrition", title: PILLAR_META.nutrition.label, color: "var(--hc-nutrition)", prompts: ["Hvernig lítur venjulegur dagur út?", "Reglulegar máltíðir? Sykraðir drykkir?", "Hver sér um innkaup og eldamennsku?"] },
+  { key: "mental", title: PILLAR_META.mental.label, color: "var(--hc-mental)", prompts: ["Hvernig er álagið núna?", "Hvað gefur þér orku?", "Stuðningur, tengsl, hvíld?"] },
   { key: "measurements", title: "Mælingar og blóðprufur", color: "#475569", prompts: ["Hvað sýna niðurstöðurnar á mannamáli?", "Hvað kom skjólstæðingnum á óvart?"] },
 ];
 

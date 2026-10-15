@@ -299,13 +299,15 @@ button.medalia-widget {
  * so a field that brings its own indicator keeps it and one that does not
  * still gets a visible outline. The old rule here removed it outright.
  */
-*:not(input, textarea, select):focus-visible {
-  outline: 2px solid var(--hc-brand-dark);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
 @layer base {
+  /* In the base layer like the field rule below, so a component's own
+     focus:outline-none + focus-visible:ring-* wins and nothing draws two. */
+  *:not(input, textarea, select):focus-visible {
+    outline: 2px solid var(--hc-brand-dark);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
@@ -314,8 +316,10 @@ button.medalia-widget {
   }
 }
 
-html[data-scheme="dark"] .hc-ws-scope *:focus-visible {
-  outline-color: var(--hc-brand-text);
+@layer base {
+  html[data-scheme="dark"] .hc-ws-scope *:focus-visible {
+    outline-color: var(--hc-brand-text);
+  }
 }
 
 /* Connecting lines for steps on desktop */

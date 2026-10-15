@@ -196,7 +196,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
               <Stethoscope className="h-4 w-4" aria-hidden /> Tilvísanir{openRefs ? ` (${openRefs})` : ""}
             </button>
           )}
-          <a href="https://provider.medalia.is" target="_blank" rel="noreferrer" className={wsBtn.secondary}>
+          <a href="https://provider.medalia.is" target="_blank" rel="noopener noreferrer" className={wsBtn.secondary}>
             <ExternalLink className="h-4 w-4" aria-hidden /> Medalia
           </a>
         </div>
@@ -205,7 +205,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
             <Video className="h-4 w-4 text-hc-ok-ink" aria-hidden />
             <span className="text-hc-ok-ink">{call.kind === "followup" ? "Eftirfylgd" : "Viðtal"} í myndsímtali {dayTime(call.at)}</span>
             {call.link
-              ? <a href={call.link} target="_blank" rel="noreferrer" className={`${wsBtn.primary} ml-auto`}><Video className="h-4 w-4" aria-hidden /> Hefja myndsímtal</a>
+              ? <a href={call.link} target="_blank" rel="noopener noreferrer" className={`${wsBtn.primary} ml-auto`}><Video className="h-4 w-4" aria-hidden /> Hefja myndsímtal</a>
               : <span className="ml-auto text-xs text-hc-warn-ink">Hlekkur ekki kominn. Tengdu Google-dagatal eða límdu hlekk í bókunina.</span>}
           </div>
         )}

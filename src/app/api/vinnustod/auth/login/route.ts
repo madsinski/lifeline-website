@@ -37,6 +37,13 @@ export async function POST(req: NextRequest) {
         locked_until: lock ? new Date(Date.now() + WS_LOCK_MINUTES * 60_000).toISOString() : null,
       }).eq("id", w.id);
       if (lock) return NextResponse.json({ error: lockedMessage(WS_LOCK_MINUTES), locked_minutes: WS_LOCK_MINUTES }, { status: 423 });
+    } else {
+      // An address with no worker locks the same way a real one does, so
+      // eight wrong guesses can't tell the two apart.
+      const addr = String(email || "").trim().toLowerCase();
+      if (addr && !(await throttle(`ws-login-unknown:${addr}`, WS_MAX_PASSWORD_FAILURES - 1, WS_LOCK_MINUTES * 60))) {
+        return NextResponse.json({ error: lockedMessage(WS_LOCK_MINUTES), locked_minutes: WS_LOCK_MINUTES }, { status: 423 });
+      }
     }
     return NextResponse.json({ error: "Rangt netfang eða lykilorð." }, { status: 401 });
   }

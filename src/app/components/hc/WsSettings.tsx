@@ -128,7 +128,7 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
           </span>
           {/* A switch, not a checkbox: this is on/off, not a choice in a
               list, and the state should read at a glance from across a desk. */}
-          <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${sound ? "bg-hc-brand-dark" : "bg-slate-300"}`}>
+          <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${sound ? "bg-hc-brand-dark" : "bg-hc-border"}`}>
             <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-hc-surface shadow transition-all ${sound ? "left-[1.375rem]" : "left-0.5"}`} />
           </span>
         </button>

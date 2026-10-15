@@ -80,7 +80,7 @@ export function TodayView({ rows, me, isDoctor, onOpen, inbox }: {
     () => (inbox.threads ?? []).filter((t) => t.unread > 0).sort((a, b) => a.lastAt.localeCompare(b.lastAt)),
     [inbox.threads],
   );
-  const requests = inbox.requests ?? [];
+  const requests = (inbox.requests ?? []).filter((r) => r.status === "open");
   const count = tasks.length + chats.length + requests.length;
   const inboxLoading = inbox.threads === null && inbox.requests === null && !inbox.failed;
 
