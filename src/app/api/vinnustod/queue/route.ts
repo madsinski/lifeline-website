@@ -74,9 +74,22 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  /* "Lifeline þjálfun" subscribers, for the Þjálfun badge: an active row,
+     or a cancelled one still inside its paid period. One query for all. */
+  const coachingClients = new Set<string>();
+  if (ids.length) {
+    const { data: subs } = await supabaseAdmin.from("subscriptions")
+      .select("client_id, status, current_period_end").eq("tier", "coaching").in("status", ["active", "cancelled"]).in("client_id", ids);
+    const now = Date.now();
+    for (const s of subs || []) {
+      if (s.status === "active" || (s.current_period_end && Date.parse(s.current_period_end) > now)) coachingClients.add(s.client_id);
+    }
+  }
+
   return NextResponse.json({
     journeys: (journeys || []).map((j) => ({
       ...j,
+      coaching: coachingClients.has(j.client_id),
       /*
        * A journey whose client row is gone is a fault, not a nameless
        * person, and the coach's queue should say which.

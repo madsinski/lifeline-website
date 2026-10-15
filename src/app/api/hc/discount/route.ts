@@ -23,14 +23,19 @@ import { requireUser } from "@/lib/hc/server";
 import { priceWithCode, type DiscountTarget } from "@/lib/hc/discount";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+import { APP_PACKAGE_KEY, COACHING_PACKAGE_KEY } from "@/lib/hc/coaching-config";
+
 export const runtime = "nodejs";
 
 const ATTEMPT_WINDOW_MIN = 10;
 const ATTEMPT_LIMIT = 12;
 
 /** List prices come from the catalogue, never from the request. */
-async function listPrice(target: DiscountTarget): Promise<number | null> {
-  const key = target === "subscription" ? "app-monthly" : null;
+async function listPrice(target: DiscountTarget, pkgKey?: string): Promise<number | null> {
+  /* Two subscription tiers: priced against whichever the person is looking at. */
+  const key = target === "subscription"
+    ? (pkgKey === COACHING_PACKAGE_KEY ? COACHING_PACKAGE_KEY : APP_PACKAGE_KEY)
+    : null;
   const q = supabaseAdmin.from("hc_packages").select("price_isk").eq("active", true);
   const { data } = key
     ? await q.eq("key", key).maybeSingle<{ price_isk: number }>()
@@ -60,7 +65,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, slow_down: true }, { status: 429 });
   }
 
-  const price = await listPrice(target);
+  /* Subscription codes are written for the app tier; until codes can name a
+     tier, none applies to coaching (a 3.490 kr. promo would otherwise come
+     off 7.990 kr.). Same opaque answer as any other code that fails. */
+  if (body?.package === COACHING_PACKAGE_KEY) return NextResponse.json({ ok: false });
+  const price = await listPrice(target, typeof body?.package === "string" ? body.package : undefined);
   if (price == null) return NextResponse.json({ ok: false });
 
   const r = await priceWithCode(raw, target, price, user.id);

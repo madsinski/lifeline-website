@@ -28,6 +28,7 @@ import { Alert, Button, SectionCard, fmtDate, fmtIsk, useDialog } from "@/app/co
 import { hcInput } from "./ui";
 import { useToast } from "./Toast";
 import { STRAUMUR_CARDS_LIVE } from "@/lib/straumur";
+import { NOT_IN_REGION_COPY } from "@/lib/hc/coaching-config";
 
 /**
  * Sent with every purchase from the website, so the server can insist on the
@@ -75,8 +76,10 @@ interface Pkg {
 
 const kr = fmtIsk;
 
-export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = false, mode = "subscribe", trialDays = 14 }: {
+export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = false, mode = "subscribe", trialDays = 14, packageKey }: {
   api: Api;
+  /** Which tier this buys: the app (default) or "coaching-monthly". */
+  packageKey?: string;
   /**
    * subscribe  pay now, the first month starts today
    * trial      save a card and start the free trial; the subscription starts
@@ -112,7 +115,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
     if (!code.trim()) return;
     setBusy("code"); setCodeMsg(null); setErr(null);
     const r = await api("/api/hc/discount", {
-      method: "POST", body: JSON.stringify({ code, target: "subscription" }),
+      method: "POST", body: JSON.stringify({ code, target: "subscription", package: packageKey }),
     }).catch(() => null);
     const j = await r?.json().catch(() => ({}));
     setBusy(null);
@@ -135,7 +138,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
       method: "POST",
       headers: WEB_CLIENT_HEADER,
       body: JSON.stringify({
-        accept_terms: terms, withdrawal_waiver: waiver,
+        accept_terms: terms, withdrawal_waiver: waiver, package: packageKey,
         ...(trial ? { start_trial: true } : { code: applied ? code : undefined }),
       }),
     }).catch(() => null);
@@ -195,7 +198,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
       )}
 
       {/* The code. A trial is not priced, so there is nothing for one to take off. */}
-      {!trial && <div className="mt-3">
+      {!trial && packageKey !== "coaching-monthly" && <div className="mt-3">
         <label htmlFor="disc" className="block text-xs font-semibold text-hc-ink-2">Afsláttarkóði</label>
         <div className="mt-1 flex flex-wrap gap-2">
           <input id="disc" value={code}
@@ -265,6 +268,9 @@ export function SubscriptionPanel({ api }: { api: Api }) {
   type State = {
     package: Pkg | null; subscription: Sub | null;
     cards_live?: boolean; trial_available?: boolean; trial_days?: number;
+    /** "Lifeline þjálfun": the package, and whether it is sold where they live. */
+    coachingPkg: Pkg | null;
+    coaching: { available: boolean; reason: "no_address" | "outside_region" | null } | null;
   };
   const [state, setState] = useState<State | null>(null);
   const [failed, setFailed] = useState(false);
@@ -281,6 +287,8 @@ export function SubscriptionPanel({ api }: { api: Api }) {
         setState({
           package: j.package ?? null, subscription: j.subscription ?? null,
           cards_live: !!j.cards_live, trial_available: !!j.trial_available, trial_days: j.trial_days ?? 14,
+          coachingPkg: j.packages?.coaching ?? null,
+          coaching: j.coaching ? { available: !!j.coaching.available, reason: j.coaching.reason ?? null } : null,
         });
         setFailed(false);
       }
@@ -313,8 +321,8 @@ export function SubscriptionPanel({ api }: { api: Api }) {
   };
 
   return (
-    <SectionCard id="askrift" title="Áskrift að appinu"
-      description="Æfingar, næring og daglegur gátlisti. Skýrslan, samtalið og heilsuferðin eru opin hvort sem er.">
+    <SectionCard id="askrift" title="Áskrift"
+      description="Lifeline appið: æfingar, næring og daglegur gátlisti. Lifeline þjálfun: appið og heilsuþjálfi í Vestmannaeyjum.">
       {failed && !state && (
         <Alert tone="bad" compact actions={<Button variant="secondary" size="sm" onClick={() => { setFailed(false); void load(); }}>Reyna aftur</Button>}>
           Ekki tókst að sækja áskriftina.
@@ -335,7 +343,9 @@ export function SubscriptionPanel({ api }: { api: Api }) {
       )}
       {state?.subscription && !state.subscription.trial && !state.subscription.cancelled && (
         <div className="space-y-3 text-sm text-hc-ink-2">
-          <p className="font-semibold text-hc-ink">Áskriftin er virk.</p>
+          <p className="font-semibold text-hc-ink">
+            {state.subscription.tier === "coaching" ? "Lifeline þjálfun er virk." : "Lifeline appið er virkt."}
+          </p>
           {state.subscription.current_period_end && <p>Næsta greiðsla {fmtDate(state.subscription.current_period_end)}.</p>}
           {err && <p role="alert" className="font-semibold text-hc-bad-ink">{err}</p>}
           <Button variant="dangerOutline" busy={busy} onClick={() => void cancel()}>Segja upp áskrift</Button>
@@ -346,7 +356,60 @@ export function SubscriptionPanel({ api }: { api: Api }) {
           mode={state.trial_available ? "trial" : "subscribe"} trialDays={state.trial_days}
           onDone={async () => { await load(); }} />
       )}
+      {/* The coaching tier, offered beside the app tier (and as an upgrade
+          from it or from the trial) — never to somebody already on it. */}
+      {state?.coachingPkg && state.subscription?.tier !== "coaching" && (
+        <CoachingTier api={api} pkg={state.coachingPkg} coaching={state.coaching}
+          upgrade={!!state.subscription && !state.subscription.cancelled}
+          onDone={async () => { await load(); }} />
+      )}
     </SectionCard>
+  );
+}
+
+/**
+ * "Lifeline þjálfun", as a second option in the panel.
+ *
+ * Sold only in Vestmannaeyjar (by the postcode in the person's address); the
+ * server enforces it, this only explains it. No free trial: it is a coach's
+ * time. Bought outright with the same checkout as the app tier.
+ */
+function CoachingTier({ api, pkg, coaching, upgrade, onDone }: {
+  api: Api;
+  pkg: Pkg;
+  coaching: { available: boolean; reason: "no_address" | "outside_region" | null } | null;
+  /** They already have the app tier or a trial: buying this replaces it. */
+  upgrade: boolean;
+  onDone: () => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-6 border-t border-hc-hairline pt-5">
+      <p className="text-base font-bold text-hc-ink">{pkg.name} · {kr(pkg.price_isk)} á mánuði</p>
+      {pkg.includes?.length ? (
+        <ul className="mt-2 space-y-1 text-sm text-hc-ink-2">
+          {pkg.includes.map((x) => <li key={x}>· {x}</li>)}
+        </ul>
+      ) : null}
+      {!coaching?.available ? (
+        <p className="mt-3 text-sm font-semibold text-hc-ink-2">
+          {coaching?.reason === "no_address"
+            ? "Þjálfun er í boði í Vestmannaeyjum. Skráðu heimilisfangið þitt hér að ofan svo við sjáum hvort hún nær til þín."
+            : NOT_IN_REGION_COPY}
+        </p>
+      ) : open ? (
+        <div className="mt-3">
+          {upgrade && (
+            <p className="mb-3 text-sm text-hc-ink-2">
+              Þjálfunin inniheldur allt appið og kemur í stað núverandi áskriftar frá og með deginum í dag.
+            </p>
+          )}
+          <Paywall api={api} pkg={pkg} embedded mode="subscribe" packageKey="coaching-monthly" onDone={onDone} />
+        </div>
+      ) : (
+        <Button className="mt-3" onClick={() => setOpen(true)}>{upgrade ? "Uppfæra í þjálfun" : "Velja þjálfun"}</Button>
+      )}
+    </div>
   );
 }
 

@@ -23,6 +23,7 @@ import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { age, cleanName, day, dayTime, isTest, wsBtn } from "../format";
 import { nextTask, taskTarget, type Detail, type Me, type PatientNav, type WsTab } from "../tasks";
 import { Shimmer, TestBadge } from "../ui";
+import { badgeClass } from "@/app/components/hc/Badge";
 import { NotesPeek } from "./Interview";
 import { PatientSheet } from "./Sheets";
 import { ClientRequests, type BookStart } from "./Requests";
@@ -213,6 +214,17 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
               {[kt ? `${kt.slice(0, 6)}-${kt.slice(6)}` : null, age(d.patient.date_of_birth), d.location?.name].filter(Boolean).join(" · ")}
               {isTest(d.patient.full_name) && <> <TestBadge /></>}
             </p>
+            {d.coaching && (
+              <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-hc-ink-2">
+                <span className={badgeClass("brand", "sm")}>Þjálfun</span>
+                <span>
+                  {d.coaching.video_left > 0 ? `Myndsamtal mánaðarins ónotað` : "Myndsamtal mánaðarins notað"}
+                  {" · "}
+                  {d.coaching.measurement_next_at ? `næsta mæling frá ${day(d.coaching.measurement_next_at)}` : "mæling í boði"}
+                  {d.coaching.ends_at ? ` · sagt upp, gildir til ${day(d.coaching.ends_at)}` : ""}
+                </span>
+              </p>
+            )}
           </div>
           {/* Næsta verk: the same rule as the Í dag queue, and the same
               destination, so the header and the queue never disagree about

@@ -1,7 +1,10 @@
-// The app subscription.
+// The app subscription, in two tiers.
 //
-// GET  → the package, and where this person stands with it
-// POST { accept_terms, withdrawal_waiver } → start it (paid now)
+// GET  → both packages, where this person stands, and whether coaching can
+//        be bought where they live
+// POST { accept_terms, withdrawal_waiver, package? } → start it (paid now).
+//        package 'app-monthly' (default — what the RN app sends by omission)
+//        or 'coaching-monthly' (src/lib/hc/coaching-config.ts).
 // POST { start_trial, accept_terms, withdrawal_waiver } → save a card and
 //        start the 14-day trial that converts to the paid tier when it ends
 //        (only while STRAUMUR_CARDS_LIVE; see src/lib/hc/subscription.ts)
@@ -43,13 +46,37 @@ import { priceWithCode, redeem } from "@/lib/hc/discount";
 import { cancelledButRunning, pickCurrent } from "@/lib/hc/subscription-state";
 import { isMissingSchema, TRIAL_DAYS, TRIAL_TIER, warnOnce } from "@/lib/hc/subscription";
 import { recordWaiver, requireWaiver } from "@/lib/hc/waiver";
+import {
+  APP_PACKAGE_KEY, COACHING_PACKAGE_KEY, COACHING_TIER, NOT_IN_REGION_COPY,
+  tierForPackage, type SubscriptionPackageKey,
+} from "@/lib/hc/coaching-config";
+import { assignCoachIfNone, coachingEligibility, coachingPackage } from "@/lib/hc/coaching";
+import { getOrCreateJourney, patchJourney } from "@/lib/hc/server";
 
 export const runtime = "nodejs";
 
-const PACKAGE_KEY = "app-monthly";
-
-/** The tier a paying subscriber is on. 'free-trial' is the period before that. */
-const PAID_TIER = "premium";
+/*
+ * ── The coaching tier ────────────────────────────────────────────────
+ *
+ * "Lifeline þjálfun" is bought here too, with package 'coaching-monthly'.
+ * No free trial: it is the coach's time that costs, and a trial would spend
+ * it on people who have not paid. The 14-day trial unlocks the app tier only.
+ *
+ * Moving between tiers never leaves two live rows:
+ *   app / trial → coaching   the old row is closed (status 'expired', period
+ *                            ended now) and the coaching row starts today at
+ *                            the full price. No proration while charging is
+ *                            a stub; revisit when Straumur is real.
+ *   coaching → app           refused while coaching runs (409, with the date):
+ *                            "Segja upp" keeps coaching to the end of the
+ *                            paid month, and the app tier is bought after.
+ *                            Switching mid-month would either lose the month
+ *                            paid for or overlap two subscriptions.
+ *   cancelled, same tier     resumed (status back to 'active'), no charge —
+ *                            the period was already paid for.
+ */
+const isPackageKey = (x: unknown): x is SubscriptionPackageKey =>
+  x === APP_PACKAGE_KEY || x === COACHING_PACKAGE_KEY;
 
 /** card_saved_at for a row; null when the column is not there yet. */
 async function cardSavedAt(subId: string): Promise<string | null> {
@@ -62,10 +89,15 @@ async function cardSavedAt(subId: string): Promise<string | null> {
   return data?.card_saved_at ?? null;
 }
 
-async function pkg() {
+async function pkg(key: SubscriptionPackageKey = APP_PACKAGE_KEY) {
+  if (key === COACHING_PACKAGE_KEY) {
+    const c = await coachingPackage();
+    // Never sell off the code fallback: the row has to be in the catalogue.
+    return c.in_catalogue ? c : null;
+  }
   const { data } = await supabaseAdmin.from("hc_packages")
     .select("key, kind, name, tagline, description, includes, price_isk, interval_months")
-    .eq("key", PACKAGE_KEY).eq("active", true).maybeSingle();
+    .eq("key", APP_PACKAGE_KEY).eq("active", true).maybeSingle();
   return data;
 }
 
@@ -106,13 +138,25 @@ async function shown(clientId: string) {
 export async function GET(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
-  const [p, sub, { count }] = await Promise.all([
-    pkg(), shown(user.id),
+  const [p, coaching, sub, { count }] = await Promise.all([
+    pkg(), coachingPackage(), shown(user.id),
     supabaseAdmin.from("subscriptions").select("id", { count: "exact", head: true }).eq("client_id", user.id),
   ]);
+  const eligibility = await coachingEligibility(user.id, coaching.quota);
   const trial = sub?.tier === TRIAL_TIER;
   return NextResponse.json({
+    /* `package` stays the app tier: the RN app reads it as "the" package. */
     package: p,
+    /* Both tiers, for the side-by-side offer on the web. */
+    packages: { app: p, coaching },
+    coaching: {
+      /* Sold only where there is a coach; see src/lib/hc/coaching.ts. */
+      available: coaching.in_catalogue && eligibility.eligible,
+      eligible: eligibility.eligible,
+      reason: eligibility.reason,
+      in_catalogue: coaching.in_catalogue,
+      service_weekday: coaching.quota.service_weekday,
+    },
     subscription: sub ? { ...sub, trial, card_saved_at: trial ? await cardSavedAt(sub.id) : null } : null,
     /* Whether a card can be saved yet; while false the trial runs without one. */
     cards_live: STRAUMUR_CARDS_LIVE,
@@ -136,10 +180,49 @@ export async function POST(req: NextRequest) {
   if (noWaiver) return noWaiver;
   const waiverAt = body?.withdrawal_waiver === true ? new Date().toISOString() : null;
 
-  const [p, existing] = await Promise.all([pkg(), current(user.id)]);
+  /*
+   * Attempt cap, from the audit trail (as /api/hc/discount does). Once
+   * Straumur is live every POST can be a real charge, so a loop must not be.
+   */
+  const since = new Date(Date.now() - 10 * 60_000).toISOString();
+  const { count: tries } = await supabaseAdmin.from("hc_audit").select("id", { count: "exact", head: true })
+    .eq("actor", `self:${user.id}`).eq("action", "subscribe_try").gte("created_at", since);
+  if ((tries ?? 0) >= 10) return NextResponse.json({ error: "Of margar tilraunir. Reyndu aftur eftir smástund." }, { status: 429 });
+  await supabaseAdmin.from("hc_audit").insert({ actor: `self:${user.id}`, action: "subscribe_try", journey_id: null, detail: {} });
+
+  const key: SubscriptionPackageKey = isPackageKey(body?.package) ? body.package : APP_PACKAGE_KEY;
+  if (key === COACHING_PACKAGE_KEY && typeof body?.code === "string" && body.code.trim()) {
+    return NextResponse.json({ error: "Afsláttarkóðar gilda ekki fyrir þjálfun að svo stöddu." }, { status: 400 });
+  }
+  const tier = tierForPackage(key);
+  const [p, existing, running] = await Promise.all([pkg(key), current(user.id), shown(user.id)]);
   if (!p) return NextResponse.json({ error: "package_not_found" }, { status: 404 });
 
-  if (body?.start_trial === true) return startCardTrial(user.id, p, existing, waiverAt);
+  if (body?.start_trial === true) {
+    // The trial is the app tier's. Coaching is bought outright (header).
+    if (key !== APP_PACKAGE_KEY) return NextResponse.json({ error: "Enginn prufutími er í boði fyrir þjálfun." }, { status: 400 });
+    return startCardTrial(user.id, p, existing, waiverAt);
+  }
+
+  if (key === COACHING_PACKAGE_KEY) {
+    const el = await coachingEligibility(user.id);
+    if (!el.eligible) {
+      return NextResponse.json({
+        error: el.reason === "no_address"
+          ? "Skráðu heimilisfangið þitt með póstnúmeri til að kaupa þjálfun."
+          : `Þjálfun er ${NOT_IN_REGION_COPY.charAt(0).toLowerCase()}${NOT_IN_REGION_COPY.slice(1)}`,
+      }, { status: 403 });
+    }
+  }
+
+  /* Cancelled but still inside its paid period. */
+  const runningCancelled = running?.cancelled ? running : null;
+  if (runningCancelled && runningCancelled.tier === tier) {
+    // Same tier again: undo "Segja upp" rather than charge for a month paid.
+    await supabaseAdmin.from("subscriptions").update({ status: "active" }).eq("id", runningCancelled.id);
+    await hcAudit(`self:${user.id}`, "subscription_resumed", null, { tier, subscription_id: runningCancelled.id });
+    return NextResponse.json({ ok: true, resumed: true, subscription: { ...runningCancelled, status: "active", cancelled: false } });
+  }
 
   /*
    * A running free trial is not a subscription: paying now replaces it (the
@@ -148,7 +231,24 @@ export async function POST(req: NextRequest) {
    * "already", so somebody whose trial ran out could never subscribe.
    */
   const trialRow = existing?.tier === TRIAL_TIER ? existing : null;
-  if (existing && !trialRow) return NextResponse.json({ ok: true, subscription: existing, already: true });
+  if (existing && existing.tier === tier) return NextResponse.json({ ok: true, subscription: existing, already: true });
+
+  const live = existing ?? runningCancelled;
+  if (live && live.tier === COACHING_TIER && tier !== COACHING_TIER) {
+    const until = live.current_period_end ? new Date(live.current_period_end) : null;
+    return NextResponse.json({
+      error: until
+        ? `Þjálfunin gildir til ${until.getUTCDate()}.${until.getUTCMonth() + 1}.${until.getUTCFullYear()}. Segðu henni upp og veldu appið þegar tímabilinu lýkur.`
+        : "Segðu þjálfuninni upp og veldu appið þegar tímabilinu lýkur.",
+      code: "downgrade_at_period_end",
+    }, { status: 409 });
+  }
+  /* App tier (or a legacy paid tier) → coaching: this row is replaced below. */
+  const upgradeRow = live && live.tier !== TRIAL_TIER && live.tier !== tier ? live : null;
+  if (upgradeRow && tier !== COACHING_TIER) {
+    // Some other paid tier (self-maintained) and asking for the app: keep what they have.
+    return NextResponse.json({ ok: true, subscription: upgradeRow, already: true });
+  }
 
   /*
    * The code, priced on the server.
@@ -198,7 +298,7 @@ export async function POST(req: NextRequest) {
   const { data: sub, error } = await supabaseAdmin.from("subscriptions")
     .insert({
       client_id: user.id,
-      tier: PAID_TIER,
+      tier,
       status: "active",
       current_period_start: now.toISOString(),
       current_period_end: end.toISOString(),
@@ -209,7 +309,33 @@ export async function POST(req: NextRequest) {
   if (trialRow) {
     await supabaseAdmin.from("subscriptions").update({ status: "expired" }).eq("id", trialRow.id).eq("tier", TRIAL_TIER);
   }
+  if (upgradeRow) {
+    // One live row: the app tier ends now that coaching (which includes it) has begun.
+    await supabaseAdmin.from("subscriptions")
+      .update({ status: "expired", current_period_end: now.toISOString() }).eq("id", upgradeRow.id);
+  }
   if (waiverAt) await recordWaiver("subscriptions", sub.id, waiverAt);
+  await recordPackageKey(sub.id, key);
+
+  /*
+   * Coaching needs somebody on the other end: a journey (the thread and the
+   * bookings hang off it), the coaching track rather than app-only, and a
+   * coach, so they land in a caseload on the service day.
+   */
+  if (tier === COACHING_TIER) {
+    try {
+      const journey = await getOrCreateJourney(user.id);
+      if (journey.entry === "app") {
+        await patchJourney(journey.id, { entry: "coach" }, `self:${user.id}`, "journey_track_coach", { via: "coaching_subscription" });
+      }
+      const coach = await assignCoachIfNone(journey, (p as { quota?: { region: string } }).quota?.region ?? "vestmannaeyjar");
+      /* Paid and nobody to answer: say so where staff look, not only in a log. */
+      if (!coach) await hcAudit(`self:${user.id}`, "coaching_unassigned", journey.id, { subscription_id: sub.id });
+    } catch (e) {
+      // The subscription stands; staff can assign by hand. Say so in the log.
+      console.error("[hc] coaching set-up after purchase failed", e instanceof Error ? e.message : e);
+    }
+  }
 
   /*
    * Spent only now, after the row exists. A code redeemed before the
@@ -226,7 +352,7 @@ export async function POST(req: NextRequest) {
    * hc_audit.detail as well, which works whether or not the column exists.
    */
   await hcAudit(`self:${user.id}`, "subscription_started", null, {
-    tier: PAID_TIER, price: p.price_isk, charged: chargeIsk,
+    tier, package: key, price: p.price_isk, replaced: upgradeRow?.id ?? null, charged: chargeIsk,
     code: discount?.ok ? discount.code?.code : null, months_free: monthsFree,
     withdrawal_waiver: !!waiverAt,
     withdrawal_waiver_at: waiverAt,
@@ -234,6 +360,13 @@ export async function POST(req: NextRequest) {
     replaced_trial: trialRow?.id ?? null,
   });
   return NextResponse.json({ ok: true, subscription: sub, charged_isk: chargeIsk, months_free: monthsFree });
+}
+
+/** subscriptions.package_key, if the column exists yet (migration-coaching-tier.sql). */
+async function recordPackageKey(subId: string, key: SubscriptionPackageKey) {
+  const { error } = await supabaseAdmin.from("subscriptions").update({ package_key: key }).eq("id", subId);
+  if (error && isMissingSchema(error)) warnOnce("subscriptions.package_key", "subscriptions.package_key missing — run supabase/migration-coaching-tier.sql; the tier column still says which.");
+  else if (error) console.error("[hc] recording package_key failed", error.message);
 }
 
 export async function DELETE(req: NextRequest) {

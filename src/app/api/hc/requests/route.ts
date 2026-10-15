@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, hcAudit, requireUser } from "@/lib/hc/server";
+import { coachingAccess } from "@/lib/hc/coaching";
 import { MEASUREMENTS, MEETING_WAYS, TOPICS, isKind, type RequestKind } from "@/lib/hc/requests";
 
 export const runtime = "nodejs";
@@ -32,7 +33,9 @@ export async function GET(req: NextRequest) {
   if (user instanceof NextResponse) return user;
   const journey = await currentJourney(user.id);
   if (!journey) return NextResponse.json({ error: "Engin heilsuferð fannst." }, { status: 404 });
-  return NextResponse.json({ requests: await mine(journey.id) });
+  const [requests, access] = await Promise.all([mine(journey.id), coachingAccess(user.id, journey)]);
+  /* allowed: whether new requests can be sent (the app tier alone cannot). */
+  return NextResponse.json({ requests, allowed: access.ok });
 }
 
 export async function POST(req: NextRequest) {
@@ -43,6 +46,15 @@ export async function POST(req: NextRequest) {
 
   const b = await req.json().catch(() => ({}));
   if (!isKind(b.kind)) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+
+  /* A request is somebody's time. The app tier alone has nobody on the
+     other end (src/lib/hc/coaching.ts); the refusal keeps the safety line. */
+  if (!(await coachingAccess(user.id, journey)).ok) {
+    return NextResponse.json({
+      error: "no_coaching",
+      message: "Beiðnir til hjúkrunarfræðings fylgja Lifeline þjálfun og heilsufarsskoðun. Við bráð einkenni skaltu hringja í 112.",
+    }, { status: 403 });
+  }
 
   const open = (await mine(journey.id)).filter((r) => r.status === "open" || r.status === "in_progress");
   if (open.length >= MAX_OPEN) {

@@ -31,6 +31,9 @@ import { badgeClass } from "./Badge";
 import { useToast } from "./Toast";
 import { Alert, Button } from "@/app/components/account/ui";
 import { MEASURE_PREP } from "@/lib/hc/appointment-kinds";
+import { WEEKDAY_DAT_PL } from "@/lib/hc/coaching-config";
+import { fmtDate } from "@/app/components/account/ui/dates";
+import CoachingOffer, { type CoachingOfferData } from "./CoachingOffer";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -68,6 +71,17 @@ interface CoachData {
   bookings: Booking[]; consults: { allowance: number; spent: number; left: number };
   /** Where measurements happen, from the journey's location. */
   place?: { site: string | null; address: string | null; info: string | null } | null;
+  /** Who has a person on the other end, and on what terms (src/lib/hc/coaching.ts). */
+  access?: {
+    ok: boolean;
+    mode: "coaching" | "care" | "grandfathered" | "none";
+    /** Coaching tier only: bookings on this weekday (0 = sunnudagur). */
+    service_weekday?: number | null;
+    video_minutes?: number | null;
+    measurement_next_at?: string | null;
+    /** When access.ok is false: the offer instead of the thread. */
+    offer?: CoachingOfferData;
+  };
 }
 
 
@@ -215,7 +229,10 @@ export default function CoachView({ api, startOn, focusNewest = false, portalUrl
     busyRef.current = false;
     setBusy(false);
     if (!r?.ok) {
-      const msg = j.error === "no_consults_left" ? "Myndsímtölin eru búin í þessum mánuði."
+      /* The coaching tier's refusals carry their own sentence (the date the
+         next call or measurement opens), so show it as it is. */
+      const msg = typeof j.message === "string" && j.message ? j.message
+        : j.error === "no_consults_left" ? "Myndsímtölin eru búin í þessum mánuði."
         : j.error === "unavailable" ? "Þessi þjálfari tekur ekki við nýjum núna."
         : j.error === "no_items" ? "Veldu að minnsta kosti eina mælingu."
         : j.error === "bad_time" ? "Þessi tími er liðinn. Veldu annan."
@@ -270,6 +287,8 @@ export default function CoachView({ api, startOn, focusNewest = false, portalUrl
     );
   }
   if (!data) return <div className="h-40 animate-pulse rounded-hc-card bg-hc-surface/70" aria-busy="true" aria-label="Hleð samtalinu" />;
+  /* The app tier alone has nobody on the other end: the offer, not a thread. */
+  if (data.access && !data.access.ok && data.access.offer) return <CoachingOffer offer={data.access.offer} />;
 
   return (
     <div className="space-y-4">
@@ -625,7 +644,8 @@ function Book({ data, busy, onPost, forms }: {
   const [openBooking, setOpenBooking] = useState<Booking | null>(null);
   const { allowance, left } = data.consults;
 
-  const minutes = choice === "video" ? 30
+  const serviceDay = data.access?.service_weekday ?? null;
+  const minutes = choice === "video" ? (data.access?.video_minutes ?? 30)
     : MEASURES.filter((m) => picked.includes(m.key)).reduce((n, m) => n + m.minutes, 0);
 
   const book = async (iso: string) => {
@@ -650,6 +670,12 @@ function Book({ data, busy, onPost, forms }: {
 
   return (
     <>
+      {serviceDay != null && (
+        <p className="mb-3 rounded-hc-element bg-hc-brand-surface px-4 py-3 text-sm text-hc-ink-2">
+          Heilsuþjálfinn er við á {WEEKDAY_DAT_PL[serviceDay]}. Þá eru tímar bókaðir og skilaboðum svarað.
+          {data.access?.measurement_next_at && <> Næsta mæling er í boði frá {fmtDate(data.access.measurement_next_at)}.</>}
+        </p>
+      )}
       {/* First in "Bóka", and only here: what is already in the diary is the
           first thing you want when you came to book something, and the last
           thing you want in the middle of a conversation. */}
@@ -681,7 +707,7 @@ function Book({ data, busy, onPost, forms }: {
         )}
 
       {openBooking && (
-        <BookingSheet booking={openBooking} place={data.place ?? null} busy={busy}
+        <BookingSheet booking={openBooking} place={data.place ?? null} busy={busy} weekday={serviceDay}
           onClose={() => setOpenBooking(null)} onPost={onPost} forms={forms} />
       )}
 
@@ -755,7 +781,7 @@ function Book({ data, busy, onPost, forms }: {
                 <span>{choice === "video" ? "Myndsímtal" : `${picked.length} ${picked.length === 1 ? "mæling" : "mælingar"}`}</span>
                 <span className="tabular-nums">{minutes} mínútur í allt</span>
               </p>
-              <Slots minutes={minutes} busy={busy} onBook={book} forms={forms} />
+              <Slots minutes={minutes} busy={busy} onBook={book} forms={forms} weekday={serviceDay} />
             </>
           )}
           {choice === "measurement" && minutes === 0 && (
@@ -780,18 +806,22 @@ function Book({ data, busy, onPost, forms }: {
  * availability source yet — hc_bookings holds what is booked, not what is
  * open — so the honest wording is that the coach confirms.
  */
-function Slots({ minutes, busy, onBook, forms }: {
+function Slots({ minutes, busy, onBook, forms, weekday = null }: {
   minutes: number; busy: boolean; onBook: (iso: string) => Promise<boolean>; forms: RoleForms;
+  /** Coaching tier: only the coach's service day (0 = sunnudagur), six weeks ahead. */
+  weekday?: number | null;
 }) {
   const [days] = useState(() => {
     const out: Date[] = [];
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     // From tomorrow, and weekdays only: nobody is measured on a Sunday.
-    for (let i = 1; out.length < 14; i++) {
+    // On the coaching tier, only the service day — the server refuses others.
+    const want = weekday == null ? 14 : 6;
+    for (let i = 1; out.length < want && i < 60; i++) {
       const x = new Date(d);
       x.setDate(d.getDate() + i);
-      if (x.getDay() !== 0 && x.getDay() !== 6) out.push(x);
+      if (weekday != null ? x.getDay() === weekday : x.getDay() !== 0 && x.getDay() !== 6) out.push(x);
     }
     return out;
   });
@@ -862,8 +892,9 @@ function Slots({ minutes, busy, onBook, forms }: {
  * the only one of the four that cannot be undone — the old row put it
  * first, as a small x, and offered none of the rest.
  */
-function BookingSheet({ booking, place, busy, onClose, onPost, forms }: {
+function BookingSheet({ booking, place, busy, onClose, onPost, forms, weekday = null }: {
   forms: RoleForms;
+  weekday?: number | null;
   booking: Booking;
   place: { site: string | null; address: string | null; info: string | null } | null;
   busy: boolean;
@@ -943,7 +974,7 @@ function BookingSheet({ booking, place, busy, onClose, onPost, forms }: {
         {moving ? (
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Nýr tími</p>
-            <Slots minutes={booking.minutes} busy={busy} onBook={move} forms={forms} />
+            <Slots minutes={booking.minutes} busy={busy} onBook={move} forms={forms} weekday={weekday} />
             <button type="button" onClick={() => setMoving(false)}
               className="mt-2 w-full text-center text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2 hover:underline">
               Hætta við að færa

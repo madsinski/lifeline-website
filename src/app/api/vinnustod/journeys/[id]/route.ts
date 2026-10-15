@@ -17,6 +17,7 @@ import { sendSms } from "@/lib/sms";
 import { actorLocationFilter, actorWorkerId, getHcActor, type HcActor } from "@/lib/hc/ws-auth";
 import { sameOrigin } from "@/lib/hc/secrets";
 import type { HcJourney } from "@/lib/hc/types";
+import { coachingRemaining, coachingSubscription, coachingPackage } from "@/lib/hc/coaching";
 
 export const runtime = "nodejs";
 
@@ -91,8 +92,20 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     .select("marker, value, unit, measured_at, source, note, entered_by, updated_at")
     .eq("journey_id", journey.id);
 
+  /* "Lifeline þjálfun": what is left of this month's call and the
+     measurement interval, so the coach books inside the tier. */
+  const coachingSub = await coachingSubscription(journey.client_id);
+  const coaching = coachingSub
+    ? await (async () => {
+        const pkg = await coachingPackage();
+        const left = await coachingRemaining(journey.client_id, pkg.quota);
+        return { ...left, service_weekday: pkg.quota.service_weekday, ends_at: coachingSub.status === "cancelled" ? coachingSub.current_period_end : null };
+      })()
+    : null;
+
   return NextResponse.json({
     reportProvenance,
+    coaching,
     journey,
     patient: {
       full_name: profile?.full_name ?? null,

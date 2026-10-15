@@ -14,12 +14,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Sheet from "./Sheet";
+import { badgeClass } from "./Badge";
 import { useToast } from "./Toast";
 import { Building2, ChevronDown, Loader2, Plus, Search, Users } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-export interface ClientRow { id: string; client_id: string; client_name: string; client_phone: string | null; stage: string | null }
+export interface ClientRow { id: string; client_id: string; client_name: string; client_phone: string | null; stage: string | null; coaching?: boolean }
 interface Group {
   id: string; name: string; status: string | null;
   contact: string | null; email: string | null; phone: string | null;
@@ -137,7 +138,10 @@ export default function ClientsView({ api, rows, onOpenClient, onReload, capped 
               <button type="button" onClick={() => onOpenClient(r.id)}
                 className="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-hc-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-hc-brand">
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold text-hc-ink">{r.client_name}</span>
+                  <span className="flex items-center gap-2 font-semibold text-hc-ink">
+                    <span className="truncate">{r.client_name}</span>
+                    {r.coaching && <span className={badgeClass("brand", "sm")}>Þjálfun</span>}
+                  </span>
                   <span className="block text-xs text-hc-ink-2">{r.client_phone ?? "—"}</span>
                 </span>
                 {r.stage && (

@@ -57,8 +57,13 @@ export const TRIAL_TIER = "free-trial";
  */
 const SELF_PLAN_GRACE_BEFORE = Date.parse("2026-10-20T00:00:00Z");
 
-/** Tiers that mean somebody is paying. */
-export const PAID_TIERS = new Set(["premium", "self-maintained"]);
+/**
+ * Tiers that mean somebody is paying. Both consumer tiers unlock the whole
+ * app: 'premium' is "Lifeline appið", 'coaching' is "Lifeline þjálfun" (the
+ * app plus a coach — see src/lib/hc/coaching.ts for what the coach part
+ * grants).
+ */
+export const PAID_TIERS = new Set(["premium", "self-maintained", "coaching"]);
 
 // ── Schema that may not exist yet ────────────────────────────────────
 // Migrations are run by hand, so code can reach production before its
