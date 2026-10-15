@@ -250,7 +250,14 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
   }, [api, step?.kind, step?.lectureSlug]);
 
   if (flow === undefined || (!preview && flow && !ctx)) {
-    return <div className="grid min-h-[50vh] place-items-center text-sm text-hc-ink-2">Hleð…</div>;
+    return (
+      <div className="mx-auto max-w-xl space-y-3 pt-2" aria-busy="true" aria-label="Hleð">
+        <div className="h-8 w-2/3 rounded-hc-element hc-shimmer" />
+        <div className="h-14 rounded-hc-element hc-shimmer" />
+        <div className="h-14 rounded-hc-element hc-shimmer" />
+        <div className="h-14 rounded-hc-element hc-shimmer" />
+      </div>
+    );
   }
   if (flow === null || !step) {
     return <div className="grid min-h-[50vh] place-items-center text-sm text-hc-ink-2">Augnablik…</div>;
@@ -289,8 +296,8 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
                 <button key={o.key} type="button" disabled={busy}
                   onClick={() => void (async () => { await answer(key, o.key); await next(); })()}
                   aria-pressed={chosen === o.key}
-                  className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border-2 bg-hc-surface px-4 py-3 text-left transition ${
-                    chosen === o.key ? "border-hc-brand-dark" : "border-transparent hover:border-hc-control"}`}>
+                  className={`flex min-h-14 w-full items-center gap-3 rounded-hc-element border-2 px-4 py-3 text-left transition ${
+                    chosen === o.key ? "border-hc-brand-dark bg-hc-brand-surface" : "border-hc-border bg-hc-surface hover:border-hc-control"}`}>
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-hc-ink">{o.label}</span>
                     {o.hint && <span className="mt-0.5 block text-xs text-hc-ink-3">{o.hint}</span>}
@@ -309,7 +316,7 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
           <p className="mt-1 text-sm leading-relaxed text-hc-ink-2">
             Áður en við vistum heilsufarsupplýsingar þarftu að samþykkja skilmálana.
           </p>
-          <label className="mt-5 flex items-start gap-2.5 rounded-2xl bg-hc-surface p-4 shadow-sm">
+          <label className="mt-5 flex items-start gap-2.5 rounded-hc-element bg-hc-surface p-4 shadow-hc-card">
             <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-hc-control" />
             <span className="text-sm leading-snug text-hc-ink">
@@ -349,7 +356,7 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
           <h1 className="text-2xl font-bold text-hc-ink">{step.title || lecture?.title || "Fræðsla"}</h1>
           {lecture?.subtitle && <p className="mt-1 text-sm text-hc-ink-2">{lecture.subtitle}</p>}
           {lecture ? (
-            <div className="mt-4 rounded-2xl bg-hc-surface p-4 shadow-sm">
+            <div className="mt-4 rounded-hc-element bg-hc-surface p-4 shadow-hc-card">
               {lecture.video_url && (
                 <a href={lecture.video_url} target="_blank" rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-hc-brand-text underline">
@@ -397,7 +404,7 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
       )}
       {step.skippable && step.kind !== "lecture" && step.kind !== "install" && (
         <button type="button" onClick={() => void next()} disabled={busy}
-          className="mt-2 w-full py-2 text-center text-sm font-semibold text-hc-ink-3 underline">
+          className="mt-2 min-h-11 w-full rounded-hc-element py-2 text-center text-sm font-semibold text-hc-ink-3 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
           Sleppa í bili
         </button>
       )}
@@ -444,7 +451,7 @@ function TrainingStart({ api, preview, answers, onSaved }: {
 
   const chip = (on: boolean) =>
     `min-h-11 rounded-hc-element border-2 px-3.5 text-sm font-semibold transition ${
-      on ? "border-hc-brand-dark bg-hc-ok-surface text-hc-ok-ink" : "border-transparent bg-hc-surface text-hc-ink-2 hover:border-hc-control"}`;
+      on ? "border-hc-brand-dark bg-hc-brand-surface text-hc-ink" : "border-hc-border bg-hc-surface text-hc-ink-2 hover:border-hc-control"}`;
 
   return (
     <section>
@@ -482,7 +489,7 @@ function TrainingStart({ api, preview, answers, onSaved }: {
         Þetta er ekki sjúkraskrá. Ef eitthvað er bráðatilfelli, hringdu í 112.
       </p>
 
-      {err && <p role="alert" className="mt-3 text-sm text-red-600">{err}</p>}
+      {err && <p role="alert" className="mt-3 text-sm text-hc-bad-ink">{err}</p>}
       <button type="button" onClick={() => void save()} disabled={busy || !move || !limits.length}
         className={`${hcBtn.cta} mt-6 w-full`}>
         {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}

@@ -26,6 +26,8 @@ export function safeNextPath(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const v = raw.trim();
   if (!v.startsWith("/") || v.startsWith("//") || v.startsWith("/\\")) return null;
+  if (v.includes("\\")) return null;
+  if (/^\/(%2f|%5c|%00)/i.test(v)) return null;
   if (/[\u0000-\u001f]/.test(v)) return null;
   return v;
 }

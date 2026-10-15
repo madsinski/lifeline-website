@@ -216,7 +216,7 @@ export default function BiodyProfileModal({ userId, onClose, onActivated }: {
 {renderHealthAssessmentConsent()}
               </pre>
               <label className="flex cursor-pointer select-none items-start gap-2">
-                <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1 h-4 w-4 accent-emerald-700" />
+                <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1 h-4 w-4 accent-[#047857]" />
                 <span className="text-sm text-hc-ink-2">
                   {tv("acc.biody.consent", "Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({{v}}).", { v: HEALTH_CONSENT_VERSION })}
                 </span>

@@ -49,7 +49,6 @@ const BYPASS_PREFIXES = [
   "/sales-terms",           //   "  (English)
   "/heilsuskodun",          // public health-check entry per location (posters, employers, heilsugæsla)
   "/vinnustod",             // nurse/doctor workstation — own cookie auth (src/lib/hc/ws-auth.ts)
-  "/app",    // health-check journey — own Supabase session check; signup must reach it
   // ── Infrastructure
   "/coming-soon",           // the gate's own rewrite target
   "/manifest.webmanifest",  // installable app manifest (src/app/manifest.ts)

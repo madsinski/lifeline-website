@@ -285,7 +285,7 @@ export function RefundRequestModal({ bookingId, clientId, amountIsk, includeChec
         </label>
         {includeCheckinAddon && (
           <label className="flex items-center gap-2 text-sm text-hc-ink-2">
-            <input type="checkbox" checked={includeAddon} onChange={(e) => setIncludeAddon(e.target.checked)} className="h-4 w-4 accent-emerald-700" />
+            <input type="checkbox" checked={includeAddon} onChange={(e) => setIncludeAddon(e.target.checked)} className="h-4 w-4 accent-[#047857]" />
             {t("acc.rr.addon", "Óska líka eftir endurgreiðslu á viðtali við lækni (18.500 kr.)")}
           </label>
         )}

@@ -25,7 +25,7 @@ export default function StepHeader({ n, total, onBack, busy = false, sticky = tr
     <header className={`${sticky ? "sticky top-0 z-10 -mx-4 bg-hc-page/95 px-4 backdrop-blur" : ""} mb-5 py-3`}>
       <div className="flex items-center gap-3">
         <button type="button" onClick={onBack} disabled={!onBack || at === 1 || busy}
-          aria-label="Til baka" className="rounded-lg p-1.5 text-hc-ink-2 hover:bg-hc-sunken disabled:opacity-30">
+          aria-label="Til baka" className="grid min-h-11 min-w-11 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:opacity-30">
           <ArrowLeft className="h-5 w-5" aria-hidden />
         </button>
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-hc-sunken-2" aria-hidden>

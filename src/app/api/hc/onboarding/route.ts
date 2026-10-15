@@ -87,7 +87,7 @@ async function contextFor(user: User) {
   const entry = journey?.entry === "coach" || journey?.entry === "app" ? journey.entry : journey ? "check" : null;
   return {
     entry,
-    terms_accepted: !!client?.terms_accepted_at || !!user.user_metadata?.terms_accepted_at,
+    terms_accepted: !!client?.terms_accepted_at,
     training_saved: trainingSaved,
   };
 }

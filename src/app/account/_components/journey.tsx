@@ -376,7 +376,7 @@ export function JourneyCard({ journey, isB2C, onChangePackage, onToggleCheck }: 
             ? "bg-hc-brand-dark text-white"
             : st.active
               ? "bg-hc-focus text-white ring-4 ring-hc-focus-ring"
-              : "bg-slate-200 text-hc-ink-3";
+              : "bg-slate-200 text-hc-ink-2";
           return (
             <li key={st.key} className="relative pb-6 pl-6 last:pb-0">
               <span aria-hidden className={`absolute -left-[13px] top-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${dot}`}>
@@ -390,7 +390,7 @@ export function JourneyCard({ journey, isB2C, onChangePackage, onToggleCheck }: 
                       {st.done ? t("acc.j.state-done", "(lokið)") : st.active ? t("acc.j.state-next", "(næsta skref)") : t("acc.j.state-later", "(síðar)")}
                     </span>
                     {st.active && !st.done && (
-                      <span aria-hidden className="rounded-full bg-hc-focus-surface px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.06em] text-hc-focus ring-1 ring-hc-focus-ring">
+                      <span aria-hidden className="rounded-full bg-hc-brand-surface px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.06em] text-hc-brand-text ring-1 ring-hc-brand/40">
                         {t("acct.p.naesta-skref", "Næsta skref")}
                       </span>
                     )}
@@ -400,7 +400,7 @@ export function JourneyCard({ journey, isB2C, onChangePackage, onToggleCheck }: 
                   {st.body}
                   {st.manualCheck && (
                     <label className="mt-3 inline-flex cursor-pointer select-none items-center gap-2">
-                      <input type="checkbox" checked={st.done} onChange={() => onToggleCheck(st.manualCheck!.key)} className="h-4 w-4 rounded accent-emerald-700" />
+                      <input type="checkbox" checked={st.done} onChange={() => onToggleCheck(st.manualCheck!.key)} className="h-4 w-4 rounded accent-[#047857]" />
                       <span className="text-sm text-hc-ink-2">{st.manualCheck.label}</span>
                     </label>
                   )}

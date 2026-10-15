@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest } from "@/lib/auth-helpers";
+import { SIGNUP_TERMS_VERSION } from "@/lib/signup-consent";
 import {
   PUBLIC_PRIVACY_VERSION,
   PUBLIC_TERMS_VERSION,
@@ -43,8 +44,10 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const meta = (user.user_metadata || {}) as Record<string, unknown>;
-  const version = typeof meta.terms_version === "string" ? meta.terms_version.trim().slice(0, 64) : "";
-  if (!version) {
+  // Metadata is user-writable: use it only as a presence check. The version
+  // recorded is the server's own constant, never the echoed metadata value.
+  const accepted = typeof meta.terms_version === "string" && !!meta.terms_version.trim();
+  if (!accepted) {
     return NextResponse.json({ ok: true, recorded: false, reason: "no_signup_consent" });
   }
 
@@ -73,7 +76,7 @@ export async function POST(req: NextRequest) {
 
   const fields = {
     terms_accepted_at: acceptedAt,
-    terms_version: version,
+    terms_version: SIGNUP_TERMS_VERSION,
     research_opt_out: meta.research_opt_out === true,
     marketing_opt_out: meta.marketing_opt_out === true,
     updated_at: now,

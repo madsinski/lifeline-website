@@ -170,7 +170,7 @@ function Start() {
   const back = () => setStep((s) => (s > 0 ? ((s - 1) as Step) : s));
   const skip = (
     <button type="button" onClick={() => setStep(LAST)}
-      className="mt-5 block w-full text-center text-sm font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink hover:underline">
+      className="mt-5 block min-h-11 w-full rounded-hc-element text-center text-sm font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
       Sleppa spurningum
     </button>
   );

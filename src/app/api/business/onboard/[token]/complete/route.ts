@@ -145,7 +145,7 @@ async function handle(
     for (const row of staleClients || []) {
       const { data: authCheck } = await supabaseAdmin.auth.admin.getUserById(row.id);
       if (!authCheck?.user) {
-        console.warn("[onboard-complete] removing orphan clients row", row.id, email);
+        console.warn("[onboard-complete] removing orphan clients row", row.id);
         await supabaseAdmin.from("clients_decrypted").delete().eq("id", row.id);
       }
     }

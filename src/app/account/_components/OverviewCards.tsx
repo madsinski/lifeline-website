@@ -41,7 +41,7 @@ export function WelcomeHero({ user, firstName, avatarUrl, companyName, tier, onA
   const since = user.created_at ? fmtMonthYear(user.created_at, locale) : "";
 
   return (
-    <header className="relative overflow-hidden rounded-hc-hero bg-gradient-to-br from-hc-hero-from to-hc-hero-to p-5 text-white shadow-hc-raised sm:p-6">
+    <header className="relative overflow-hidden rounded-hc-hero bg-gradient-to-br from-hc-hero-from to-hc-hero-to p-6 text-white shadow-hc-raised sm:p-8">
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-emerald-300/15 blur-3xl" />
       <div className="relative flex items-center gap-4">
         <AvatarPicker

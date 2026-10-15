@@ -175,8 +175,10 @@ function Heilsuferd() {
       if (!s.session.user.email_confirmed_at) { router.replace("/account/login?verify=1"); return; }
       setAuthed(true);
       /* The /byrja clickwrap, copied onto the clients row server side.
-         Fire-and-forget: it never throws and skips itself once done. */
-      void ensureSignupConsentRecorded();
+         Awaited so the onboarding player (which keys its terms screen on
+         clients.terms_accepted_at) sees it. Never throws; skips itself
+         once done. */
+      await ensureSignupConsentRecorded();
       const j = await load();
       if (j) return;
       /* No journey yet. The route is already known for almost everybody —

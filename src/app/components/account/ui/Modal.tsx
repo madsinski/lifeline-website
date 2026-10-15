@@ -67,7 +67,7 @@ export function Modal({ title, description, onClose, children, footer, size = "m
 
   const width = size === "sm" ? "max-w-md" : size === "lg" ? "max-w-2xl" : "max-w-lg";
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/45 p-0 sm:items-center sm:p-4"
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-hc-ink/45 p-0 sm:items-center sm:p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget && dismissable) onClose(); }}>
       <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descId : undefined} tabIndex={-1}
         className={`flex max-h-[92vh] w-full ${width} flex-col overflow-hidden rounded-t-hc-hero bg-hc-surface shadow-hc-overlay outline-none sm:rounded-hc-hero`}>
