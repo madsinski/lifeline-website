@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
+import { COACHING_DEFAULTS_IS, COACHING_DEFAULTS_EN } from "@/lib/site-content/coaching";
 import * as hcCache from "@/lib/hc/client-cache";
 import type { User } from "@supabase/supabase-js";
 import { Suspense } from "react";
@@ -123,7 +124,7 @@ function AccountPageInner() {
   /* Labels follow the locale. The Icelandic sits inline as each key's
      fallback, so a missing row degrades to the main language rather than to
      a bare key. */
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const navItems = useMemo(() => navItemsFor(t), [t]);
 
   /* profile fields */
@@ -2658,10 +2659,74 @@ function AccountPageInner() {
                   </p>
                 </div>
 
-                {/* What the app contains now lives on Appið, which is
-                    the page about the app. The waitlist card went with it:
-                    it asked for an email address to send a download link,
-                    on a page that already opens the app. */}
+                {/* ── Svona virkar heilsuþjálfun ─────────────────────
+                    The four steps are not retyped: they are read straight
+                    out of the /coaching defaults, in whichever locale is
+                    showing, so the page behind the login and the page that
+                    sells the thing cannot drift apart. Edit them there.
+
+                    It ends where the service actually lives — in the app —
+                    and then offers the two things somebody can do next:
+                    try it, or subscribe. Subscriptions are sold on
+                    /coaching, so that is where the second button goes
+                    rather than into a checkout that does not exist here. */}
+                {(() => {
+                  const cc = locale === "en" ? COACHING_DEFAULTS_EN : COACHING_DEFAULTS_IS;
+                  const steps = [1, 2, 3, 4].map((n) => ({
+                    n,
+                    title: String(cc[`h${n}_title`] ?? ""),
+                    desc: String(cc[`h${n}_desc`] ?? ""),
+                  })).filter((x) => x.title);
+                  if (!steps.length) return null;
+                  return (
+                    <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+                      <h2 className="text-xl font-bold text-[#1F2937] sm:text-2xl">
+                        {t("account.coaching.how", "Svona virkar heilsuþjálfun")}
+                      </h2>
+                      <p className="mt-1 text-sm text-[#6B7280]">
+                        {String(cc.how_subtitle ?? "")}
+                      </p>
+                      <ol className="mt-6 space-y-4">
+                        {steps.map((st) => (
+                          <li key={st.n} className="flex gap-4">
+                            <span aria-hidden className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-50 text-sm font-bold text-[#047857]">
+                              {st.n}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block font-semibold text-[#1F2937]">{st.title}</span>
+                              <span className="mt-0.5 block text-sm leading-relaxed text-[#6B7280]">{st.desc}</span>
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+
+                      {/* Where it happens, and what to do about it. */}
+                      <div className="mt-7 rounded-xl bg-[#F8FAFC] p-5">
+                        <p className="text-sm leading-relaxed text-[#1F2937]">
+                          {t("account.coaching.inapp", "Allt þetta gerist í Lifeline appinu — daglegu aðgerðirnar, æfingarnar, næringin og eftirfylgnin. Þjálfunin er valkvæð og greidd sérstaklega.")}
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Link href="/app"
+                            className="inline-flex min-h-11 items-center rounded-xl bg-[#047857] px-5 font-semibold text-white transition hover:bg-[#065F46]">
+                            {t("account.coaching.try", "Prófaðu appið")}
+                          </Link>
+                          {/* Somebody who already subscribes is not a lead. */}
+                          {activeTier && currentTier !== "free-trial" ? (
+                            <button type="button" onClick={() => setActiveSection("settings")}
+                              className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1F2937] transition hover:bg-slate-50">
+                              {t("account.coaching.mysub", "Áskriftin þín")}
+                            </button>
+                          ) : (
+                            <Link href="/coaching#askrift"
+                              className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1F2937] transition hover:bg-slate-50">
+                              {t("account.coaching.subscribe", "Skrá mig í áskrift")}
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    </section>
+                  );
+                })()}
               </section>
             )}
 
