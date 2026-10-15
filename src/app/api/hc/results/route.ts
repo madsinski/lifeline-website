@@ -35,6 +35,20 @@ export async function GET(req: NextRequest) {
   if (user instanceof NextResponse) return user;
   const journey = await currentJourney(user.id);
   if (!journey) return NextResponse.json({ error: "Engin heilsuferð fannst." }, { status: 404 });
+  /*
+   * ?knowledge=1 adds the reference entries the card needs to offer an input
+   * per marker and to colour a value. ResultsCard read them from
+   * /api/vinnustod/knowledge, which only staff can open — so for a
+   * participant the list was empty and "Skrá gildi" opened a form with
+   * nothing in it. The same rows /api/hc/actions already sends them.
+   */
+  if (req.nextUrl.searchParams.get("knowledge") === "1") {
+    const { data: entries } = await supabaseAdmin
+      .from("hc_knowledge")
+      .select("slug, category, title, aliases, unit, summary, body_md, bands, higher_better, sources, tags, sort")
+      .eq("active", true).order("sort").order("title");
+    return NextResponse.json({ results: await read(journey.id), entries: entries || [] });
+  }
   return NextResponse.json({ results: await read(journey.id) });
 }
 

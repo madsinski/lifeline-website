@@ -110,13 +110,14 @@ export async function POST(req: NextRequest) {
     const day = typeof body.done_on === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.done_on) ? body.done_on : isoDay();
     // Only today and the six days behind it — no filling in the future.
     if (!lastDays(7).includes(day)) return NextResponse.json({ error: "Dagsetning utan marka." }, { status: 400 });
-    if (body.done) {
-      await supabaseAdmin.from("hc_action_logs")
-        .upsert({ journey_id: journey.id, client_id: user.id, action_uid: actionUid, done_on: day }, { onConflict: "journey_id,action_uid,done_on" });
-    } else {
-      await supabaseAdmin.from("hc_action_logs").delete()
+    // A write that failed must not answer 200: the client rolls the tick
+    // back and says so only when it sees an error.
+    const { error } = body.done
+      ? await supabaseAdmin.from("hc_action_logs")
+        .upsert({ journey_id: journey.id, client_id: user.id, action_uid: actionUid, done_on: day }, { onConflict: "journey_id,action_uid,done_on" })
+      : await supabaseAdmin.from("hc_action_logs").delete()
         .eq("journey_id", journey.id).eq("action_uid", actionUid).eq("done_on", day);
-    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   // The client's own adjustment to the plan.
@@ -135,7 +136,8 @@ export async function POST(req: NextRequest) {
       const t = typeof body.at_time === "string" ? body.at_time.trim() : "";
       patch.at_time = /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : null;
     }
-    await supabaseAdmin.from("hc_action_prefs").upsert(patch, { onConflict: "journey_id,action_uid" });
+    const { error } = await supabaseAdmin.from("hc_action_prefs").upsert(patch, { onConflict: "journey_id,action_uid" });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json(await currentState(journey.id));

@@ -42,7 +42,7 @@ export default function OverviewSection({ user, state: s, patch, actions, open, 
         <Alert tone="warn" title={t("acct.q.incomplete", "Þú átt ófrágengna bókun.")}
           actions={<>
             <ButtonLink href={`/account/book?resume=${pending.id}`} size="sm">{t("acct.q.finishbooking", "Ljúka bókun")}</ButtonLink>
-            <Button size="sm" variant="secondary" onClick={actions.cancelPendingBooking}>{t("acct.q.cancelstart", "Hætta við og byrja upp á nýtt")}</Button>
+            <Button size="sm" variant="secondary" busy={actions.cancelBusy} onClick={actions.cancelPendingBooking}>{t("acct.q.cancelstart", "Hætta við og byrja upp á nýtt")}</Button>
           </>}>
           {tv("acc.pending.body", "Bókunin ({{pkg}}{{when}}) er frátekin en ekki greidd. Ljúktu greiðslunni til að staðfesta hana.", {
             pkg: packageName(pending.package, locale) ?? t("acct.p.skodunin-thin", "Skoðunin þín"),

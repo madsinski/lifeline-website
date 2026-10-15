@@ -95,16 +95,33 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
   const muscleKey = (item.muscles ?? []).map((m) => m.toLowerCase()).join(",");
   const muscles = useMemo(() => (muscleKey ? muscleKey.split(",") : []), [muscleKey]);
 
+  /**
+   * The search, settled. With the whole library open the search goes to the
+   * server: only 80 rows come back, so filtering those here could not find
+   * most of the 976 and said "Engin æfing fannst" for exercises that exist.
+   */
+  const [dq, setDq] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDq(q.trim()), 250);
+    return () => clearTimeout(t);
+  }, [q]);
+  /** The library did not load — said so, with a retry, instead of "Hleð æfingum…" for ever. */
+  const [failed, setFailed] = useState(false);
+
   // Ask the server for the same muscles rather than pulling the whole library
   // down and filtering here; `showAll` is the only case that wants everything.
   const load = useCallback(async () => {
     const qs = muscleKey && !showAll ? `&muscles=${encodeURIComponent(muscleKey)}` : "";
-    const r = await api(`/api/hc/exercises?limit=80${qs}`);
-    const j = await r.json().catch(() => ({}));
+    const search = showAll && dq ? `&q=${encodeURIComponent(dq)}` : "";
+    const r = await api(`/api/hc/exercises?limit=80${qs}${search}`).catch(() => null);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
     // Out of the effect's own tick (react-hooks/set-state-in-effect).
-    const rows = (j.exercises as LibEx[]) ?? [];
-    setTimeout(() => setAll(rows), 0);
-  }, [api, muscleKey, showAll]);
+    const rows = (j?.exercises as LibEx[] | undefined) ?? null;
+    setTimeout(() => {
+      setFailed(rows === null);
+      setAll((cur) => rows ?? cur ?? []);
+    }, 0);
+  }, [api, muscleKey, showAll, dq]);
   useEffect(() => { void load(); }, [load]);
 
   const known = injuries.length > 0;
@@ -213,7 +230,14 @@ export default function SwapWizard({ api, item, onPick, onClose, injuries = [], 
             </div>
             <ul className="divide-y divide-hc-hairline">
               {all === null && <li className="p-4 text-sm text-hc-ink-2">Hleð æfingum…</li>}
-              {all !== null && suggestions.length === 0 && <li className="p-4 text-sm text-hc-ink-2">Engin æfing fannst.</li>}
+              {failed && (
+                <li role="alert" className="flex flex-wrap items-center gap-2 p-4 text-sm text-hc-bad-ink">
+                  Ekki tókst að sækja æfingarnar.
+                  <button type="button" onClick={() => { setFailed(false); void load(); }}
+                    className="min-h-11 font-semibold underline underline-offset-2">Reyna aftur</button>
+                </li>
+              )}
+              {all !== null && !failed && suggestions.length === 0 && <li className="p-4 text-sm text-hc-ink-2">Engin æfing fannst.</li>}
               {suggestions.map((e) => (
                 <li key={e.id}>
                   <button type="button" onClick={() => onPick(e)} className="flex w-full items-center gap-3 p-3 text-left hover:bg-orange-50">

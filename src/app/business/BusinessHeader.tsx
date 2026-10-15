@@ -133,6 +133,7 @@ export default function BusinessHeader({ crumbs = [], currentCompanyId, minimal,
         <LanguagePicker />
         {!minimal && email && (
           <button
+            type="button"
             onClick={signOut}
             className="inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 border border-gray-200 rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 transition-colors"
           >

@@ -16,6 +16,8 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   const [scrolled, setScrolled] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [acctOpen, setAcctOpen] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   // Only company admins see the business account link.
   const [hasBusiness, setHasBusiness] = useState(false);
   const navItems = initialItems ?? NAV_ITEMS;
@@ -56,6 +58,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
     };
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSignedIn(!!session?.user);
       if (session?.user) {
         loadUserName(session.user.id, session.user.email ?? undefined);
         const [primary, coadmin] = await Promise.all([
@@ -68,10 +71,12 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(!!session?.user);
       if (session?.user) {
         loadUserName(session.user.id, session.user.email ?? undefined);
       } else {
         setUserName(null);
+        setHasBusiness(false);
       }
     });
     return () => subscription.unsubscribe();
@@ -79,8 +84,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
 
   // Close mobile menu and refresh user name on route change
   useEffect(() => {
-    setMobileOpen(false);
-    setAcctOpen(false);
+    const close = setTimeout(() => { setMobileOpen(false); setAcctOpen(false); }, 0);
     // Refresh name from DB when navigating (catches profile edits)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -96,6 +100,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
           });
       }
     });
+    return () => clearTimeout(close);
   }, [pathname]);
 
   // Survey/research/contract pages and the standalone legal pages each
@@ -202,11 +207,26 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                       {t("nav.business_account", "Fyrirtækjaaðgangur")}
                     </Link>}
-                    <button type="button" onClick={async () => { setAcctOpen(false); await supabase.auth.signOut(); window.location.href = "/account/login"; }}
-                      className="flex w-full items-center gap-3 border-t border-gray-100 px-4 py-3 text-left text-sm text-gray-800 hover:bg-gray-50">
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                      {t("nav.signout", "Skrá út")}
-                    </button>
+                    {/* Signed out, "Skrá út" did nothing visible; offer the way in instead. */}
+                    {signedIn ? (
+                      <button type="button" disabled={signingOut}
+                        onClick={async () => {
+                          setSigningOut(true);
+                          await supabase.auth.signOut().catch(() => null);
+                          setAcctOpen(false);
+                          window.location.href = "/account/login";
+                        }}
+                        className="flex w-full items-center gap-3 border-t border-gray-100 px-4 py-3 text-left text-sm text-gray-800 hover:bg-gray-50 disabled:opacity-60">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        {signingOut ? t("nav.signingout", "Skrái út…") : t("nav.signout", "Skrá út")}
+                      </button>
+                    ) : (
+                      <Link href="/account/login" onClick={() => setAcctOpen(false)}
+                        className="flex items-center gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+                        {t("nav.signin", "Skrá inn")}
+                      </Link>
+                    )}
                   </div>
                 </>
               )}
@@ -215,9 +235,11 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
 
           {/* Mobile hamburger */}
           <button
+            type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
             className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Toggle menu"
+            aria-label={mobileOpen ? t("nav.close_menu", "Loka valmynd") : t("nav.open_menu", "Opna valmynd")}
+            aria-expanded={mobileOpen}
           >
             <svg
               className="w-6 h-6 text-[#1F2937]"

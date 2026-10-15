@@ -69,6 +69,9 @@ function ToSignup() {
 function NewPassword() {
   const { t } = useI18n();
   const router = useRouter();
+  /* Business admins reset from /business/login with next=/business/account;
+     everyone else lands in the app. */
+  const next = safeNextPath(useSearchParams().get("next"));
   const [ready, setReady] = useState<boolean | null>(null);
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
@@ -91,7 +94,7 @@ function NewPassword() {
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);
     if (error) { setErr(authErrorIs(error)); return; }
-    router.push("/app");
+    router.push(next || "/app");
   };
   return (
     <AuthShell>
@@ -171,7 +174,13 @@ function AccountLoginContent() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pin: value }),
-    });
+    }).catch(() => null);
+    if (!r) {
+      setLoading(false);
+      setPin("");
+      setPinError("Engin tenging. Athugaðu netið og reyndu aftur.");
+      return;
+    }
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
       setLoading(false);
@@ -210,17 +219,21 @@ function AccountLoginContent() {
     await proceed();
   };
 
+  const [resetBusy, setResetBusy] = useState(false);
   const handleForgotPassword = async () => {
+    if (resetBusy) return;
     if (!email.trim()) {
       setError(t("acct.login.emailfirst", "Sláðu fyrst inn netfangið þitt."));
       return;
     }
     setError("");
     setInfo("");
+    setResetBusy(true);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       email.trim(),
       { redirectTo: `${window.location.origin}/account/login?nytt=1` },
     );
+    setResetBusy(false);
     if (resetError) setError(authErrorIs(resetError));
     else setInfo(t("acct.login.resetsent", "Við sendum þér hlekk til að velja nýtt lykilorð."));
   };
@@ -299,7 +312,9 @@ function AccountLoginContent() {
           {unconfirmed && (
             <ResendConfirmation
               email={email}
-              redirectTo={typeof window !== "undefined" ? `${window.location.origin}${nextPath || "/app"}` : ""}
+              /* No fragment: the confirmation link puts its own tokens in the
+                 hash, and a #askrift there would collide with them. */
+              redirectTo={typeof window !== "undefined" ? `${window.location.origin}${(nextPath || "/app").split("#")[0]}` : ""}
             />
           )}
         </form>
@@ -312,8 +327,9 @@ function AccountLoginContent() {
               {t("acct.login.pin", "Skrá inn með PIN")}
             </button>
           )}
-          <button type="button" onClick={() => void handleForgotPassword()}
-            className="block w-full text-sm font-medium text-hc-ink-2 hover:text-hc-ink">
+          <button type="button" onClick={() => void handleForgotPassword()} disabled={resetBusy} aria-busy={resetBusy}
+            className="flex w-full items-center justify-center gap-2 text-sm font-medium text-hc-ink-2 hover:text-hc-ink disabled:opacity-60">
+            {resetBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
             {t("acct.login.forgot", "Gleymt lykilorð?")}
           </button>
         </div>

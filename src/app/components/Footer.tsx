@@ -23,7 +23,7 @@ export default function Footer() {
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -33,8 +33,10 @@ export default function Footer() {
         body: JSON.stringify({ email, source: "footer" }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body?.error || t("footer.newsletter.error", "Ekki tókst að skrá. Reyndu aftur."));
+        /* The route's messages are English only; say it in the page's language. */
+        setError(res.status === 400
+          ? t("footer.newsletter.invalid", "Netfangið virðist ekki gilt.")
+          : t("footer.newsletter.error", "Ekki tókst að skrá. Reyndu aftur."));
         setSubmitting(false);
         return;
       }
@@ -66,7 +68,7 @@ export default function Footer() {
               </p>
             </div>
             {subscribed ? (
-              <div className="flex items-center gap-2 text-[#10B981] font-medium">
+              <div role="status" className="flex items-center gap-2 text-[#10B981] font-medium">
                 <svg className="w-5 h-5 success-checkmark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
@@ -92,7 +94,7 @@ export default function Footer() {
                     {submitting ? "…" : t('footer.newsletter.submit', 'Gerast áskrifandi')}
                   </button>
                 </form>
-                {error && <p className="text-xs text-red-400">{error}</p>}
+                {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
               </div>
             )}
           </div>

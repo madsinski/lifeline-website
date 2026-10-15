@@ -103,7 +103,7 @@ function DoctorReview({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; r
       <p>Send {dayTime(j.doctor_review_requested_at)}.</p>
       {j.doctor_review_note && <p className="mt-1 whitespace-pre-line">„{j.doctor_review_note}“</p>}
       {!isDoctor && <p className="mt-1">Læknir fær skeyti og afgreiðir hana hér.</p>}
-      {err && <p className="mt-1 font-semibold">{err}</p>}
+      {err && <p role="alert" className="mt-1 font-semibold">{err}</p>}
     </Alert>
   );
 }

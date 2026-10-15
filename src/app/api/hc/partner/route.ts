@@ -164,11 +164,18 @@ export async function POST(req: NextRequest) {
   }
 
   if (!partnerId) {
-    await supabaseAdmin.from("clients")
+    const { error } = await supabaseAdmin.from("clients")
       .update({ accountability_partner_id: null, accountability_partner_name: null, accountability_partner_score: null })
       .eq("id", user.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     await hcAudit(`self:${user.id}`, "accountability_partner_cleared", null, {});
     return NextResponse.json({ ok: true, partner: null });
+  }
+
+  // A uuid and nothing else: it is interpolated into the .or() filter
+  // below, and a crafted string there could rewrite the friendship check.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(partnerId)) {
+    return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
 
   // Accepted friendship in either direction, or nothing. Without this, any
@@ -185,11 +192,12 @@ export async function POST(req: NextRequest) {
   const { data: them } = await supabaseAdmin
     .from("clients").select("full_name").eq("id", partnerId).maybeSingle();
 
-  await supabaseAdmin.from("clients").update({
+  const { error: setErr } = await supabaseAdmin.from("clients").update({
     accountability_partner_id: partnerId,
     accountability_partner_name: (them?.full_name as string) ?? null,
     accountability_partner_score: 0,
   }).eq("id", user.id);
+  if (setErr) return NextResponse.json({ error: setErr.message }, { status: 500 });
 
   // Choosing a partner means another member starts seeing a figure about
   // you, so it is written to the audit trail like any other sharing act.

@@ -17,6 +17,8 @@ import { fmtDate, fmtTime } from "@/app/components/account/ui/dates";
 import { fmtWeekdayShort } from "./format";
 import { hcBtn, hcCard, hcInput } from "./ui";
 import { MEASURE_IS, MEASURE_MINUTES, bookingLabel, bookingMinutes } from "@/lib/hc/bookings";
+import { useDialog } from "@/app/components/account/ui";
+import { useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -71,6 +73,9 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
      different answer each time for no gain — the split only has to be right
      as of the data it is splitting. */
   const [asOf, setAsOf] = useState(0);
+  const [loadErr, setLoadErr] = useState(false);
+  const dialog = useDialog();
+  const toast = useToast();
 
   const path = `/api/vinnustod/journeys/${journeyId}/bookings`;
 
@@ -80,13 +85,15 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
     /* Deferred out of the effect's tick, as the other workstation panels
        do it — the React Compiler lint rejects a synchronous setState here. */
     const now = Date.now();
-    setTimeout(() => { setRows(body?.bookings ?? []); setAsOf(now); }, 0);
+    /* A failed load is not "nothing booked" — that told a coach the client
+       had no call when the list simply never arrived. */
+    setTimeout(() => { setLoadErr(!body); setRows(body?.bookings ?? []); setAsOf(now); }, 0);
   }, [api, path]);
 
   useEffect(() => { void load(); }, [load]);
 
   const create = async () => {
-    if (!adding || !day) return;
+    if (!adding || !day || busy) return;
     setBusy("new"); setErr(null);
     const starts_at = new Date(`${day}T${time}:00`).toISOString();
     const r = await api(path, {
@@ -96,20 +103,42 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
     setBusy(null);
     if (!r?.ok) {
       const j = r ? await r.json().catch(() => ({})) : {};
-      setErr(j.error === "no_items" ? "Veldu að minnsta kosti eina mælingu."
+      setErr(!r ? "Engin tenging. Athugaðu netið og reyndu aftur."
+        : j.error === "no_items" ? "Veldu að minnsta kosti eina mælingu."
         : j.error === "bad_time" ? "Ógild dagsetning."
         : "Bókunin fór ekki inn. Reyndu aftur.");
       return;
     }
+    const label = bookingLabel(adding, adding === "measurement" ? items : null);
     setAdding(null); setDay(""); setItems([]);
     await load();
+    toast.show(`Bókað: ${label}.`);
   };
 
-  const patch = async (booking_id: string, change: Record<string, unknown>) => {
-    setBusy(booking_id);
-    await api(path, { method: "PATCH", body: JSON.stringify({ booking_id, ...change }) }).catch(() => null);
+  /* Cancelling tells the client's calendar too (syncBoth on the server), so
+     it is asked first; and a cancel that did not go through says so instead
+     of leaving the row looking cancelled-pending forever. */
+  const cancel = async (b: Booking) => {
+    if (busy) return;
+    const label = bookingLabel(b.kind, b.items);
+    const w = whenLabel(b.starts_at, asOf);
+    const ok = await dialog.confirm({
+      title: `Afboða ${label.toLowerCase()}?`,
+      body: `${w.lead} · ${w.rest}. Tíminn fer úr dagatali skjólstæðingsins.`,
+      confirmLabel: "Afboða",
+      cancelLabel: "Halda bókun",
+      tone: "danger",
+    });
+    if (!ok) return;
+    setBusy(b.id);
+    const r = await api(path, { method: "PATCH", body: JSON.stringify({ booking_id: b.id, cancel: true }) }).catch(() => null);
     setBusy(null);
+    if (!r?.ok) {
+      toast.show(r ? "Ekki tókst að afboða. Reyndu aftur." : "Engin tenging. Afbókunin fór ekki í gegn.", { tone: "bad" });
+      return;
+    }
     await load();
+    toast.show(`Afboðað: ${label}.`);
   };
 
   if (rows === null) {
@@ -151,8 +180,8 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           )}
         </div>
         {!dim && (
-          <button type="button" onClick={() => void patch(b.id, { cancel: true })}
-            disabled={busy === b.id} aria-label={`Afboða ${bookingLabel(b.kind, b.items)}`}
+          <button type="button" onClick={() => void cancel(b)}
+            disabled={busy !== null} aria-label={`Afboða ${bookingLabel(b.kind, b.items)}`}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-hc-ink-3 hover:bg-hc-bad-surface hover:text-hc-bad-ink disabled:opacity-50">
             {busy === b.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <X className="h-4 w-4" aria-hidden />}
           </button>
@@ -211,7 +240,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
               : `${bookingMinutes(adding, items)} mínútur í dagbókinni.`}
           </p>
 
-          {err && <p className="text-sm text-hc-bad-ink">{err}</p>}
+          {err && <p role="alert" className="text-sm font-semibold text-hc-bad-ink">{err}</p>}
 
           <div className="flex gap-2">
             <button type="button" onClick={() => void create()}
@@ -255,7 +284,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           )}
         </div>
 
-        {mine.soon.length === 0 && mine.past.length === 0 && !open && (
+        {mine.soon.length === 0 && mine.past.length === 0 && !open && !loadErr && (
           <p className="px-1 pb-1 text-sm text-hc-ink-2">
             {kind === "video" ? "Ekkert myndsímtal bókað." : "Engin mæling bókuð."}
           </p>
@@ -274,6 +303,12 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
 
   return (
     <div className="space-y-3">
+      {loadErr && (
+        <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">
+          Náði ekki í bókanirnar.{" "}
+          <button type="button" onClick={() => { setRows(null); void load(); }} className="font-semibold underline underline-offset-2">Reyna aftur</button>
+        </p>
+      )}
       {section("video", "Myndsímtöl", <Video className="h-4 w-4" aria-hidden />)}
       {section("measurement", "Mælingar", <CalendarClock className="h-4 w-4" aria-hidden />)}
     </div>

@@ -29,8 +29,13 @@ export default function ContactView(props: ContactViewProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (sending) return;
     setError(null);
     setSending(true);
+    /* The route answers in English; the page is Icelandic by default. */
+    const fail = locale === "en"
+      ? "Could not send your message. Please try again or email us directly."
+      : "Ekki tókst að senda skilaboðin. Reyndu aftur eða sendu okkur tölvupóst.";
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -38,11 +43,16 @@ export default function ContactView(props: ContactViewProps) {
         body: JSON.stringify(formData),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(j.error || "Could not send your message. Please try again."); return; }
+      if (!res.ok) {
+        setError(res.status === 400
+          ? (locale === "en" ? (j.error || fail) : "Fylltu út alla reitina og gilt netfang.")
+          : fail);
+        return;
+      }
       setSubmitted(true);
       setFormData({ name: "", email: "", subject: "", message: "", company: "" });
     } catch {
-      setError("Could not send your message. Please try again.");
+      setError(fail);
     } finally {
       setSending(false);
     }
@@ -70,13 +80,13 @@ export default function ContactView(props: ContactViewProps) {
             <div>
               <h2 className="text-2xl font-bold text-[#1F2937] mb-6">{c.form_title}</h2>
               {submitted ? (
-                <div className="bg-[#10B981]/5 border border-[#10B981]/20 rounded-2xl p-8 text-center">
+                <div role="status" className="bg-[#10B981]/5 border border-[#10B981]/20 rounded-2xl p-8 text-center">
                   <div className="w-16 h-16 rounded-full bg-[#10B981]/10 flex items-center justify-center mx-auto mb-4 success-checkmark">
                     <svg className="w-8 h-8 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                   </div>
                   <h3 className="text-lg font-semibold text-[#1F2937] mb-2">{c.form_success_title}</h3>
                   <p className="text-sm text-[#6B7280] mb-6">{c.form_success_desc}</p>
-                  <button onClick={() => setSubmitted(false)} className="text-sm font-medium text-[#10B981] hover:text-[#047857] transition-colors duration-200">{c.form_send_another}</button>
+                  <button type="button" onClick={() => setSubmitted(false)} className="text-sm font-medium text-[#10B981] hover:text-[#047857] transition-colors duration-200">{c.form_send_another}</button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -100,9 +110,9 @@ export default function ContactView(props: ContactViewProps) {
                     <label htmlFor="company">Company</label>
                     <input type="text" id="company" tabIndex={-1} autoComplete="off" value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
                   </div>
-                  {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</p>}
+                  {error && <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">{error}</p>}
                   <button type="submit" disabled={sending} className="w-full sm:w-auto px-8 py-3.5 bg-[#10B981] text-white font-semibold rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 disabled:opacity-60 disabled:cursor-not-allowed">
-                    {sending ? "…" : c.form_submit}
+                    {sending ? (locale === "en" ? "Sending…" : "Sendi…") : c.form_submit}
                   </button>
                 </form>
               )}

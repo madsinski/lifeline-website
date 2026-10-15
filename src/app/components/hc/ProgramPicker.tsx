@@ -17,11 +17,15 @@ const LEVEL: Record<string, string> = { beginner: "Byrjendur", intermediate: "Mi
 
 export function usePrograms(api: Api) {
   const url = "/api/hc/library?kind=programs";
-  const [p, setP] = useState<{ exercise: ProgramRow[]; nutrition: ProgramRow[] } | null>(() => cache.peek<{ exercise: ProgramRow[]; nutrition: ProgramRow[] }>(url)?.body ?? null);
+  const [p, setP] = useState<{ exercise: ProgramRow[]; nutrition: ProgramRow[]; failed?: boolean } | null>(() => cache.peek<{ exercise: ProgramRow[]; nutrition: ProgramRow[] }>(url)?.body ?? null);
   useEffect(() => {
     (async () => {
-      const r = await cache.load(api, url);
-      if (r.status < 400) setP(r.body as { exercise: ProgramRow[]; nutrition: ProgramRow[] });
+      /* A failed read (or a dropped connection, which threw) used to leave
+         "Hleð…" up for good. `failed` lets the picker say so; the empty
+         lists keep every existing reader of this hook working as before. */
+      const r = await cache.load(api, url).catch(() => null);
+      if (r && r.status < 400) setP(r.body as { exercise: ProgramRow[]; nutrition: ProgramRow[] });
+      else setP((cur) => cur ?? { exercise: [], nutrition: [], failed: true });
     })();
   }, [api]);
   return p;
@@ -68,6 +72,7 @@ export default function ProgramPicker({ api, kind, current, onPick, onClose }: {
       onClose={onClose} max="max-w-3xl" canvas>
       <div className="p-4">
         {!programs && <p className="text-sm text-hc-ink-2">Hleð…</p>}
+        {programs?.failed && <p role="alert" className="text-sm text-hc-bad-ink">Ekki tókst að sækja áætlanirnar. Athugaðu nettenginguna og reyndu aftur.</p>}
         <ProgramList rows={rows} current={current} onPick={(k) => { onPick(k); onClose(); }} tone={kind} />
         {kind === "exercise" && <p className="mt-3 text-xs text-hc-ink-2">Ný áætlun byrjar á upphaflegu dögunum og æfingunum; þú getur svo raðað henni að þér.</p>}
       </div>

@@ -4,7 +4,8 @@
 // and its confirmation, payments, plan adherence and the audit trail.
 
 import { useState } from "react";
-import { Bell, Check, Droplet, Ruler, Send, Stethoscope } from "lucide-react";
+import { Bell, Check, Droplet, Loader2, Ruler, Send, Stethoscope } from "lucide-react";
+import { useDialog } from "@/app/components/account/ui";
 import ResultsCard, { sexOf } from "@/app/components/hc/ResultsCard";
 import ReportView from "@/app/components/hc/ReportView";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
@@ -14,6 +15,32 @@ import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar } from "@/lib/hc/types";
 import { day, dayTime, isDate, minutesSince, wsBtn } from "../format";
 import type { Detail, Record_ } from "../tasks";
+
+/*
+ * One action's outcome. These buttons used to print a failure in the same
+ * green as a success ("Áminning send." and "Sending mistókst." looked the
+ * same), and the manual-record buttons said nothing at all.
+ */
+type Outcome = { ok: boolean; text: string } | null;
+function useAction(record: Record_) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [out, setOut] = useState<Outcome>(null);
+  const run = async (key: string, payload: Record<string, unknown>, ok: string) => {
+    if (busy) return;
+    setBusy(key); setOut(null);
+    const e = await record(payload);
+    setBusy(null);
+    setOut(e ? { ok: false, text: e } : { ok: true, text: ok });
+  };
+  return { busy, out, run };
+}
+function OutcomeLine({ out }: { out: Outcome }) {
+  if (!out) return null;
+  return out.ok
+    ? <p role="status" className="text-sm text-hc-ok-ink">{out.text}</p>
+    : <p role="alert" className="text-sm font-semibold text-hc-bad-ink">{out.text}</p>;
+}
+const Spin = () => <Loader2 className="h-4 w-4 animate-spin" aria-hidden />;
 
 /** The report panel's one-line status, under its title on Skýrsla. */
 export function resultsStatus(d: Detail): string {
@@ -31,16 +58,18 @@ export function ResultsStep({ d, api, isDoctor, record, reload }: {
 }) {
   const j = d.journey;
   const bloodDone = !!(j.blood_test_done_at || j.blood_results_at);
+  const manual = useAction(record);
   return (
     <div className="space-y-4">
       {/* Tests recorded by hand when no partner system does it. */}
       {!d.report && (!bloodDone || !j.measurements_done_at) && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-hc-sunken px-3 py-2 text-sm">
           <span className="text-hc-ink-2">Skrá handvirkt:</span>
-          {!bloodDone && <button type="button" onClick={() => void record({ event: "blood_test_done" })} className={wsBtn.secondary}><Droplet className="h-4 w-4" aria-hidden /> Blóðprufa tekin</button>}
-          {!j.measurements_done_at && <button type="button" onClick={() => void record({ event: "measurements_done" })} className={wsBtn.secondary}><Ruler className="h-4 w-4" aria-hidden /> Mælingar gerðar</button>}
+          {!bloodDone && <button type="button" disabled={!!manual.busy} onClick={() => void manual.run("blood", { event: "blood_test_done" }, "Blóðprufa skráð.")} className={wsBtn.secondary}>{manual.busy === "blood" ? <Spin /> : <Droplet className="h-4 w-4" aria-hidden />} Blóðprufa tekin</button>}
+          {!j.measurements_done_at && <button type="button" disabled={!!manual.busy} onClick={() => void manual.run("measure", { event: "measurements_done" }, "Mælingar skráðar.")} className={wsBtn.secondary}>{manual.busy === "measure" ? <Spin /> : <Ruler className="h-4 w-4" aria-hidden />} Mælingar gerðar</button>}
         </div>
       )}
+      <OutcomeLine out={manual.out} />
       {d.compare && <BeforeAfter c={d.compare} />}
       {d.report && (
         <>
@@ -61,8 +90,8 @@ export function ResultsStep({ d, api, isDoctor, record, reload }: {
 
 function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; record: Record_ }) {
   const j = d.journey;
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const { busy, out, run } = useAction(record);
+  const dialog = useDialog();
   // Confirmed: the remaining question is whether the client has been told it
   // is there. The report lives on their account, so sharing it is a message
   // pointing at it rather than an attachment.
@@ -80,17 +109,12 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
         ) : (
           <p className="text-sm text-hc-ink-2">Skjólstæðingurinn hefur ekki fengið sérstaka ábendingu um að hún sé tilbúin.</p>
         )}
-        <button type="button" disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            const e = await record({ action: "share_report" });
-            setBusy(false);
-            setMsg(e ?? "Skýrslunni deilt — skjólstæðingurinn fékk skilaboð.");
-          }}
+        <button type="button" disabled={!!busy}
+          onClick={() => void run("share", { action: "share_report" }, "Skýrslunni deilt — skjólstæðingurinn fékk skilaboð.")}
           className={shared ? wsBtn.secondary : wsBtn.primary}>
-          <Send className="h-4 w-4" aria-hidden /> {shared ? "Senda aftur" : "Deila með skjólstæðingi"}
+          {busy === "share" ? <Spin /> : <Send className="h-4 w-4" aria-hidden />} {shared ? "Senda aftur" : "Deila með skjólstæðingi"}
         </button>
-        {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
+        <OutcomeLine out={out} />
       </div>
     );
   }
@@ -100,8 +124,17 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
       {isDoctor ? (
         <>
           <p className="text-sm text-hc-ink-2">Farðu yfir gildin að ofan og staðfestu skýrsluna. Skjólstæðingurinn fær tölvupóst um leið.</p>
-          <button type="button" disabled={busy} onClick={async () => { setBusy(true); const e = await record({ event: "report_generated" }); setBusy(false); setMsg(e ?? "Skýrsla staðfest."); }}
-            className={`${wsBtn.primary} w-full sm:w-auto`}><Stethoscope className="h-4 w-4" aria-hidden /> Staðfesta skýrsluna</button>
+          <button type="button" disabled={!!busy}
+            onClick={async () => {
+              /* The client is emailed the moment this is pressed. */
+              const ok = await dialog.confirm({
+                title: "Staðfesta skýrsluna?",
+                body: "Skjólstæðingurinn fær tölvupóst um að skýrslan sé tilbúin.",
+                confirmLabel: "Staðfesta",
+              });
+              if (ok) void run("confirm", { event: "report_generated" }, "Skýrsla staðfest.");
+            }}
+            className={`${wsBtn.primary} w-full sm:w-auto`}>{busy === "confirm" ? <Spin /> : <Stethoscope className="h-4 w-4" aria-hidden />} Staðfesta skýrsluna</button>
         </>
       ) : (
         <p className="text-sm text-hc-warn-ink">
@@ -110,14 +143,13 @@ function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; rec
             : `Svörin komu fyrir ${minutesSince(j.blood_results_at)} mínútum. Læknir fær SMS ef skýrslan er ekki staðfest innan fimm mínútna.`}
         </p>
       )}
-      {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
+      <OutcomeLine out={out} />
     </div>
   );
 }
 
 export function Orders({ d, record }: { d: Detail; record: Record_ }) {
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const { busy, out, run } = useAction(record);
   return (
     <div className="space-y-3">
       <ul className="space-y-1.5 text-sm">
@@ -133,10 +165,10 @@ export function Orders({ d, record }: { d: Detail; record: Record_ }) {
         ))}
       </ul>
       {d.journey.stage === "protocol" && (
-        <button type="button" disabled={busy} onClick={async () => { setBusy(true); const e = await record({ action: "remind_client" }); setBusy(false); setMsg(e ?? "Áminning send."); }}
-          className={wsBtn.primary}><Bell className="h-4 w-4" aria-hidden /> Senda áminningu um virkjun</button>
+        <button type="button" disabled={!!busy} onClick={() => void run("remind", { action: "remind_client" }, "Áminning send.")}
+          className={wsBtn.primary}>{busy ? <Spin /> : <Bell className="h-4 w-4" aria-hidden />} Senda áminningu um virkjun</button>
       )}
-      {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
+      <OutcomeLine out={out} />
     </div>
   );
 }

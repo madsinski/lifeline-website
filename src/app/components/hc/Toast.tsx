@@ -48,7 +48,15 @@ export function useToast(): ToastApi {
   return useContext(ToastContext) ?? FALLBACK;
 }
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
+export function ToastProvider({ children, dockOffset = "var(--hc-dock-offset)" }: {
+  children: React.ReactNode;
+  /**
+   * What the toast clears at the bottom. The default is /app's docked
+   * JourneyNav; a page without that nav (/account) passes just the
+   * safe-area inset, or the toast floats a nav-height above nothing.
+   */
+  dockOffset?: string;
+}) {
   const [item, setItem] = useState<ToastItem | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seq = useRef(0);
@@ -86,7 +94,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         style={{
           bottom: keyboard.open
             ? `calc(${keyboard.inset}px + 12px)`
-            : "calc(var(--hc-dock-offset) + 12px)",
+            : `calc(${dockOffset} + 12px)`,
         }}>
         <div role="status" aria-live="polite" className="flex w-full max-w-md justify-center">
           {item && item.tone !== "bad" && <ToastCard key={item.id} item={item} dismiss={dismiss} />}

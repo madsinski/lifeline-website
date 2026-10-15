@@ -25,6 +25,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ClipboardList, LayoutDashboard, Smartphone, UserCog } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { ToastProvider, useToast } from "../components/hc/Toast";
 import ContextSwitcher from "../components/ContextSwitcher";
 import { SignOutButton } from "../components/account/AccountCards";
 import { AccountLoading, AccountShell, DialogProvider, type ShellNavItem } from "../components/account/ui";
@@ -70,6 +71,9 @@ function AccountPageInner() {
   const section = sectionFrom(searchParams);
   const { user, loading, state, patch } = useAccountData(upgradeParam);
   const [modal, setModal] = useState<ModalState>(null);
+  /* Pickers and forms that close on success say so here, since the button
+     that was pressed is gone; their failures stay inside the modal. */
+  const toast = useToast();
 
   /* Other parameters (an old ?upgrade=) are carried along unchanged, so
      switching tabs never re-runs the data load. */
@@ -150,46 +154,52 @@ function AccountPageInner() {
       )}
       {modal?.kind === "bloodTestDay" && state.companyId && (
         <BloodTestDayPickerModal companyId={state.companyId} days={state.upcomingBloodDays} existing={state.myBloodTestBooking} onClose={close}
-          onBooked={(b) => patch({ myBloodTestBooking: b })}
-          onCancelled={() => patch({ myBloodTestBooking: null })} />
+          onBooked={(b) => { patch({ myBloodTestBooking: b }); toast.show(t("acc.bt.booked", "Dagurinn fyrir blóðprufuna er skráður.")); }}
+          onCancelled={() => { patch({ myBloodTestBooking: null }); toast.show(t("acc.bt.cancelled", "Dagurinn fyrir blóðprufuna var afbókaður.")); }} />
       )}
       {modal?.kind === "doctorSlot" && (
         <DoctorSlotPickerModal slots={state.upcomingDoctorSlots} existing={state.myDoctorSlot} onClose={close}
           onBooked={async () => {
             const [mine, open] = await Promise.all([fetchMyDoctorSlot(user.id), fetchOpenDoctorSlots()]);
             patch({ myDoctorSlot: mine, upcomingDoctorSlots: open });
+            toast.show(t("acc.dr.booked", "Viðtalið við lækninn er bókað."));
           }}
-          onCancelled={() => patch({ myDoctorSlot: null })} />
+          onCancelled={() => { patch({ myDoctorSlot: null }); toast.show(t("acc.doctor.cancelled", "Viðtalið við lækninn var afbókað.")); }} />
       )}
       {modal?.kind === "biody" && (
-        <BiodyProfileModal userId={user.id} onClose={close} onActivated={() => patch({ biodyActivated: true })} />
+        <BiodyProfileModal userId={user.id} onClose={close} onActivated={() => patch({ biodyActivated: true })}
+          onSaved={({ sex, dob }) => patch((st) => ({ profile: { ...st.profile, sex, dob: dob || st.profile.dob } }))} />
       )}
       {modal?.kind === "refundRequest" && state.booking.id && (
         <RefundRequestModal bookingId={state.booking.id} clientId={user.id} amountIsk={state.booking.amount}
           includeCheckinAddon={state.bodyCompPackage === "checkin" && !!state.checkinDoctorAddonPaidAt}
           scheduledAt={state.booking.scheduledAt} onClose={close}
-          onSubmitted={(id) => { patch({ pendingRefundRequestId: id }); close(); }} />
+          onSubmitted={(id) => { patch({ pendingRefundRequestId: id }); close(); toast.show(t("acc.rr.sent", "Afbókunarbeiðnin er send. Við svörum í tölvupósti innan eins virks dags.")); }} />
       )}
       {modal?.kind === "wellbeing" && (
         <WellbeingSurveyModal companyId={state.companyId} onClose={close}
-          onSubmitted={() => patch({ lastWellbeingAt: new Date().toISOString() })} />
+          onSubmitted={() => { patch({ lastWellbeingAt: new Date().toISOString() }); toast.show(t("acc.survey.thanks", "Takk fyrir svörin.")); }} />
       )}
       {modal?.kind === "satisfaction" && (
         <SatisfactionSurveyModal companyId={state.companyId} context={modal.ctx} onClose={close}
-          onSubmitted={() => patch((s) => ({ satisfactionDone: { ...s.satisfactionDone, [modal.ctx]: true } }))} />
+          onSubmitted={() => { const ctx = modal.ctx; patch((s) => ({ satisfactionDone: { ...s.satisfactionDone, [ctx]: true } })); toast.show(t("acc.survey.thanks", "Takk fyrir svörin.")); }} />
       )}
     </AccountShell>
   );
 }
 
 /* Suspense for useSearchParams; the dialog provider so every confirm on the
-   page is the styled one. */
+   page is the styled one; the toast for "done" after a modal closes. */
 export default function AccountPage() {
   return (
     <Suspense fallback={<AccountLoading />}>
-      <DialogProvider>
-        <AccountPageInner />
-      </DialogProvider>
+      {/* No JourneyNav docked here: the toast sits on the bottom edge,
+          above the home indicator only. */}
+      <ToastProvider dockOffset="env(safe-area-inset-bottom, 0px)">
+        <DialogProvider>
+          <AccountPageInner />
+        </DialogProvider>
+      </ToastProvider>
     </Suspense>
   );
 }

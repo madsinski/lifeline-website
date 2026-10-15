@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
+import { authErrorIs } from "@/lib/auth-errors-is";
+import { safeNextPath } from "@/lib/signup-consent";
 
 export default function BusinessLoginPage() {
   return (
@@ -19,33 +21,41 @@ export default function BusinessLoginPage() {
 function BusinessLoginInner() {
   const router = useRouter();
   const search = useSearchParams();
-  const next = search.get("next") || "/business";
+  /* Same-origin only: "//evil.example" also starts with "/". */
+  // Without a next, the business account — /business is the marketing page,
+  // and landing back on it after signing in looked like nothing happened.
+  const next = safeNextPath(search.get("next")) || "/business/account";
   const initialMode = search.get("mode") === "signup" ? "signup" : "login";
   const { t } = useI18n();
 
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
-  const [email, setEmail] = useState("");
+  // /business/claim sends people here with ?email=…&claimed=1.
+  const [email, setEmail] = useState(() => search.get("email") || "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
+  const [info, setInfo] = useState(() => search.get("claimed") === "1"
+    ? t("b2b.login.claimed", "Aðgangurinn er tilbúinn. Skráðu þig inn með lykilorðinu sem þú valdir.")
+    : "");
   const [signupSent, setSignupSent] = useState(false);
   const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError("");
     setInfo("");
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (err) {
-      setError(err.message);
+      setLoading(false);
+      setError(authErrorIs(err));
       return;
     }
-    router.push(next.startsWith("/") ? next : "/business/account");
+    // Stays "Signing in…" until the next page takes over.
+    router.push(next);
   };
 
   const submitSignup = async (e: React.FormEvent) => {
@@ -54,6 +64,7 @@ function BusinessLoginInner() {
       setError(t("b2b.signup.password_mismatch", "Passwords don't match."));
       return;
     }
+    if (loading) return;
     setLoading(true);
     setError("");
     setInfo("");
@@ -63,7 +74,7 @@ function BusinessLoginInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, full_name: fullName }),
       });
-      const j = await res.json();
+      const j = await res.json().catch(() => ({}));
       if (res.status === 409 && j.error === "email_already_registered") {
         setError(t(
           "b2b.login.email_exists",
@@ -73,13 +84,19 @@ function BusinessLoginInner() {
         setLoading(false);
         return;
       }
-      if (!res.ok) throw new Error(j.detail || j.error || "Signup failed");
+      if (!res.ok) {
+        /* The route answers with codes, not sentences. */
+        setError(res.status === 400
+          ? t("b2b.signup.invalid", "Athugaðu netfangið og að lykilorðið sé minnst 12 stafir.")
+          : t("b2b.signup.failed", "Ekki tókst að stofna aðganginn. Reyndu aftur eftir smástund."));
+        return;
+      }
       // Account created UNCONFIRMED. A confirmation link was emailed (via
       // Resend). The user must click it to verify their address before they
       // can sign in and continue — so we don't auto-sign-in here.
       setSignupSent(true);
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
+      setError(t("b2b.signup.offline", "Engin tenging. Athugaðu netið og reyndu aftur."));
     } finally {
       setLoading(false);
     }
@@ -92,22 +109,29 @@ function BusinessLoginInner() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, resend: true }),
-    });
-    setResendStatus(res.ok ? "sent" : "error");
+    }).catch(() => null);
+    setResendStatus(res?.ok ? "sent" : "error");
   };
 
+  const [resetBusy, setResetBusy] = useState(false);
   const handleForgotPassword = async () => {
+    if (resetBusy) return;
     if (!email) {
       setError(t("b2b.login.enter_email_first", "Enter your email address first."));
       return;
     }
     setError("");
     setInfo("");
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/business`,
+    setResetBusy(true);
+    /* The link has to land somewhere that asks for the new password. It
+       used to land on /business, the marketing page, which signed the
+       person in and never let them choose one. */
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/account/login?nytt=1&next=${encodeURIComponent("/business/account")}`,
     });
+    setResetBusy(false);
     if (resetError) {
-      setError(resetError.message);
+      setError(authErrorIs(resetError));
     } else {
       setInfo(t("b2b.login.reset_sent", "Password reset link sent to your email."));
     }
@@ -213,12 +237,12 @@ function BusinessLoginInner() {
                   </div>
 
                   {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                       {error}
                     </div>
                   )}
                   {info && (
-                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+                    <div role="status" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
                       {info}
                     </div>
                   )}
@@ -233,8 +257,10 @@ function BusinessLoginInner() {
                 </form>
 
                 <button
-                  onClick={handleForgotPassword}
-                  className="block w-full text-center text-sm text-[#6B7280] hover:text-blue-600 mt-4 transition-colors"
+                  type="button"
+                  onClick={() => void handleForgotPassword()}
+                  disabled={resetBusy}
+                  className="block w-full text-center text-sm text-[#6B7280] hover:text-blue-600 mt-4 transition-colors disabled:opacity-60"
                 >
                   {t("b2b.login.forgot", "Forgot your password?")}
                 </button>
@@ -260,7 +286,7 @@ function BusinessLoginInner() {
                   >
                     {resendStatus === "sending" ? "Sending…" : resendStatus === "sent" ? "Confirmation re-sent ✓" : "Didn't get it? Resend confirmation email"}
                   </button>
-                  {resendStatus === "error" && <p className="text-xs text-red-600">Could not resend — try again shortly.</p>}
+                  {resendStatus === "error" && <p role="alert" className="text-xs text-red-600">Could not resend — try again shortly.</p>}
                   <button
                     type="button"
                     onClick={() => { setSignupSent(false); setMode("login"); setError(""); setInfo(""); }}
@@ -335,12 +361,12 @@ function BusinessLoginInner() {
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                     {error}
                   </div>
                 )}
                 {info && (
-                  <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+                  <div role="status" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
                     {info}
                   </div>
                 )}

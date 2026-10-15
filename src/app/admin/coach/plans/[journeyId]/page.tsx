@@ -8,6 +8,8 @@ import { useParams } from "next/navigation";
 import { useStaffGuard } from "@/lib/useStaffGuard";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import { adminApi } from "../../../hc-api";
+import { DialogProvider } from "@/app/components/account/ui/Modal";
+import { ToastProvider } from "@/app/components/hc/Toast";
 
 export default function AdminPlanBuilder() {
   const { journeyId } = useParams<{ journeyId: string }>();
@@ -17,7 +19,13 @@ export default function AdminPlanBuilder() {
   return (
     <div className="p-6">
       <Link href="/admin/coach/plans" className="mb-4 inline-block text-sm text-slate-500 hover:text-slate-800">← Aðgerðaáætlanir</Link>
-      <PlanBuilder journeyId={journeyId} api={adminApi} />
+      {/* The builder confirms before publishing (it emails the client) and
+          its reused components toast; both are styled only inside these. */}
+      <DialogProvider>
+        <ToastProvider>
+          <PlanBuilder journeyId={journeyId} api={adminApi} />
+        </ToastProvider>
+      </DialogProvider>
     </div>
   );
 }

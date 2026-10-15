@@ -18,6 +18,7 @@ import KnowledgeSearch from "./KnowledgeSearch";
 import { badgeClass } from "./Badge";
 import { hcBtn, hcCard, hcInput } from "./ui";
 import { sexOf } from "@/lib/hc/sex";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 export { sexOf };
 
@@ -92,6 +93,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   const [needsConsent, setNeedsConsent] = useState(false);
   /** Asking how the report got here, before the file dialog opens. */
   const [asking, setAsking] = useState(false);
+  const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   /**
    * How the report came to be here, which the actor states rather than the
@@ -117,10 +119,10 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
     for (const f of list) fd.append("files", f);
     if (allowAi) fd.append("allow_ai", "true");
     if (onBehalf === true) fd.append("on_behalf", "true");
-    const r = await api(`/api/vinnustod/journeys/${journeyId}/import`, { method: "POST", body: fd });
-    const j = await r.json().catch(() => ({}));
+    const r = await api(`/api/vinnustod/journeys/${journeyId}/import`, { method: "POST", body: fd }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setReading(false);
-    if (!r.ok) { setMsg(j.error || "Lesturinn mistókst."); return; }
+    if (!r?.ok) { setMsg(j.error || "Lesturinn mistókst."); return; }
     setPending(list);
     if (j.method === "needs-consent") { setWarnings(j.warnings ?? []); setNeedsConsent(true); return; }
     // A Lifeline report is stored whole on the server, so the surrounding
@@ -142,10 +144,10 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
     const values = found
       .filter((_, i) => take[i])
       .map((v) => ({ marker: v.slug ?? `x:${v.code}`, value: v.value, unit: v.unit, measured_at: foundDate ?? date, note: v.slug ? null : v.label }));
-    const r = await api(endpoint, { method: "POST", body: JSON.stringify({ journey_id: journeyId, values }) });
-    const j = await r.json().catch(() => ({}));
+    const r = await api(endpoint, { method: "POST", body: JSON.stringify({ journey_id: journeyId, values }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setMsg("Tókst ekki að vista."); return; }
+    if (!r?.ok) { setMsg("Tókst ekki að vista."); toast.show(SAVE_FAILED, { tone: "bad" }); return; }
     if (Array.isArray(j.refused) && j.refused.length) {
       // Said plainly rather than silently dropped: a value measured at the
       // station outranks one typed at home, and the person should know which.
@@ -154,17 +156,22 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
       return;
     }
     setFound(null); setMsg(`${values.length} gildi vistuð`);
+    toast.show(`${values.length} gildi vistuð`, { tone: "ok" });
     onSaved?.();
   };
 
+  const client = audience === "client";
   useEffect(() => {
     let live = true;
-    api("/api/vinnustod/knowledge")
+    /* The workstation's reference book is staff-only; a participant gets
+       the same entries from their own results route. Reading the staff one
+       here left the participant's form with no markers in it at all. */
+    api(client ? `${endpoint}?knowledge=1` : "/api/vinnustod/knowledge")
       .then((r) => (r.ok ? r.json() : { entries: [] }))
       .then((j) => { if (live) setEntries(j.entries ?? []); })
       .catch(() => { if (live) setEntries([]); });
     return () => { live = false; };
-  }, [api]);
+  }, [api, client, endpoint]);
 
   // Markers a nurse can record: reference entries with numeric bands.
   const markers = useMemo(
@@ -202,6 +209,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   );
 
   const save = async () => {
+    if (busy) return;
     setBusy(true); setMsg("");
     const values = Object.entries(draft).map(([marker, raw]) => ({
       marker,
@@ -209,11 +217,20 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
       unit: markers.find((m) => m.slug === marker)?.unit || null,
       measured_at: date || null,
     }));
-    const r = await api("/api/vinnustod/results", { method: "POST", body: JSON.stringify({ journey_id: journeyId, values }) });
+    /* `endpoint`, not a fixed path: this always wrote to the workstation's
+       /api/vinnustod/results, so a participant's own values (endpoint
+       /api/hc/results) were refused by a route they cannot use. */
+    const r = await api(endpoint, { method: "POST", body: JSON.stringify({ journey_id: journeyId, values }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setMsg("Tókst ekki að vista."); return; }
+    if (!r?.ok) { setMsg("Tókst ekki að vista."); toast.show(SAVE_FAILED, { tone: "bad" }); return; }
     setDraft({});
-    setMsg("Vistað");
+    const refused = Array.isArray(j.refused) ? j.refused.length : 0;
+    const said = refused
+      ? `Vistað. ${refused} gildi stóðu óbreytt — þau voru mæld hjá okkur.`
+      : "Vistað";
+    setMsg(said);
+    toast.show(said, { tone: "ok" });
     setEditing(false);
     onSaved?.();
   };
@@ -260,11 +277,14 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           <>
             <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
               onChange={(e) => { if (e.target.files?.length) void readReport(e.target.files); e.target.value = ""; }} />
-            <button type="button" onClick={() => setAsking(true)} disabled={reading}
+            {/* Staff only: it reads through the workstation's import route
+                and asks a question a participant cannot answer. A
+                participant's report goes in through ReportUpload. */}
+            {!client && <button type="button" onClick={() => setAsking(true)} disabled={reading}
               className={hcBtn.primary}>
               {reading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileUp className="h-4 w-4" aria-hidden />}
               {reading ? "Les skýrsluna…" : "Lesa úr skýrslu"}
-            </button>
+            </button>}
             {/* Was a pre-ticked checkbox. A box that arrives already ticked
                 records the default, not the person — so the question is asked
                 when the file is chosen instead, and this only reports back
@@ -374,10 +394,10 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                 <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline"}`}>
                   {String(v).replace(".", ",")}{e.unit ? ` ${e.unit}` : ""}
                 </span>
-                <button type="button" onClick={() => setLookup(`${e.title} ${v}`)} title={`Fletta upp ${e.title}`}
+                {!client && <button type="button" onClick={() => setLookup(`${e.title} ${v}`)} title={`Fletta upp ${e.title}`}
                   aria-label={`Fletta upp ${e.title}`} className="-my-1 grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
                   <BookOpen className="h-4 w-4" aria-hidden />
-                </button>
+                </button>}
               </li>
             );
           })}
@@ -397,7 +417,11 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
               </li>
             ))}
           </ul>
-          <p className="mt-1 text-[11px] text-hc-ink-3">Ekki í uppflettiritinu — engin viðmið reiknuð. Bættu við færslu í /admin/knowledge ef þetta á að flaggast.</p>
+          <p className="mt-1 text-[11px] text-hc-ink-3">
+            {client
+              ? "Engin viðmið eru skráð fyrir þessi gildi."
+              : "Ekki í uppflettiritinu — engin viðmið reiknuð. Bættu við færslu í /admin/knowledge ef þetta á að flaggast."}
+          </p>
         </div>
       )}
 
@@ -451,12 +475,17 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             </button>
             <button type="button" onClick={() => { setDraft({}); setEditing(false); setMsg(""); }}
               className={hcBtn.ghost}>Hætta við</button>
-            <span className="text-xs text-hc-ink-2">Skráð gildi sjást aðeins í vinnustöðinni og stjórnborði — sjúkraskráin er í Medalia.</span>
+            <span className="text-xs text-hc-ink-2">
+              {client
+                ? "Gildin eru merkt sem þín eigin. Mælingar sem gerðar voru hjá okkur standa óbreyttar."
+                : "Skráð gildi sjást aðeins í vinnustöðinni og stjórnborði — sjúkraskráin er í Medalia."}
+            </span>
           </div>
         </div>
       )}
 
-      <KnowledgeSearch api={api} open={lookup !== null} initialQuery={lookup ?? ""} onClose={() => setLookup(null)} />
+      {/* Reads the staff reference book, so not for a participant. */}
+      {!client && <KnowledgeSearch api={api} open={lookup !== null} initialQuery={lookup ?? ""} onClose={() => setLookup(null)} />}
     </section>
   );
 }

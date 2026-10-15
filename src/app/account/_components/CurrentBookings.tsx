@@ -177,7 +177,7 @@ export default function CurrentBookings({ s, cancelBusy, onChangeBcSlot, onChang
       ], note: t("acct.p.lestu-heilsufarsskyrsluna-thina-i-", "Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið.") }}
       actions={<>
         <Button size="sm" variant="secondary" icon={<Pencil className="h-3.5 w-3.5" aria-hidden />} onClick={onChangeDoctorSlot}>{t("acc.bk.change-time", "Breyta tíma")}</Button>
-        <Button size="sm" variant="dangerOutline" icon={<X className="h-3.5 w-3.5" aria-hidden />} onClick={onCancelDoctorSlot}>{t("acct.q.cancelbooking", "Afbóka")}</Button>
+        <Button size="sm" variant="dangerOutline" busy={cancelBusy} icon={<X className="h-3.5 w-3.5" aria-hidden />} onClick={onCancelDoctorSlot}>{t("acct.q.cancelbooking", "Afbóka")}</Button>
         <CalendarButtons ev={{
           title: `Lifeline — ${doctorTitle}`,
           start: new Date(myDoctorSlot.slot_at),

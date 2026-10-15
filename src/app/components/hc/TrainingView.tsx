@@ -69,14 +69,14 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   /** They did something else instead of this session. */
   onInstead?: (info: { label: string; modality: PSession["modality"]; session: PSession }) => void;
   /** Marking one of their own sessions done. */
-  onCompleteActivity?: (a: Activity) => void;
+  onCompleteActivity?: (a: Activity) => void | Promise<boolean | void>;
   onMoveActivity?: (id: string, weekday: number) => void;
   /** Per-session load, −2…+2. */
   onActivityLoad?: (id: string, load: number) => void;
   /** Change the time on one session, or clear it. */
   onActivityTime?: (id: string, at: string | null) => void;
   /** Saving the whole settings object from the changes sheet. */
-  onSaveTraining?: (next: import("@/lib/hc/adaptive-program").TrainingSettings) => void;
+  onSaveTraining?: (next: import("@/lib/hc/adaptive-program").TrainingSettings) => void | Promise<boolean | void>;
   onRemoveActivity?: (id: string) => void;
   /** Session and activity ids marked done today. */
   doneToday?: Set<string>;
@@ -121,6 +121,18 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   /** The weekday whose removal is waiting for a yes. */
   const [confirmRemove, setConfirmRemove] = useState<number | null>(null);
   const toast = useToast();
+  /**
+   * The session or activity whose "Ég gerði þetta" is being stored.
+   *
+   * Without it a second tap while the first was on its way stored the
+   * workout twice, and the button gave no sign anything was happening.
+   */
+  const [marking, setMarking] = useState<string | null>(null);
+  const mark = async (id: string, fn: () => unknown) => {
+    if (marking) return;
+    setMarking(id);
+    try { await fn(); } finally { setMarking(null); }
+  };
   const [openSession, setOpenSession] = useState<string | null>(() => view.sessions.find((s) => s.weekday === todayIdx)?.id ?? view.sessions[0]?.id ?? null);
   const mine = !personal.program_key || personal.program_key === exercise.key;
   /**
@@ -225,7 +237,8 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
                   items: itemsForFocus(a.focus, training, planStart ?? null, a.load ?? 0, a.slots),
                 } as PSession);
               } : undefined}
-              onComplete={onCompleteActivity} onRemove={onRemoveActivity} />
+              onComplete={onCompleteActivity ? (a) => void mark(a.id, () => onCompleteActivity(a)) : undefined}
+              busyId={marking} onRemove={onRemoveActivity} />
           )}
 
           {daySessions.map((s) => (
@@ -233,7 +246,14 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
               done={!!doneToday?.has(s.id)}
               // A ride has nothing to count, so it is ticked rather than run.
               onStart={needsRunner(s.items) ? () => setRunning(s) : undefined}
-              onDid={() => onFinish?.({ minutes: s.minutes ?? 45, rpe: s.modality === "hiit" ? 7 : 4, session: s })}
+              // Only where something stores it; without onFinish (the
+              // coach's view) the button said nothing and did nothing.
+              onDid={onFinish ? () => void mark(s.id, async () => {
+                const ok = await onFinish({ minutes: s.minutes ?? 45, rpe: s.modality === "hiit" ? 7 : 4, session: s });
+                // false means the page could not store it and has said so.
+                if (ok !== false) toast.show("Æfingin vistuð", { tone: "ok" });
+              }) : undefined}
+              busy={marking === s.id}
               onInstead={() => setSwapSession(s)}
               onToggle={() => setOpenSession(openSession === s.id ? null : s.id)}
               onRemove={onRemoveDay ? () => setConfirmRemove(s.weekday) : undefined}
@@ -550,11 +570,15 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           name={building.name} focus={building.focus} slots={building.slots ?? null}
           settings={training} planStart={planStart ?? null} load={building.load ?? 0}
           onClose={() => setBuilding(null)}
-          onSave={(keys) => {
-            onSaveTraining({
+          onSave={async (keys) => {
+            const ok = await onSaveTraining({
               ...training,
               activities: training.activities.map((x) => (x.id === building.id ? { ...x, slots: keys } : x)),
             });
+            // false: it did not store and the page has said so — stay open
+            // so the arrangement is not lost. true: say it landed.
+            if (ok === false) return;
+            if (ok === true) toast.show("Vistað", { tone: "ok" });
             setBuilding(null);
           }} />
       )}
@@ -586,11 +610,16 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
           onSwap={(slot, it) => setSwapItem({ slot, item: it })}
           onDone={async (info) => {
             const session = running;
-            setRunning(null);
+            // Nothing stores it here (the coach's view): just close.
+            if (!onFinish) { setRunning(null); return; }
             // The page owns the save; false from it means it did not land
-            // (and the page has said so). Anything else is a saved workout.
-            const ok = await onFinish?.({ ...info, session });
-            if (ok !== false) toast.show("Æfingin vistuð", { tone: "ok" });
+            // (and the page has said so) — the runner stays open on the
+            // rating so "Vista æfinguna" can be pressed again rather than
+            // the workout being lost. Anything else is a saved workout.
+            const ok = await onFinish({ ...info, session });
+            if (ok === false) return;
+            setRunning(null);
+            toast.show("Æfingin vistuð", { tone: "ok" });
           }} />
       )}
 
@@ -724,13 +753,15 @@ function ItemCard({ modality, tile, eyebrow, title, subtitle, minutes, today, id
   );
 }
 
-function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead, onRemove, dragOver, swapFor, onSwap, onUnswap, onDropItem, onDropExtra, onAdd, dropped = [], onUndrop }: {
+function SessionCard({ s, today, open, onToggle, onStart, onDid, busy, done, onInstead, onRemove, dragOver, swapFor, onSwap, onUnswap, onDropItem, onDropExtra, onAdd, dropped = [], onUndrop }: {
   s: PSession; today: boolean; open: boolean; onToggle: () => void;
   dragOver: string | null; swapFor: string | null;
   /** Opens the runner — only for sessions with sets or intervals to count. */
   onStart?: () => void;
   /** Marks it done without a runner, for a ride or a walk. */
   onDid?: () => void;
+  /** onDid is on its way. */
+  busy?: boolean;
   /** Already marked done today. */
   done?: boolean;
   /** "I did something else today." */
@@ -800,11 +831,11 @@ function SessionCard({ s, today, open, onToggle, onStart, onDid, done, onInstead
             </button>
           ) : (
             /* Nothing to count, so nothing to run — you did it or you did not. */
-            <button type="button" onClick={onDid}
-              className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition ${
+            <button type="button" onClick={onDid} disabled={busy}
+              className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition disabled:opacity-60 ${
                 today ? "py-3" : "py-2.5"} ${TONE[s.modality].go}`}>
               {/* On another day's card this still records today — say so. */}
-              <Check className="h-4 w-4" aria-hidden /> {today ? "Ég gerði þetta" : "Ég gerði þetta í dag"}
+              <Check className="h-4 w-4" aria-hidden /> {busy ? "Vista…" : today ? "Ég gerði þetta" : "Ég gerði þetta í dag"}
             </button>
           )}
           <div className="mt-1 flex flex-wrap items-center justify-center gap-x-4">
@@ -977,7 +1008,7 @@ function ExerciseRow({ it, over, choosing, onSwap, onUnswap, onDrop }: { it: Exe
  * Monday with an hour of football on it look like a rest day in the plan.
  * An hour of football IS the hard lota for that day; it belongs in the list.
  */
-function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onRun, onBuild, done }: {
+function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onRun, onBuild, done, busyId }: {
   activities: Activity[]; todayIdx: number; onComplete?: (a: Activity) => void;
   onRemove?: (id: string) => void;
   /** Nudge this one session heavier or lighter, −2…+2. */
@@ -988,6 +1019,8 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
   onBuild?: (a: Activity) => void;
   /** Ids marked done today. */
   done?: Set<string>;
+  /** The one whose "Ég gerði þetta" is being stored. */
+  busyId?: string | null;
 }) {
   const sorted = [...activities].sort((a, b) => a.day - b.day || (a.at ?? "").localeCompare(b.at ?? ""));
   return (
@@ -1027,10 +1060,10 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                         <Play className="h-4 w-4" aria-hidden /> Byrja æfinguna
                       </button>
                     ) : onComplete ? (
-                      <button type="button" onClick={() => onComplete(a)}
-                        className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition ${
+                      <button type="button" onClick={() => onComplete(a)} disabled={busyId === a.id}
+                        className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 font-bold text-white transition disabled:opacity-60 ${
                           today ? "py-3" : "py-2.5"} ${TONE[am === "other" ? "other" : am].go}`}>
-                        <Check className="h-4 w-4" aria-hidden /> {today ? "Ég gerði þetta" : "Ég gerði þetta í dag"}
+                        <Check className="h-4 w-4" aria-hidden /> {busyId === a.id ? "Vista…" : today ? "Ég gerði þetta" : "Ég gerði þetta í dag"}
                       </button>
                     ) : null}
 
@@ -1046,9 +1079,9 @@ function ActivityCards({ activities, todayIdx, onComplete, onRemove, onLoad, onR
                         </button>
                       )}
                       {onRun && a.focus && onComplete && (
-                        <button type="button" onClick={() => onComplete(a)}
-                          className="inline-flex min-h-11 items-center px-1 text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline">
-                          {today ? "Ég gerði þetta" : "Ég gerði þetta í dag"}
+                        <button type="button" onClick={() => onComplete(a)} disabled={busyId === a.id}
+                          className="inline-flex min-h-11 items-center px-1 text-xs font-semibold text-hc-ink-2 underline-offset-2 hover:text-hc-ink-2 hover:underline disabled:opacity-60">
+                          {busyId === a.id ? "Vista…" : today ? "Ég gerði þetta" : "Ég gerði þetta í dag"}
                         </button>
                       )}
                       {onRemove && (

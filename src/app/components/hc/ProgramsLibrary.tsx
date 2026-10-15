@@ -27,6 +27,7 @@ import { hcBtn, hcTabs } from "./ui";
 import ExerciseSessionsEditor from "./ExerciseSessionsEditor";
 import DayExampleEditor from "./DayExampleEditor";
 import { isAdaptive } from "@/lib/hc/adaptive-program";
+import { useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 type Kind = "exercise" | "nutrition";
@@ -59,38 +60,66 @@ export default function ProgramsLibrary({ api, people }: {
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Program | null>(null);
   const [msg, setMsg] = useState("");
+  const [loadErr, setLoadErr] = useState(false);
+  /* Which programme a save or delete is running for ("new" for the editor),
+     so the button says it is working and a second click does nothing. */
+  const [busy, setBusy] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     const r = await api("/api/vinnustod/programs").catch(() => null);
     const j = r?.ok ? await r.json().catch(() => null) : null;
     setTimeout(() => {
+      /* Not "Ekkert prógramm enn" when the list never arrived. */
+      setLoadErr(!j);
       setRows({ exercise: j?.exercise ?? [], nutrition: j?.nutrition ?? [] });
       setLoading(false);
     }, 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
 
-  const save = async (p: Program) => {
+  /** Returns whether it stored, so the caller knows what to say. */
+  const save = async (p: Program, busyKey: string): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(busyKey); setMsg("");
     const r = await api("/api/vinnustod/programs", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...p, kind }),
+      /* isNew lets the server refuse a new programme whose name makes the
+         key of one that already exists, instead of overwriting it. */
+      body: JSON.stringify({ ...p, kind, isNew: !p.key }),
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
-    if (!r?.ok) { setMsg(j.error || "Tókst ekki að vista."); return; }
-    setEdit(null); setMsg(""); await load();
+    setBusy(null);
+    if (!r) { setMsg("Engin tenging. Ekkert var vistað."); return false; }
+    if (!r.ok) { setMsg(j.error === "bad_request" ? "Tókst ekki að vista." : (j.error || "Tókst ekki að vista.")); return false; }
+    await load();
+    return true;
   };
 
-  const toggle = async (p: Program) => { await save({ ...p, active: !p.active }); };
+  const saveEdit = async (p: Program) => {
+    if (await save(p, "new")) { setEdit(null); toast.show(`„${p.name.trim()}“ vistað.`); }
+  };
+
+  const toggle = async (p: Program) => {
+    if (await save({ ...p, active: !p.active }, p.key)) {
+      toast.show(!p.active ? `„${p.name}“ er nú í boði fyrir alla.` : `„${p.name}“ er ekki lengur í boði.`);
+    }
+  };
 
   const remove = async (p: Program) => {
+    if (busy) return;
+    setBusy(p.key); setMsg("");
     const r = await api(`/api/vinnustod/programs?kind=${kind}&key=${encodeURIComponent(p.key)}`, { method: "DELETE" })
       .catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
+    setBusy(null);
     /* The server refuses to delete a programme somebody is on, and says so
        — repeated here rather than swallowed, because "nothing happened" is
        the worst possible answer to a delete. */
-    if (!r?.ok) { setMsg(j.error || "Tókst ekki að eyða."); return; }
-    setMsg(""); await load();
+    if (!r) { setMsg("Engin tenging. Ekkert var eytt."); return; }
+    if (!r.ok) { setMsg(r.status === 409 && j.error ? j.error : "Tókst ekki að eyða."); return; }
+    await load();
+    toast.show(`„${p.name}“ eytt.`);
   };
 
   const list = rows[kind];
@@ -124,19 +153,24 @@ export default function ProgramsLibrary({ api, people }: {
       </div>
 
       {msg && (
-        <p role="status" className="rounded-xl bg-hc-bad-surface px-3 py-2 text-sm font-semibold text-hc-bad-ink">
+        <p role="alert" className="rounded-xl bg-hc-bad-surface px-3 py-2 text-sm font-semibold text-hc-bad-ink">
           {msg}
         </p>
       )}
 
-      {edit && <Editor kind={kind} value={edit} api={api} onCancel={() => setEdit(null)} onSave={save} />}
+      {edit && <Editor kind={kind} value={edit} api={api} saving={busy === "new"} onCancel={() => setEdit(null)} onSave={(p) => void saveEdit(p)} />}
 
       {loading ? (
         <p className="py-8 text-center text-sm text-hc-ink-2">Hleð…</p>
+      ) : loadErr ? (
+        <p role="alert" className="rounded-2xl border border-hc-hairline bg-hc-bad-surface px-4 py-6 text-center text-sm text-hc-bad-ink">
+          Náði ekki í prógrömmin.{" "}
+          <button type="button" onClick={() => { setLoading(true); void load(); }} className="font-semibold underline underline-offset-2">Reyna aftur</button>
+        </p>
       ) : (
         <ul className="space-y-2">
           {list.map((p) => (
-            <Row key={p.key} p={p} kind={kind} api={api} people={people}
+            <Row key={p.key} p={p} kind={kind} api={api} people={people} busy={busy === p.key} locked={busy !== null}
               onEdit={() => setEdit(p)} onToggle={() => void toggle(p)} onDelete={() => void remove(p)} />
           ))}
           {list.length === 0 && (
@@ -150,27 +184,32 @@ export default function ProgramsLibrary({ api, people }: {
   );
 }
 
-function Row({ p, kind, api, people, onEdit, onToggle, onDelete }: {
+function Row({ p, kind, api, people, busy: rowBusy, locked, onEdit, onToggle, onDelete }: {
   p: Program; kind: Kind; api: Api; people: { id: string; name: string }[];
+  /** A save or delete is running for this row / for any row. */
+  busy: boolean; locked: boolean;
   onEdit: () => void; onToggle: () => void; onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [to, setTo] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState("");
+  const [sent, setSent] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirm, setConfirm] = useState(false);
 
   const suggest = async () => {
-    if (!to) return;
-    setBusy(true);
+    if (!to || busy) return;
+    setBusy(true); setSent(null);
     const r = await api("/api/vinnustod/programs/suggest", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ journeyId: to, kind, key: p.key, note: note.trim() || undefined }),
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    setSent(r?.ok ? "Tillaga send." : (j.error || "Tókst ekki að senda."));
+    setSent(r?.ok ? { ok: true, text: "Tillaga send." }
+      : { ok: false, text: !r ? "Engin tenging. Tillagan fór ekki."
+        : r.status === 404 && j.error && j.error !== "not_found" ? j.error
+        : "Tókst ekki að senda tillöguna." });
     if (r?.ok) { setNote(""); setTo(""); }
   };
 
@@ -190,11 +229,12 @@ function Row({ p, kind, api, people, onEdit, onToggle, onDelete }: {
 
         {/* The publishing switch, reading as a state rather than a verb: it
             says what is true now, and clicking changes it. */}
-        <button type="button" onClick={onToggle}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+        <button type="button" onClick={onToggle} disabled={locked} aria-busy={rowBusy}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition disabled:opacity-60 ${
             p.active ? "bg-hc-ok-surface text-hc-ok-ink ring-1 ring-hc-ok-ink/30"
                      : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-hc-sunken"}`}>
-          {p.active ? <><Check className="mr-1 inline h-3 w-3" aria-hidden />Í boði fyrir alla</> : "Ekki í boði"}
+          {rowBusy ? <Loader2 className="mr-1 inline h-3 w-3 animate-spin" aria-hidden /> : p.active ? <Check className="mr-1 inline h-3 w-3" aria-hidden /> : null}
+          {p.active ? "Í boði fyrir alla" : "Ekki í boði"}
         </button>
 
         <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
@@ -204,7 +244,7 @@ function Row({ p, kind, api, people, onEdit, onToggle, onDelete }: {
         <button type="button" onClick={onEdit} className="shrink-0 rounded-lg p-2 text-hc-ink-2 hover:bg-hc-sunken" aria-label="Breyta">
           <Pencil className="h-4 w-4" aria-hidden />
         </button>
-        <button type="button" onClick={() => setConfirm(true)} className="shrink-0 rounded-lg p-2 text-hc-ink-2 hover:bg-hc-bad-surface hover:text-hc-bad-ink" aria-label="Eyða">
+        <button type="button" onClick={() => setConfirm(true)} disabled={locked} className="shrink-0 disabled:opacity-50 rounded-lg p-2 text-hc-ink-2 hover:bg-hc-bad-surface hover:text-hc-bad-ink" aria-label="Eyða">
           <Trash2 className="h-4 w-4" aria-hidden />
         </button>
       </div>
@@ -240,7 +280,12 @@ function Row({ p, kind, api, people, onEdit, onToggle, onDelete }: {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
               Senda tillögu
             </button>
-            {sent && <span className="text-sm text-hc-ink-2">{sent}</span>}
+            {sent && (
+              <span role={sent.ok ? "status" : "alert"}
+                className={`text-sm ${sent.ok ? "font-semibold text-hc-ok-ink" : "font-semibold text-hc-bad-ink"}`}>
+                {sent.text}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -248,8 +293,8 @@ function Row({ p, kind, api, people, onEdit, onToggle, onDelete }: {
   );
 }
 
-function Editor({ kind, value, api, onCancel, onSave }: {
-  kind: Kind; value: Program; api: Api; onCancel: () => void; onSave: (p: Program) => void;
+function Editor({ kind, value, api, saving, onCancel, onSave }: {
+  kind: Kind; value: Program; api: Api; saving: boolean; onCancel: () => void; onSave: (p: Program) => void;
 }) {
   const [p, setP] = useState<Program>(value);
   const set = (patch: Partial<Program>) => setP((v) => ({ ...v, ...patch }));
@@ -351,8 +396,10 @@ function Editor({ kind, value, api, onCancel, onSave }: {
       </label>
 
       <div className="flex gap-2">
-        <button type="button" onClick={() => onSave(p)} disabled={!p.name.trim()}
-          className={`${hcBtn.primary} disabled:opacity-40`}>Vista</button>
+        <button type="button" onClick={() => onSave(p)} disabled={!p.name.trim() || saving}
+          className={`${hcBtn.primary} disabled:opacity-40`}>
+          {saving && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Vista
+        </button>
         <button type="button" onClick={onCancel} className={hcBtn.secondary}>Hætta við</button>
       </div>
     </section>

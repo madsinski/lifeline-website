@@ -201,7 +201,7 @@ export default function WeekAhead({ api, onOpenClient }: {
       {failed && (
         <p role="alert" className="flex flex-wrap items-center gap-2 rounded-xl bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">
           Náði ekki í dagatalið.
-          <button type="button" onClick={() => void load()} className={hcBtn.secondary.replace("min-h-10", "min-h-11")}>Reyna aftur</button>
+          <button type="button" onClick={() => { setFailed(false); setEvents(null); void load(); }} className={hcBtn.secondary.replace("min-h-10", "min-h-11")}>Reyna aftur</button>
         </p>
       )}
       {events === null && !failed && <div className="h-24 rounded-xl hc-shimmer" aria-busy="true" aria-label="Hleð vikunni" />}

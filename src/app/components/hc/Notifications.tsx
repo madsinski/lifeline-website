@@ -74,11 +74,14 @@ export function useNotifications(api: Api) {
   const [items, setItems] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
   const load = useCallback(async () => {
-    const r = await api("/api/hc/notifications");
-    const j = r.ok ? await r.json().catch(() => null) : null;
-    const n = Number(j?.unread ?? 0);
-    setTimeout(() => { setItems(j?.items ?? []); setUnread(n); }, 0);
-    if (r.ok) syncBadge(n);
+    // A poll that fails (offline, a hidden tab waking) keeps what is shown
+    // rather than blanking the list and the badge — and does not throw.
+    const r = await api("/api/hc/notifications").catch(() => null);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
+    if (!j) return;
+    const n = Number(j.unread ?? 0);
+    setTimeout(() => { setItems(j.items ?? []); setUnread(n); }, 0);
+    syncBadge(n);
   }, [api]);
   /*
    * Keep it current without the person reloading.
@@ -108,7 +111,7 @@ export function useNotifications(api: Api) {
     };
   }, [load]);
   const markSeen = useCallback(async () => {
-    await api("/api/hc/notifications", { method: "POST", body: JSON.stringify({ seen: true }) });
+    await api("/api/hc/notifications", { method: "POST", body: JSON.stringify({ seen: true }) }).catch(() => null);
     await load();
   }, [api, load]);
   return { items, unread, reloadNotifications: load, markSeen };

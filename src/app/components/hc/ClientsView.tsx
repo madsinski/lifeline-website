@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Sheet from "./Sheet";
+import { useToast } from "./Toast";
 import { Building2, ChevronDown, Loader2, Plus, Search, Users } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -222,12 +223,17 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
+  const toast = useToast();
   const save = async () => {
+    if (busy) return;
     setBusy(true); setMsg("");
-    const r = await api("/api/vinnustod/groups", { method: "POST", body: JSON.stringify(f) });
-    const j = await r.json().catch(() => ({}));
+    const r = await api("/api/vinnustod/groups", { method: "POST", body: JSON.stringify(f) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setMsg(j.error || "Tókst ekki að stofna hóp."); return; }
+    if (!r) { setMsg("Engin tenging. Athugaðu netið og reyndu aftur."); return; }
+    /* 400/409 carry their own Icelandic sentence; a database error does not. */
+    if (!r.ok) { setMsg(r.status === 400 && j.error === "Nafn hópsins vantar." || r.status === 409 ? j.error : "Tókst ekki að stofna hóp. Reyndu aftur."); return; }
+    toast.show(`Hópurinn „${f.name.trim()}“ er stofnaður.`);
     onSaved();
   };
 

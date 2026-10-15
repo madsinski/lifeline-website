@@ -98,7 +98,7 @@ export default function BusinessSignupPage() {
   }, [router]);
 
   const handleAgreement = async () => {
-    if (!tosChecked || !dpaChecked) return;
+    if (!tosChecked || !dpaChecked || submitting) return;
     setError("");
     setSubmitting(true);
     try {
@@ -115,7 +115,9 @@ export default function BusinessSignupPage() {
         });
         if (!r.ok) {
           const j = await r.json().catch(() => ({}));
-          throw new Error(j.detail || j.error || `Failed to record acceptance for ${key}`);
+          throw new Error(r.status === 401 || r.status === 403
+            ? "Your session has expired or your email is not confirmed yet. Sign in again and retry."
+            : `Could not record your acceptance (${j.error || r.status}). Please try again.`);
         }
       };
 
@@ -126,7 +128,7 @@ export default function BusinessSignupPage() {
       ]);
       setStep("company");
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof TypeError ? "No connection. Check your network and try again." : (e as Error).message);
     } finally {
       setSubmitting(false);
     }
@@ -141,12 +143,13 @@ export default function BusinessSignupPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: userEmail, resend: true }),
-    });
-    setResendStatus(res.ok ? "sent" : "error");
+    }).catch(() => null);
+    setResendStatus(res?.ok ? "sent" : "error");
   };
 
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError("");
     if (!userId) return;
     if (!companyName.trim()) { setError("Please enter a company name."); return; }
@@ -179,11 +182,19 @@ export default function BusinessSignupPage() {
           agreement_version: AGREEMENT_VERSION,
         }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.detail || j.error || "Failed to create company");
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // The route answers with short codes; turn the ones a person can act on into sentences.
+        throw new Error(
+          res.status === 401 ? "Your session has expired. Sign in again and retry."
+          : j.error === "email_not_confirmed" ? "Confirm your email address first, then reload this page."
+          : res.status === 400 ? "Check the company details and try again."
+          : "Could not create the company. Please try again shortly.",
+        );
+      }
       router.push(`/business/${j.id}`);
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof TypeError ? "No connection. Check your network and try again." : (e as Error).message);
     } finally {
       setSubmitting(false);
     }
@@ -220,14 +231,15 @@ export default function BusinessSignupPage() {
             </p>
             <div className="flex flex-col items-center gap-2">
               <button
+                type="button"
                 onClick={resendConfirmation}
                 disabled={resendStatus === "sending" || resendStatus === "sent"}
                 className="btn-primary"
               >
                 {resendStatus === "sending" ? "Sending…" : resendStatus === "sent" ? "Confirmation sent ✓" : "Resend confirmation email"}
               </button>
-              {resendStatus === "error" && <p className="text-xs text-red-600">Could not resend — try again shortly.</p>}
-              <button onClick={() => window.location.reload()} className="text-sm text-blue-600 hover:underline mt-1">
+              {resendStatus === "error" && <p role="alert" className="text-xs text-red-600">Could not resend — try again shortly.</p>}
+              <button type="button" onClick={() => window.location.reload()} className="text-sm text-blue-600 hover:underline mt-1">
                 I&apos;ve confirmed — reload
               </button>
             </div>
@@ -287,7 +299,7 @@ export default function BusinessSignupPage() {
               </label>
             </div>
 
-            {error && <div className="text-sm text-red-600">{error}</div>}
+            {error && <div role="alert" className="text-sm text-red-600">{error}</div>}
 
             <p className="text-xs text-gray-500">
               Tímastimpill, IP-tala og vafraauðkenni verða skráð sem hluti af samþykkinu.{" "}
@@ -371,7 +383,7 @@ export default function BusinessSignupPage() {
                   className="input"
                 />
               </Field>
-              {error && <div className="text-red-600 text-sm">{error}</div>}
+              {error && <div role="alert" className="text-red-600 text-sm">{error}</div>}
               <button type="submit" disabled={submitting} className="btn-primary w-full">
                 {submitting ? "Creating…" : "Create company"}
               </button>

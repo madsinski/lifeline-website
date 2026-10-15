@@ -59,7 +59,8 @@ export default function ActivateWorker() {
       });
       const j = await r.json().catch(() => ({}));
       if (r.status === 404) { setExpired(j.error || "Hlekkurinn er útrunninn eða hefur þegar verið notaður."); return; }
-      if (!r.ok) { setError(j.error || "Tókst ekki. Reyndu aftur."); return; }
+      // "forbidden" (same-origin check) is a code, not a sentence.
+      if (!r.ok) { setError(typeof j.error === "string" && j.error.includes(" ") ? j.error : "Ekki tókst að vista lykilorðið. Reyndu aftur."); return; }
       setStep(2);
     } catch {
       setError("Engin tenging. Athugaðu netið og reyndu aftur.");

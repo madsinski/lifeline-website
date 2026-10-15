@@ -16,7 +16,7 @@
 import EmptyState from "@/app/components/hc/EmptyState";
 import BackLink from "@/app/components/hc/BackLink";
 import { hcBtn, hcCard, hcPage } from "@/app/components/hc/ui";
-import { useSaveStatus, useToast } from "@/app/components/hc/Toast";
+import { SAVE_FAILED, useSaveStatus, useToast } from "@/app/components/hc/Toast";
 import { Alert, Button, useDialog } from "@/app/components/account/ui";
 import NextStepCard from "@/app/components/hc/NextStepCard";
 import { DayMealsProvider } from "@/app/components/hc/useDayMeals";
@@ -434,6 +434,8 @@ function PlanPageInner() {
    * afterwards.
    */
   const changeNutrition = async (key: string) => {
+    // Picking the programme already in use is not a change: no request, no toast.
+    if (key === plan?.nutrition?.key) return;
     const picks = Object.keys(personal.meal_picks ?? {}).length;
     if (picks > 0) {
       const ok = await dialog.confirm({
@@ -812,6 +814,7 @@ function PlanPageInner() {
                           if (!r) return false;
                           cache.invalidate("/api/hc/plan", "/api/hc/my-plan", "/api/hc/actions");
                           reload();
+                          toast.show("Venjunni var bætt við", { tone: "ok" });
                           return true;
                         }}
                         onOpenSession={(id) => setTab("exercise", id)}
@@ -876,7 +879,7 @@ function PlanPageInner() {
                       signals={reportSignalsBySlug} titles={reportTitlesBySlug} gym={gym} saving={saving}
                       /* Closed only once the save has landed: closing first
                          showed the old programme and then swapped it. */
-                      onSave={async (next) => { if (await saveTraining(next)) setSetup(false); }}
+                      onSave={async (next) => { if (await saveTraining(next)) { setSetup(false); toast.show("Æfingaáætlunin vistuð", { tone: "ok" }); } }}
                       onCancel={() => setSetup(false)} />
                   ) : (
                     <>
@@ -891,11 +894,11 @@ function PlanPageInner() {
                         onSave={(p) => void savePersonal(p, PERSONAL_FIELDS)}
                         training={training} planStart={plan.start_date}
                         onFinish={(info) => finishWorkout(info, false)} body={body}
-                        onCompleteActivity={(a) => void finishWorkout({
+                        onCompleteActivity={(a) => finishWorkout({
                           minutes: a.minutes ?? 60, rpe: a.intensity === "hard" ? 7 : a.intensity === "easy" ? 3 : 5,
                           session: { id: a.id, title: a.name, modality: activityModality(a), weekday: a.day },
                         })}
-                        onSaveTraining={(next) => void saveTraining(next)}
+                        onSaveTraining={saveTraining}
                         onActivityTime={(id, at) => void saveTraining({
                           ...training,
                           activities: training.activities.map((x) => (x.id === id ? { ...x, at } : x)),
@@ -949,7 +952,7 @@ function PlanPageInner() {
                 <div className="print:hidden">
                   {nutritionSetup ? (
                     <NutritionWizard prefs={nutritionPrefs} signals={reportSignalsBySlug} meals={mealLibrary} saving={saving}
-                      onSave={async (next) => { if (await saveNutrition(next)) setNutritionSetup(false); }}
+                      onSave={async (next) => { if (await saveNutrition(next)) { setNutritionSetup(false); toast.show("Næringarstillingarnar vistaðar", { tone: "ok" }); } }}
                       onCancel={() => setNutritionSetup(false)} />
                   ) : (
                     <NutritionView api={api} nutrition={plan.nutrition} picks={personal.meal_picks}
@@ -965,7 +968,8 @@ function PlanPageInner() {
                         const r = await run(() => api(`/api/hc/training${qs}`, { method: "POST", body: JSON.stringify({ self_weight_kg: kg }) }));
                         cache.invalidate("/api/hc/training");
                         const j = r ? await r.json().catch(() => ({})) : {};
-                        if (r && j.body) setSelfBody(j.body);
+                        if (r && j.body) { setSelfBody(j.body); toast.show("Þyngdin vistuð", { tone: "ok" }); }
+                        else if (r) toast.show(SAVE_FAILED, { tone: "bad" });
                       }}
                       onPick={(slot, id) => {
                         const picks = { ...personal.meal_picks };

@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import { HEALTH_CONSENT_VERSION, renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
-import { Alert, Button, Modal, accountInput, accountLabel } from "@/app/components/account/ui";
+import { Alert, Button, Modal, accountInput, accountLabel, friendlyError } from "@/app/components/account/ui";
 
 /** DD / MM / YYYY with auto-advance; the parent keeps ISO YYYY-MM-DD. */
 export function DobFields({ value, onChange, idPrefix = "dob" }: { value: string; onChange: (iso: string) => void; idPrefix?: string }) {
@@ -57,10 +57,12 @@ export function DobFields({ value, onChange, idPrefix = "dob" }: { value: string
 
 type Activity = "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "";
 
-export default function BiodyProfileModal({ userId, onClose, onActivated }: {
+export default function BiodyProfileModal({ userId, onClose, onActivated, onSaved }: {
   userId: string;
   onClose: () => void;
   onActivated?: () => void;
+  /** Sex and date of birth are also on Persónuupplýsingar; keep it in step. */
+  onSaved?: (p: { sex: string; dob: string }) => void;
 }) {
   const { t, tv } = useI18n();
   const [biodyActive, setBiodyActive] = useState(false);
@@ -74,6 +76,7 @@ export default function BiodyProfileModal({ userId, onClose, onActivated }: {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [biodyWasActive, setBiodyWasActive] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -90,6 +93,7 @@ export default function BiodyProfileModal({ userId, onClose, onActivated }: {
         setActivityLevel((d.activity_level as Activity) || "");
         setDob((d.date_of_birth as string) || "");
         setBiodyActive(!!d.biody_patient_id);
+        setBiodyWasActive(!!d.biody_patient_id);
       }
       setLoading(false);
     })();
@@ -127,21 +131,21 @@ export default function BiodyProfileModal({ userId, onClose, onActivated }: {
         const j = await res.json().catch(() => ({}));
         if (!res.ok || !j.ok) {
           setSaving(false);
-          setError(typeof j.detail === "string" ? j.detail : j.error || t("acc.biody.failed", "Virkjun tókst ekki. Hafðu samband við okkur."));
+          setError(friendlyError(j.error === "health_consent_required" ? "" : (typeof j.detail === "string" ? j.detail : j.error === "profile_update_failed" ? "" : j.error), t("acc.biody.failed", "Virkjun tókst ekki. Hafðu samband við okkur.")));
           return;
         }
         // The API can succeed while Biody itself soft-fails; say so rather
         // than showing "Breyta upplýsingum" and reverting on the next load.
         if (j.biody_activated === false) {
           setSaving(false);
-          setError(typeof j.biody_error === "string" ? j.biody_error : t("acc.biody.failed-retry", "Ekki tókst að virkja hjá Biody. Reyndu aftur eða hafðu samband."));
+          setError(friendlyError(typeof j.biody_error === "string" ? j.biody_error : "", t("acc.biody.failed-retry", "Ekki tókst að virkja hjá Biody. Reyndu aftur eða hafðu samband.")));
           return;
         }
         setBiodyActive(true);
         onActivated?.();
       } catch (err) {
         setSaving(false);
-        setError((err as Error).message || t("acc.biody.failed", "Virkjun tókst ekki. Hafðu samband við okkur."));
+        setError(friendlyError(err, t("acc.biody.failed", "Virkjun tókst ekki. Hafðu samband við okkur.")));
         return;
       }
     } else {
@@ -154,9 +158,10 @@ export default function BiodyProfileModal({ userId, onClose, onActivated }: {
         ...(dob ? { date_of_birth: dob } : {}),
         updated_at: new Date().toISOString(),
       }).eq("id", userId);
-      if (upErr) { setSaving(false); setError(upErr.message); return; }
+      if (upErr) { setSaving(false); setError(friendlyError(upErr, t("acc.biody.savefailed", "Tókst ekki að vista upplýsingarnar. Reyndu aftur."))); return; }
     }
 
+    onSaved?.({ sex, dob });
     setSaving(false);
     setSaved(true);
     setTimeout(() => onClose(), 900);
@@ -225,10 +230,10 @@ export default function BiodyProfileModal({ userId, onClose, onActivated }: {
           )}
 
           {error && <Alert tone="bad" compact>{error}</Alert>}
-          {saved && <Alert tone="ok" compact>{t("acct.q.saved", "Vistað.")}</Alert>}
+          {saved && <Alert tone="ok" compact>{biodyWasActive ? t("acct.q.saved", "Vistað.") : t("acc.biody.activated", "Vistað og virkjað.")}</Alert>}
           <div className="flex items-center justify-end gap-2 border-t border-hc-hairline pt-4">
             <Button variant="secondary" onClick={onClose} disabled={saving}>{t("acct.q.close", "Loka")}</Button>
-            <Button type="submit" busy={saving} disabled={!biodyActive && !acceptHealth}>
+            <Button type="submit" busy={saving} disabled={saved || (!biodyActive && !acceptHealth)}>
               {biodyActive ? t("acc.common.savechanges", "Vista breytingar") : t("acc.biody.activate", "Vista og virkja")}
             </Button>
           </div>

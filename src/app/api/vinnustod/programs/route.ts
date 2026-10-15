@@ -59,7 +59,17 @@ export async function POST(req: NextRequest) {
   const name = s(b?.name, 200);
   if (!name) return NextResponse.json({ error: "Heiti vantar." }, { status: 400 });
   const key = s(b?.key, 100) || slugify(name);
-  if (!key) return NextResponse.json({ error: "Heitið gefur ekki gilt lykilorð." }, { status: 400 });
+  if (!key) return NextResponse.json({ error: "Út frá heitinu fæst enginn gildur lykill. Notaðu bókstafi eða tölustafi." }, { status: 400 });
+
+  /* A NEW programme gets its key from its name, and the save is an upsert
+     by key — so naming a new one like an existing one silently replaced the
+     existing one's sessions. Refuse instead. */
+  if (b?.isNew === true || !s(b?.key, 100)) {
+    const { data: clash } = await supabaseAdmin.from(table).select("key").eq("key", key).maybeSingle();
+    if (clash) {
+      return NextResponse.json({ error: "Prógramm með þessu heiti er þegar til. Veldu annað heiti eða breyttu því sem er til." }, { status: 409 });
+    }
+  }
 
   const row: Record<string, unknown> = {
     key, name,

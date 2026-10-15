@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
-import { Alert, Button, Modal, accountInput, accountLabel } from "@/app/components/account/ui";
+import { Alert, Button, Modal, accountInput, accountLabel, friendlyError } from "@/app/components/account/ui";
 
 type Props = {
   companyId: string | null;
@@ -73,7 +73,7 @@ export default function WellbeingSurveyModal({ companyId, onClose, onSubmitted }
       note: note.trim() || null,
     });
     setSaving(false);
-    if (insErr) { setError(insErr.message); return; }
+    if (insErr) { setError(friendlyError(insErr, t("acct.survey.sendfailed", "Svörin sendust ekki. Reyndu aftur."))); return; }
     onSubmitted();
     onClose();
   }
@@ -91,7 +91,7 @@ export default function WellbeingSurveyModal({ companyId, onClose, onSubmitted }
           : t("acct.who5.confidential", "Svörin þín eru trúnaðarmál — notuð til að sníða ráðleggingar að þér og fylgjast með líðan yfir tíma.")}
       </>}
       footer={<>
-        <Button variant="secondary" onClick={onClose}>{t("acct.q.later", "Síðar")}</Button>
+        <Button variant="secondary" onClick={onClose} disabled={saving}>{t("acct.q.later", "Síðar")}</Button>
         <Button onClick={submit} busy={saving} disabled={!allAnswered}>{t("acct.who5.submit", "Senda")}</Button>
       </>}>
       <div className="space-y-5">

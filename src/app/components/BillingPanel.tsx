@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { saveStraumurPaymentMethod, STRAUMUR_BRAND } from "@/lib/straumur";
+import { saveStraumurPaymentMethod, STRAUMUR_BRAND, STRAUMUR_CARDS_LIVE } from "@/lib/straumur";
 import { useI18n } from "@/lib/i18n";
 import { CreditCard, Plus, Receipt } from "lucide-react";
-import { Button, SectionCard, accountInset, fmtIsk, fmtNumericDate, useDialog } from "./account/ui";
+import { Alert, Button, SavedNote, SectionCard, accountInset, fmtIsk, fmtNumericDate, friendlyError, useDialog, useFlash } from "./account/ui";
 
 type OwnerType = "client" | "company";
 
@@ -51,10 +51,13 @@ export default function BillingPanel({
   const [actionId, setActionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAllPayments, setShowAllPayments] = useState(false);
+  /* "Kort skráð ✓" / "Aðalkort uppfært ✓" beside the add button. */
+  const [savedMsg, flashSaved, clearSaved] = useFlash(3500);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: pm }, { data: pay }] = await Promise.all([
+    const [{ data: pm, error: pmErr }, { data: pay, error: payErr }] = await Promise.all([
       supabase.from("payment_methods")
         .select("id, provider, brand, last4, exp_month, exp_year, is_default, nickname, created_at")
         .eq("owner_type", ownerType)
@@ -67,6 +70,7 @@ export default function BillingPanel({
         .order("created_at", { ascending: false })
         .limit(50),
     ]);
+    setLoadError(!!(pmErr || payErr));
     setMethods((pm as PaymentMethod[]) || []);
     setPayments((pay as Payment[]) || []);
     setLoading(false);
@@ -80,39 +84,59 @@ export default function BillingPanel({
   );
 
   async function handleAddCard() {
+    if (!STRAUMUR_CARDS_LIVE) return;
     setAdding(true);
     setError(null);
-    const res = await saveStraumurPaymentMethod();
-    if (!res.ok) { setError(res.error); setAdding(false); return; }
-    const isFirst = methods.length === 0;
-    const { error: insErr } = await supabase.from("payment_methods").insert({
-      owner_type: ownerType,
-      owner_id: ownerId,
-      provider: "straumur",
-      provider_token: res.method.token,
-      brand: res.method.brand,
-      last4: res.method.last4,
-      exp_month: res.method.expMonth,
-      exp_year: res.method.expYear,
-      is_default: isFirst,
-    });
-    setAdding(false);
-    if (insErr) { setError(insErr.message); return; }
-    load();
+    clearSaved();
+    try {
+      const res = await saveStraumurPaymentMethod();
+      if (!res.ok) { setError(friendlyError(res.error, t("comp.bill.addfailed", "Tókst ekki að skrá kortið."))); return; }
+      const isFirst = methods.length === 0;
+      const { error: insErr } = await supabase.from("payment_methods").insert({
+        owner_type: ownerType,
+        owner_id: ownerId,
+        provider: "straumur",
+        provider_token: res.method.token,
+        brand: res.method.brand,
+        last4: res.method.last4,
+        exp_month: res.method.expMonth,
+        exp_year: res.method.expYear,
+        is_default: isFirst,
+      });
+      if (insErr) throw insErr;
+      await load();
+      flashSaved(t("comp.bill.added", "Kort skráð"));
+    } catch (err) {
+      setError(friendlyError(err, t("comp.bill.addfailed", "Tókst ekki að skrá kortið.")));
+    } finally {
+      setAdding(false);
+    }
   }
 
   async function setDefault(id: string) {
     setActionId(id);
-    // Clear existing default, then set the target
-    await supabase.from("payment_methods")
-      .update({ is_default: false })
-      .eq("owner_type", ownerType).eq("owner_id", ownerId).eq("is_default", true);
-    const { error: upErr } = await supabase.from("payment_methods")
-      .update({ is_default: true })
-      .eq("id", id);
-    setActionId(null);
-    if (upErr) { setError(upErr.message); return; }
-    load();
+    setError(null);
+    clearSaved();
+    try {
+      // Clear the existing default, then set the target.
+      const { error: clrErr } = await supabase.from("payment_methods")
+        .update({ is_default: false })
+        .eq("owner_type", ownerType).eq("owner_id", ownerId).eq("is_default", true);
+      if (clrErr) throw clrErr;
+      const { data, error: upErr } = await supabase.from("payment_methods")
+        .update({ is_default: true })
+        .eq("id", id)
+        .select("id");
+      if (upErr) throw upErr;
+      if (!data || data.length === 0) throw new Error("permission denied");
+      await load();
+      flashSaved(t("comp.bill.primaryset", "Aðalkort uppfært"));
+    } catch (err) {
+      setError(friendlyError(err, t("comp.bill.primaryfailed", "Tókst ekki að breyta aðalkorti.")));
+      void load();
+    } finally {
+      setActionId(null);
+    }
   }
 
   async function removeMethod(id: string) {
@@ -122,10 +146,54 @@ export default function BillingPanel({
     });
     if (!ok) return;
     setActionId(id);
-    const { error: delErr } = await supabase.from("payment_methods").delete().eq("id", id);
-    setActionId(null);
-    if (delErr) { setError(delErr.message); return; }
-    load();
+    setError(null);
+    clearSaved();
+    try {
+      const { data, error: delErr } = await supabase.from("payment_methods").delete().eq("id", id).select("id");
+      if (delErr) throw delErr;
+      if (!data || data.length === 0) throw new Error("permission denied");
+      await load();
+      flashSaved(t("comp.bill.removed", "Kortið var fjarlægt"));
+    } catch (err) {
+      setError(friendlyError(err, t("comp.bill.removefailed", "Tókst ekki að fjarlægja kortið.")));
+    } finally {
+      setActionId(null);
+    }
+  }
+
+  /* The receipt route authenticates off the Authorization header; without
+     it every click came back 401 ("unauthorized") and nothing opened. The
+     tab is opened before the await so a popup blocker (Safari) does not
+     swallow it, then pointed at the signed URL. */
+  async function openReceipt(p: Payment) {
+    setActionId(p.id);
+    setError(null);
+    const win = window.open("", "_blank");
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("no_session");
+      const res = await fetch("/api/bookings/receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bookingId: p.related_id }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.url) {
+        const code = String(body?.error || "");
+        throw new Error(code === "not_paid" ? t("comp.bill.receipt-notpaid", "Kvittun fæst aðeins fyrir greidda bókun.")
+          : code === "forbidden" || code === "unauthorized" ? code
+          : t("comp.bill.noreceipt", "Ekki tókst að sækja kvittun"));
+      }
+      if (win) { win.opener = null; win.location.href = body.url; }
+      else window.location.assign(body.url);
+      void load();
+    } catch (err) {
+      win?.close();
+      setError(friendlyError(err, t("comp.bill.noreceipt", "Ekki tókst að sækja kvittun")));
+    } finally {
+      setActionId(null);
+    }
   }
 
   function statusPill(status: Payment["status"]) {
@@ -159,8 +227,16 @@ export default function BillingPanel({
       {/* Payment methods */}
       <SectionCard icon={CreditCard} title={t("comp.bill.cards", "Greiðslukort")}
         description={tv("comp.bill.securewith", "Öruggt hjá {{provider}}. Við geymum aðeins tákn, aldrei kortanúmerið.", { provider: providerName })}
-        action={<Button size="sm" onClick={handleAddCard} busy={adding} icon={<Plus className="h-4 w-4" aria-hidden />}>{t("comp.bill.addcard2", "Bæta við korti")}</Button>}>
-        {error && <p role="alert" className="mb-3 text-sm text-hc-bad-ink">{error}</p>}
+        action={<span className="flex items-center gap-3">
+          <SavedNote msg={savedMsg} />
+          {/* The add-card call is still a stub that invents a card; hidden
+              until it is real (STRAUMUR_CARDS_LIVE in src/lib/straumur.ts). */}
+          {STRAUMUR_CARDS_LIVE
+            ? <Button size="sm" onClick={handleAddCard} busy={adding} icon={<Plus className="h-4 w-4" aria-hidden />}>{adding ? t("comp.bill.adding", "Skrái kort…") : t("comp.bill.addcard2", "Bæta við korti")}</Button>
+            : <span className="text-xs font-semibold text-hc-ink-2">{t("comp.bill.cards-soon", "Kortaskráning opnar fljótlega")}</span>}
+        </span>}>
+        {error && <Alert tone="bad" compact className="mb-3" onDismiss={() => setError(null)} dismissLabel={t("acct.q.dismiss", "Loka")}>{error}</Alert>}
+        {loadError && !loading && <Alert tone="bad" compact className="mb-3">{t("comp.bill.loadfailed", "Tókst ekki að sækja greiðsluupplýsingar. Endurhlaððu síðuna til að reyna aftur.")}</Alert>}
         {loading ? skeleton : methods.length === 0 ? empty(t("comp.bill.nocard", "Ekkert greiðslukort skráð.")) : (
           <ul className="space-y-2">
             {methods.map((m) => (
@@ -177,11 +253,11 @@ export default function BillingPanel({
                 </div>
                 <div className="flex items-center gap-3">
                   {!m.is_default && (
-                    <button type="button" onClick={() => setDefault(m.id)} disabled={actionId === m.id} className={linkBtn}>
-                      {t("comp.bill.makeprimary", "Gera að aðalkorti")}
+                    <button type="button" onClick={() => setDefault(m.id)} disabled={actionId !== null} className={linkBtn}>
+                      {actionId === m.id ? "…" : t("comp.bill.makeprimary", "Gera að aðalkorti")}
                     </button>
                   )}
-                  <button type="button" onClick={() => removeMethod(m.id)} disabled={actionId === m.id} className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-50">
+                  <button type="button" onClick={() => removeMethod(m.id)} disabled={actionId !== null} className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-50">
                     {t("comp.bill.remove", "Fjarlægja")}
                   </button>
                 </div>
@@ -223,22 +299,7 @@ export default function BillingPanel({
                       ) : p.related_type === "body_comp_booking" && p.related_id && p.status !== "pending" && p.amount_isk > 0 ? (
                         <button
                           type="button"
-                          onClick={async () => {
-                            setActionId(p.id);
-                            try {
-                              const res = await fetch("/api/bookings/receipt", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ bookingId: p.related_id }),
-                              });
-                              const body = await res.json().catch(() => ({}));
-                              if (!res.ok || !body?.url) { setError(body?.error || t("comp.bill.noreceipt", "Ekki tókst að sækja kvittun")); return; }
-                              window.open(body.url, "_blank", "noopener,noreferrer");
-                              load();
-                            } finally {
-                              setActionId(null);
-                            }
-                          }}
+                          onClick={() => void openReceipt(p)}
                           disabled={actionId === p.id}
                           className={`ml-2 ${linkBtn}`}
                         >

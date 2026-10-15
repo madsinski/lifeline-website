@@ -40,18 +40,30 @@ export default function ClientThread({ api, journeyId, onRead }: {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [loadFailed, setLoadFailed] = useState(false);
   const end = useRef<HTMLDivElement>(null);
+
+  /* Held in a ref: the shell passes a fresh arrow on every render, and with
+     it in load's deps every inbox poll re-ran load, which marked the thread
+     read, which reloaded the inbox, which re-rendered the shell — a loop. */
+  const onReadRef = useRef(onRead);
+  useEffect(() => { onReadRef.current = onRead; });
 
   const load = useCallback(async () => {
     const r = await api(`/api/vinnustod/chat?journey=${encodeURIComponent(journeyId)}`).catch(() => null);
     const j = r?.ok ? await r.json().catch(() => null) : null;
-    setTimeout(() => setMsgs(j?.messages ?? []), 0);
+    /* A failed read used to render as "Ekkert samtal enn", which told the
+       coach there was nothing to answer. Keep what is shown, and say so. */
+    setTimeout(() => {
+      if (!j) { setLoadFailed(true); setMsgs((m) => m ?? []); return; }
+      setLoadFailed(false); setMsgs(j.messages ?? []);
+    }, 0);
     /* Reading it is reading it, whether or not a reply follows. */
     if (r?.ok) {
       await api("/api/vinnustod/chat", { method: "POST", body: JSON.stringify({ journey: journeyId, seen: true }) }).catch(() => {});
-      onRead?.();
+      onReadRef.current?.();
     }
-  }, [api, journeyId, onRead]);
+  }, [api, journeyId]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -60,13 +72,14 @@ export default function ClientThread({ api, journeyId, onRead }: {
 
   const send = async () => {
     const text = draft.trim();
-    if (!text) return;
+    if (!text || busy) return;
     setBusy(true); setErr("");
     const r = await api("/api/vinnustod/chat", {
       method: "POST", body: JSON.stringify({ journey: journeyId, send: text }),
     }).catch(() => null);
     setBusy(false);
-    if (!r?.ok) { setErr("Skilaboðin fóru ekki. Reyndu aftur."); return; }
+    if (!r) { setErr("Engin tenging. Skilaboðin fóru ekki — reyndu aftur."); return; }
+    if (!r.ok) { setErr("Skilaboðin fóru ekki. Reyndu aftur."); return; }
     setDraft("");
     await load();
   };
@@ -77,11 +90,17 @@ export default function ClientThread({ api, journeyId, onRead }: {
 
   return (
     <div className="space-y-2">
-      {msgs.length === 0 ? (
+      {loadFailed && (
+        <p role="alert" className="flex flex-wrap items-center gap-2 rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">
+          Náði ekki í samtalið.
+          <button type="button" onClick={() => void load()} className="font-semibold underline">Reyna aftur</button>
+        </p>
+      )}
+      {msgs.length === 0 ? (loadFailed ? null : (
         <p className={`${hcCard.base} p-3 text-sm text-hc-ink-2`}>
           Ekkert samtal enn. Það sem þú skrifar hér birtist í appinu hjá skjólstæðingnum.
         </p>
-      ) : (
+      )) : (
         <div className={`max-h-80 space-y-2 overflow-y-auto p-3 ${hcCard.base}`}>
           {msgs.map((m) => {
             const mine = m.author_kind === "coach";
@@ -107,6 +126,8 @@ export default function ClientThread({ api, journeyId, onRead }: {
 
       <div className="flex items-end gap-2">
         <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2}
+          aria-label="Skilaboð til skjólstæðingsins"
+          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }}
           placeholder="Skrifaðu til skjólstæðingsins…"
           className={`${hcInput} min-w-0 flex-1`} />
         <button type="button" onClick={() => void send()} disabled={!draft.trim() || busy}
@@ -115,7 +136,7 @@ export default function ClientThread({ api, journeyId, onRead }: {
           {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
         </button>
       </div>
-      {err && <p className="text-sm text-hc-bad-ink">{err}</p>}
+      {err && <p role="alert" className="text-sm font-semibold text-hc-bad-ink">{err}</p>}
     </div>
   );
 }

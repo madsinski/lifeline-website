@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import { SAMEIND_STATIONS, fullAddress } from "@/lib/sameind-locations";
-import { Alert, Button, Modal, accountInput, accountInset, accountLabel, fmtDate, fmtDateTime, fmtIsk, fmtTime, useDialog } from "@/app/components/account/ui";
+import { Alert, Button, Modal, accountInput, accountInset, accountLabel, fmtDate, fmtDateTime, fmtIsk, fmtTime, friendlyError, useDialog } from "@/app/components/account/ui";
 import { DOCTOR_ADDON_ISK } from "./useBooking";
 import type { BloodTestBooking, DayRow, DoctorMode, DoctorSlot, MyDoctorSlot } from "./types";
 
@@ -44,7 +44,7 @@ export function BloodTestDayPickerModal({ companyId, days, existing, onClose, on
       note: note.trim() || null,
     }, { onConflict: "client_id" });
     setSaving(false);
-    if (upErr) { setError(upErr.message); return; }
+    if (upErr) { setError(friendlyError(upErr, t("acc.bt.savefailed", "Tókst ekki að skrá daginn. Reyndu aftur."))); return; }
     onBooked({ day: selectedDay, note: note.trim() || null });
     onClose();
   };
@@ -55,10 +55,13 @@ export function BloodTestDayPickerModal({ companyId, days, existing, onClose, on
       confirmLabel: t("acc.cancel.confirm", "Já, afbóka"), cancelLabel: t("acc.common.no", "Nei"), tone: "danger",
     });
     if (!ok) return;
+    setError("");
+    setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setSaving(false); setError(t("acct.p.thu-tharft-ad-skra-thig", "Þú þarft að skrá þig inn")); return; }
     const { error: delErr } = await supabase.from("blood_test_bookings").delete().eq("client_id", user.id);
-    if (delErr) { setError(delErr.message); return; }
+    setSaving(false);
+    if (delErr) { setError(friendlyError(delErr, t("acc.bt.cancelfailed", "Tókst ekki að afbóka daginn. Reyndu aftur."))); return; }
     // Was a full page reload; the parent clears the booking instead.
     onCancelled();
     onClose();
@@ -68,8 +71,8 @@ export function BloodTestDayPickerModal({ companyId, days, existing, onClose, on
     <Modal title={t("acct.p.veldu-dag-fyrir-blodprufu", "Veldu dag fyrir blóðprufu")} onClose={onClose} dismissable={!saving}
       description={t("acc.bt.desc", "Fyrirtækið þitt samþykkir ákveðna daga fyrir blóðprufu hjá Sameind. Mættu á hvaða stöð sem er á opnunartíma hennar.")}
       footer={<>
-        {existing && <Button variant="dangerOutline" className="mr-auto" onClick={cancel}>{t("acct.q.cancelbooking", "Afbóka")}</Button>}
-        <Button variant="secondary" onClick={onClose}>{t("acct.q.close", "Loka")}</Button>
+        {existing && <Button variant="dangerOutline" className="mr-auto" onClick={cancel} disabled={saving}>{t("acct.q.cancelbooking", "Afbóka")}</Button>}
+        <Button variant="secondary" onClick={onClose} disabled={saving}>{t("acct.q.close", "Loka")}</Button>
         <Button onClick={save} busy={saving} disabled={!selectedDay}>{existing ? t("acc.common.update", "Uppfæra") : t("acc.bt.confirm", "Staðfesta dag")}</Button>
       </>}>
       <div className="space-y-4">
@@ -151,14 +154,14 @@ export function DoctorSlotPickerModal({ slots, existing, onClose, onBooked, onCa
       : { p_slot_id: selectedId, p_note: note.trim() || null };
     const { data, error: bookErr } = await supabase.rpc(rpcName, args);
     setSaving(false);
-    if (bookErr) { setError(bookErr.message); return; }
+    if (bookErr) { setError(friendlyError(bookErr, t("acct.p.bokun-tokst-ekki", "Bókun tókst ekki."))); return; }
     const row = Array.isArray(data) ? data[0] : data;
     if (row && row.ok === false) {
       setError(
         row.error === "slot_unavailable" ? t("acc.dr.taken", "Einhver var að bóka þennan tíma. Veldu annan.")
         : row.error === "already_booked" ? t("acct.p.thu-att-thegar-bokun", "Þú átt þegar bókun.")
         : row.error === "company_reserved" ? t("acct.p.thessi-timi-er-fratekinn-fyrir", "Þessi tími er frátekinn fyrir annað fyrirtæki.")
-        : row.error || t("acct.p.bokun-tokst-ekki", "Bókun tókst ekki."),
+        : friendlyError(row.error, t("acct.p.bokun-tokst-ekki", "Bókun tókst ekki.")),
       );
       return;
     }
@@ -172,8 +175,11 @@ export function DoctorSlotPickerModal({ slots, existing, onClose, onBooked, onCa
       confirmLabel: t("acc.cancel.confirm", "Já, afbóka"), cancelLabel: t("acc.common.no", "Nei"), tone: "danger",
     });
     if (!ok) return;
+    setError("");
+    setSaving(true);
     const { error: cancelErr } = await supabase.rpc("cancel_doctor_slot");
-    if (cancelErr) { setError(cancelErr.message); return; }
+    setSaving(false);
+    if (cancelErr) { setError(friendlyError(cancelErr, t("acc.dr.cancelfailed", "Tókst ekki að afbóka viðtalið. Reyndu aftur."))); return; }
     onCancelled();
     onClose();
   };
@@ -183,8 +189,8 @@ export function DoctorSlotPickerModal({ slots, existing, onClose, onBooked, onCa
       description={t("acct.q.meet11", "Hittu Lifeline-lækninn þinn einslega til að fara yfir skýrsluna og koma ykkur saman um aðgerðaáætlun.")}
       onClose={onClose} dismissable={!saving}
       footer={<>
-        {existing && <Button variant="dangerOutline" className="mr-auto" onClick={cancel}>{t("acct.q.cancelbooking", "Afbóka")}</Button>}
-        <Button variant="secondary" onClick={onClose}>{t("acct.q.close", "Loka")}</Button>
+        {existing && <Button variant="dangerOutline" className="mr-auto" onClick={cancel} disabled={saving}>{t("acct.q.cancelbooking", "Afbóka")}</Button>}
+        <Button variant="secondary" onClick={onClose} disabled={saving}>{t("acct.q.close", "Loka")}</Button>
         <Button onClick={save} busy={saving} disabled={!selectedId}>{existing ? t("acc.common.update", "Uppfæra") : t("acc.dr.confirm", "Staðfesta tíma")}</Button>
       </>}>
       <div className="space-y-4">
@@ -255,14 +261,20 @@ export function RefundRequestModal({ bookingId, clientId, amountIsk, includeChec
       status: "pending",
     }).select("id").single();
     setBusy(false);
-    if (error) { setErr(error.message); return; }
+    if (error) { setErr(friendlyError(error, t("acc.rr.failed", "Tókst ekki að senda beiðnina. Reyndu aftur eða sendu póst á contact@lifelinehealth.is."))); return; }
     const requestId = (data as { id: string }).id;
-    // Fire-and-forget admin notification; the row is already saved.
-    fetch("/api/bookings/refund-request-submitted", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId }),
-    }).catch(() => {});
+    // Fire-and-forget admin notification; the row is already saved. The
+    // route authenticates off the Authorization header — without it every
+    // notification 401'd and the team never heard about the request.
+    void (async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      await fetch("/api/bookings/refund-request-submitted", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ requestId }),
+      });
+    })().catch(() => {});
     onSubmitted(requestId);
   }
 

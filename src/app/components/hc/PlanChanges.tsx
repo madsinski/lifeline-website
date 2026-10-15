@@ -42,6 +42,8 @@ function when(iso: string) {
 export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: string }) {
   const [rows, setRows] = useState<Change[] | null>(null);
   const [all, setAll] = useState(false);
+  /* A failed read is not "no changes". */
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     const r = await api(`/api/vinnustod/journeys/${journeyId}/changes`).catch(() => null);
@@ -49,7 +51,7 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
     const next = Array.isArray(j?.changes) ? (j.changes as Change[]) : [];
     // Deferred: an effect calls this, and the compiler objects to setting
     // state synchronously there. Same pattern as the unread poller.
-    setTimeout(() => setRows(next), 0);
+    setTimeout(() => { setFailed(!j); setRows(next); }, 0);
   }, [api, journeyId]);
   useEffect(() => { void load(); }, [load]);
 
@@ -59,7 +61,12 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
     return (
       <section className={`${hcCard.base} p-4`}>
         <h3 className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Breytingar á áætlun</h3>
-        <p className="mt-1 text-sm text-hc-ink-2">Engar breytingar skráðar.</p>
+        {failed ? (
+          <p role="alert" className="mt-1 flex flex-wrap items-center gap-2 text-sm text-hc-bad-ink">
+            Náði ekki í breytingarnar.
+            <button type="button" onClick={() => void load()} className="font-semibold underline">Reyna aftur</button>
+          </p>
+        ) : <p className="mt-1 text-sm text-hc-ink-2">Engar breytingar skráðar.</p>}
       </section>
     );
   }

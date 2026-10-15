@@ -42,6 +42,7 @@ import { supabase } from "@/lib/supabase";
 import InstallGuide from "./InstallGuide";
 import StepHeader from "./StepHeader";
 import { hcBtn } from "./ui";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -126,6 +127,7 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
   const [busy, setBusy] = useState(false);
   const [accept, setAccept] = useState(false);
   const [lecture, setLecture] = useState<Lecture | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (preview) {
@@ -227,11 +229,17 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
     setI(before.n);
   }, [screens, at, post]);
 
-  /* Written as it is given. */
+  /* Written as it is given. Returns whether it was stored, so a question
+     does not move on past an answer the server never got. With no
+     published flow (the training screen alone) there is nothing to store
+     it in — the server answers no_flow — and the local copy is the answer. */
   const answer = useCallback(async (key: string, value: string) => {
     setAnswers((a) => ({ ...a, [key]: value }));
-    await post({ action: "answer", key, value });
-  }, [post]);
+    if (preview || !flow?.slug) return true;
+    const ok = (await post({ action: "answer", key, value })) !== null;
+    if (!ok) toast.show(SAVE_FAILED, { tone: "bad" });
+    return ok;
+  }, [post, preview, flow?.slug, toast]);
 
   /* A lecture step needs its lecture, fetched when it is reached. */
   const step = screen?.step;
@@ -294,7 +302,12 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
             <div className="mt-5 space-y-2.5">
               {q.options.map((o: { key: string; label: string; hint?: string }) => (
                 <button key={o.key} type="button" disabled={busy}
-                  onClick={() => void (async () => { await answer(key, o.key); await next(); })()}
+                  onClick={() => void (async () => {
+                    setBusy(true);
+                    const ok = await answer(key, o.key);
+                    setBusy(false);
+                    if (ok) await next();
+                  })()}
                   aria-pressed={chosen === o.key}
                   className={`flex min-h-14 w-full items-center gap-3 rounded-hc-element border-2 px-4 py-3 text-left transition ${
                     chosen === o.key ? "border-hc-brand-dark bg-hc-brand-surface" : "border-hc-border bg-hc-surface hover:border-hc-control"}`}>
@@ -335,15 +348,21 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
               setBusy(true);
               const { data: s } = await supabase.auth.getSession();
               const uid = s.session?.user?.id;
-              if (uid) {
-                await supabase.from("clients_decrypted").update({
-                  terms_accepted_at: new Date().toISOString(),
-                  terms_version: `tos-${PUBLIC_TERMS_VERSION}+priv-${PUBLIC_PRIVACY_VERSION}`,
-                }).eq("id", uid);
+              if (!uid) {
+                setBusy(false);
+                toast.show("Innskráningin rann út – skráðu þig aftur inn", { tone: "bad" });
+                return;
               }
-              await answer("consent", "yes");
+              const { error } = await supabase.from("clients_decrypted").update({
+                terms_accepted_at: new Date().toISOString(),
+                terms_version: `tos-${PUBLIC_TERMS_VERSION}+priv-${PUBLIC_PRIVACY_VERSION}`,
+              }).eq("id", uid);
+              /* Moving on past terms that were never stored left the
+                 participant believing they had accepted. */
+              if (error) { setBusy(false); toast.show(SAVE_FAILED, { tone: "bad" }); return; }
+              const ok = await answer("consent", "yes");
               setBusy(false);
-              await next();
+              if (ok) await next();
             })()}
             className={`${hcBtn.cta} mt-5 w-full`}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null} Samþykkja

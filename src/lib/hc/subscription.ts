@@ -23,6 +23,7 @@
 // everybody who signed up before any of this existed.
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { isRunning } from "@/lib/hc/subscription-state";
 
 export const TRIAL_DAYS = 14;
 
@@ -130,7 +131,9 @@ export async function appAccess(clientId: string): Promise<AppAccess> {
   ]);
   const journey = journeyRes.data;
 
-  const live = sub?.status === "active";
+  /* Cancelled but inside the paid period still counts: "Segja upp" stops
+     the renewal, not the month already paid for (subscription-state.ts). */
+  const live = isRunning(sub);
   if (live && sub && PAID_TIERS.has(sub.tier ?? "")) {
     return { ok: true, reason: "paid", trialEndsAt: null, daysLeft: null };
   }

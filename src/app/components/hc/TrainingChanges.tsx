@@ -210,9 +210,14 @@ export default function TrainingChanges({ settings, onChange, onOpenWeek, onClos
           })}
         </div>
 
-        <div className="border-t border-hc-hairline p-3">
-          <button type="button" onClick={onClose} className={`${hcBtn.primary} w-full`}>Loka</button>
-        </div>
+        {/* Only where there is something to close. Inline (inside the
+            Prógrammið sleeve) there is no onClose and the button did
+            nothing; the sleeve has its own close. */}
+        {onClose && !inline && (
+          <div className="border-t border-hc-hairline p-3">
+            <button type="button" onClick={onClose} className={`${hcBtn.primary} w-full`}>Loka</button>
+          </div>
+        )}
     </>
   );
 

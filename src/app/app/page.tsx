@@ -28,6 +28,7 @@ import { WITHDRAWAL_WAIVER_LABEL } from "@/app/components/hc/Paywall";
 import NextStepCard from "@/app/components/hc/NextStepCard";
 import StepHeader from "@/app/components/hc/StepHeader";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
+import { SAVE_FAILED, useToast } from "@/app/components/hc/Toast";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
 
@@ -59,6 +60,10 @@ async function api(url: string, init: RequestInit = {}) {
           ? { "Content-Type": "application/json" } : {}), ...(init.headers as Record<string, string> | undefined) };
   return fetch(url, { ...init, headers });
 }
+
+/** A server error worth showing as is: a sentence, not a code like "order_failed". */
+const humanError = (e: unknown, fallback: string) =>
+  typeof e === "string" && /\s/.test(e) ? e : fallback;
 
 // Written out by hand: a browser without Icelandic locale data falls back to
 // English ("Fri, October 2 at 09:08 PM").
@@ -101,6 +106,7 @@ function Heilsuferd() {
   /* "choose" only when neither /byrja nor an employer has decided the
      route; otherwise the journey is created and the route applied at once. */
   const [choosing, setChoosing] = useState(false);
+  const toast = useToast();
 
   const load = useCallback(async (fresh = false): Promise<JourneyData | null> => {
     const url = `/api/hc/journey${stadur ? `?stadur=${encodeURIComponent(stadur)}` : startParam ? "?start=1" : ""}`;
@@ -147,10 +153,17 @@ function Heilsuferd() {
     const qs = new URLSearchParams({ start: "1" });
     if (stadur) qs.set("stadur", stadur);
     if (track) qs.set("track", track);
-    await api(`/api/hc/journey?${qs.toString()}`).catch(() => null);
+    const r = await api(`/api/hc/journey?${qs.toString()}`).catch(() => null);
+    /* A failed create used to drop the chooser and leave "Augnablik…" up
+       for good. Keep the chooser (or show it) and say so instead. */
+    if (!r || !r.ok) {
+      toast.show("Ekki tókst að hefja ferðina – reyndu aftur", { tone: "bad" });
+      setChoosing(true);
+      return;
+    }
     setChoosing(false);
     await load(true);
-  }, [stadur, load]);
+  }, [stadur, load, toast]);
 
   /* Stable, because the player refetches when it changes. */
   const onboardingFinished = useCallback(() => {
@@ -170,7 +183,7 @@ function Heilsuferd() {
     (async () => {
       const { data: s } = await supabase.auth.getSession();
       if (!s.session) { setAuthed(false); return; }
-      if (!s.session.user.email_confirmed_at) { router.replace("/account/login?verify=1"); return; }
+      if (!s.session.user.email_confirmed_at) { router.replace(`/account/login?verify=1&email=${encodeURIComponent(s.session.user.email ?? "")}&next=/app`); return; }
       setAuthed(true);
       /* The /byrja clickwrap, copied onto the clients row server side.
          Awaited so the onboarding player (which keys its terms screen on
@@ -952,15 +965,17 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
 function CompleteButton({ label, action, onDone }: { label: string; action: string; onDone: () => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const toast = useToast();
   return (
     <>
       <button type="button" disabled={busy}
         onClick={async () => {
           setBusy(true); setErr("");
-          const r = await api("/api/hc/journey", { method: "POST", body: JSON.stringify({ action }) });
-          const j = await r.json().catch(() => ({}));
+          const r = await api("/api/hc/journey", { method: "POST", body: JSON.stringify({ action }) }).catch(() => null);
+          const j = r ? await r.json().catch(() => ({})) : {};
           setBusy(false);
-          if (!r.ok) { setErr(j.error || "Tókst ekki."); return; }
+          if (!r || !r.ok) { setErr(humanError(j.error, SAVE_FAILED)); return; }
+          toast.show("Skráð", { tone: "ok" });
           await onDone();
         }}
         className={hcBtn.cta}>
@@ -974,11 +989,20 @@ function CompleteButton({ label, action, onDone }: { label: string; action: stri
 
 function CodeBox({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
+  const toast = useToast();
   return (
     <div className="mt-2 flex items-center gap-2">
-      <span className="flex-1 rounded-xl bg-hc-ok-surface px-4 py-3 text-center font-mono text-xl font-bold tracking-[0.15em] text-hc-ok-ink">{code}</span>
-      <button
-        onClick={async () => { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      <span className="flex-1 select-all rounded-xl bg-hc-ok-surface px-4 py-3 text-center font-mono text-xl font-bold tracking-[0.15em] text-hc-ok-ink">{code}</span>
+      <button type="button"
+        onClick={async () => {
+          // The clipboard is refused outside a secure context and on some
+          // in-app browsers; say so rather than doing nothing.
+          try { await navigator.clipboard.writeText(code); } catch {
+            toast.show("Ekki tókst að afrita – veldu kóðann og afritaðu hann", { tone: "bad" });
+            return;
+          }
+          setCopied(true); setTimeout(() => setCopied(false), 1500);
+        }}
         className="min-h-11 rounded-xl border border-hc-control px-3 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken"
       >
         {copied ? "Afritað" : "Afrita"}
@@ -996,6 +1020,7 @@ function ConsentCard({ reload }: { reload: () => Promise<unknown> }) {
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const toast = useToast();
   return (
     <section className="mb-4 rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-warn-ink/30">
       <p className="font-bold text-hc-ink">Eitt atriði vantar: samþykki</p>
@@ -1004,9 +1029,10 @@ function ConsentCard({ reload }: { reload: () => Promise<unknown> }) {
       <button type="button" disabled={!checked || busy}
         onClick={async () => {
           setBusy(true); setErr("");
-          const r = await api("/api/hc/profile", { method: "PUT", body: JSON.stringify({ accept_health_consent: true }) });
+          const r = await api("/api/hc/profile", { method: "PUT", body: JSON.stringify({ accept_health_consent: true }) }).catch(() => null);
           setBusy(false);
-          if (!r.ok) { setErr("Tókst ekki að vista. Reyndu aftur."); return; }
+          if (!r || !r.ok) { setErr("Tókst ekki að vista. Reyndu aftur."); return; }
+          toast.show("Samþykkið er skráð", { tone: "ok" });
           await reload();
         }}
         className={`${hcBtn.cta} mt-3`}>
@@ -1074,14 +1100,23 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
   const [waiver, setWaiver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const toast = useToast();
 
   useEffect(() => {
     if (!pkgKey) return;
+    let alive = true;
     (async () => {
-      const r = await api(`/api/hc/checkout?package=${encodeURIComponent(pkgKey)}`);
-      if (r.ok) setInfo(await r.json());
+      const r = await api(`/api/hc/checkout?package=${encodeURIComponent(pkgKey)}`).catch(() => null);
+      if (!alive) return;
+      if (r?.ok) { setInfo(await r.json()); setLoadFailed(false); }
+      // Was "Hleð…" for good when this failed.
+      else setLoadFailed(true);
     })();
-  }, [pkgKey]);
+    return () => { alive = false; };
+  }, [pkgKey, attempt]);
 
   const union = info?.unions.find((u) => u.id === unionId) ?? null;
   const company = useCompany && codeState?.ok === true ? codeState : null;
@@ -1093,12 +1128,17 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
   }), [info, company, useUnion, union]);
 
   const checkCode = async () => {
+    if (checking) return;
     setCodeState(null);
-    const r = await api(`/api/hc/checkout?package=${encodeURIComponent(pkgKey)}&code=${encodeURIComponent(code)}`);
-    if (r.ok) setCodeState((await r.json()).company_code);
+    setChecking(true);
+    const r = await api(`/api/hc/checkout?package=${encodeURIComponent(pkgKey)}&code=${encodeURIComponent(code)}`).catch(() => null);
+    setChecking(false);
+    if (r?.ok) setCodeState((await r.json()).company_code ?? { ok: false, error: "Kóðinn fannst ekki." });
+    else setCodeState({ ok: false, error: "Ekki tókst að athuga kóðann – reyndu aftur." });
   };
 
   const pay = async () => {
+    if (busy) return;
     setBusy(true); setErr("");
     const r = await api("/api/hc/checkout", {
       method: "POST",
@@ -1109,14 +1149,23 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
         union_consent: consent, accept_terms: terms,
         withdrawal_waiver: waiver, withdrawal_waiver_at: waiver ? new Date().toISOString() : null,
       }),
-    });
-    const j = await r.json().catch(() => ({}));
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setErr(j.error || "Greiðsla tókst ekki."); return; }
+    if (!r || !r.ok) { setErr(humanError(j.error, "Greiðsla tókst ekki. Reyndu aftur.")); return; }
+    toast.show("Gengið frá kaupum", { tone: "ok" });
     await reload();
   };
 
   if (!profileComplete) return <p className="text-sm text-hc-ink-2">Kláraðu fyrst skrefið „Upplýsingar um þig“. Þær þarf til að ganga frá kaupum.</p>;
+  if (!info && loadFailed) {
+    return (
+      <Alert tone="bad" title="Ekki tókst að sækja verðið"
+        actions={<Button variant="secondary" onClick={() => { setLoadFailed(false); setAttempt((n) => n + 1); }}>Reyna aftur</Button>}>
+        Athugaðu nettenginguna og reyndu aftur.
+      </Alert>
+    );
+  }
   if (!info) return <p className="text-sm text-hc-ink-3">Hleð…</p>;
 
   const companyCovers = company ? (company.contribution_isk != null ? formatIsk(company.contribution_isk) : `${company.contribution_percent}%`) : "";
@@ -1158,7 +1207,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
           <label className="block text-sm font-medium text-hc-ink-2" htmlFor="company-code">Kóði frá vinnuveitanda</label>
           <div className="mt-1 flex gap-2">
             <input id="company-code" value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeState(null); }} placeholder="FY-XXXX-XXXX" className="flex-1 rounded-lg border border-hc-control px-3 py-2.5 font-mono uppercase tracking-wider" />
-            <button type="button" onClick={checkCode} disabled={code.length < 8} className="min-h-11 rounded-lg bg-hc-brand-dark px-4 text-sm font-semibold text-white disabled:opacity-40">Staðfesta</button>
+            <button type="button" onClick={checkCode} disabled={code.length < 8 || checking} className="min-h-11 rounded-lg bg-hc-brand-dark px-4 text-sm font-semibold text-white disabled:opacity-40">{checking ? "Athuga…" : "Staðfesta"}</button>
           </div>
           {codeState?.ok === true && <p className="mt-2 flex items-start gap-1.5 text-sm text-hc-ok-ink"><Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />{codeState.company_name ?? "Vinnuveitandi"} greiðir {codeState.contribution_isk != null ? formatIsk(codeState.contribution_isk) : codeState.contribution_percent >= 100 ? "allt" : `${codeState.contribution_percent}%`}.</p>}
           {codeState?.ok === false && <p className="mt-2 text-sm text-hc-bad-ink">{codeState.error}</p>}
@@ -1249,10 +1298,15 @@ function TestStep({ kind, title, address, info, bookedFor, done, portal, reload 
 }) {
   const [at, setAt] = useState(bookedFor ? bookedFor.slice(0, 16) : "");
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
   const save = async () => {
+    if (saving) return;
     setSaving(true);
-    await api("/api/hc/journey", { method: "POST", body: JSON.stringify({ action: "set_booking", kind, at: at ? new Date(at).toISOString() : null }) });
+    const r = await api("/api/hc/journey", { method: "POST", body: JSON.stringify({ action: "set_booking", kind, at: at ? new Date(at).toISOString() : null }) }).catch(() => null);
     setSaving(false);
+    // Saved or not, it used to look the same.
+    if (!r || !r.ok) { toast.show(SAVE_FAILED, { tone: "bad" }); return; }
+    toast.show(at ? "Tíminn er vistaður" : "Tíminn var fjarlægður", { tone: "ok" });
     await reload();
   };
   return (
@@ -1321,7 +1375,7 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
               <p className="text-sm text-hc-ink-3">{p.description}</p>
             </div>
             <span className="font-semibold text-hc-brand-text">{formatIsk(p.price_isk)}</span>
-            <button onClick={() => setBuying(p.key)} className={hcBtn.cta}>Velja</button>
+            <button type="button" onClick={() => setBuying(p.key)} className={hcBtn.cta}>Velja</button>
           </div>
         ),
       )}
@@ -1356,16 +1410,24 @@ function HistoryCard({ history }: { history: NonNullable<JourneyData["history"]>
 function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload: () => Promise<void> }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<Record<string, string>>({});
+  const [fetching, setFetching] = useState<string | null>(null);
   const dialog = useDialog();
+  const toast = useToast();
   if (!claims.length) return null;
 
   const download = async (orderId: string) => {
-    const r = await api(`/api/hc/claims/${orderId}`);
-    if (!r.ok) return;
-    const url = URL.createObjectURL(await r.blob());
+    if (fetching) return;
+    setFetching(orderId);
+    const r = await api(`/api/hc/claims/${orderId}`).catch(() => null);
+    const blob = r?.ok ? await r.blob().catch(() => null) : null;
+    setFetching(null);
+    if (!blob) { toast.show("Ekki tókst að sækja skjalið – reyndu aftur", { tone: "bad" }); return; }
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "umsokn-endurgreidsla.pdf"; a.click();
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = "umsokn-endurgreidsla.pdf";
+    document.body.appendChild(a); a.click(); a.remove();
+    // Revoked a moment later: Safari starts the download after click returns.
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
   };
   const send = async (orderId: string, resend = false) => {
     const ok = await dialog.confirm({
@@ -1375,11 +1437,15 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
     });
     if (!ok) return;
     setBusy(orderId);
-    const r = await api(`/api/hc/claims/${orderId}`, { method: "POST", body: JSON.stringify({ action: "send", resend }) });
-    const j = await r.json().catch(() => ({}));
+    const r = await api(`/api/hc/claims/${orderId}`, { method: "POST", body: JSON.stringify({ action: "send", resend }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(null);
-    setMsg({ ...msg, [orderId]: r.ok ? `Sent á ${j.sent_to}` : j.error || "Sending mistókst." });
-    if (r.ok) await reload();
+    const text = r?.ok
+      ? `Sent á ${j.sent_to}`
+      : j.error === "already_sent" ? "Umsóknin hefur þegar verið send." : humanError(j.error, "Sending mistókst. Reyndu aftur.");
+    setMsg((m) => ({ ...m, [orderId]: text }));
+    toast.show(text, { tone: r?.ok ? "ok" : "bad" });
+    if (r?.ok) await reload();
   };
 
   return (
@@ -1392,7 +1458,7 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
             <p className="text-hc-ink-3">Endurgreiðsla: {formatIsk(c.reimbursable_isk)}</p>
             <p className="text-xs text-hc-ink-3">{c.sent_at ? `Send ${fmtDate(c.sent_at)} á ${c.sent_to}` : "Ekki send"}</p>
             <div className="mt-2 flex gap-2">
-              <button type="button" onClick={() => download(c.order_id)} className="min-h-11 rounded-lg border border-hc-control bg-hc-surface px-3 text-xs font-semibold">Sækja PDF</button>
+              <button type="button" onClick={() => download(c.order_id)} disabled={fetching === c.order_id} className="min-h-11 rounded-lg border border-hc-control bg-hc-surface px-3 text-xs font-semibold disabled:opacity-50">{fetching === c.order_id ? "Sæki…" : "Sækja PDF"}</button>
               <button type="button" onClick={() => send(c.order_id, !!c.sent_at)} disabled={busy === c.order_id}
                 className={`min-h-11 rounded-lg px-3 text-xs font-semibold disabled:opacity-50 ${c.sent_at ? "border border-hc-control bg-hc-surface text-hc-ink-2" : "bg-hc-brand-dark text-white"}`}>
                 {busy === c.order_id ? "Sendir…" : c.sent_at ? "Senda aftur" : "Senda á félagið"}

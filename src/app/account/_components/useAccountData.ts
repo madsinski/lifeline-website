@@ -22,6 +22,7 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
 import * as hcCache from "@/lib/hc/client-cache";
+import { pickCurrent } from "@/lib/hc/subscription-state";
 import type { AccountState, CompanyEvent, DoctorSlot, MyDoctorSlot, PackageKey, Patch, SatisfactionContext } from "./types";
 
 const DOCTOR_SLOT_COLS = "id, slot_at, duration_minutes, mode, location, meeting_link, doctor_name, notes";
@@ -118,7 +119,8 @@ export function useAccountData(upgradeParam: string | null) {
       // Email verification gate. GDPR Art. 9 health consent + Biody
       // activation should not run against an unverified identity.
       if (!verifiedUser.email_confirmed_at) {
-        router.push("/account/login?verify=1");
+        // ?email lets the login page's "send again" work in one tap.
+        router.push(`/account/login?verify=1&email=${encodeURIComponent(verifiedUser.email ?? "")}&next=${encodeURIComponent("/account")}`);
         setLoading(false);
         return;
       }
@@ -382,16 +384,19 @@ export function useAccountData(upgradeParam: string | null) {
         Object.assign(profile, namesFromMeta(currentUser));
       }
 
-      // Active app subscription
+      // The app subscription: the active row, or a cancelled one whose paid
+      // period is still running (subscription-state.ts) — cancelling stops
+      // the renewal, not the access.
       try {
         const { data: subData } = await supabase
           .from("subscriptions")
           .select("id, tier, status, trial_ends_at, current_period_start, current_period_end")
           .eq("client_id", currentUser.id)
-          .eq("status", "active")
+          .in("status", ["active", "cancelled"])
           .order("created_at", { ascending: false })
-          .limit(1);
-        if (subData && subData.length > 0) next.subscription = subData[0] as AccountState["subscription"];
+          .limit(10);
+        const cur = pickCurrent((subData ?? []) as NonNullable<AccountState["subscription"]>[]);
+        if (cur) next.subscription = cur;
       } catch { /* none */ }
 
       patch({ ...next, profile });

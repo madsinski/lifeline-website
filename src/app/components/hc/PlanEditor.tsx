@@ -23,6 +23,7 @@ import { GRADE_IS } from "@/lib/hc/rating";
 import { fitOf } from "@/lib/hc/fit";
 import type { Signal } from "@/lib/hc/grunnheilsa";
 import FitMeter from "./FitMeter";
+import { useToast } from "./Toast";
 import { PILLAR_META, PILLARS, type Pillar, type PlanGoal, type PlanItem, type PlanModule } from "@/lib/hc/types";
 import type { PillarPriority } from "@/lib/hc/self-plan";
 import * as cache from "@/lib/hc/client-cache";
@@ -100,12 +101,14 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const keyboard = useKeyboard();
+  const toast = useToast();
 
   useEffect(() => {
     (async () => {
-      const r = await api("/api/hc/my-plan");
-      const j = (await r.json().catch(() => null)) as Loaded | null;
-      if (!r.ok || !j) { setMsg("Tókst ekki að sækja áætlunina."); return; }
+      // A dropped connection threw here and left "Hleð…" on screen for good.
+      const r = await api("/api/hc/my-plan").catch(() => null);
+      const j = r ? ((await r.json().catch(() => null)) as Loaded | null) : null;
+      if (!r?.ok || !j) { setMsg("Tókst ekki að sækja áætlunina. Athugaðu nettenginguna og reyndu aftur."); return; }
       setD(j);
       const byKey = new Map(j.modules.map((m) => [m.key, m]));
       if (j.plan) {
@@ -149,6 +152,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
   };
 
   const save = async () => {
+    if (busy) return;
     setBusy(true); setMsg("");
     const r = await api("/api/hc/my-plan", {
       method: "POST",
@@ -160,11 +164,20 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         ...(exKey !== (d?.plan?.exercise?.key ?? null) ? { exercise_key: exKey } : {}),
         ...(nuKey !== (d?.plan?.nutrition?.key ?? null) ? { nutrition_key: nuKey } : {}),
       }),
-    });
-    const j = await r.json().catch(() => ({}));
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setMsg(j.error || "Tókst ekki að vista."); return; }
+    // The server writes its refusals in Icelandic; anything else is a code.
+    if (!r?.ok) {
+      const why = typeof j.error === "string" && /[áéíóúýþæöð]/i.test(j.error) ? j.error : "Tókst ekki að vista. Reyndu aftur.";
+      setMsg(why);
+      toast.show(why, { tone: "bad" });
+      return;
+    }
     cache.invalidate("/api/hc/");
+    /* onDone leaves the editor for Í dag, so the confirmation has to be one
+       that survives the editor going away. */
+    toast.show("Áætlunin er vistuð", { tone: "ok" });
     onDone();
   };
 

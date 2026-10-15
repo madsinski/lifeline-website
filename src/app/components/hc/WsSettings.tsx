@@ -35,6 +35,7 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
   onLogout: () => void;
 }) {
   const [sound, setSound] = useState(true);
+  const [tested, setTested] = useState<"ok" | "no" | null>(null);
   const api = useWsApi();
   // Whether Google is connected, so the row says so instead of always "Tengja".
   const [google, setGoogle] = useState<{ connected: boolean; email: string | null } | null>(null);
@@ -114,7 +115,7 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
 
       <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-hc-card">
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Tilkynningar</h2>
-        <button type="button" onClick={toggleSound}
+        <button type="button" onClick={toggleSound} role="switch" aria-checked={sound}
           className="flex w-full items-center gap-3 rounded-xl border border-hc-hairline p-3 text-left transition hover:bg-hc-sunken">
           <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
             sound ? "bg-hc-brand-surface text-hc-brand-text" : "bg-hc-sunken-2 text-hc-ink-3"}`}>
@@ -133,9 +134,16 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
           </span>
         </button>
         {sound && (
-          <button type="button" onClick={() => chime()} className={`${hcBtn.secondary} mt-2 min-h-9 px-3 text-xs`}>
-            <Volume2 className="h-4 w-4" aria-hidden /> Prófa hljóð
-          </button>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => setTested(chime({ fromGesture: true }) ? "ok" : "no")}
+              className={`${hcBtn.secondary} min-h-9 px-3 text-xs`}>
+              <Volume2 className="h-4 w-4" aria-hidden /> Prófa hljóð
+            </button>
+            <span role="status" className="text-xs text-hc-ink-2">
+              {tested === "ok" ? "Heyrðist ekkert? Athugaðu hljóðstyrk tækisins."
+                : tested === "no" ? "Þessi vafri leyfir ekki hljóð hér. Rauði punkturinn blikkar samt." : ""}
+            </span>
+          </div>
         )}
       </section>
 

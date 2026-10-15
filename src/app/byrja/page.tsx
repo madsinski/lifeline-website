@@ -118,11 +118,31 @@ function Start() {
   const suggested = useMemo(() => (suggestsCheck(a) ? "check" : "coach"), [a]);
   const redirectTo = useCallback(
     () => `${window.location.origin}${next || "/app"}`, [next]);
-  const loginHref = `/account/login${next ? `?next=${encodeURIComponent(next)}` : ""}`;
+  /* Somebody who came here from a subscription button (?leid=coach) and
+     already has an account wants the subscription, not a new account. */
+  const signedInHome = next || (leid === "coach" ? "/app/adgangur#askrift" : "/app");
+  const loginNext = next || (leid === "coach" ? "/app/adgangur#askrift" : null);
+  const loginHref = `/account/login${loginNext ? `?next=${encodeURIComponent(loginNext)}` : ""}`;
+
+  /* Already signed in: this page would only make a second account. Go to
+     where the button meant. */
+  const [checkingSession, setCheckingSession] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (!alive) return;
+        if (data.session) router.replace(signedInHome);
+        else setCheckingSession(false);
+      })
+      .catch(() => { if (alive) setCheckingSession(false); });
+    return () => { alive = false; };
+  }, [router, signedInHome]);
 
   const submit = useCallback(async () => {
+    if (busy) return;
     setBusy(true); setErr("");
-    const { data, error } = await supabase.auth.signUp({
+    const res = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -143,7 +163,9 @@ function Start() {
         },
         emailRedirectTo: redirectTo(),
       },
-    });
+    }).catch(() => null);
+    if (!res) { setBusy(false); setErr("Engin tenging. Athugaðu netið og reyndu aftur."); return; }
+    const { data, error } = res;
     if (error) { setBusy(false); setErr(authErrorIs(error)); return; }
 
     /* An address that already has a confirmed account: Supabase answers with
@@ -165,7 +187,7 @@ function Start() {
     /* No session means a confirmation mail is on its way. Said plainly, on
        this screen, rather than by bouncing them to a login form. */
     setSent("sent");
-  }, [email, password, name, a, track, suggested, researchOptOut, marketingOptOut, refCode, redirectTo, next, router]);
+  }, [busy, email, password, name, a, track, suggested, researchOptOut, marketingOptOut, refCode, redirectTo, next, router]);
 
   const back = () => setStep((s) => (s > 0 ? ((s - 1) as Step) : s));
   const skip = (
@@ -183,6 +205,11 @@ function Start() {
         <>Ertu þegar með aðgang? <Link href={loginHref} className={authLink}>Skrá inn</Link></>
       )}
     >
+        {checkingSession && !sent && (
+          <p className="flex items-center justify-center gap-2 py-6 text-sm text-hc-ink-2" role="status">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Augnablik…
+          </p>
+        )}
         {sent && (
           <CheckEmail
             email={email.trim()}
@@ -193,7 +220,7 @@ function Start() {
           />
         )}
 
-        {!sent && step === 0 && (
+        {!sent && !checkingSession && step === 0 && (
           <Question title="Hvað ertu að leita að?" hint="Veldu það sem skiptir mestu núna. Þú getur breytt þessu síðar.">
             {GOALS.map((g) => (
               <Choice key={g.key} active={a.goal === g.key} onClick={() => pick("goal", g.key as GoalKey)}
@@ -202,7 +229,7 @@ function Start() {
           </Question>
         )}
 
-        {!sent && step === 1 && (
+        {!sent && !checkingSession && step === 1 && (
           <Question title="Hvað hreyfir þú þig mikið núna?" hint="Við byrjum þar sem þú ert, ekki þar sem sniðmát segir.">
             {MOVES.map((m) => (
               <Choice key={m.key} active={a.move === m.key} onClick={() => pick("move", m.key as MoveKey)} label={m.label} />
@@ -210,7 +237,7 @@ function Start() {
           </Question>
         )}
 
-        {!sent && step === 2 && (
+        {!sent && !checkingSession && step === 2 && (
           <Question title="Á hvaða aldri ertu?" hint="Viðmiðin okkar eru aldursbundin — þess vegna spyrjum við.">
             {AGES.map((x) => (
               <Choice key={x.key} active={a.age === x.key} onClick={() => pick("age", x.key as AgeKey)} label={x.label} />
@@ -218,7 +245,7 @@ function Start() {
           </Question>
         )}
 
-        {!sent && step === 3 && (
+        {!sent && !checkingSession && step === 3 && (
           <section>
             <h1 className="text-2xl font-bold text-hc-ink">Þetta leggjum við til</h1>
             <p className="mt-1 text-sm text-hc-ink-2">Byggt á svörunum þínum. Þjálfarinn fínstillir þetta með þér.</p>
@@ -237,7 +264,7 @@ function Start() {
           </section>
         )}
 
-        {!sent && step === 4 && (
+        {!sent && !checkingSession && step === 4 && (
           <section>
             <h1 className="text-2xl font-bold text-hc-ink">Hvernig viltu byrja?</h1>
             <p className="mt-1 text-sm text-hc-ink-2">
@@ -268,9 +295,9 @@ function Start() {
           </section>
         )}
 
-        {!sent && step < LAST && skip}
+        {!sent && !checkingSession && step < LAST && skip}
 
-        {!sent && step === LAST && (
+        {!sent && !checkingSession && step === LAST && (
           <section>
             <h1 className="text-2xl font-bold text-hc-ink">Búa til aðgang</h1>
             <p className="mt-1 text-sm text-hc-ink-2">Síðasta skrefið. Við geymum svörin þín.</p>

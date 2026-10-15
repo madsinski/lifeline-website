@@ -21,6 +21,9 @@ export const SIGNUP_TERMS_VERSION = `tos-${PUBLIC_TERMS_VERSION}+priv-${PUBLIC_P
 /**
  * A same-origin path to continue to, or null.
  * Accepts "/x…" only — not "//host", not "/\host", not a full URL.
+ * A query and a fragment are kept ("/app/adgangur#askrift"); router.push
+ * handles both, and neither can change the origin once the path starts
+ * with a single "/".
  */
 export function safeNextPath(raw: string | null | undefined): string | null {
   if (!raw) return null;

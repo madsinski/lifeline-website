@@ -28,6 +28,7 @@ import { hcBtn, hcCard, hcInput } from "./ui";
 import Sheet from "./Sheet";
 import Segmented from "./Segmented";
 import { badgeClass } from "./Badge";
+import { useToast } from "./Toast";
 import { Alert, Button } from "@/app/components/account/ui";
 import { MEASURE_PREP } from "@/lib/hc/appointment-kinds";
 
@@ -156,6 +157,10 @@ export default function CoachView({ api, startOn, focusNewest = false, portalUrl
   /** Sent, not yet acknowledged. */
   const [pending, setPending] = useState<string[]>([]);
   const [err, setErr] = useState("");
+  const toast = useToast();
+  /* busy as state disables the buttons on the next render; the ref stops
+     a second tap that lands before that render from posting twice. */
+  const busyRef = useRef(false);
   /** The thread could not be fetched — distinct from an empty thread. */
   const [loadErr, setLoadErr] = useState(false);
   const seen = useRef(false);
@@ -202,17 +207,35 @@ export default function CoachView({ api, startOn, focusNewest = false, portalUrl
   }, [data?.thread.length, pending.length, tab, focusNewest]);
 
   const post = async (payload: Record<string, unknown>) => {
+    if (busyRef.current) return false;
+    busyRef.current = true;
     setBusy(true); setErr("");
     const r = await api("/api/hc/coach", { method: "POST", body: JSON.stringify(payload) }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
+    busyRef.current = false;
     setBusy(false);
     if (!r?.ok) {
-      setErr(j.error === "no_consults_left" ? "Myndsímtölin eru búin í þessum mánuði."
+      const msg = j.error === "no_consults_left" ? "Myndsímtölin eru búin í þessum mánuði."
         : j.error === "unavailable" ? "Þessi þjálfari tekur ekki við nýjum núna."
         : j.error === "no_items" ? "Veldu að minnsta kosti eina mælingu."
-        : "Tókst ekki. Prófaðu aftur.");
+        : j.error === "bad_time" ? "Þessi tími er liðinn. Veldu annan."
+        : "Tókst ekki. Prófaðu aftur.";
+      setErr(msg);
+      /* The inline line sits at the top of Bóka and above the composer;
+         a move or a cancel fails inside a sheet that covers both, and a
+         coach switch fails at the top of a long thread. The toast is seen
+         wherever the tap was. */
+      if (typeof payload.send !== "string") toast.show(msg, { tone: "bad" });
       return false;
     }
+    /* A sent message shows itself in the thread. The rest change things
+       that are off-screen or behind a closing sheet, so they say so. */
+    const ok = typeof payload.coach_id === "string" ? "Nýr tengiliður valinn"
+      : typeof payload.cancel === "string" ? "Tíminn var afbókaður"
+      : typeof payload.move === "string" ? "Tíminn var færður"
+      : typeof payload.kind === "string" ? "Tíminn er bókaður"
+      : null;
+    if (ok) toast.show(ok, { tone: "ok" });
     await load();
     return true;
   };

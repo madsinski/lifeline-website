@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { FileCheck2, Loader2 } from "lucide-react";
 import { hcBtn, hcCard, hcKicker } from "./ui";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -32,10 +33,11 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState<"approve" | "decline" | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
-    const r = await api("/api/hc/report/approve");
-    const j = r.ok ? await r.json().catch(() => null) : null;
+    const r = await api("/api/hc/report/approve").catch(() => null);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
     setTimeout(() => setPending(j?.pending ?? null), 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
@@ -43,13 +45,20 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
   if (!pending) return null;
 
   const decide = async (decision: "approve" | "decline") => {
+    if (busy) return;
     setBusy(decision); setErr(null);
     const r = await api("/api/hc/report/approve", {
       method: "POST", body: JSON.stringify({ id: pending.id, decision }),
-    });
-    if (r.ok) { setPending(null); onDone?.(); }
-    else setErr("Tókst ekki að skrá svarið. Reyndu aftur.");
+    }).catch(() => null);
     setBusy(null);
+    if (r?.ok) {
+      // The card goes away on success, so the toast is what says it worked.
+      toast.show(decision === "approve" ? "Skýrslan er staðfest" : "Skýrslan var tekin út", { tone: "ok" });
+      setPending(null); onDone?.();
+    } else {
+      setErr("Tókst ekki að skrá svarið. Reyndu aftur.");
+      toast.show(SAVE_FAILED, { tone: "bad" });
+    }
   };
 
   return (
@@ -74,7 +83,7 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
             sjúklingagáttinni. Svarið þitt er skráð með tímasetningu.
           </p>
 
-          {err && <p role="alert" className="mt-2 text-sm font-semibold text-red-700">{err}</p>}
+          {err && <p role="alert" className="mt-2 text-sm font-semibold text-hc-bad-ink">{err}</p>}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" className={hcBtn.primary} disabled={busy !== null}

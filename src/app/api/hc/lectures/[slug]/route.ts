@@ -35,9 +35,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
   if (user instanceof NextResponse) return user;
   const lecture = await load((await ctx.params).slug);
   if (!lecture) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("hc_lecture_progress")
     .upsert({ client_id: user.id, lecture_id: lecture.id, completed_at: new Date().toISOString() }, { onConflict: "client_id,lecture_id" });
+  // Said, so "Merkja sem lokið" is taken back rather than shown as stored.
+  if (error) return NextResponse.json({ error: "save_failed" }, { status: 500 });
   if (lecture.is_welcome) {
     const j = await currentJourney(user.id);
     if (j && !j.welcome_seen_at) await patchJourney(j.id, { welcome_seen_at: new Date().toISOString() }, `client:${user.id}`, "welcome_seen");

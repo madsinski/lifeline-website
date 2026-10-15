@@ -27,6 +27,24 @@ import { NotesPeek } from "./Interview";
 import { PatientSheet } from "./Sheets";
 import { Adherence, ResultsStep, resultsStatus, seedFromNotes } from "./steps";
 
+/* The journey route answers some failures in Icelandic and some with a bare
+   code ("bad_event", "update_failed"). A code is not a sentence a nurse can
+   act on, so those get one. */
+const CODE_IS: Record<string, string> = {
+  unauthorized: "Lotan rann út. Skráðu þig inn aftur.",
+  forbidden: "Þú hefur ekki aðgang að þessu.",
+  not_found: "Skjólstæðingur fannst ekki.",
+  bad_event: "Þessi skráning er ekki í boði. Endurhlaðið síðuna.",
+  bad_date: "Dagsetningin er ógild.",
+  update_failed: "Ekki tókst að vista. Reyndu aftur.",
+  unknown_action: "Þessi aðgerð er ekki í boði. Endurhlaðið síðuna.",
+};
+function errorIs(status: number, e: unknown): string {
+  if (typeof e === "string" && CODE_IS[e]) return CODE_IS[e];
+  if (typeof e === "string" && /[áéíóúýþæöð]/i.test(e)) return e;
+  return status >= 500 ? "Villa hjá okkur. Reyndu aftur eftir smástund." : "Ekki tókst að vista. Reyndu aftur.";
+}
+
 const TABS: { key: WsTab; label: string }[] = [
   { key: "status", label: "Staða" },
   { key: "report", label: "Skýrsla" },
@@ -62,7 +80,8 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
       setTimeout(() => setErr({ text, retry: r?.status !== 404 }), 0);
       return;
     }
-    const j = await r.json();
+    const j = await r.json().catch(() => null);
+    if (!j) { setTimeout(() => setErr({ text: "Náði ekki í gögn skjólstæðingsins.", retry: true }), 0); return; }
     setTimeout(() => { setErr(null); setD(j); }, 0);
   }, [api, id]);
   useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
@@ -73,7 +92,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
     const r = await api(`/api/vinnustod/journeys/${id}`, { method: "POST", body: JSON.stringify(payload) }).catch(() => null);
     if (!r) return "Engin tenging. Reyndu aftur.";
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) return j.error || "Tókst ekki.";
+    if (!r.ok) return errorIs(r.status, j.error);
     await load();
     onChanged();
     return null;

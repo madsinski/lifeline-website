@@ -26,6 +26,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, Lock } from "lucide-react";
 import { Alert, Button, SectionCard, fmtDate, fmtIsk, useDialog } from "@/app/components/account/ui";
 import { hcInput } from "./ui";
+import { useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -83,6 +84,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
   const [waiver, setWaiver] = useState(false);
   const [busy, setBusy] = useState<"code" | "pay" | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const toast = useToast();
 
   if (!pkg) {
     return <div className="h-48 rounded-3xl hc-shimmer" aria-busy="true" aria-label="Hleð" />;
@@ -111,6 +113,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
   };
 
   const subscribe = async () => {
+    if (busy) return;
     setBusy("pay"); setErr(null);
     const r = await api("/api/hc/subscribe", {
       method: "POST",
@@ -121,7 +124,9 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
     }).catch(() => null);
     const j = await r?.json().catch(() => ({}));
     setBusy(null);
-    if (!r?.ok) { setErr(errorText(r?.status, j?.error)); return; }
+    if (!r?.ok) { setErr(errorText(r?.status, j?.error)); toast.show(errorText(r?.status, j?.error), { tone: "bad" }); return; }
+    // The paywall unmounts on the reload; the toast is what says it worked.
+    toast.show("Áskriftin er hafin", { tone: "ok" });
     await onDone();
   };
 
@@ -223,13 +228,16 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
  * the DELETE route does and what söluskilmálar section 6 promises.
  */
 export function SubscriptionPanel({ api }: { api: Api }) {
-  type Sub = { tier: string; status: string; current_period_end: string | null };
+  /* `cancelled`: "Segja upp" was pressed but the paid period runs until
+     `ends_at` — the route returns it rather than nothing, so this does not
+     offer to sell the month again (api/hc/subscribe GET). */
+  type Sub = { tier: string; status: string; current_period_end: string | null; cancelled?: boolean; ends_at?: string | null };
   const [state, setState] = useState<{ package: Pkg | null; subscription: Sub | null } | null>(null);
   const [failed, setFailed] = useState(false);
-  const [cancelledUntil, setCancelledUntil] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const dialog = useDialog();
+  const toast = useToast();
 
   const load = useCallback(async () => {
     const r = await api("/api/hc/subscribe").catch(() => null);
@@ -251,13 +259,13 @@ export function SubscriptionPanel({ api }: { api: Api }) {
       confirmLabel: "Segja upp",
       tone: "danger",
     });
-    if (!ok) return;
+    if (!ok || busy) return;
     setBusy(true); setErr(null);
     const r = await api("/api/hc/subscribe", { method: "DELETE" }).catch(() => null);
     const j = r?.ok ? await r.json().catch(() => ({})) : null;
     setBusy(false);
     if (!j) { setErr(r ? "Ekki tókst að segja upp. Reyndu aftur." : "Engin tenging. Athugaðu netið og reyndu aftur."); return; }
-    setCancelledUntil((j.cancelled_at_period_end as string | null) ?? null);
+    toast.show("Áskriftinni var sagt upp", { tone: "ok" });
     void load();
   };
 
@@ -270,12 +278,13 @@ export function SubscriptionPanel({ api }: { api: Api }) {
         </Alert>
       )}
       {!failed && !state && <div className="h-24 rounded-hc-element hc-shimmer" aria-busy="true" aria-label="Hleð" />}
-      {cancelledUntil !== undefined && (
-        <Alert tone="info" compact className="mb-3">
-          Áskriftinni var sagt upp.{cancelledUntil ? ` Appið er opið til ${fmtDate(cancelledUntil)}.` : ""}
+      {state?.subscription?.cancelled && (
+        <Alert tone="info" compact>
+          Áskriftinni hefur verið sagt upp
+          {state.subscription.ends_at ? ` — aðgangur opinn til ${fmtDate(state.subscription.ends_at)}.` : "."}
         </Alert>
       )}
-      {state?.subscription && (
+      {state?.subscription && !state.subscription.cancelled && (
         <div className="space-y-3 text-sm text-hc-ink-2">
           <p className="font-semibold text-hc-ink">Áskriftin er virk.</p>
           {state.subscription.current_period_end && <p>Næsta greiðsla {fmtDate(state.subscription.current_period_end)}.</p>}

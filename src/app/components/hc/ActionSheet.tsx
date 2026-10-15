@@ -11,7 +11,7 @@
 // two ways to change it — set it aside, or go straight to this pillar's
 // actions in the editor with the pillar already chosen.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Sheet from "./Sheet";
 import { BookOpen, Clock, EyeOff, Pencil, X } from "lucide-react";
 import { PILLAR_META, type Pillar, type PlanItem } from "@/lib/hc/types";
@@ -41,12 +41,26 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
   onTime?: (t: string | null) => void;
 }) {
   const [v, setV] = useState(note);
+  /*
+   * The note saves on blur, and on close as well: a sheet dismissed by
+   * swipe, Escape or the backdrop unmounts the textarea without a blur, and
+   * what had been typed was lost without a word. The ref keeps the two
+   * paths from sending the same note twice.
+   */
+  const saved = useRef(note);
+  const saveNote = () => {
+    const t = v.trim();
+    if (t === saved.current) return;
+    saved.current = t;
+    onNote(t);
+  };
+  const close = () => { saveNote(); onClose(); };
   const meta = PILLAR_META[a.pillar];
   const target = weeklyTarget(a.frequency);
   const thisWeek = (week ?? []).filter((d) => doneOn?.(a.uid, d)).length;
 
   return (
-    <Sheet title={a.title} onClose={onClose}
+    <Sheet title={a.title} onClose={close}
       header={
         <div className="flex items-start gap-3 border-b border-hc-hairline p-4" style={{ background: meta.soft }}>
           <PillarIcon pillar={a.pillar} />
@@ -55,7 +69,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
             <p className="font-bold text-hc-ink">{a.title}</p>
             {a.frequency && <p className="text-xs text-hc-ink-2">{a.frequency}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-1 text-hc-ink-2 hover:bg-hc-surface/60"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={close} aria-label="Loka" className="rounded-lg p-1 text-hc-ink-2 hover:bg-hc-surface/60"><X className="h-5 w-5" /></button>
         </div>
       }>
 
@@ -143,7 +157,7 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
           {(links?.go || links?.lecture) && (
             <div className="flex flex-wrap gap-2">
               {links.go && (
-                <button type="button" onClick={() => { links.go!.onClick(); onClose(); }}
+                <button type="button" onClick={() => { links.go!.onClick(); close(); }}
                   className="inline-flex min-h-9 items-center rounded-full border border-hc-hairline px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">{links.go.label}</button>
               )}
               {links.lecture && (
@@ -157,18 +171,18 @@ export default function ActionSheet({ a, note, onNote, onHide, onEditPillar, onC
           <label className="block">
             <span className="text-xs font-semibold text-hc-ink-2">Athugasemd til þjálfara</span>
             <textarea value={v} onChange={(e) => setV(e.target.value)} rows={2} maxLength={300}
-              onBlur={() => v.trim() !== note && onNote(v.trim())}
+              onBlur={saveNote}
               placeholder="T.d. hvað gekk vel eða hvað var erfitt"
               className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2 text-sm text-hc-ink-2 outline-none focus:ring-2 focus:ring-emerald-500" />
           </label>
 
           <div className="space-y-2 border-t border-hc-hairline pt-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-hc-ink-2">Breyta</p>
-            <button type="button" onClick={() => { onEditPillar(a.pillar); onClose(); }}
+            <button type="button" onClick={() => { onEditPillar(a.pillar); close(); }}
               className={`${hcBtn.secondary} w-full justify-start`}>
               <Pencil className="h-4 w-4" aria-hidden /> Breyta {meta.label.toLowerCase()}-aðgerðunum mínum
             </button>
-            <button type="button" onClick={() => { onHide(); onClose(); }} className={`${hcBtn.ghost} w-full justify-start`}>
+            <button type="button" onClick={() => { onHide(); close(); }} className={`${hcBtn.ghost} w-full justify-start`}>
               <EyeOff className="h-4 w-4" aria-hidden /> Leggja þessa til hliðar í bili
             </button>
           </div>

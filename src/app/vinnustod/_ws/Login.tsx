@@ -27,6 +27,13 @@ async function body(r: Response): Promise<Record<string, unknown>> {
   return r.json().catch(() => ({}));
 }
 
+/* The routes write their messages in Icelandic, except the bare codes
+   ("forbidden" from the same-origin check), which are not for people. */
+const said = (j: Record<string, unknown>, fallback: string) => {
+  const e = typeof j.error === "string" ? j.error : "";
+  return e && e.includes(" ") ? e : fallback;
+};
+
 // ── Login ──────────────────────────────────────────────────────────────────
 
 export function Login({ onDone }: { onDone: () => void }) {
@@ -61,7 +68,7 @@ export function Login({ onDone }: { onDone: () => void }) {
       const j = await body(r);
       if (!r.ok) {
         setPin("");
-        setError(String(j.error || "Innskráning tókst ekki. Reyndu aftur."));
+        setError(said(j, "Innskráning tókst ekki. Reyndu aftur."));
         if (j.locked) { setTrusted(null); setMode("password"); }
         return;
       }
@@ -79,7 +86,7 @@ export function Login({ onDone }: { onDone: () => void }) {
     try {
       const r = await ws("/api/vinnustod/auth/login", { method: "POST", body: JSON.stringify({ email, password, trust_device: remember }) });
       const j = await body(r);
-      if (!r.ok) { setError(String(j.error || "Innskráning tókst ekki. Reyndu aftur.")); return; }
+      if (!r.ok) { setError(said(j, "Innskráning tókst ekki. Reyndu aftur.")); return; }
       // A remembered device is only quicker next time if there is a PIN.
       if (remember && !j.has_pin) { setMode("setPin"); return; }
       onDone();
@@ -96,8 +103,8 @@ export function Login({ onDone }: { onDone: () => void }) {
     try {
       const r = await ws("/api/vinnustod/auth/forgot", { method: "POST", body: JSON.stringify({ email }) });
       const j = await body(r);
-      if (!r.ok) { setError(String(j.error || "Tókst ekki. Reyndu aftur.")); return; }
-      setNotice(String(j.message || ""));
+      if (!r.ok) { setError(said(j, "Ekki tókst að senda hlekkinn. Reyndu aftur.")); return; }
+      setNotice(String(j.message || "Ef netfangið er skráð sendum við hlekk á það."));
     } catch {
       setError("Engin tenging. Athugaðu netið og reyndu aftur.");
     } finally {
@@ -282,7 +289,7 @@ export function PinSetup({ onDone, onSkip, skipLabel = "Sleppa" }: { onDone: () 
     try {
       const r = await ws("/api/vinnustod/auth/pin", { method: "PUT", body: JSON.stringify({ pin: v }) });
       if (!r.ok) {
-        setError(String((await body(r)).error || "Tókst ekki að vista PIN-númerið."));
+        setError(said(await body(r), "Ekki tókst að vista PIN-númerið."));
         setFirst(null); setPin("");
         return;
       }

@@ -13,6 +13,7 @@
 import { useState } from "react";
 import { renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
 import { hcBtn, hcInput } from "./ui";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -85,15 +86,27 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const toast = useToast();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     setBusy(true); setErrors({}); setSaved(false);
-    const r = await api("/api/hc/profile", { method: "POST", body: JSON.stringify({ ...f, accept_health_consent: consent }) });
-    const j = await r.json().catch(() => ({}));
+    const r = await api("/api/hc/profile", { method: "POST", body: JSON.stringify({ ...f, accept_health_consent: consent }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setErrors(j.errors || { form: j.error || "Vistun mistókst." }); return; }
+    if (!r || !r.ok) {
+      // Field errors sit beside their fields, which may be scrolled out of
+      // view; the toast says that something needs fixing. A server code
+      // ("encrypt_failed") is never shown as is.
+      if (j.errors) { setErrors(j.errors); toast.show("Lagaðu það sem er merkt og vistaðu aftur", { tone: "bad" }); }
+      else { setErrors({ form: SAVE_FAILED }); toast.show(SAVE_FAILED, { tone: "bad" }); }
+      return;
+    }
     setSaved(true);
+    // Sent once; the field keeps no copy of the kennitala after it is stored.
+    setF((cur) => ({ ...cur, kennitala: "" }));
+    toast.show("Vistað", { tone: "ok" });
     await reload();
   };
 
@@ -136,7 +149,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
       {!data.profile.health_consent && <ConsentBox checked={consent} onChange={setConsent} error={errors.consent} />}
       {errors.form && <p role="alert" className="text-sm text-hc-bad-ink">{errors.form}</p>}
       <div className="flex items-center gap-3">
-        <button disabled={busy} className={`${hcBtn.cta} disabled:opacity-50`}>
+        <button type="submit" disabled={busy} className={`${hcBtn.cta} disabled:opacity-50`}>
           {busy ? "Vistar…" : "Vista upplýsingar"}
         </button>
         {saved && <span className="text-sm text-hc-ok-ink">Vistað</span>}

@@ -23,6 +23,7 @@
 import { useMemo, useState } from "react";
 import { Check, ChevronDown, Copy, ShoppingBasket } from "lucide-react";
 import Sheet from "./Sheet";
+import { useToast } from "./Toast";
 import { formatQty, plannedKey, plannedMeals, shoppingList } from "@/lib/hc/shopping";
 import { mealName, SLOT_CATEGORY, SLOT_IS, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { WEEKDAYS, WEEKDAYS_SHORT } from "@/lib/hc/personalise";
@@ -49,6 +50,7 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [mealsOpen, setMealsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const toast = useToast();
 
   const all = useMemo(() => plannedMeals(week), [week]);
   /** In scope by day and slot — what the meal ticks are offered over. */
@@ -80,7 +82,10 @@ export default function ShoppingList({ week, todayIdx, onClose }: {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch { /* no clipboard: the list is on screen to read anyway */ }
+    } catch {
+      // No clipboard (or no permission). The tap used to do nothing at all.
+      toast.show("Ekki tókst að afrita listann – hann er hér á skjánum", { tone: "bad" });
+    }
   };
 
   const chip = (on: boolean, extra = "") =>

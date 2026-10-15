@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
-import { Alert, Button, Switch, accountInput, accountInset, useDialog } from "./ui";
+import { Alert, Button, SavedNote, Switch, accountInput, accountInset, friendlyError, useDialog, useFlash } from "./ui";
 
 // ── Data & privacy panel (Settings) ──────────────────────────────────────
 
@@ -57,6 +57,8 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
   const { alert } = useDialog();
   const [biodyConsent, setBiodyConsent] = useState<boolean | null>(null);
   const [savingConsent, setSavingConsent] = useState(false);
+  const [consentLoadFailed, setConsentLoadFailed] = useState(false);
+  const [consentSaved, flashConsentSaved] = useFlash(3000);
   const [dsrType, setDsrType] = useState("");
   const [dsrDetails, setDsrDetails] = useState("");
   const [dsrSending, setDsrSending] = useState(false);
@@ -65,13 +67,16 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("client_consents")
         .select("granted, revoked_at")
         .eq("client_id", userId)
         .eq("consent_key", BIODY_CONSENT_KEY)
         .is("revoked_at", null)
         .maybeSingle();
+      // A failed read must not look like "off": the switch would then offer
+      // to grant a consent that may already exist.
+      if (error) { setConsentLoadFailed(true); return; }
       setBiodyConsent(!!data && data.granted === true);
     })();
   }, [userId]);
@@ -81,7 +86,7 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
     try {
       const { data: s } = await supabase.auth.getSession();
       const token = s.session?.access_token;
-      if (!token) throw new Error(t("comp.dp.notsignedin", "Ekki innskráð(ur)"));
+      if (!token) throw new Error("no_session");
       const action = biodyConsent ? "revoke" : "grant";
       const res = await fetch("/api/account/consent/biody-import", {
         method: "POST",
@@ -89,10 +94,11 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
         body: JSON.stringify({ action }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j.ok) throw new Error(j.error || t("comp.dp.consentfailed", "Ekki tókst að vista samþykkið"));
+      if (!res.ok || !j.ok) throw new Error(j.error || (res.status === 401 ? "unauthorized" : ""));
       setBiodyConsent(action === "grant");
+      flashConsentSaved(action === "grant" ? t("comp.dp.on", "Kveikt — vistað") : t("comp.dp.off", "Slökkt — vistað"));
     } catch (e) {
-      void alert({ title: t("comp.dp.savefailed-title", "Ekki tókst að vista valið"), body: (e as Error).message });
+      void alert({ title: t("comp.dp.savefailed-title", "Ekki tókst að vista valið"), body: friendlyError(e, t("comp.dp.consentfailed", "Ekki tókst að vista samþykkið")) });
     } finally {
       setSavingConsent(false);
     }
@@ -104,21 +110,21 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
     try {
       const { data: s } = await supabase.auth.getSession();
       const token = s.session?.access_token;
-      if (!token) throw new Error(t("comp.dp.notsignedin", "Ekki innskráð(ur)"));
+      if (!token) throw new Error("no_session");
       const res = await fetch("/api/account/data-subject-request", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ type: dsrType, details: dsrDetails }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok || !j.ok) throw new Error(j.error || t("comp.dp.reqfailed", "Beiðnin mistókst"));
+      if (!res.ok || !j.ok) throw new Error(j.error || (res.status === 401 ? "unauthorized" : ""));
       setDsrMsg({
         type: "ok",
         text: t("comp.dp.received", "Beiðnin er móttekin. Persónuverndarfulltrúi svarar innan 30 daga."),
       });
       setDsrDetails("");
     } catch (e) {
-      setDsrMsg({ type: "err", text: (e as Error).message });
+      setDsrMsg({ type: "err", text: friendlyError(e, t("comp.dp.reqfailed", "Beiðnin mistókst. Reyndu aftur eða sendu póst á contact@lifelinehealth.is.")) });
     } finally {
       setDsrSending(false);
     }
@@ -137,9 +143,16 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
               {t("comp.dp.biodydesc2", "Sækir niðurstöður líkamssamsetningarmælinga frá Biody, samstarfsaðila okkar, inn á síðuna. Slökkt sjálfgefið. Sjúkraskráin í sjúklingagáttinni breytist ekki.")}
             </p>
           </div>
-          <Switch checked={!!biodyConsent} onChange={toggleBiodyConsent} disabled={savingConsent || biodyConsent === null}
-            label={t("comp.dp.biodytoggle", "Kveikja eða slökkva á Biody-gögnum")} />
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <Switch checked={!!biodyConsent} onChange={toggleBiodyConsent} disabled={savingConsent || biodyConsent === null}
+              label={t("comp.dp.biodytoggle", "Kveikja eða slökkva á Biody-gögnum")} />
+            {savingConsent && <span className="text-xs text-hc-ink-3">{t("acc.common.saving", "Vista…")}</span>}
+            {!savingConsent && <SavedNote msg={consentSaved} className="text-xs" />}
+          </div>
         </div>
+        {consentLoadFailed && (
+          <Alert tone="bad" compact className="mt-3">{t("comp.dp.loadfailed", "Tókst ekki að sækja stöðuna á þessari stillingu. Endurhlaððu síðuna til að reyna aftur.")}</Alert>
+        )}
       </div>
 
       {/* Privacy request — plain-language menu */}
@@ -179,7 +192,7 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button onClick={submitDsr} busy={dsrSending} disabled={!dsrType}>
-            {t("comp.dp.send", "Senda beiðni")}
+            {dsrSending ? t("comp.dp.sending", "Sendi…") : t("comp.dp.send", "Senda beiðni")}
           </Button>
           {dsrMsg && <Alert tone={dsrMsg.type === "ok" ? "ok" : "bad"} compact>{dsrMsg.text}</Alert>}
         </div>

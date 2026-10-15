@@ -9,6 +9,7 @@ import { Alert } from "@/app/components/account/ui";
 import { supabase } from "@/lib/supabase";
 import PinPad from "./PinPad";
 import CalendarConnect, { CalendarStatus, type CalendarApi } from "./CalendarConnect";
+import { useToast } from "./Toast";
 
 async function api(url: string, init: RequestInit = {}) {
   const { data } = await supabase.auth.getSession();
@@ -41,6 +42,8 @@ export default function SettingsCard() {
   const [first, setFirst] = useState("");
   const [pinErr, setPinErr] = useState("");
   const [pinEnabled, setPinEnabled] = useState<boolean | null>(null);
+  const [pinBusy, setPinBusy] = useState(false);
+  const toast = useToast();
   // Opens by itself when coming back from Google (?google=…) or a ?cal=1 link.
   const [calOpen, setCalOpen] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -58,10 +61,20 @@ export default function SettingsCard() {
   const onPin = async (v: string) => {
     if (pinStep === "first") { setFirst(v); setPin(""); setPinStep("confirm"); return; }
     if (v !== first) { setPinErr("PIN-númerin stemma ekki. Reyndu aftur."); setPin(""); setFirst(""); setPinStep("first"); return; }
-    const r = await api("/api/account/pin", { method: "POST", body: JSON.stringify({ pin: v }) });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) { setPinErr(j.error || "Tókst ekki."); setPin(""); setFirst(""); setPinStep("first"); return; }
+    if (pinBusy) return;
+    setPinBusy(true);
+    const r = await api("/api/account/pin", { method: "POST", body: JSON.stringify({ pin: v }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    setPinBusy(false);
+    if (!r || !r.ok) {
+      // pinProblem's sentences are shown as they are; a code or a dropped
+      // connection is not.
+      setPinErr(typeof j.error === "string" && /\s/.test(j.error) ? j.error : "Tókst ekki að vista PIN. Reyndu aftur.");
+      setPin(""); setFirst(""); setPinStep("first");
+      return;
+    }
     setPinStep("done"); setPinEnabled(true); setPin("");
+    toast.show("PIN er vistað á þessu tæki", { tone: "ok" });
   };
 
   return (
@@ -72,16 +85,17 @@ export default function SettingsCard() {
         <p className="text-sm font-medium text-hc-ink-2">Innskráning með PIN</p>
         <p className="text-xs text-hc-ink-2">Fjögurra stafa PIN á þessu tæki í stað lykilorðs.</p>
         {pinStep === "idle" && (
-          <button onClick={() => { setPinStep("first"); setPinErr(""); }} className="mt-2 min-h-11 rounded-lg border border-hc-control px-3 text-xs font-semibold">
+          <button type="button" onClick={() => { setPinStep("first"); setPinErr(""); }} className="mt-2 min-h-11 rounded-lg border border-hc-control px-3 text-xs font-semibold">
             {pinEnabled ? "Breyta PIN" : "Setja upp PIN"}
           </button>
         )}
         {(pinStep === "first" || pinStep === "confirm") && (
           <div className="mt-3">
             <p className="mb-3 text-center text-sm text-hc-ink-2">{pinStep === "first" ? "Veldu PIN" : "Sláðu PIN inn aftur"}</p>
-            <PinPad value={pin} onChange={setPin} onComplete={onPin} error={!!pinErr} />
+            <PinPad value={pin} onChange={setPin} onComplete={onPin} error={!!pinErr} disabled={pinBusy} />
+            {pinBusy && <p className="mt-2 text-center text-xs text-hc-ink-2" role="status">Vistar…</p>}
             {pinErr && <p className="mt-2 text-center text-xs text-hc-bad-ink">{pinErr}</p>}
-            <button onClick={() => { setPinStep("idle"); setPin(""); }} className="mt-3 block min-h-11 w-full text-center text-xs text-hc-ink-2">Hætta við</button>
+            <button type="button" onClick={() => { setPinStep("idle"); setPin(""); setFirst(""); setPinErr(""); }} className="mt-3 block min-h-11 w-full text-center text-xs text-hc-ink-2">Hætta við</button>
           </div>
         )}
         {pinStep === "done" && <p className="mt-2 text-xs text-hc-ok-ink">PIN er virkt á þessu tæki.</p>}

@@ -249,7 +249,7 @@ function BookAssessmentContent() {
       paid_at: pkg.priceIsk === 0 ? new Date().toISOString() : null,
     };
     const { data, error } = await supabase.from("body_comp_bookings").insert(payload).select("id").single();
-    if (error) { setPaymentError(error.message); return null; }
+    if (error) { setPaymentError(`${t("acc.book.create-failed", "Tókst ekki að stofna bókunina. Reyndu aftur.")} (${error.message})`); return null; }
     return data?.id ?? null;
   }
 
@@ -287,7 +287,8 @@ function BookAssessmentContent() {
 
     setGrantSaving(true);
     const id = bookingId ?? (await createBooking());
-    if (!id) { setGrantSaving(false); return; }
+    // createBooking reports into paymentError, which this stage does not show.
+    if (!id) { setGrantSaving(false); setGrantError(t("acc.book.create-failed", "Tókst ekki að stofna bókunina. Reyndu aftur.")); return; }
     setBookingId(id);
 
     try {
@@ -322,7 +323,16 @@ function BookAssessmentContent() {
     setStage("review");
   }
 
+  /* One press at a time: the step creates a booking and claims a slot, and
+     a second click while that runs would create a second draft. */
+  const [reviewBusy, setReviewBusy] = useState(false);
   async function handleReviewÁfram() {
+    if (reviewBusy) return;
+    setReviewBusy(true);
+    try { await reviewÁfram(); } finally { setReviewBusy(false); }
+  }
+
+  async function reviewÁfram() {
     // For paid packages, we create the booking up-front so we have a stable
     // reference to pass to Straumur. For free (Self Check-in), we still
     // mirror a zero-amount Straumur record into the payments ledger so
@@ -510,7 +520,7 @@ function BookAssessmentContent() {
     });
     const duplicate = payErr && (payErr as { code?: string }).code === "23505";
     if (payErr && !duplicate) {
-      setPaymentError(`Payment recorded but ledger write failed: ${payErr.message}. Please email contact@lifelinehealth.is.`);
+      setPaymentError(`${t("acc.book.ledger-failed", "Greiðslan tókst en ekki tókst að skrá hana hjá okkur")}: ${payErr.message}. ${t("acc.book.paid-not-saved-2", "Við leiðréttum þetta — sendu póst á contact@lifelinehealth.is með bókunarnúmerinu")} ${bookingId}.`);
       setPaying(false);
       return;
     }
@@ -640,6 +650,7 @@ function BookAssessmentContent() {
             payableIsk={payableIsk}
             onBack={() => setStage(grantEligible ? "grant" : "schedule")}
             onÁfram={handleReviewÁfram}
+            busy={reviewBusy}
             error={paymentError}
           />
         )}
@@ -1110,7 +1121,7 @@ function GrantStage({
 function ReviewStage({
   pkg, needsVisit, selectedSlotAt, selectedLocation, notes, fullName, email,
   grantIsk, grantFundName, payableIsk,
-  onBack, onÁfram, error,
+  onBack, onÁfram, busy, error,
 }: {
   pkg: PackageDef;
   needsVisit: boolean;
@@ -1124,6 +1135,7 @@ function ReviewStage({
   payableIsk: number;
   onBack: () => void;
   onÁfram: () => void;
+  busy: boolean;
   error: string | null;
 }) {
   const { t, tv, locale } = useI18n();
@@ -1193,9 +1205,11 @@ function ReviewStage({
         <button
           type="button"
           onClick={onÁfram}
+          disabled={busy}
+          aria-busy={busy || undefined}
           className={buttonClass("primary")}
         >
-          {pkg.priceIsk > 0 ? t("acct.book.topayment", "Áfram í greiðslu") : "Confirm"}
+          {busy ? t("acc.book.working", "Augnablik…") : pkg.priceIsk > 0 ? t("acct.book.topayment", "Áfram í greiðslu") : t("acc.book.confirm", "Staðfesta bókun")}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>
