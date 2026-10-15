@@ -129,6 +129,15 @@ function AccountPageInner() {
   const { t, tv, locale } = useI18n();
   const navItems = useMemo(() => navItemsFor(t), [t]);
 
+  /* A new section starts at its own top.
+     This used to happen in the click handler, which raced the re-render:
+     switching to a shorter section scrolled against the old page's height
+     and stopped partway down. An effect runs after the new layout exists. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeSection]);
+
   /* profile fields */
   const [profileFirstName, setProfileFirstName] = useState("");
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -1192,7 +1201,7 @@ function AccountPageInner() {
             </div>
             <select
               value={activeSection}
-              onChange={(e) => { setActiveSection(e.target.value as Section); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              onChange={(e) => { setActiveSection(e.target.value as Section); }}
               className="w-full bg-white rounded-2xl shadow-md pl-12 pr-12 py-4 text-sm font-semibold border-2 border-[#10B981]/30 text-[#1F2937] appearance-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20 outline-none transition-all"
             >
               {navItems.map((item) => (
@@ -1214,7 +1223,7 @@ function AccountPageInner() {
               {navItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => { setActiveSection(item.id); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  onClick={() => { setActiveSection(item.id); }}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                     activeSection === item.id
                       ? "bg-[#10B981]/10 text-[#10B981]"
@@ -1325,7 +1334,7 @@ function AccountPageInner() {
                     t={t}
                     locale={locale}
                     assessmentDone={bodyCompStatus === "completed"}
-                    onGo={(sec) => { setActiveSection(sec); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                    onGo={(sec) => { setActiveSection(sec); }}
                   />
                 </section>
 
