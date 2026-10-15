@@ -78,6 +78,8 @@ const REEVAL_OPENS_DAYS = 60;
 /** Which journey this purchase belongs to, and whether it is allowed now. */
 function eligibility(pkg: HcPackage, journey: HcJourney | null): string | null {
   if (!journey) return "Engin heilsuferð fannst.";
+  /* Subscriptions start a period, they do not settle a bill: /api/hc/subscribe. */
+  if ((pkg.kind as string) === "subscription") return "Áskrift er keypt undir Stillingar og áskrift.";
   if (pkg.kind === "health_check" && journey.paid_at) return "Heilsufarsskoðunin er þegar greidd.";
   if ((pkg.kind === "followup_3m" || pkg.kind === "extra_followup") && !journey.interview_done_at) {
     return "Eftirfylgd opnast eftir fyrsta viðtalið.";

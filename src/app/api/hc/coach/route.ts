@@ -16,8 +16,37 @@ import { syncOwner } from "@/lib/hc/calendar-sync";
 /* Shared with the coach's own booking route, so the two cannot disagree
    about what a measurement is called or how long it takes. */
 import { bookingItems, bookingMinutes, isBookingKind, monthBounds } from "@/lib/hc/bookings";
+import {
+  coachingAccess, coachingEligibility, coachingPackage, coachingRemaining,
+  isDate, measurementBlockedUntil, nextMonthStart, type CoachingAccess,
+} from "@/lib/hc/coaching";
+import { WEEKDAY_DAT_PL } from "@/lib/hc/coaching-config";
+import type { HcJourney } from "@/lib/hc/types";
 
 export const runtime = "nodejs";
+
+/*
+ * ── Who gets the coach (src/lib/hc/coaching.ts) ─────────────────────
+ *
+ * The app tier alone has nobody on the other end. GET answers with
+ * `access.ok = false` and the coaching offer instead of the thread, and
+ * POST refuses to send or book (403 'no_coaching'). Health-check / B2B
+ * participants ("care") and coaching-track people already in a
+ * conversation before the tier ("grandfathered") keep the old rules: the
+ * journey's own video allowance, any weekday. "Lifeline þjálfun"
+ * subscribers ("coaching") get the tier's quotas from hc_packages.quota,
+ * enforced here: video check-ins per calendar month, one measurement per N
+ * months, and bookings only on the coach's service day.
+ */
+
+/** The video allowance under these rules. */
+function videoAllowance(a: CoachingAccess, journey: HcJourney): number {
+  return a.mode === "coaching" ? a.quota.video_per_month : (journey.video_consults_per_month ?? 2);
+}
+
+/** A refusal the page can show as it is. */
+const refuse = (error: string, message: string, status: number) =>
+  NextResponse.json({ error, message }, { status });
 
 const WORKER_COLS = "id, name, role, organization, credentials, bio, photo_url, specialties, accepting_clients, active";
 
@@ -27,8 +56,27 @@ export async function GET(req: NextRequest) {
   const journey = await currentJourney(user.id);
   if (!journey) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
+  const access = await coachingAccess(user.id, journey);
+  if (!access.ok) {
+    /* The offer instead of the thread: whether it can be bought here, and for how much. */
+    const [pkg, el] = await Promise.all([coachingPackage(), coachingEligibility(user.id)]);
+    return NextResponse.json({
+      journeyId: journey.id,
+      access: {
+        ok: false, mode: access.mode,
+        offer: {
+          available: pkg.in_catalogue && el.eligible, eligible: el.eligible, reason: el.reason,
+          price_isk: pkg.price_isk, name: pkg.name, includes: pkg.includes,
+          service_weekday: pkg.quota.service_weekday,
+        },
+      },
+      coach: null, coaches: [], thread: [], unread: 0, bookings: [],
+      consults: { allowance: 0, spent: 0, left: 0 }, place: null,
+    });
+  }
+
   const { from, to } = monthBounds();
-  const [me, others, thread, booked, used, where] = await Promise.all([
+  const [me, others, thread, booked, used, where, remaining] = await Promise.all([
     journey.coach_id
       ? supabaseAdmin.from("hc_workers").select(WORKER_COLS).eq("id", journey.coach_id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -56,9 +104,10 @@ export async function GET(req: NextRequest) {
           .select("name, measurement_site, measurement_address, measurement_info")
           .eq("id", journey.location_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    access.mode === "coaching" ? coachingRemaining(user.id, access.quota) : Promise.resolve(null),
   ]);
 
-  const allowance = journey.video_consults_per_month ?? 2;
+  const allowance = videoAllowance(access, journey);
   const spent = used.count ?? 0;
 
   return NextResponse.json({
@@ -76,6 +125,16 @@ export async function GET(req: NextRequest) {
     unread: (thread.data ?? []).filter((m) => m.author_kind === "coach" && !m.read_by_client_at).length,
     bookings: booked.data ?? [],
     consults: { allowance, spent, left: Math.max(0, allowance - spent) },
+    access: {
+      ok: true,
+      mode: access.mode,
+      /* Only the coaching tier is held to a day, a call length and a measurement interval. */
+      service_weekday: access.mode === "coaching" ? access.quota.service_weekday : null,
+      video_minutes: access.mode === "coaching" ? access.quota.video_minutes : null,
+      measurement_every_months: access.mode === "coaching" ? access.quota.measurement_every_months : null,
+      measurement_next_at: remaining?.measurement_next_at ?? null,
+      next_video_from: access.mode === "coaching" ? nextMonthStart().toISOString() : null,
+    },
   });
 }
 
@@ -85,6 +144,18 @@ export async function POST(req: NextRequest) {
   const journey = await currentJourney(user.id);
   if (!journey) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const body = await req.json().catch(() => ({}));
+
+  /*
+   * Reading, moving and cancelling what already exists is always allowed —
+   * a booking made before somebody downgraded must still be movable. Saying
+   * something new, booking, or picking a coach needs coaching access.
+   */
+  const needsCoach = typeof body.send === "string" || typeof body.coach_id === "string"
+    || (typeof body.kind === "string" && typeof body.starts_at === "string");
+  const access = needsCoach || typeof body.move === "string" ? await coachingAccess(user.id, journey) : null;
+  if (needsCoach && !access?.ok) {
+    return refuse("no_coaching", "Skilaboð og bókanir fylgja Lifeline þjálfun og heilsufarsskoðun.", 403);
+  }
 
   // ── Say something ─────────────────────────────────────────────────────
   if (typeof body.send === "string") {
@@ -140,6 +211,11 @@ export async function POST(req: NextRequest) {
     if (Number.isNaN(when.getTime()) || when.getTime() < Date.now()) {
       return NextResponse.json({ error: "bad_time" }, { status: 400 });
     }
+    const tier = access!.mode === "coaching" ? access!.quota : null;
+    // The coaching tier is served one day a week (Iceland keeps UTC all year).
+    if (tier && when.getUTCDay() !== tier.service_weekday) {
+      return refuse("not_service_day", `Tímar eru bókaðir á ${WEEKDAY_DAT_PL[tier.service_weekday]}, þjónustudegi vikunnar.`, 400);
+    }
     // The allowance is enforced here, not only shown. A page that hides the
     // button is a page, not a rule.
     if (kind === "video") {
@@ -147,14 +223,25 @@ export async function POST(req: NextRequest) {
       const { count } = await supabaseAdmin.from("hc_bookings").select("id", { count: "exact", head: true })
         .eq("client_id", user.id).eq("kind", "video").neq("status", "cancelled")
         .gte("starts_at", from).lt("starts_at", to);
-      if ((count ?? 0) >= (journey.video_consults_per_month ?? 2)) {
+      if ((count ?? 0) >= videoAllowance(access!, journey)) {
+        if (tier) {
+          const next = nextMonthStart(when);
+          return refuse("no_consults_left", `Myndsamtal mánaðarins hefur verið bókað. Næst er hægt að bóka tíma frá ${isDate(next)}.`, 409);
+        }
         return NextResponse.json({ error: "no_consults_left" }, { status: 409 });
+      }
+    }
+    if (kind === "measurement" && tier) {
+      const blocked = await measurementBlockedUntil(user.id, when, tier.measurement_every_months);
+      if (blocked) {
+        return refuse("no_measurements_left",
+          `Ein mæling er innifalin á ${tier.measurement_every_months} mánaða fresti. Næst er hægt að bóka mælingu frá ${isDate(blocked)}.`, 409);
       }
     }
     const { data, error } = await supabaseAdmin.from("hc_bookings").insert({
       journey_id: journey.id, client_id: user.id, coach_id: journey.coach_id ?? null,
       kind, starts_at: when.toISOString(), items,
-      minutes: bookingMinutes(kind, items),
+      minutes: kind === "video" && tier ? tier.video_minutes : bookingMinutes(kind, items),
       note: typeof body.note === "string" ? body.note.slice(0, 500) : null,
     }).select("id").maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -199,6 +286,10 @@ export async function POST(req: NextRequest) {
     const when = new Date(body.starts_at);
     if (Number.isNaN(when.getTime()) || when.getTime() < Date.now()) {
       return NextResponse.json({ error: "bad_time" }, { status: 400 });
+    }
+    // Moved, it still has to land on the service day.
+    if (access?.mode === "coaching" && when.getUTCDay() !== access.quota.service_weekday) {
+      return refuse("not_service_day", `Tímar eru bókaðir á ${WEEKDAY_DAT_PL[access.quota.service_weekday]}, þjónustudegi vikunnar.`, 400);
     }
     const { data: moved, error } = await supabaseAdmin.from("hc_bookings")
       .update({ starts_at: when.toISOString(), updated_at: new Date().toISOString() })
