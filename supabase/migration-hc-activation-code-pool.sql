@@ -45,6 +45,11 @@ create table if not exists public.hc_activation_code_pool (
 create index if not exists hc_activation_code_pool_avail_idx on public.hc_activation_code_pool (status, imported_at);
 create index if not exists hc_activation_code_pool_order_idx on public.hc_activation_code_pool (order_id);
 
+-- One issued code per order, enforced by the database as well (security
+-- review 2026-10-15).
+create unique index if not exists hc_activation_code_pool_order_issued_uniq
+  on public.hc_activation_code_pool (order_id) where status = 'issued';
+
 alter table public.hc_activation_code_pool enable row level security;
 drop policy if exists "hc_activation_code_pool no client access" on public.hc_activation_code_pool;
 create policy "hc_activation_code_pool no client access" on public.hc_activation_code_pool
@@ -78,6 +83,10 @@ returns text
 language plpgsql security definer set search_path = public as $$
 declare r public.hc_activation_code_pool%rowtype;
 begin
+  -- Serialise callers for the same order (two concurrent imports assigning
+  -- waiting orders): without this both could pass the check below, each
+  -- issue a different code, and one would be orphaned yet live in Medalia.
+  perform pg_advisory_xact_lock(hashtext('hc_code:' || p_order::text));
   select * into r from public.hc_activation_code_pool where order_id = p_order and status = 'issued' limit 1;
   if found then return public.decrypt_text(r.code_enc); end if;
 

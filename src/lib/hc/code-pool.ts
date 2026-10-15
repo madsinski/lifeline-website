@@ -132,7 +132,10 @@ export async function assignPendingCodes(origin: string): Promise<{ assigned: nu
   for (const o of orders ?? []) {
     const r = await claimActivationCode(o.id, o.client_id, o.kind);
     if (!r.code) { waiting++; continue; }
-    await supabaseAdmin.from("hc_orders").update({ activation_code: r.code }).eq("id", o.id).is("activation_code", null);
+    const { data: landed } = await supabaseAdmin.from("hc_orders").update({ activation_code: r.code })
+      .eq("id", o.id).is("activation_code", null).select("id");
+    // Another run got there first: its code is the order's; send nothing.
+    if (!landed?.length) continue;
     const [{ data: pkg }, { data: au }] = await Promise.all([
       supabaseAdmin.from("hc_packages").select("name").eq("key", o.package_key).maybeSingle(),
       supabaseAdmin.auth.admin.getUserById(o.client_id),
