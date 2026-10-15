@@ -24,7 +24,7 @@ import StepDot from "@/app/components/hc/StepDot";
 import { Alert, Button, ButtonLink, fmtDate as fmtDay, useDialog } from "@/app/components/account/ui";
 import { Check } from "lucide-react";
 import ProfileForm, { ConsentBox } from "@/app/components/hc/ProfileForm";
-import { WITHDRAWAL_WAIVER_LABEL } from "@/app/components/hc/Paywall";
+import { WEB_CLIENT_HEADER, WITHDRAWAL_WAIVER_LABEL } from "@/app/components/hc/Paywall";
 import NextStepCard from "@/app/components/hc/NextStepCard";
 import StepHeader from "@/app/components/hc/StepHeader";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
@@ -695,7 +695,7 @@ function TestTask({ n, title, done, children }: { n: number; title: string; done
 function SubscriptionStep({ api }: {
   api: (url: string, init?: RequestInit) => Promise<Response>;
 }) {
-  const [state, setState] = useState<{ package: Record<string, unknown> | null; subscription: { tier: string; status: string; current_period_end: string | null } | null } | null>(null);
+  const [state, setState] = useState<{ package: Record<string, unknown> | null; subscription: { tier: string; status: string; current_period_end: string | null; trial?: boolean; trial_ends_at?: string | null } | null } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -707,11 +707,22 @@ function SubscriptionStep({ api }: {
 
   if (!state) return <div className="h-32 rounded-2xl hc-shimmer" aria-busy="true" aria-label="Hleð" />;
 
+  if (state.subscription?.trial) {
+    const until = state.subscription.trial_ends_at ?? state.subscription.current_period_end;
+    return (
+      <div className="space-y-2 text-sm text-hc-ink-2">
+        <p className="font-semibold text-hc-ink">Þú ert á prufutíma{until ? ` til ${fmtDate(until)}` : ""}.</p>
+        <p>Allt appið er opið á prufutímanum og ekkert er skuldfært. Verðið og hvað gerist þegar honum lýkur sérðu undir áskriftinni.</p>
+        <ButtonLink href="/app/adgangur#askrift" variant="secondary">Sjá áskriftina</ButtonLink>
+      </div>
+    );
+  }
+
   if (state.subscription) {
     const until = state.subscription.current_period_end;
     return (
       <div className="space-y-2 text-sm text-hc-ink-2">
-        <p className="font-semibold text-hc-ink">Áskriftin er aktív.</p>
+        <p className="font-semibold text-hc-ink">Áskriftin er virk.</p>
         {until && (
           <p>
             Næsta greiðsla {fmtDate(until)}.
@@ -1142,6 +1153,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
     setBusy(true); setErr("");
     const r = await api("/api/hc/checkout", {
       method: "POST",
+      headers: WEB_CLIENT_HEADER,
       body: JSON.stringify({
         package_key: pkgKey,
         use_company: useCompany, company_code: useCompany ? code : undefined,

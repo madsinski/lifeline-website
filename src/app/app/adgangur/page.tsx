@@ -43,7 +43,7 @@ function Adgangur() {
     return fetch(url, { ...init, headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(init.body && !(typeof FormData !== "undefined" && init.body instanceof FormData)
     // A multipart boundary is part of the Content-Type; naming the type
     // without one leaves the body unparseable on the server.
-    ? { "Content-Type": "application/json" } : {}) } });
+    ? { "Content-Type": "application/json" } : {}), ...(init.headers as Record<string, string> | undefined) } });
   }, []);
 
   useEffect(() => {

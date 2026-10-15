@@ -13,10 +13,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, requireUser } from "@/lib/hc/server";
 import { parseAppointment } from "@/lib/app/appointment-date";
+import { isMissingSchema } from "@/lib/hc/subscription";
 
 export const runtime = "nodejs";
 
-export type NoteKind = "coach" | "partner" | "appointment" | "report" | "retention";
+export type NoteKind = "coach" | "partner" | "appointment" | "report" | "retention" | "trial";
 
 export interface Note {
   id: string;
@@ -181,6 +182,27 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  /*
+   * The app trial: "ends in three days" / "has ended", written by
+   * api/cron/hc-trial-reminders (supabase/migration-hc-trial.sql). Unread
+   * until the list is opened. Without the table there is simply nothing.
+   */
+  const { data: trial, error: trialErr } = await supabaseAdmin.from("hc_trial_notices")
+    .select("id, kind, title, body, sent_at, seen_at")
+    .eq("client_id", user.id).in("kind", ["ends_soon", "ended"])
+    .gte("sent_at", new Date(now - 30 * 86400_000).toISOString())
+    .order("sent_at", { ascending: false }).limit(5);
+  if (trialErr && !isMissingSchema(trialErr)) console.error("[hc] trial notices", trialErr.message);
+  for (const t of trial ?? []) {
+    items.push({
+      id: `trial:${t.id}`, kind: "trial",
+      title: (t.title as string) ?? "Prufutíminn",
+      body: (t.body as string) ?? null,
+      at: t.sent_at as string, unread: !t.seen_at,
+      href: "/app/adgangur#askrift",
+    });
+  }
+
   items.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   return NextResponse.json({ items, unread: items.filter((i) => i.unread).length });
 }
@@ -209,6 +231,9 @@ export async function POST(req: NextRequest) {
       ? supabaseAdmin.from("messages_decrypted").update({ read: true })
           .eq("conversation_id", convo.id).neq("sender_id", user.id).eq("read", false)
       : Promise.resolve(null),
+    // Trial reminders: seen once the list is open. A missing table is ignored.
+    supabaseAdmin.from("hc_trial_notices").update({ seen_at: new Date().toISOString() })
+      .eq("client_id", user.id).is("seen_at", null).then(() => null, () => null),
   ]);
   // Reports waiting on an answer stay unread on purpose: they are not
   // cleared by being seen, only by being answered.

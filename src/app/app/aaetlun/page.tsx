@@ -685,6 +685,7 @@ function PlanPageInner() {
   const scrollToUpload = () => document.getElementById("ny-skyrsla")?.scrollIntoView({ behavior: "smooth", block: "start" });
   const paywall = (
     <Paywall api={api} pkg={subPkg as never} trialEndsAt={access?.trialEndsAt ?? null}
+      mode={access?.reason === "none" ? "trial" : "subscribe"}
       onDone={async () => {
         cache.invalidate("/api/hc/journey", "/api/hc/subscribe");
         reload();
