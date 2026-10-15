@@ -80,7 +80,7 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
   };
 
   const cancel = async () => {
-    if (typeof window !== "undefined" && !window.confirm("Afbóka mælingatímann? Þú getur valið annan lausan tíma strax á eftir.")) return;
+    if (typeof window !== "undefined" && !window.confirm(t("acct.slot.cancelconfirm2", "Afbóka mælingatímann? Þú getur valið annan lausan tíma strax á eftir."))) return;
     setSaving("cancel");
     setError("");
     const { error } = await supabase.rpc("cancel_body_comp_slot", { p_event_id: event.id });

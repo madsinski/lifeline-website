@@ -58,8 +58,7 @@ export default function ReplayOnboardingPage() {
       <div className="rounded-2xl bg-white p-6 shadow-lg">
         <h1 className="text-lg font-bold text-[#0F172A]">{t("acct.replay.start", "Byrja upp á nýtt")}</h1>
         <p className="mt-1 text-sm leading-relaxed text-gray-600">
-          Setur aðganginn aftur í sama horf og rétt eftir nýskráningu, svo hægt sé að fara aftur
-          í gegnum kynninguna og skilmálana. Aðgangurinn, lykilorðið og netfangið haldast óbreytt.
+          {t("acct.replay.what", t("acct.replay.what", "Setur aðganginn aftur í sama horf og rétt eftir nýskráningu, svo hægt sé að fara aftur í gegnum kynninguna og skilmálana. Aðgangurinn, lykilorðið og netfangið haldast óbreytt."))}
         </p>
 
         {who === undefined && <p className="mt-4 text-sm text-gray-500">{t("acct.loading", "Hleð…")}</p>}
@@ -76,8 +75,8 @@ export default function ReplayOnboardingPage() {
                 own scope afterwards is a reset you have to undo to read. */}
             <ul className="mt-3 space-y-1 text-sm text-gray-600">
               <li>· Kynningin birtist aftur</li>
-              <li>· Skilmálar þarf að samþykkja á ný</li>
-              <li>· Samþykki fyrir heilsufarsupplýsingum núllstillist</li>
+              <li>{t("acct.replay.b1", t("acct.replay.b1", "· Skilmálar þarf að samþykkja á ný"))}</li>
+              <li>{t("acct.replay.b2", t("acct.replay.b2", "· Samþykki fyrir heilsufarsupplýsingum núllstillist"))}</li>
             </ul>
             <button
               type="button"

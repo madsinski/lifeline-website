@@ -232,7 +232,7 @@ function BookAssessmentContent() {
     const payload = {
       client_id: userId,
       scheduled_at: needsVisit ? selectedSlotAt : null,
-      location: needsVisit ? (selectedLocation || "Lifeline station, Reykjavík") : null,
+      location: needsVisit ? (selectedLocation || t("acct.book.station", "Lifeline station, Reykjavík")) : null,
       // RLS on this table only allows the client to set status to
       // 'requested' or 'cancelled'; staff flips it to 'confirmed'.
       status: "requested" as const,
@@ -454,7 +454,7 @@ function BookAssessmentContent() {
       .eq("id", bookingId)
       .maybeSingle();
     if (!current || current.status !== "requested" || current.payment_status !== "pending") {
-      setPaymentError("Ekki er lengur hægt að greiða þessa bókun — hún kann að hafa verið felld niður annars staðar. Byrjaðu upp á nýtt.");
+      setPaymentError(t("acct.book.cannotpay2", "Ekki er lengur hægt að greiða þessa bókun — hún kann að hafa verið felld niður annars staðar. Byrjaðu upp á nýtt."));
       setPaying(false);
       setStage("schedule");
       return;
@@ -969,9 +969,7 @@ function GrantStage({
       <div>
         <h2 className="text-lg font-semibold text-[#0F172A]">{t("acct.book.uniongrant2", "Stéttarfélagsstyrkur")}</h2>
         <p className="text-sm text-[#64748B] mt-1 leading-relaxed">
-          Flest stéttarfélög taka þátt í kostnaði við heilsufarsmat. Veldu félagið þitt — ef við
-          erum með beingreiðslusamning við sjóðinn dregst styrkurinn frá strax og þú þarft ekki
-          að sækja um neitt.
+          {t("acct.book.unionlede2", t("acct.book.unionlede2", "Flest stéttarfélög taka þátt í kostnaði við heilsufarsmat. Veldu félagið þitt — ef við erum með beingreiðslusamning við sjóðinn dregst styrkurinn frá strax og þú þarft ekki að sækja um neitt."))}
         </p>
       </div>
 
@@ -1100,7 +1098,7 @@ function GrantStage({
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {saving ? "Skrái…" : "Áfram"}
+            {saving ? t("acct.book.registering", "Skrái…") : t("acct.continue", "Áfram")}
             {!saving && (
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -1147,7 +1145,7 @@ function ReviewStage({
             value={new Date(selectedSlotAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
           />
         )}
-        {needsVisit && <Row label="Where" value={selectedLocation || "Lifeline station, Reykjavík"} />}
+        {needsVisit && <Row label="Where" value={selectedLocation || t("acct.book.station", "Lifeline station, Reykjavík")} />}
         <Row label="Name" value={fullName || "—"} />
         <Row label="Email" value={email} />
         {notes && <Row label="Notes" value={notes} />}

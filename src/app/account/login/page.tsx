@@ -118,7 +118,7 @@ function AccountLoginContent() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState(
     searchParams.get("verify") === "1"
-      ? "Staðfestu netfangið þitt áður en þú heldur áfram. Hlekkurinn frá Lifeline Health er í pósthólfinu (athugaðu líka ruslpóst)."
+      ? t("acct.login.verifyfirst", "Staðfestu netfangið þitt áður en þú heldur áfram. Hlekkurinn frá Lifeline Health er í pósthólfinu (athugaðu líka ruslpóst).")
       : "",
   );
   const [loading, setLoading] = useState(false);
@@ -372,7 +372,7 @@ function AccountLoginContent() {
           <p className="mt-3 text-[#6B7280] text-sm max-w-sm mx-auto">
             {mode === "login"
               ? t("acct.login.lede", "Skráðu þig inn til að sjá áætlunina þína, næsta tíma og hvernig gengur.")
-              : "Stofnaðu aðgang til að hefja heilsufarsskoðunina og fá þína eigin áætlun."}
+              : t("acct.login.signuplede", "Stofnaðu aðgang til að hefja heilsufarsskoðunina og fá þína eigin áætlun.")}
           </p>
         </div>
 
@@ -691,8 +691,7 @@ function TermsConsentStage({
           {firstName ? `Næstum þar, ${firstName}` : t("acct.login.almost", "Næstum þar")}
         </h2>
         <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-          Áður en aðgangurinn er stofnaður þarftu að lesa og samþykkja
-          notkunarskilmála og persónuverndarstefnu Lifeline Health.
+          {t("acct.login.beforecreate", t("acct.login.beforecreate", "Áður en aðgangurinn er stofnaður þarftu að lesa og samþykkja notkunarskilmála og persónuverndarstefnu Lifeline Health."))}
         </p>
         {email && (
           <p className="text-xs text-gray-400 mt-1">
@@ -782,7 +781,7 @@ function TermsConsentStage({
         <button
           type="submit"
           disabled={loading || !acceptTerms}
-          title={!acceptTerms ? "Hakaðu við að þú samþykkir skilmálana" : undefined}
+          title={!acceptTerms ? t("acct.login.tickterms", "Hakaðu við að þú samþykkir skilmálana") : undefined}
           aria-describedby={!acceptTerms ? "signup-blocked" : undefined}
           className="flex-1 bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >

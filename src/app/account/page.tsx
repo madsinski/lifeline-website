@@ -990,7 +990,7 @@ function AccountPageInner() {
     });
     setProfileSaving(false);
     setEditingProfile(false);
-    setProfileSaveMsg("Upplýsingarnar voru vistaðar.");
+    setProfileSaveMsg(t("acct.p.upplysingarnar-voru-vistadar", "Upplýsingarnar voru vistaðar."));
     setTimeout(() => setProfileSaveMsg(""), 5000);
   };
 
@@ -1086,14 +1086,14 @@ function AccountPageInner() {
   const handleChangePassword = async () => {
     setPasswordMsg("");
     if (newPassword !== confirmNewPassword) {
-      setPasswordMsg("Lykilorðin stemma ekki.");
+      setPasswordMsg(t("acct.p.lykilordin-stemma-ekki", "Lykilorðin stemma ekki."));
       return;
     }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       setPasswordMsg(error.message);
     } else {
-      setPasswordMsg("Lykilorðinu var breytt.");
+      setPasswordMsg(t("acct.p.lykilordinu-var-breytt", "Lykilorðinu var breytt."));
       setNewPassword("");
       setConfirmNewPassword("");
       setTimeout(() => {
@@ -1109,13 +1109,13 @@ function AccountPageInner() {
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== "EYÐA") return;
+    if (deleteConfirmText !== t("acct.p.eyda", "EYÐA")) return;
     setDeleteLoading(true);
     setDeleteError("");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token || !user) {
-        setDeleteError("Þú ert ekki innskráð(ur).");
+        setDeleteError(t("acct.p.thu-ert-ekki-innskrad-ur", "Þú ert ekki innskráð(ur)."));
         setDeleteLoading(false);
         return;
       }
@@ -1157,7 +1157,7 @@ function AccountPageInner() {
 
   const activeTier = tiers.find((t) => t.id === currentTier) ?? null;
   const memberSince = user.created_at
-    ? (() => { const d = new Date(user.created_at); return `${["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"][d.getMonth()]} ${d.getFullYear()}`; })()
+    ? (() => { const d = new Date(user.created_at); return `${[t("acct.p.januar", "janúar"), t("acct.p.februar", "febrúar"), "mars", t("acct.p.april", "apríl"), t("acct.p.mai", "maí"), t("acct.p.juni", "júní"), t("acct.p.juli", "júlí"), t("acct.p.agust", "ágúst"), "september", t("acct.p.oktober", "október"), t("acct.p.november", "nóvember"), "desember"][d.getMonth()]} ${d.getFullYear()}`; })()
     : "";
 
   return (
@@ -1165,7 +1165,7 @@ function AccountPageInner() {
       {/* ---- page header: context switch + sign out (name lives in the welcome card) ---- */}
       <section className="bg-gradient-to-b from-white to-[#ecf0f3] pt-8 pb-4 sm:pt-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#10B981]">Mínar síður</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#10B981]">{t("acct.nav.mypages", "Mínar síður")}</p>
           <div className="flex flex-wrap items-center gap-3">
             <ContextSwitcher current="personal" />
             <button
@@ -1175,7 +1175,7 @@ function AccountPageInner() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Skrá út
+              {t("acct.signout", "Skrá út")}
             </button>
           </div>
         </div>
@@ -1284,7 +1284,7 @@ function AccountPageInner() {
                               information nor Icelandic. The greetings file
                               stays for /admin, where it is a staff tool
                               rather than somebody's account page. */}
-                          {profileFirstName ? `Hæ, ${profileFirstName}` : "Mínar síður"}
+                          {profileFirstName ? `Hæ, ${profileFirstName}` : t("acct.nav.mypages", "Mínar síður")}
                         </h1>
                         {companyName ? (
                           <p className="text-sm text-[#6B7280] mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -1292,7 +1292,7 @@ function AccountPageInner() {
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                               </svg>
-                              <span className="text-xs font-medium">Fyrirtækjaaðgangur</span>
+                              <span className="text-xs font-medium">{t("acct.business", "Fyrirtækjaaðgangur")}</span>
                             </span>
                             <span className="text-sm font-semibold text-[#1F2937]">{companyName}</span>
                             <span className="text-[#9CA3AF]">·</span>
@@ -1409,7 +1409,7 @@ function AccountPageInner() {
                   onChangeDoctorSlot={() => setDrPickerOpen(true)}
                   onCancelDoctorSlot={async () => {
                     if (!myDoctorSlot) return;
-                    if (!confirm("Afbóka viðtal við lækni? The slot will go back into the open pool.")) return;
+                    if (!confirm(t("acct.p.afboka-vidtal-vid-laekni-the", "Afbóka viðtal við lækni? The slot will go back into the open pool."))) return;
                     const { error } = await supabase.rpc("cancel_doctor_slot");
                     if (error) { alert(`Cancel failed: ${error.message}`); return; }
                     setMyDoctorSlot(null);
@@ -1448,7 +1448,7 @@ function AccountPageInner() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <h2 className="text-lg font-semibold text-[#1F2937]">Measurement at Lyfja, Smáratorg</h2>
+                      <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.measurement-at-lyfja-smaratorg", "Measurement at Lyfja, Smáratorg")}</h2>
                     </div>
                     <p className="text-sm text-[#6B7280] mb-4">
                       Walk in on any of the days below during nurse-reception hours (08:00–16:00) — no appointment needed. Bring photo ID.
@@ -1591,7 +1591,7 @@ function AccountPageInner() {
             {activeSection === "profile" && (
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                 <div className="flex items-start justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-[#1F2937]">Persónuupplýsingar</h2>
+                  <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.personuupplysingar", "Persónuupplýsingar")}</h2>
                   {!editingProfile && (
                     <button onClick={() => setEditingProfile(true)} className="text-sm font-medium text-[#10B981] hover:underline">
                       Breyta
@@ -1619,10 +1619,10 @@ function AccountPageInner() {
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Sími</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("acct.p.simi", "Sími")}</label>
                       <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
-                        placeholder="Símanúmer" />
+                        placeholder={t("acct.phone", "Símanúmer")} />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Heimilisfang</label>
@@ -1632,20 +1632,20 @@ function AccountPageInner() {
                     </div>
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tengiliður í neyð</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t("acct.p.tengilidur-i-neyd", "Tengiliður í neyð")}</label>
                         <input value={emergencyName} onChange={(e) => setEmergencyName(e.target.value)}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
-                          placeholder="Nafn tengiliðs" />
+                          placeholder={t("acct.p.nafn-tengilids", "Nafn tengiliðs")} />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Sími tengiliðs</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t("acct.p.simi-tengilids", "Sími tengiliðs")}</label>
                         <input value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} type="tel"
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
-                          placeholder="Sími tengiliðs" />
+                          placeholder={t("acct.p.simi-tengilids", "Sími tengiliðs")} />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Fæðingardagur</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("acct.p.faedingardagur", "Fæðingardagur")}</label>
                       <input value={dob} onChange={(e) => setDob(e.target.value)} type="date"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                     </div>
@@ -1655,7 +1655,7 @@ function AccountPageInner() {
                         {[
                           { key: "male", label: "Karl" },
                           { key: "female", label: "Kona" },
-                          { key: "other", label: "Annað" },
+                          { key: "other", label: t("acct.p.annad", "Annað") },
                           { key: "prefer_not_to_say", label: "Vil ekki svara" },
                         ].map((opt) => (
                           <button key={opt.key} type="button" onClick={() => setSex(opt.key)}
@@ -1682,7 +1682,7 @@ function AccountPageInner() {
                       </button>
                       <button onClick={() => { setEditingProfile(false); setProfileError(""); }}
                         className="px-5 py-2.5 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
-                        Hætta við
+                        {t("acct.cancel", "Hætta við")}
                       </button>
                     </div>
                     {profileSaveMsg && (
@@ -1696,7 +1696,7 @@ function AccountPageInner() {
                     <div>
                       <span className="text-[#6B7280] text-xs uppercase tracking-wider">Nafn</span>
                       <p className={`font-medium mt-0.5 ${profileFirstName ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
-                        {profileFirstName || profileLastName ? `${profileFirstName} ${profileLastName}`.trim() : "Ekki skráð"}
+                        {profileFirstName || profileLastName ? `${profileFirstName} ${profileLastName}`.trim() : t("acct.p.ekki-skrad", "Ekki skráð")}
                       </p>
                     </div>
                     <div>
@@ -1704,33 +1704,33 @@ function AccountPageInner() {
                       <p className="text-[#1F2937] font-medium mt-0.5">{user.email}</p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Sími</span>
-                      <p className={`font-medium mt-0.5 ${phone ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{phone || "Ekki skráð"}</p>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">{t("acct.p.simi", "Sími")}</span>
+                      <p className={`font-medium mt-0.5 ${phone ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{phone || t("acct.p.ekki-skrad", "Ekki skráð")}</p>
                     </div>
                     <div>
                       <span className="text-[#6B7280] text-xs uppercase tracking-wider">Heimilisfang</span>
-                      <p className={`font-medium mt-0.5 ${address ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{address || "Ekki skráð"}</p>
+                      <p className={`font-medium mt-0.5 ${address ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{address || t("acct.p.ekki-skrad", "Ekki skráð")}</p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Tengiliður í neyð</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">{t("acct.p.tengilidur-i-neyd", "Tengiliður í neyð")}</span>
                       <p className={`font-medium mt-0.5 ${emergencyName ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
                         {emergencyName ? `${emergencyName}${emergencyPhone ? ` (${emergencyPhone})` : ""}` : "Ekki skráð"}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Fæðingardagur</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">{t("acct.p.faedingardagur", "Fæðingardagur")}</span>
                       <p className={`font-medium mt-0.5 ${dob ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
-                        {dob ? new Date(dob).toLocaleDateString("is-IS") : "Ekki skráð"}
+                        {dob ? new Date(dob).toLocaleDateString("is-IS") : t("acct.p.ekki-skrad", "Ekki skráð")}
                       </p>
                     </div>
                     <div>
                       <span className="text-[#6B7280] text-xs uppercase tracking-wider">Kyn</span>
                       <p className={`font-medium mt-0.5 ${sex ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
-                        {sex ? ({ male: "Karl", female: "Kona", other: "Annað", prefer_not_to_say: "Vil ekki svara" }[sex] || "Ekki skráð") : "Ekki skráð"}
+                        {sex ? ({ male: "Karl", female: "Kona", other: t("acct.p.annad", "Annað"), prefer_not_to_say: "Vil ekki svara" }[sex] || t("acct.p.ekki-skrad", "Ekki skráð")) : t("acct.p.ekki-skrad", "Ekki skráð")}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Aðgangur frá</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">{t("acct.p.adgangur-fra", "Aðgangur frá")}</span>
                       <p className="text-[#1F2937] font-medium mt-0.5">{memberSince}</p>
                     </div>
                   </div>
@@ -1822,7 +1822,7 @@ function AccountPageInner() {
                     videoConfirmBusy={videoConfirmBusy}
                     onPayDoctorAddon={async () => {
                       if (!user) return;
-                      if (!confirm("Bæta viðtali við lækni við eftirfylgdina fyrir 18.500 kr.? Greitt í gegnum Straum.")) return;
+                      if (!confirm(t("acct.p.baeta-vidtali-vid-laekni-vid", "Bæta viðtali við lækni við eftirfylgdina fyrir 18.500 kr.? Greitt í gegnum Straum."))) return;
                       setPayingCheckinDoctor(true);
                       try {
                         const AMOUNT = 18500;
@@ -1937,10 +1937,10 @@ function AccountPageInner() {
                         </svg>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h2 className="text-lg font-bold text-[#1F2937]">Sjúklingagátt</h2>
-                        <p className="text-sm text-[#6B7280]">Niðurstöður, skýrsla læknis og örugg samskipti við heilbrigðisstarfsfólk eru í Medalia.</p>
+                        <h2 className="text-lg font-bold text-[#1F2937]">{t("acct.p.sjuklingagatt", "Sjúklingagátt")}</h2>
+                        <p className="text-sm text-[#6B7280]">{t("acct.p.nidurstodur-skyrsla-laeknis-og-oru", "Niðurstöður, skýrsla læknis og örugg samskipti við heilbrigðisstarfsfólk eru í Medalia.")}</p>
                       </div>
-                      <MedaliaButton label="Opna sjúklingagátt" size="md" />
+                      <MedaliaButton label={t("acct.p.opna-sjuklingagatt", "Opna sjúklingagátt")} size="md" />
                     </div>
                   </section>
                 {biodyActivated && <BodyCompositionCard userId={user.id} />}
@@ -2611,20 +2611,19 @@ function AccountPageInner() {
             {activeSection === "app" && (
               <section className="space-y-6">
                 <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#047857]">Lifeline appið</p>
-                  <h1 className="mt-1 text-2xl font-bold text-[#0F172A] sm:text-3xl">Dagleg þjálfun í símanum</h1>
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#047857]">{t("acct.p.lifeline-appid", "Lifeline appið")}</p>
+                  <h1 className="mt-1 text-2xl font-bold text-[#0F172A] sm:text-3xl">{t("acct.p.dagleg-thjalfun-i-simanum", "Dagleg þjálfun í símanum")}</h1>
                   <p className="mt-2 max-w-2xl leading-relaxed text-[#6B7280]">
-                    Æfingar, næring, svefn og andleg líðan — dag frá degi, með áætlun sem er þín og þjálfara
-                    sem þú nærð í. Appið keyrir í vafranum og þarf enga uppsetningu úr verslun.
+                    {t("acct.p.aefingar-naering-svefn-og-andleg", "Æfingar, næring, svefn og andleg líðan — dag frá degi, með áætlun sem er þín og þjálfara sem þú nærð í. Appið keyrir í vafranum og þarf enga uppsetningu úr verslun.")}
                   </p>
                   <div className="mt-5 flex flex-wrap gap-2">
                     <Link href="/app"
                       className="inline-flex min-h-11 items-center rounded-xl bg-[#047857] px-5 font-semibold text-white transition hover:bg-emerald-800">
-                      Opna appið
+                      {t("acct.p.opna-appid", "Opna appið")}
                     </Link>
                     <button type="button" onClick={() => setActiveSection("upgrade")}
                       className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1F2937]">
-                      Sjá hvað fylgir
+                      {t("acct.p.sja-hvad-fylgir", "Sjá hvað fylgir")}
                     </button>
                   </div>
                 </div>
@@ -2632,9 +2631,9 @@ function AccountPageInner() {
                 {/* Installing it on the home screen — the same guide the
                     journey uses, not a second copy of the instructions. */}
                 <div className="rounded-2xl bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-[#1F2937]">Setja á heimaskjáinn</h2>
+                  <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.setja-a-heimaskjainn", "Setja á heimaskjáinn")}</h2>
                   <p className="mt-1 text-sm text-[#6B7280]">
-                    Þá opnast appið eins og venjulegt app, án vafrastiku.
+                    {t("acct.p.tha-opnast-appid-eins-og", "Þá opnast appið eins og venjulegt app, án vafrastiku.")}
                   </p>
                   <div className="mt-4"><InstallGuide /></div>
                 </div>
@@ -2759,19 +2758,19 @@ function AccountPageInner() {
                   <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
-                        <h2 className="text-lg font-semibold text-[#1F2937]">Áskrift að Lifeline appinu</h2>
+                        <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.askrift-ad-lifeline-appinu", "Áskrift að Lifeline appinu")}</h2>
                         <p className="mt-1 text-sm text-[#6B7280]">
                           <span className={`mr-2 px-2.5 py-0.5 rounded-full text-xs font-bold ${activeTier.badgeColor}`}>{activeTier.name}</span>
                           {subscription?.current_period_end && <>Næsta greiðsla {new Date(subscription.current_period_end).toLocaleDateString("is-IS")}</>}
                         </p>
                       </div>
                       {!showCancelConfirm && (
-                        <button onClick={() => setShowCancelConfirm(true)} className="text-sm text-red-600 hover:underline">Segja upp áskrift</button>
+                        <button onClick={() => setShowCancelConfirm(true)} className="text-sm text-red-600 hover:underline">{t("acct.p.segja-upp-askrift", "Segja upp áskrift")}</button>
                       )}
                     </div>
                     {showCancelConfirm && (
                       <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
-                        <p className="text-sm text-red-700 mb-3">Ertu viss? Þú heldur aðganginum út yfirstandandi greiðslutímabil.</p>
+                        <p className="text-sm text-red-700 mb-3">{t("acct.p.ertu-viss-thu-heldur-adganginum", "Ertu viss? Þú heldur aðganginum út yfirstandandi greiðslutímabil.")}</p>
                         <div className="flex gap-3">
                           <button onClick={async () => {
                             setCancelLoading(true);
@@ -2784,9 +2783,9 @@ function AccountPageInner() {
                             setCancelLoading(false);
                           }} disabled={cancelLoading}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
-                            {cancelLoading ? "Segi upp…" : "Já, segja upp"}
+                            {cancelLoading ? "Segi upp…" : t("acct.p.ja-segja-upp", "Já, segja upp")}
                           </button>
-                          <button onClick={() => setShowCancelConfirm(false)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937]">Hætta við</button>
+                          <button onClick={() => setShowCancelConfirm(false)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937]">{t("acct.cancel", "Hætta við")}</button>
                         </div>
                       </div>
                     )}
@@ -2808,8 +2807,8 @@ function AccountPageInner() {
                 <div className="border-b border-gray-100 pb-5 mb-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-[#1F2937]">Persónuupplýsingar</p>
-                      <p className="text-xs text-[#6B7280]">Nafn, sími, heimilisfang og tengiliður í neyð</p>
+                      <p className="text-sm font-medium text-[#1F2937]">{t("acct.p.personuupplysingar", "Persónuupplýsingar")}</p>
+                      <p className="text-xs text-[#6B7280]">{t("acct.p.nafn-simi-heimilisfang-og-tengilid", "Nafn, sími, heimilisfang og tengiliður í neyð")}</p>
                     </div>
                     <button onClick={() => setActiveSection("profile")}
                       className="text-sm font-medium text-[#10B981] hover:underline">
@@ -2823,8 +2822,8 @@ function AccountPageInner() {
                     each acceptance certificate. */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
                   <div className="mb-3">
-                    <p className="text-sm font-medium text-[#1F2937]">Lögleg samþykki</p>
-                    <p className="text-xs text-[#6B7280]">Skjöl sem þú hefur undirritað rafrænt — sækja PDF.</p>
+                    <p className="text-sm font-medium text-[#1F2937]">{t("acct.p.logleg-samthykki", "Lögleg samþykki")}</p>
+                    <p className="text-xs text-[#6B7280]">{t("acct.p.skjol-sem-thu-hefur-undirritad", "Skjöl sem þú hefur undirritað rafrænt — sækja PDF.")}</p>
                   </div>
                   <SignedDocumentsList />
                 </div>
@@ -2833,20 +2832,20 @@ function AccountPageInner() {
                 <div className="border-b border-gray-100 pb-5 mb-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-[#1F2937]">Lykilorð</p>
-                      <p className="text-xs text-[#6B7280]">Breyttu lykilorðinu þínu</p>
+                      <p className="text-sm font-medium text-[#1F2937]">{t("acct.password", "Lykilorð")}</p>
+                      <p className="text-xs text-[#6B7280]">{t("acct.p.breyttu-lykilordinu-thinu", "Breyttu lykilorðinu þínu")}</p>
                     </div>
                     <button onClick={() => setShowPasswordForm(!showPasswordForm)}
                       className="text-sm font-medium text-[#10B981] hover:underline">
-                      {showPasswordForm ? "Hætta við" : "Breyta"}
+                      {showPasswordForm ? t("acct.cancel", "Hætta við") : "Breyta"}
                     </button>
                   </div>
                   {showPasswordForm && (
                     <div className="mt-4 max-w-sm space-y-3">
-                      <input type="password" placeholder="Nýtt lykilorð (a.m.k. 6 stafir)" value={newPassword}
+                      <input type="password" placeholder={t("acct.p.nytt-lykilord-a-m-k", "Nýtt lykilorð (a.m.k. 6 stafir)")} value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
-                      <input type="password" placeholder="Staðfestu nýja lykilorðið" value={confirmNewPassword}
+                      <input type="password" placeholder={t("acct.p.stadfestu-nyja-lykilordid", "Staðfestu nýja lykilorðið")} value={confirmNewPassword}
                         onChange={(e) => setConfirmNewPassword(e.target.value)} autoComplete="new-password"
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                       {passwordMsg && (
@@ -2854,7 +2853,7 @@ function AccountPageInner() {
                       )}
                       <button onClick={handleChangePassword} disabled={newPassword.length < 6 || confirmNewPassword.length < 6}
                         className="px-5 py-2 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        Vista lykilorð
+                        {t("acct.p.vista-lykilord", "Vista lykilorð")}
                       </button>
                     </div>
                   )}
@@ -2865,8 +2864,8 @@ function AccountPageInner() {
                   <div className="border-b border-gray-100 pb-5 mb-5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-[#1F2937]">Ábendingahnappur</p>
-                        <p className="text-xs text-[#6B7280]">Sýna eða fela ábendingarhnappinn neðst á síðunni</p>
+                        <p className="text-sm font-medium text-[#1F2937]">{t("acct.p.abendingahnappur", "Ábendingahnappur")}</p>
+                        <p className="text-xs text-[#6B7280]">{t("acct.p.syna-eda-fela-abendingarhnappinn-n", "Sýna eða fela ábendingarhnappinn neðst á síðunni")}</p>
                       </div>
                       <button
                         onClick={toggleFeedbackHidden}
@@ -2902,12 +2901,12 @@ function AccountPageInner() {
                 <div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-red-600">Eyða aðgangi</p>
-                      <p className="text-xs text-[#6B7280]">Eyðir aðganginum og öllum gögnum varanlega</p>
+                      <p className="text-sm font-medium text-red-600">{t("acct.p.eyda-adgangi", "Eyða aðgangi")}</p>
+                      <p className="text-xs text-[#6B7280]">{t("acct.p.eydir-adganginum-og-ollum-gognum", "Eyðir aðganginum og öllum gögnum varanlega")}</p>
                     </div>
                     <button onClick={() => setShowDeleteConfirm(true)}
                       className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors">
-                      Eyða
+                      {t("acct.p.eyda-2", "Eyða")}
                     </button>
                   </div>
                   {showDeleteConfirm && (
@@ -2916,20 +2915,20 @@ function AccountPageInner() {
                         This will permanently delete your account and all data. This cannot be undone.
                       </p>
                       <p className="text-sm text-red-700 mb-2">
-                        Skrifaðu <span className="font-bold">EYÐA</span> til að staðfesta:
+                        {t("acct.p.skrifadu", "Skrifaðu")} <span className="font-bold">{t("acct.p.eyda", "EYÐA")}</span> {t("acct.p.til-ad-stadfesta", "til að staðfesta:")}
                       </p>
                       <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)}
-                        placeholder="Skrifaðu EYÐA"
+                        placeholder={t("acct.p.skrifadu-eyda", "Skrifaðu EYÐA")}
                         className="w-full max-w-[200px] px-3 py-2 border border-red-300 rounded-lg text-sm mb-3 outline-none focus:ring-2 focus:ring-red-400 text-gray-900" />
                       {deleteError && <p className="text-sm text-red-600 mb-2">{deleteError}</p>}
                       <div className="flex gap-3">
-                        <button onClick={handleDeleteAccount} disabled={deleteConfirmText !== "EYÐA" || deleteLoading}
+                        <button onClick={handleDeleteAccount} disabled={deleteConfirmText !== t("acct.p.eyda", "EYÐA") || deleteLoading}
                           className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                          {deleteLoading ? "Eyði…" : "Já, eyða aðganginum mínum"}
+                          {deleteLoading ? t("acct.p.eydi", "Eyði…") : t("acct.p.ja-eyda-adganginum-minum", "Já, eyða aðganginum mínum")}
                         </button>
                         <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); setDeleteError(""); }}
                           className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">
-                          Hætta við
+                          {t("acct.cancel", "Hætta við")}
                         </button>
                       </div>
                     </div>
@@ -2946,6 +2945,7 @@ function AccountPageInner() {
 
 /* Wrap with Suspense for useSearchParams */
 export default function AccountPage() {
+  const { t } = useI18n();
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-[#ecf0f3]">
@@ -2974,6 +2974,7 @@ interface BodyCompSummary {
 }
 
 function BodyCompositionCard({ userId }: { userId: string }) {
+  const { t } = useI18n();
   const [hasConsent, setHasConsent] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -3001,13 +3002,13 @@ function BodyCompositionCard({ userId }: { userId: string }) {
       try {
         const { data: s } = await supabase.auth.getSession();
         const token = s.session?.access_token;
-        if (!token) throw new Error("Þú þarft að skrá þig inn");
+        if (!token) throw new Error(t("acct.p.thu-tharft-ad-skra-thig", "Þú þarft að skrá þig inn"));
         const res = await fetch("/api/account/biody/measurements", {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
         });
         const j = await res.json().catch(() => ({}));
-        if (!res.ok || !j.ok) throw new Error(j.error || "Tókst ekki að sækja mælingar");
+        if (!res.ok || !j.ok) throw new Error(j.error || t("acct.p.tokst-ekki-ad-saekja-maelingar", "Tókst ekki að sækja mælingar"));
         setMeasurements(j.measurements as BodyCompSummary[]);
       } catch (e) {
         setError((e as Error).message);
@@ -3026,7 +3027,7 @@ function BodyCompositionCard({ userId }: { userId: string }) {
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="text-lg font-semibold text-[#1F2937]">Líkamssamsetning</h2>
+          <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.likamssamsetning", "Líkamssamsetning")}</h2>
           <p className="text-xs text-[#6B7280] mt-0.5">
             Latest readings from your Biody scan — pulled live, not stored here.
           </p>
@@ -3038,24 +3039,24 @@ function BodyCompositionCard({ userId }: { userId: string }) {
         )}
       </div>
 
-      {loading && <p className="text-sm text-gray-500">Sæki mælingar…</p>}
+      {loading && <p className="text-sm text-gray-500">{t("acct.p.saeki-maelingar", "Sæki mælingar…")}</p>}
       {error && (
         <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
           Couldn&apos;t reach Biody: {error}
         </div>
       )}
       {!loading && !error && measurements && measurements.length === 0 && (
-        <p className="text-sm text-gray-500">Engar greindar mælingar enn. Bókaðu mælingu til að byrja.</p>
+        <p className="text-sm text-gray-500">{t("acct.p.engar-greindar-maelingar-enn-bokad", "Engar greindar mælingar enn. Bókaðu mælingu til að byrja.")}</p>
       )}
       {latest && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Stat label="Þyngd" value={latest.weight_kg} unit="kg" />
+          <Stat label={t("acct.p.thyngd", "Þyngd")} value={latest.weight_kg} unit="kg" />
           <Stat label="Fitumassi" value={latest.body_fat_pct} unit="%" />
-          <Stat label="Vöðvamassi" value={latest.muscle_mass_kg} unit="kg" />
+          <Stat label={t("acct.p.vodvamassi", "Vöðvamassi")} value={latest.muscle_mass_kg} unit="kg" />
           <Stat label="Vatnshlutfall" value={latest.body_water_pct} unit="%" />
           <Stat label="Fasahorn" value={latest.phase_angle} unit="°" />
           <Stat label="BMR" value={latest.bmr_kcal} unit="kcal" />
-          <Stat label="Mittis- og mjaðmahlutfall" value={latest.waist_to_hip} unit="" />
+          <Stat label={t("acct.p.mittis-og-mjadmahlutfall", "Mittis- og mjaðmahlutfall")} value={latest.waist_to_hip} unit="" />
         </div>
       )}
     </section>
@@ -3077,6 +3078,7 @@ function Stat({ label, value, unit }: { label: string; value: number | null; uni
 // yet have an active client_consents row for biody-import-v1. Backfill
 // for the consent system shipped 2026-04-30 — see runbook §6.
 function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGoToSettings: () => void }) {
+  const { t } = useI18n();
   const [needsConsent, setNeedsConsent] = useState<boolean>(false);
   useEffect(() => {
     (async () => {
@@ -3100,17 +3102,15 @@ function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGo
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         <div className="text-sm text-amber-900 leading-relaxed flex-1">
-          <p className="font-medium text-amber-950 mb-1">Staðfestu val um persónuvernd</p>
+          <p className="font-medium text-amber-950 mb-1">{t("acct.p.stadfestu-val-um-personuvernd", "Staðfestu val um persónuvernd")}</p>
           <p>
-            Ný stilling: hvort mælingarnar þínar frá Biody birtist hér á yfirlitinu svo
-            þú getir fylgst með þeim sjálf/ur. Sjálfgefið birtast þær ekki. Sjúkraskráin
-            þín í Medalia breytist ekki hvort sem er.
+            {t("acct.p.ny-stilling-hvort-maelingarnar-thi", "Ný stilling: hvort mælingarnar þínar frá Biody birtist hér á yfirlitinu svo þú getir fylgst með þeim sjálf/ur. Sjálfgefið birtast þær ekki. Sjúkraskráin þín í Medalia breytist ekki hvort sem er.")}
           </p>
           <button
             onClick={onGoToSettings}
             className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition-colors"
           >
-            Opna persónuverndarstillingar
+            {t("acct.p.opna-personuverndarstillingar", "Opna persónuverndarstillingar")}
           </button>
         </div>
       </div>
@@ -3168,11 +3168,17 @@ function NextSteps({ assessmentDone, onGo, t, locale }: {
 }
 
 function WellnessFramingCard() {
+  /* The regulatory statement: this page is not the medical record, and the
+     record is held in Medalia under Act no. 55/2009. It says the same thing
+     in both languages — a disclaimer that only one set of readers can read
+     is not a disclaimer. The citation stays as it is: an Icelandic act has
+     one name. */
+  const { t } = useI18n();
   return (
     <p className="px-1 text-xs leading-relaxed text-slate-500">
-      Þetta er yfirlit yfir bókanir og aðgang, ekki sjúkraskrá. Sjúkraskráin þín er varðveitt í Medalia samkvæmt lögum nr. 55/2009.
-      Klínískum spurningum er svarað í gegnum sjúklingagáttina eða í tíma hjá lækni.{" "}
-      <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-700">Persónuvernd</Link>
+      {t("acct.p.wellness-framing",
+         "Þetta er yfirlit yfir bókanir og aðgang, ekki sjúkraskrá. Sjúkraskráin þín er varðveitt í Medalia samkvæmt lögum nr. 55/2009. Klínískum spurningum er svarað í gegnum sjúklingagáttina eða í tíma hjá lækni.")}{" "}
+      <Link href="/privacy" className="underline underline-offset-2 hover:text-slate-700">{t("acct.p.personuvernd", "Persónuvernd")}</Link>
     </p>
   );
 }
@@ -3181,22 +3187,23 @@ function WellnessFramingCard() {
 // the next step is simply answering the questionnaire in the patient portal.
 // We render an abbreviated journey and a purpose-built hero card.
 function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean; onChangePackage: () => void | Promise<void> }) {
+  const { t } = useI18n();
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
-        <h3 className="text-lg font-semibold text-[#1F2937]">Heilsuferðin þín</h3>
+        <h3 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.heilsuferdin-thin", "Heilsuferðin þín")}</h3>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
             Change package
           </button>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
             <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
-            Sjálfsmat
+            {t("acct.p.sjalfsmat", "Sjálfsmat")}
           </span>
         </div>
       </div>
       <p className="text-sm text-[#6B7280] mb-6">
-        Sjálfsmat is fully remote — no visit, no blood test. Just the questionnaire in the patient portal.
+        {t("acct.p.sjalfsmat-is-fully-remote-no", "Sjálfsmat is fully remote — no visit, no blood test. Just the questionnaire in the patient portal.")}
       </p>
       <ol className="relative border-l-2 border-gray-100 ml-4 space-y-5">
         {/* Step 1 */}
@@ -3207,8 +3214,8 @@ function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean
             </svg>
           </span>
           <div>
-            <div className="font-semibold text-[#1F2937]">Sjálfsmat bókað</div>
-            <p className="text-sm text-[#6B7280] mt-1">Fjarmatið þitt er skráð. Þú finnur það undir „Bókanir“ hér fyrir neðan.</p>
+            <div className="font-semibold text-[#1F2937]">{t("acct.p.sjalfsmat-bokad", "Sjálfsmat bókað")}</div>
+            <p className="text-sm text-[#6B7280] mt-1">{t("acct.p.fjarmatid-thitt-er-skrad-thu", "Fjarmatið þitt er skráð. Þú finnur það undir „Bókanir“ hér fyrir neðan.")}</p>
           </div>
         </li>
 
@@ -3224,7 +3231,7 @@ function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean
             )}
           </span>
           <div>
-            <div className="font-semibold text-[#1F2937]">Svaraðu spurningalistanum í sjúklingagáttinni</div>
+            <div className="font-semibold text-[#1F2937]">{t("acct.p.svaradu-spurningalistanum-i-sjukli", "Svaraðu spurningalistanum í sjúklingagáttinni")}</div>
             <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
               {completed
                 ? "Done. A Lifeline clinician has reviewed your answers and will reach out if anything is flagged."
@@ -3232,7 +3239,7 @@ function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean
             </p>
             {!completed && (
               <div className="mt-3 flex flex-wrap gap-2">
-                <MedaliaButton label="Opna sjúklingagátt" size="sm" />
+                <MedaliaButton label={t("acct.p.opna-sjuklingagatt", "Opna sjúklingagátt")} size="sm" />
               </div>
             )}
           </div>
@@ -3265,35 +3272,36 @@ function CheckinJourney({
   videoConfirmBusy: boolean;
   onChangePackage: () => void | Promise<void>;
 }) {
+  const { t } = useI18n();
   const slotLabel = bodyCompBookingAt
     ? new Date(bodyCompBookingAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
     : null;
   type S = { title: string; description: string; state: "done" | "active" | "pending"; cta?: React.ReactNode };
   const steps: S[] = [
     {
-      title: "Tími bókaður",
-      description: "Eftirfylgdin þín er skráð. Dagsetning og tími eru undir „Bókanir“ hér fyrir neðan.",
+      title: t("acct.p.timi-bokadur", "Tími bókaður"),
+      description: t("acct.p.eftirfylgdin-thin-er-skrad-dagsetn", "Eftirfylgdin þín er skráð. Dagsetning og tími eru undir „Bókanir“ hér fyrir neðan."),
       state: "done",
     },
     {
-      title: "Uppfærðu upplýsingar fyrir líkamssamsetningarmælingu",
+      title: t("acct.p.uppfaerdu-upplysingar-fyrir-likams", "Uppfærðu upplýsingar fyrir líkamssamsetningarmælingu"),
       description: biodyActivated
-        ? "Upplýsingarnar þínar eru samstilltar við Biody. Þú getur breytt þeim hvenær sem er."
+        ? t("acct.p.upplysingarnar-thinar-eru-samstill", "Upplýsingarnar þínar eru samstilltar við Biody. Þú getur breytt þeim hvenær sem er.")
         : "Confirm your height, weight and activity level so we can send your profile to Biody before the measurement.",
       state: biodyActivated ? "done" : "active",
       cta: (
         <button onClick={onGoToBiody} className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-[#10B981] to-[#14B8A6] text-white hover:opacity-95">
-          {biodyActivated ? "Breyta upplýsingum" : "Activate profile"}
+          {biodyActivated ? t("acct.p.breyta-upplysingum", "Breyta upplýsingum") : "Activate profile"}
         </button>
       ),
     },
     {
       title: "Measurement appointment",
       description: completed
-        ? "Mælingu lokið. Framvinduskýrslan þín er í vinnslu."
+        ? t("acct.p.maelingu-lokid-framvinduskyrslan-t", "Mælingu lokið. Framvinduskýrslan þín er í vinnslu.")
         : slotLabel
           ? `Áætlaður ${slotLabel}. See Current bookings below for directions.`
-          : "Við staðfestum tímann þegar mælingatíminn þinn er frágenginn.",
+          : t("acct.p.vid-stadfestum-timann-thegar-maeli", "Við staðfestum tímann þegar mælingatíminn þinn er frágenginn."),
       state: completed ? "done" : biodyActivated ? "active" : "pending",
     },
     (() => {
@@ -3303,7 +3311,7 @@ function CheckinJourney({
       if (hasDoctorBooking) {
         return {
           title: "Doctor consultation",
-          description: "Viðtalið þitt er bókað. Sjá „Bókanir“ hér fyrir neðan.",
+          description: t("acct.p.vidtalid-thitt-er-bokad-sja", "Viðtalið þitt er bókað. Sjá „Bókanir“ hér fyrir neðan."),
           state: "done" as const,
         };
       }
@@ -3319,14 +3327,14 @@ function CheckinJourney({
               className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white hover:opacity-95 disabled:opacity-50"
             >
               {payingDoctorAddon && <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              {payingDoctorAddon ? "Charging…" : "Bæta við fyrir 18.500 kr."}
+              {payingDoctorAddon ? "Charging…" : t("acct.p.baeta-vid-fyrir-18-500", "Bæta við fyrir 18.500 kr.")}
             </button>
           ),
         };
       }
       return {
         title: "Doctor consultation",
-        description: "Greitt. Veldu hvernig þú vilt hitta lækninn þinn hjá Lifeline.",
+        description: t("acct.p.greitt-veldu-hvernig-thu-vilt", "Greitt. Veldu hvernig þú vilt hitta lækninn þinn hjá Lifeline."),
         state: "active" as const,
         cta: (
           <div className="flex flex-wrap items-center gap-2">
@@ -3335,7 +3343,7 @@ function CheckinJourney({
                 Pick a time (in person)
               </button>
             ) : null}
-            <MedaliaButton label="Bóka myndsímtal í gáttinni" size="sm" variant="outline" />
+            <MedaliaButton label={t("acct.p.boka-myndsimtal-i-gattinni", "Bóka myndsímtal í gáttinni")} size="sm" variant="outline" />
             <button
               onClick={onConfirmVideoPortal}
               disabled={videoConfirmBusy}
@@ -3348,30 +3356,30 @@ function CheckinJourney({
       };
     })(),
     {
-      title: "Sjá niðurstöðurnar í sjúklingagáttinni",
+      title: t("acct.p.sja-nidurstodurnar-i-sjuklingagatt", "Sjá niðurstöðurnar í sjúklingagáttinni"),
       description: completed
-        ? "Framvinduskýrslan, uppfærð heilsueinkunn og ný áætlun eru í Medalia."
+        ? t("acct.p.framvinduskyrslan-uppfaerd-heilsue", "Framvinduskýrslan, uppfærð heilsueinkunn og ný áætlun eru í Medalia.")
         : "After your measurement (and optional doctor review), your progress report lands in the Lifeline patient portal.",
       state: completed ? "active" : "pending",
-      cta: completed ? <MedaliaButton label="Opna sjúklingagátt" size="sm" /> : undefined,
+      cta: completed ? <MedaliaButton label={t("acct.p.opna-sjuklingagatt", "Opna sjúklingagátt")} size="sm" /> : undefined,
     },
   ];
 
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
-        <h3 className="text-lg font-semibold text-[#1F2937]">Heilsuferðin þín</h3>
+        <h3 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.heilsuferdin-thin", "Heilsuferðin þín")}</h3>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
             Change package
           </button>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Tími
+            {t("acct.p.timi", "Tími")}
           </span>
         </div>
       </div>
-      <p className="text-sm text-[#6B7280] mb-6">Eftirfylgdin þín — fylgstu með framvindu og uppfærðu áætlunina.</p>
+      <p className="text-sm text-[#6B7280] mb-6">{t("acct.p.eftirfylgdin-thin-fylgstu-med-fram", "Eftirfylgdin þín — fylgstu með framvindu og uppfærðu áætlunina.")}</p>
       <ol className="relative border-l-2 border-gray-100 ml-4 space-y-5">
         {steps.map((s, i) => {
           const color = s.state === "done" ? "bg-emerald-500 text-white" : s.state === "active" ? "bg-[#10B981] text-white" : "bg-gray-200 text-gray-500";
@@ -3432,6 +3440,7 @@ function JourneyTimeline({
   journeyChecks?: { questionnaire?: string; blood_test?: string; results_viewed?: string };
   onToggleJourneyCheck?: (key: JourneyCheckKey) => void;
 }) {
+  const { t } = useI18n();
   const eventLabel = companyEvent
     ? `${new Date(companyEvent.event_date + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}, ${companyEvent.start_time.slice(0,5)}–${companyEvent.end_time.slice(0,5)}${companyEvent.location ? ` · ${companyEvent.location}` : ""}`
     : "";
@@ -3456,29 +3465,29 @@ function JourneyTimeline({
     done: hasOnboarded,
     active: false,
     description: "Profile + consent complete.",
-    cta: { label: "Horfa á kynningu", href: "/account/welcome?preview=1" },
+    cta: { label: t("acct.p.horfa-a-kynningu", "Horfa á kynningu"), href: "/account/welcome?preview=1" },
   };
   const bodyCompProfileStep: JourneyStep = {
     title: "Body composition profile",
     done: biodyActivated,
     active: hasOnboarded && !biodyActivated,
     description: biodyActivated
-      ? "Staðfest. Þú getur uppfært upplýsingarnar þínar (hæð, þyngd, hreyfingu) hvenær sem er."
-      : "Virkjaðu aðganginn þinn — tekur um mínútu.",
-    cta: { label: biodyActivated ? "Breyta upplýsingum" : "Activate", onClick: onGoToBiody },
+      ? t("acct.p.stadfest-thu-getur-uppfaert-upplys", "Staðfest. Þú getur uppfært upplýsingarnar þínar (hæð, þyngd, hreyfingu) hvenær sem er.")
+      : t("acct.p.virkjadu-adganginn-thinn-tekur-um", "Virkjaðu aðganginn þinn — tekur um mínútu."),
+    cta: { label: biodyActivated ? t("acct.p.breyta-upplysingum", "Breyta upplýsingum") : "Activate", onClick: onGoToBiody },
   };
   const b2cBookStep: JourneyStep = {
     // B2C: one step covers measurement + blood-draw referral via Medalia booking
-    title: "Bókaðu heilsufarsskoðunina þína",
+    title: t("acct.p.bokadu-heilsufarsskodunina-thina", "Bókaðu heilsufarsskoðunina þína"),
     done: hasBodyCompBooking,
     active: !hasBodyCompBooking,
     description: hasBodyCompCompleted
-      ? "Lokið. Niðurstöðurnar þínar eru í sjúklingagáttinni."
+      ? t("acct.p.lokid-nidurstodurnar-thinar-eru-i", "Lokið. Niðurstöðurnar þínar eru í sjúklingagáttinni.")
       : hasBodyCompBooking
-        ? "Bókað. Sjá „Bókanir“ hér fyrir neðan fyrir tímasetninguna."
+        ? t("acct.p.bokad-sja-bokanir-her-fyrir", "Bókað. Sjá „Bókanir“ hér fyrir neðan fyrir tímasetninguna.")
         : "Pick a package, a time, and pay — one visit covers measurements and your blood-test referral.",
     cta: !hasBodyCompBooking
-      ? { label: "Bóka á mælingastöð", href: "/account/book" }
+      ? { label: t("acct.p.boka-a-maelingastod", "Bóka á mælingastöð"), href: "/account/book" }
       : undefined,
     // Selected-package row: shows which package the user is on +
     // a real button (not a text link) to switch to a different one.
@@ -3501,15 +3510,15 @@ function JourneyTimeline({
     ) : undefined,
   };
   const b2bMeasurementsStep: JourneyStep = {
-    title: "Mælingar — bókaðu tíma",
+    title: t("acct.p.maelingar-bokadu-tima", "Mælingar — bókaðu tíma"),
     done: hasBodyCompSlot,
     active: biodyActivated && !hasBodyCompSlot && !!companyEvent,
     description: hasBodyCompSlot
-      ? "Tíminn þinn er bókaður. Sjá „Bókanir“ hér fyrir neðan."
+      ? t("acct.p.timinn-thinn-er-bokadur-sja", "Tíminn þinn er bókaður. Sjá „Bókanir“ hér fyrir neðan.")
       : companyEvent
         ? `Á staðnum at ${eventLabel}. Pick a 5-minute slot.`
-        : "Fyrirtækið þitt ákveður mælingadaginn. Þú færð tilkynningu.",
-    cta: !hasBodyCompSlot && companyEvent ? { label: "Veldu tíma", onClick: onPickBodyCompSlot } : undefined,
+        : t("acct.p.fyrirtaekid-thitt-akvedur-maelinga", "Fyrirtækið þitt ákveður mælingadaginn. Þú færð tilkynningu."),
+    cta: !hasBodyCompSlot && companyEvent ? { label: t("acct.p.veldu-tima", "Veldu tíma"), onClick: onPickBodyCompSlot } : undefined,
   };
   // B2C blood-test step: no booking needed. The referral is standing;
   // users just walk in at any Sameind station during opening hours. We
@@ -3518,12 +3527,12 @@ function JourneyTimeline({
   const b2cBloodTestCustomBody = (hasBodyCompBooking && !hasBodyCompCompleted) ? (
     <div className="mt-3 space-y-3">
       <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-900">
-        <div className="font-semibold mb-0.5">Fasta frá miðnætti</div>
+        <div className="font-semibold mb-0.5">{t("acct.p.fasta-fra-midnaetti", "Fasta frá miðnætti")}</div>
         Water only — no food, coffee, tea, juice, or alcohol.
       </div>
       <details className="group rounded-lg border border-gray-200 bg-white">
         <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">
-          <span>Sameind — þú getur mætt á hvaða stöð sem er</span>
+          <span>{t("acct.p.sameind-thu-getur-maett-a", "Sameind — þú getur mætt á hvaða stöð sem er")}</span>
           <svg className="w-3.5 h-3.5 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
@@ -3577,22 +3586,22 @@ function JourneyTimeline({
         done: bloodTestDone || hasBodyCompCompleted,
         active: !(bloodTestDone || hasBodyCompCompleted) && hasBodyCompBooking,
         description: (bloodTestDone || hasBodyCompCompleted)
-          ? "Lokið — niðurstöðurnar birtast í skýrslunni þinni."
+          ? t("acct.p.lokid-nidurstodurnar-birtast-i-sky", "Lokið — niðurstöðurnar birtast í skýrslunni þinni.")
           : hasBodyCompBooking
-            ? "Mættu á hvaða Sameind-stöð sem er á opnunartíma — engin bókun nauðsynleg."
-            : "Beiðnin þín til Sameindar er gefin út þegar þú bókar skoðunina hér fyrir ofan.",
+            ? t("acct.p.maettu-a-hvada-sameind-stod-2", "Mættu á hvaða Sameind-stöð sem er á opnunartíma — engin bókun nauðsynleg.")
+            : t("acct.p.beidnin-thin-til-sameindar-er", "Beiðnin þín til Sameindar er gefin út þegar þú bókar skoðunina hér fyrir ofan."),
         customBody: b2cBloodTestCustomBody,
         manualCheck: { key: "blood_test", label: "I've done my blood test" },
       }
     : {
-        title: "Blóðprufa hjá Sameind — veldu dag",
+        title: t("acct.p.blodprufa-hja-sameind-veldu-dag", "Blóðprufa hjá Sameind — veldu dag"),
         done: hasBloodTestBooking,
         active: biodyActivated && !hasBloodTestBooking && hasApprovedBloodDays,
         description: hasBloodTestBooking
-          ? "Dagur valinn. Mættu á hvaða Sameind-stöð sem er á opnunartíma."
+          ? t("acct.p.dagur-valinn-maettu-a-hvada", "Dagur valinn. Mættu á hvaða Sameind-stöð sem er á opnunartíma.")
           : hasApprovedBloodDays
-            ? "Your company has approved days for you. Mættu á hvaða Sameind-stöð sem er during its opening hours."
-            : "Fyrirtækið þitt samþykkir daga fyrir blóðprufu. Þú færð tilkynningu.",
+            ? t("acct.p.your-company-has-approved-days", "Your company has approved days for you. Mættu á hvaða Sameind-stöð sem er during its opening hours.")
+            : t("acct.p.fyrirtaekid-thitt-samthykkir-daga-", "Fyrirtækið þitt samþykkir daga fyrir blóðprufu. Þú færð tilkynningu."),
         cta: !hasBloodTestBooking && hasApprovedBloodDays ? { label: "Veldu dag", onClick: onPickBloodTestDay } : undefined,
       };
   const steps: JourneyStep[] = [
@@ -3609,10 +3618,10 @@ function JourneyTimeline({
       const description = hasVideoPortalConfirmed && !hasInPersonDoctorBooking
         ? "Video meeting confirmed — you've booked it in your patient portal. See 'Current bookings' below."
         : hasInPersonDoctorBooking
-          ? "Staðviðtal bókað. Sjá „Bókanir“ hér fyrir neðan."
+          ? t("acct.p.stadvidtal-bokad-sja-bokanir-her", "Staðviðtal bókað. Sjá „Bókanir“ hér fyrir neðan.")
           : canBook
-            ? "Veldu hvernig þú vilt hitta lækninn til að setja saman aðgerðaáætlunina."
-            : "Þegar skýrslan þín er tilbúin opnar Lifeline fyrir viðtalstíma.";
+            ? t("acct.p.veldu-hvernig-thu-vilt-hitta", "Veldu hvernig þú vilt hitta lækninn til að setja saman aðgerðaáætlunina.")
+            : t("acct.p.thegar-skyrslan-thin-er-tilbuin", "Þegar skýrslan þín er tilbúin opnar Lifeline fyrir viðtalstíma.");
       const customBody = !hasAnyBooking ? (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* In-person option */}
@@ -3622,15 +3631,15 @@ function JourneyTimeline({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <span className="text-sm font-semibold text-blue-900">Á staðnum</span>
+              <span className="text-sm font-semibold text-blue-900">{t("acct.p.a-stadnum", "Á staðnum")}</span>
             </div>
-            <p className="text-xs text-blue-900/80 leading-snug mb-2">Hittu lækninn á starfsstöð Lifeline, á tíma sem við ákveðum.</p>
+            <p className="text-xs text-blue-900/80 leading-snug mb-2">{t("acct.p.hittu-laekninn-a-starfsstod-lifeli", "Hittu lækninn á starfsstöð Lifeline, á tíma sem við ákveðum.")}</p>
             {hasAvailableInPersonSlots ? (
               <button onClick={onPickInPersonDoctorSlot} className="text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">
                 Pick a time
               </button>
             ) : (
-              <div className="text-xs text-blue-900/70">Engir tímar á staðnum lausir eins og er.</div>
+              <div className="text-xs text-blue-900/70">{t("acct.p.engir-timar-a-stadnum-lausir", "Engir tímar á staðnum lausir eins og er.")}</div>
             )}
           </div>
           {/* Video option */}
@@ -3643,7 +3652,7 @@ function JourneyTimeline({
             </div>
             <p className="text-xs text-violet-900/80 leading-snug mb-2">Video meetings are booked inside the patient portal (Zoom Healthcare). Book there, then come back to confirm.</p>
             <div className="flex flex-wrap gap-2">
-              <MedaliaButton label="Opna sjúklingagátt" size="sm" variant="outline" />
+              <MedaliaButton label={t("acct.p.opna-sjuklingagatt", "Opna sjúklingagátt")} size="sm" variant="outline" />
               <button
                 onClick={onConfirmVideoPortal}
                 disabled={videoConfirmBusy}
@@ -3659,7 +3668,7 @@ function JourneyTimeline({
         </div>
       ) : hasVideoPortalConfirmed && !hasInPersonDoctorBooking ? (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <MedaliaButton label="Opna sjúklingagátt" size="sm" />
+          <MedaliaButton label={t("acct.p.opna-sjuklingagatt", "Opna sjúklingagátt")} size="sm" />
           <button onClick={onClearVideoPortal} disabled={videoConfirmBusy} className="text-xs font-medium text-red-600 hover:underline disabled:opacity-60">
             Clear confirmation
           </button>
@@ -3678,11 +3687,11 @@ function JourneyTimeline({
     // previous step's done condition), so the user sees it as the current
     // step rather than a perpetually grey terminator.
     {
-      title: "Sjá niðurstöðurnar í sjúklingagáttinni",
+      title: t("acct.p.sja-nidurstodurnar-i-sjuklingagatt", "Sjá niðurstöðurnar í sjúklingagáttinni"),
       done: resultsViewed,
       active: !resultsViewed && (hasBodyCompCompleted || hasInPersonDoctorBooking || hasVideoPortalConfirmed),
       description: resultsViewed
-        ? "Merkt sem yfirfarið. Þú kemst alltaf í skýrsluna þína í Medalia."
+        ? t("acct.p.merkt-sem-yfirfarid-thu-kemst", "Merkt sem yfirfarið. Þú kemst alltaf í skýrsluna þína í Medalia.")
         : hasBodyCompCompleted || hasInPersonDoctorBooking || hasVideoPortalConfirmed
           ? "Your report, health score and action plan are ready in Medalia. Open the portal to review them, then tick the box below."
           : "Once your measurements, blood work and doctor consultation are done, your full personal report lands in the Lifeline patient portal.",
@@ -3696,8 +3705,8 @@ function JourneyTimeline({
 
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">Heilsuferðin þín</h3>
-      <p className="text-sm text-[#6B7280] mb-6">Hvar þú ert stödd/staddur í Lifeline.</p>
+      <h3 className="text-lg font-semibold text-[#1F2937] mb-1">{t("acct.p.heilsuferdin-thin", "Heilsuferðin þín")}</h3>
+      <p className="text-sm text-[#6B7280] mb-6">{t("acct.p.hvar-thu-ert-stodd-staddur", "Hvar þú ert stödd/staddur í Lifeline.")}</p>
       <ol className="relative border-l-2 border-gray-100 ml-4">
         {steps.map((s, i) => {
           const dotColor = s.done
@@ -3730,14 +3739,14 @@ function JourneyTimeline({
                     {s.active && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
                         <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
-                        Næsta skref
+                        {t("acct.p.naesta-skref", "Næsta skref")}
                       </span>
                     )}
                   </div>
                   <div className={`text-sm ${s.active ? "text-gray-700" : "text-gray-500"} mt-0.5`}>{s.description}</div>
                   {"portal" in s && s.portal && (
                     <div className="mt-3">
-                      <MedaliaButton label="Opna sjúklingagátt" size="sm" />
+                      <MedaliaButton label={t("acct.p.opna-sjuklingagatt", "Opna sjúklingagátt")} size="sm" />
                     </div>
                   )}
                   {"customBody" in s && s.customBody ? s.customBody : null}
@@ -3780,6 +3789,7 @@ function JourneyTimeline({
 // whether self-booking the next round is offered (B2C) or mentioned as
 // scheduled by the employer (B2B).
 function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
+  const { t } = useI18n();
   return (
     <section className="mt-8 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-6 sm:p-7 shadow-sm">
       <div className="flex items-start gap-3">
@@ -3814,7 +3824,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <path d="M17 2H7C5.9 2 5 2.9 5 4v16c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H7V4h10v16zM12 18.5a1 1 0 100-2 1 1 0 000 2z" />
               </svg>
             </div>
-            <div className="font-bold text-gray-900 text-sm">Komdu áætluninni af stað — Lifeline appið</div>
+            <div className="font-bold text-gray-900 text-sm">{t("acct.p.komdu-aaetluninni-af-stad-lifeline", "Komdu áætluninni af stað — Lifeline appið")}</div>
           </div>
           <p className="text-xs text-gray-600 leading-relaxed mb-4">
             Your personal plan, daily actions and tracking live in the mobile app. Pick the track that fits you.
@@ -3824,7 +3834,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
             <div className="relative overflow-hidden rounded-xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 via-sky-50/50 to-white p-4 shadow-sm">
               <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-sky-400 to-sky-500" />
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-sky-500 px-2 py-0.5 rounded-md shadow-sm">Leið A</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-sky-500 px-2 py-0.5 rounded-md shadow-sm">{t("acct.p.leid-a", "Leið A")}</span>
                 <span className="text-sm font-bold text-gray-900">Self-managed journey</span>
               </div>
               <p className="text-[12px] text-gray-700 leading-snug pl-1">
@@ -3839,7 +3849,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <span className="text-sm font-bold text-gray-900">Personal coaching</span>
               </div>
               <p className="text-[12px] text-gray-700 leading-snug pl-1">
-                Everything in Leið A plus a dedicated health coach who reviews your progress, adjusts your plan and checks in with you each week.
+                {t("acct.p.everything-in-leid-a-plus", "Everything in Leið A plus a dedicated health coach who reviews your progress, adjusts your plan and checks in with you each week.")}
               </p>
               <Link href="/coaching" className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-indigo-700 hover:text-indigo-800 hover:underline pl-1">
                 Learn about coaching
@@ -3875,7 +3885,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="font-bold text-gray-900 text-sm">Haltu þér við efnið</div>
+            <div className="font-bold text-gray-900 text-sm">{t("acct.p.haltu-ther-vid-efnid", "Haltu þér við efnið")}</div>
           </div>
           <p className="text-xs text-gray-600 leading-relaxed mb-4">
             Check back at the right cadence so your plan stays calibrated to your actual numbers — not last year&apos;s.
@@ -3889,7 +3899,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
               </div>
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 mb-0.5">Every month</div>
-                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Sjálfsmat</div>
+                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">{t("acct.p.sjalfsmat", "Sjálfsmat")}</div>
                 <p className="text-[12px] text-gray-700 leading-snug">Free, five-minute questionnaire. Catches changes early.</p>
               </div>
             </li>
@@ -3900,8 +3910,8 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
               </div>
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-orange-700 mb-0.5">Every 3–6 months</div>
-                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Mælingatími</div>
-                <p className="text-[12px] text-gray-700 leading-snug">Endurtaktu líkamssamsetningu og helstu blóðgildi svo áætlunin haldist rétt stillt.</p>
+                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">{t("acct.p.maelingatimi", "Mælingatími")}</div>
+                <p className="text-[12px] text-gray-700 leading-snug">{t("acct.p.endurtaktu-likamssamsetningu-og-he", "Endurtaktu líkamssamsetningu og helstu blóðgildi svo áætlunin haldist rétt stillt.")}</p>
               </div>
             </li>
             <li className="relative flex items-start gap-3 rounded-xl border-2 border-rose-300 bg-gradient-to-br from-rose-50 via-rose-50/50 to-white p-3 shadow-sm">
@@ -3912,7 +3922,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-rose-700 mb-0.5">Every 6–12 months</div>
                 <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Full Foundational re-assessment</div>
-                <p className="text-[12px] text-gray-700 leading-snug">Full blóðprufa, uppfærð skýrsla og nýtt mat læknis.</p>
+                <p className="text-[12px] text-gray-700 leading-snug">{t("acct.p.full-blodprufa-uppfaerd-skyrsla-og", "Full blóðprufa, uppfærð skýrsla og nýtt mat læknis.")}</p>
               </div>
             </li>
           </ul>
@@ -3974,6 +3984,7 @@ function CurrentBookings({
   onWithdrawRefundRequest: () => void;
   onClearVideoPortal: () => void;
 }) {
+  const { t } = useI18n();
   const hasB2CBodyComp = isB2C && bodyCompStatus === "booked" && !!bodyCompBookingAt;
   const hasSelfCheckin = isB2C && bodyCompPackage === "self-checkin" && bodyCompStatus !== "none";
   const nothing = !mySlotAt && !myBloodTestBooking && !myDoctorSlot && !videoPortalConfirmedAt && !hasB2CBodyComp && !hasSelfCheckin;
@@ -3993,25 +4004,25 @@ function CurrentBookings({
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-[#1F2937]">Bókanir</h3>
-          <p className="text-sm text-[#6B7280]">Staðfestir tímar.</p>
+          <h3 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.bokanir", "Bókanir")}</h3>
+          <p className="text-sm text-[#6B7280]">{t("acct.p.stadfestir-timar", "Staðfestir tímar.")}</p>
         </div>
         {!nothing && (
           <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            Staðfest
+            {t("acct.p.stadfest", "Staðfest")}
           </span>
         )}
       </div>
       {nothing ? (
         <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center">
-          <p className="text-sm text-gray-600">Ekkert bókað enn. Notaðu skrefin hér fyrir ofan til að bóka mælingu og blóðprufu.</p>
+          <p className="text-sm text-gray-600">{t("acct.p.ekkert-bokad-enn-notadu-skrefin", "Ekkert bókað enn. Notaðu skrefin hér fyrir ofan til að bóka mælingu og blóðprufu.")}</p>
         </div>
       ) : (() => {
         const bcTime = mySlotAt ? new Date(mySlotAt).getTime() : Infinity;
         const btTime = myBloodTestBooking ? new Date(myBloodTestBooking.day + "T00:00:00").getTime() : Infinity;
         const drTime = myDoctorSlot ? new Date(myDoctorSlot.slot_at).getTime() : Infinity;
-        const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : "Á staðnum";
+        const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : t("acct.p.a-stadnum", "Á staðnum");
         const calButtons = (ev: CalendarEvent, accentClasses: string) => (
           <>
             <a
@@ -4046,7 +4057,7 @@ function CurrentBookings({
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">Measurements</div>
-                  <div className="font-semibold text-gray-900 leading-tight">Á staðnum</div>
+                  <div className="font-semibold text-gray-900 leading-tight">{t("acct.p.a-stadnum", "Á staðnum")}</div>
                 </div>
               </div>
               <div className="space-y-1.5 text-sm text-gray-700">
@@ -4074,7 +4085,7 @@ function CurrentBookings({
                 {companyEvent.room_notes && <div className="text-xs text-gray-500 pl-6">{companyEvent.room_notes}</div>}
               </div>
               <div className="mt-3 rounded-lg bg-blue-50/70 border border-blue-100 px-3 py-2 text-xs text-blue-900">
-                <div className="font-semibold mb-1">Við hverju má búast</div>
+                <div className="font-semibold mb-1">{t("acct.p.vid-hverju-ma-buast", "Við hverju má búast")}</div>
                 <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-blue-900/90">
                   <li>Blood pressure</li>
                   <li>Height</li>
@@ -4101,9 +4112,9 @@ function CurrentBookings({
                     durationMinutes: 5,
                     location: companyEvent.location || undefined,
                     description: [
-                      "Líkamssamsetningarmælingin þín hjá Lifeline.",
+                      t("acct.p.likamssamsetningarmaelingin-thin-h", "Líkamssamsetningarmælingin þín hjá Lifeline."),
                       companyEvent.room_notes ? `Room: ${companyEvent.room_notes}` : "",
-                      "Við hverju má búast: blóðþrýstingur, hæð, þyngd og líkamssamsetning (vöðvamassi %, fita %).",
+                      t("acct.p.vid-hverju-ma-buast-blodthrystingu", "Við hverju má búast: blóðþrýstingur, hæð, þyngd og líkamssamsetning (vöðvamassi %, fita %)."),
                     ].filter(Boolean).join("\n"),
                   },
                   "border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300",
@@ -4122,7 +4133,7 @@ function CurrentBookings({
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-semibold uppercase tracking-wide text-rose-600">Blood test</div>
-                  <div className="font-semibold text-gray-900 leading-tight">Mæting hjá Sameind</div>
+                  <div className="font-semibold text-gray-900 leading-tight">{t("acct.p.maeting-hja-sameind", "Mæting hjá Sameind")}</div>
                 </div>
               </div>
               <div className="space-y-1.5 text-sm text-gray-700">
@@ -4136,22 +4147,22 @@ function CurrentBookings({
                   <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className="font-medium">Mættu á hvaða Sameind-stöð sem er</span>
+                  <span className="font-medium">{t("acct.p.maettu-a-hvada-sameind-stod", "Mættu á hvaða Sameind-stöð sem er")}</span>
                 </div>
                 {myBloodTestBooking.note && <div className="text-xs text-gray-500 pl-6">{myBloodTestBooking.note}</div>}
               </div>
               <div className="mt-3 rounded-lg bg-rose-50/70 border border-rose-100 px-3 py-2 text-xs text-rose-900">
-                <div className="font-semibold mb-1">Við hverju má búast</div>
+                <div className="font-semibold mb-1">{t("acct.p.vid-hverju-ma-buast", "Við hverju má búast")}</div>
                 <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-rose-900/90">
-                  <li>Mættu á hvaða Sameind-stöð sem er á þeim degi sem þú valdir</li>
-                  <li>Mættu sem fyrst — helst á milli 08:00 og 12:00</li>
-                  <li>Skráðu þig í móttökunni</li>
+                  <li>{t("acct.p.maettu-a-hvada-sameind-stod-3", "Mættu á hvaða Sameind-stöð sem er á þeim degi sem þú valdir")}</li>
+                  <li>{t("acct.p.maettu-sem-fyrst-helst-a", "Mættu sem fyrst — helst á milli 08:00 og 12:00")}</li>
+                  <li>{t("acct.p.skradu-thig-i-mottokunni", "Skráðu þig í móttökunni")}</li>
                   <li>Short blood draw (5 minutes)</li>
-                  <li>Niðurstöðurnar birtast í lokaskýrslunni þinni</li>
+                  <li>{t("acct.p.nidurstodurnar-birtast-i-lokaskyrs", "Niðurstöðurnar birtast í lokaskýrslunni þinni")}</li>
                 </ul>
               </div>
               <div className="mt-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-900">
-                <span className="font-semibold">Fasta frá miðnætti.</span> Water only — no food, coffee, tea, juice or alcohol.
+                <span className="font-semibold">{t("acct.p.fasta-fra-midnaetti-2", "Fasta frá miðnætti.")}</span> Water only — no food, coffee, tea, juice or alcohol.
               </div>
               <div className="mt-4 pt-4 border-t border-rose-100/70 flex flex-wrap gap-2">
                 {!isB2C && (
@@ -4169,8 +4180,8 @@ function CurrentBookings({
                       start: dayStart,
                       end: dayEnd,
                       description: [
-                        "Mættu á hvaða Sameind-stöð sem er. Mættu sem fyrst — helst á milli 08:00 og 12:00.",
-                        "Fasta frá miðnætti. Aðeins vatn — enginn matur, kaffi, te, safi eða áfengi.",
+                        t("acct.p.maettu-a-hvada-sameind-stod-4", "Mættu á hvaða Sameind-stöð sem er. Mættu sem fyrst — helst á milli 08:00 og 12:00."),
+                        t("acct.p.fasta-fra-midnaetti-adeins-vatn", "Fasta frá miðnætti. Aðeins vatn — enginn matur, kaffi, te, safi eða áfengi."),
                         myBloodTestBooking.note ? `Note: ${myBloodTestBooking.note}` : "",
                       ].filter(Boolean).join("\n"),
                     },
@@ -4229,14 +4240,14 @@ function CurrentBookings({
               {myDoctorSlot.booking_note && <div className="text-xs text-gray-500 pl-6 italic">“{myDoctorSlot.booking_note}”</div>}
             </div>
             <div className="mt-3 rounded-lg bg-violet-50/70 border border-violet-100 px-3 py-2 text-xs text-violet-900">
-              <div className="font-semibold mb-1">Við hverju má búast</div>
+              <div className="font-semibold mb-1">{t("acct.p.vid-hverju-ma-buast", "Við hverju má búast")}</div>
               <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-violet-900/90">
-                <li>Farið yfir niðurstöður úr líkamssamsetningu og blóðprufu</li>
-                <li>Rætt um svörin úr heilsufarsspurningunum</li>
-                <li>Komið sér saman um aðgerðaáætlun</li>
-                <li>Tími fyrir spurningarnar þínar</li>
+                <li>{t("acct.p.farid-yfir-nidurstodur-ur-likamssa", "Farið yfir niðurstöður úr líkamssamsetningu og blóðprufu")}</li>
+                <li>{t("acct.p.raett-um-svorin-ur-heilsufarsspurn", "Rætt um svörin úr heilsufarsspurningunum")}</li>
+                <li>{t("acct.p.komid-ser-saman-um-adgerdaaaetlun", "Komið sér saman um aðgerðaáætlun")}</li>
+                <li>{t("acct.p.timi-fyrir-spurningarnar-thinar", "Tími fyrir spurningarnar þínar")}</li>
               </ul>
-              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið.</div>
+              <div className="mt-1.5 text-[11.5px] text-violet-900/80">{t("acct.p.lestu-heilsufarsskyrsluna-thina-i-", "Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið.")}</div>
             </div>
             <div className="mt-4 pt-4 border-t border-violet-100/70 flex flex-wrap gap-2">
               <button onClick={onChangeDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-violet-200 text-violet-700 bg-white hover:bg-violet-50 hover:border-violet-300 transition-colors">
@@ -4259,7 +4270,7 @@ function CurrentBookings({
                     `${modeLabel(myDoctorSlot.mode)} with your Lifeline doctor.`,
                     myDoctorSlot.meeting_link ? `Join link: ${myDoctorSlot.meeting_link}` : "",
                     myDoctorSlot.notes || "",
-                    "Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið.",
+                    t("acct.p.lestu-heilsufarsskyrsluna-thina-i-", "Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið."),
                   ].filter(Boolean).join("\n"),
                 },
                 "border-violet-200 text-violet-700 hover:bg-violet-50 hover:border-violet-300",
@@ -4278,7 +4289,7 @@ function CurrentBookings({
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Doctor · Video meeting</div>
-                <div className="font-semibold text-gray-900 leading-tight">Myndsímtal bókað í sjúklingagáttinni</div>
+                <div className="font-semibold text-gray-900 leading-tight">{t("acct.p.myndsimtal-bokad-i-sjuklingagattin", "Myndsímtal bókað í sjúklingagáttinni")}</div>
               </div>
             </div>
             <div className="space-y-1.5 text-sm text-gray-700">
@@ -4291,16 +4302,16 @@ function CurrentBookings({
               <div className="text-sm text-gray-600">Your video consultation is booked inside the patient portal (Zoom Healthcare). Join the meeting from the portal at your scheduled time.</div>
             </div>
             <div className="mt-3 rounded-lg bg-violet-50/70 border border-violet-100 px-3 py-2 text-xs text-violet-900">
-              <div className="font-semibold mb-1">Við hverju má búast</div>
+              <div className="font-semibold mb-1">{t("acct.p.vid-hverju-ma-buast", "Við hverju má búast")}</div>
               <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-violet-900/90">
-                <li>Tengstu myndsímtalinu í sjúklingagáttinni</li>
-                <li>Farðu yfir skýrsluna með lækninum</li>
-                <li>Komið sér saman um aðgerðaáætlun</li>
+                <li>{t("acct.p.tengstu-myndsimtalinu-i-sjuklingag", "Tengstu myndsímtalinu í sjúklingagáttinni")}</li>
+                <li>{t("acct.p.fardu-yfir-skyrsluna-med-laekninum", "Farðu yfir skýrsluna með lækninum")}</li>
+                <li>{t("acct.p.komid-ser-saman-um-adgerdaaaetlun", "Komið sér saman um aðgerðaáætlun")}</li>
               </ul>
-              <div className="mt-1.5 text-[11.5px] text-violet-900/80">Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið.</div>
+              <div className="mt-1.5 text-[11.5px] text-violet-900/80">{t("acct.p.lestu-heilsufarsskyrsluna-thina-i-", "Lestu heilsufarsskýrsluna þína í sjúklingagáttinni fyrir viðtalið.")}</div>
             </div>
             <div className="mt-4 pt-4 border-t border-violet-100/70 flex flex-wrap items-center gap-2">
-              <MedaliaButton label="Fara í sjúklingagátt" size="sm" />
+              <MedaliaButton label={t("acct.p.fara-i-sjuklingagatt", "Fara í sjúklingagátt")} size="sm" />
               <button onClick={onClearVideoPortal} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 hover:border-rose-300 transition-colors">
                 Clear
               </button>
@@ -4320,7 +4331,7 @@ function CurrentBookings({
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Measurements</div>
-                <div className="font-semibold text-gray-900 leading-tight">Á mælingastöð Lifeline</div>
+                <div className="font-semibold text-gray-900 leading-tight">{t("acct.p.a-maelingastod-lifeline", "Á mælingastöð Lifeline")}</div>
               </div>
             </div>
             <div className="space-y-1.5 text-sm text-gray-700">
@@ -4338,11 +4349,11 @@ function CurrentBookings({
               </div>
             </div>
             <div className="mt-3 rounded-lg bg-emerald-50/70 border border-emerald-100 px-3 py-2 text-xs text-emerald-900">
-              <div className="font-semibold mb-1">Við hverju má búast</div>
+              <div className="font-semibold mb-1">{t("acct.p.vid-hverju-ma-buast", "Við hverju má búast")}</div>
               <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-emerald-900/90">
                 <li>Blood pressure, height, weight, body composition</li>
-                <li>Markviss blóðprufa — fasta frá miðnætti</li>
-                <li>Niðurstöðurnar birtast í skýrslunni þinni</li>
+                <li>{t("acct.p.markviss-blodprufa-fasta-fra-midna", "Markviss blóðprufa — fasta frá miðnætti")}</li>
+                <li>{t("acct.p.nidurstodurnar-birtast-i-skyrslunn", "Niðurstöðurnar birtast í skýrslunni þinni")}</li>
               </ul>
             </div>
             <div className="mt-4 pt-4 border-t border-emerald-100/70 flex flex-wrap gap-2">
@@ -4373,7 +4384,7 @@ function CurrentBookings({
                     </svg>
                     {cancelBusy ? "Cancelling…" : "Cancel booking"}
                   </button>
-                  <span className="text-[11px] text-gray-500 self-center">Full endurgreiðsla fram að 48 klukkustundum fyrir — eftir það má óska eftir endurskoðun</span>
+                  <span className="text-[11px] text-gray-500 self-center">{t("acct.p.full-endurgreidsla-fram-ad-48", "Full endurgreiðsla fram að 48 klukkustundum fyrir — eftir það má óska eftir endurskoðun")}</span>
                 </>
               )}
             </div>
@@ -4389,17 +4400,17 @@ function CurrentBookings({
                 </svg>
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Sjálfsmat</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">{t("acct.p.sjalfsmat", "Sjálfsmat")}</div>
                 <div className="font-semibold text-gray-900 leading-tight">Remote questionnaire</div>
               </div>
             </div>
             <p className="text-sm text-gray-700 leading-relaxed">
               {bodyCompStatus === "completed"
-                ? "Lokið — fagaðili hefur farið yfir svörin þín."
-                : "Opnaðu sjúklingagáttina og svaraðu spurningalistanum. Engin heimsókn nauðsynleg."}
+                ? t("acct.p.lokid-fagadili-hefur-farid-yfir", "Lokið — fagaðili hefur farið yfir svörin þín.")
+                : t("acct.p.opnadu-sjuklingagattina-og-svaradu", "Opnaðu sjúklingagáttina og svaraðu spurningalistanum. Engin heimsókn nauðsynleg.")}
             </p>
             <div className="mt-4">
-              <MedaliaButton label="Opna sjúklingagátt" size="sm" />
+              <MedaliaButton label={t("acct.p.opna-sjuklingagatt", "Opna sjúklingagátt")} size="sm" />
             </div>
           </div>
         ) : null;
@@ -4417,14 +4428,14 @@ function CurrentBookings({
         const entries: Entry[] = [
           { key: "self-checkin", card: selfCheckinCard, time: 0 },
           { key: "bc", card: bcCard, time: bcTime, past: mySlotAt && companyEvent && bcEnd < now ? {
-            label: "Mælingar á staðnum",
+            label: t("acct.p.maelingar-a-stadnum", "Mælingar á staðnum"),
             sublabel: companyEvent.location || "Measurement",
             time: new Date(mySlotAt).getTime(),
             accent: "blue",
           } : undefined },
           { key: "bc-b2c", card: bcB2CCard, time: bodyCompBookingAt ? new Date(bodyCompBookingAt).getTime() : Infinity, past: hasB2CBodyComp && bodyCompBookingAt && bcB2CEnd < now ? {
             label: "Body composition measurement",
-            sublabel: "Á mælingastöð Lifeline",
+            sublabel: t("acct.p.a-maelingastod-lifeline", "Á mælingastöð Lifeline"),
             time: new Date(bodyCompBookingAt).getTime(),
             accent: "emerald",
           } : undefined },
@@ -4436,7 +4447,7 @@ function CurrentBookings({
           } : undefined },
           { key: "dr", card: drCard, time: drTime, past: myDoctorSlot && drEnd < now ? {
             label: myDoctorSlot.doctor_name ? `Consultation with ${myDoctorSlot.doctor_name}` : "Doctor consultation",
-            sublabel: myDoctorSlot.mode === "video" ? "Video call" : myDoctorSlot.mode === "phone" ? "Phone call" : "Á staðnum",
+            sublabel: myDoctorSlot.mode === "video" ? "Video call" : myDoctorSlot.mode === "phone" ? "Phone call" : t("acct.p.a-stadnum", "Á staðnum"),
             time: new Date(myDoctorSlot.slot_at).getTime(),
             accent: "violet",
           } : undefined },
@@ -4461,7 +4472,7 @@ function CurrentBookings({
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center">
-                <p className="text-sm text-gray-600">Engar bókanir framundan. Notaðu skrefin hér fyrir ofan til að bóka næsta tíma.</p>
+                <p className="text-sm text-gray-600">{t("acct.p.engar-bokanir-framundan-notadu-skr", "Engar bókanir framundan. Notaðu skrefin hér fyrir ofan til að bóka næsta tíma.")}</p>
               </div>
             )}
             {past.length > 0 && (
@@ -4521,6 +4532,7 @@ function BloodTestDayPickerModal({
   onClose: () => void;
   onBooked: (booking: { day: string; note: string | null }) => void;
 }) {
+  const { t } = useI18n();
   const [selectedDay, setSelectedDay] = useState<string>(existing?.day || "");
   const [note, setNote] = useState<string>(existing?.note || "");
   const [saving, setSaving] = useState(false);
@@ -4531,7 +4543,7 @@ function BloodTestDayPickerModal({
     setSaving(true);
     setError("");
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setError("Þú þarft að skrá þig inn"); setSaving(false); return; }
+    if (!user) { setError(t("acct.p.thu-tharft-ad-skra-thig", "Þú þarft að skrá þig inn")); setSaving(false); return; }
     const { error: upErr } = await supabase.from("blood_test_bookings").upsert({
       client_id: user.id,
       company_id: companyId,
@@ -4545,7 +4557,7 @@ function BloodTestDayPickerModal({
   };
 
   const cancel = async () => {
-    if (!confirm("Afbóka daginn fyrir blóðprufu?")) return;
+    if (!confirm(t("acct.p.afboka-daginn-fyrir-blodprufu", "Afbóka daginn fyrir blóðprufu?"))) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { error } = await supabase.from("blood_test_bookings").delete().eq("client_id", user.id);
@@ -4561,9 +4573,9 @@ function BloodTestDayPickerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">Veldu dag fyrir blóðprufu</h2>
+          <h2 className="text-xl font-semibold">{t("acct.p.veldu-dag-fyrir-blodprufu", "Veldu dag fyrir blóðprufu")}</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Your company approves specific days for you to visit Sameind. Mættu á hvaða Sameind-stöð sem er during that station&apos;s opening hours.
+            {t("acct.p.your-company-approves-specific-day", "Your company approves specific days for you to visit Sameind. Mættu á hvaða Sameind-stöð sem er during that station&apos;s opening hours.")}
           </p>
         </div>
         <div className="p-6 space-y-4">
@@ -4596,12 +4608,12 @@ function BloodTestDayPickerModal({
             <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. I'll aim for 8:30" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
           </label>
           <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-900">
-            <div className="font-semibold mb-1">Mikilvægt — fasta fyrir blóðprufu</div>
+            <div className="font-semibold mb-1">{t("acct.p.mikilvaegt-fasta-fyrir-blodprufu", "Mikilvægt — fasta fyrir blóðprufu")}</div>
             You must <strong>fast from midnight</strong> the night before your visit. Water is fine; no food, no coffee, no tea, no juice, no alcohol.
           </div>
           <details className="group rounded-lg border border-gray-200 bg-white">
             <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">
-              <span>Sameind — þú getur mætt á hvaða stöð sem er</span>
+              <span>{t("acct.p.sameind-thu-getur-maett-a", "Sameind — þú getur mætt á hvaða stöð sem er")}</span>
               <svg className="w-3.5 h-3.5 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
@@ -4644,6 +4656,7 @@ function DobFields({
   value: string; // ISO YYYY-MM-DD, or ""
   onChange: (iso: string) => void;
 }) {
+  const { t } = useI18n();
   // Keep per-field local state so partial typing stays visible. The parent
   // only receives a well-formed YYYY-MM-DD (or empty string when any field
   // is shorter than its expected length).
@@ -4732,6 +4745,7 @@ function BiodyProfileModal({
   onClose: () => void;
   onActivated?: () => void;
 }) {
+  const { t } = useI18n();
   const [biodyActive, setBiodyActive] = useState(false);
   const [sex, setSex] = useState<"male" | "female" | "">("");
   const [heightCm, setHeightCm] = useState("");
@@ -4773,11 +4787,11 @@ function BiodyProfileModal({
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!sex || !heightCm || !weightKg || !activityLevel || !dob) {
-      setError("Fylltu út alla reiti.");
+      setError(t("acct.p.fylltu-ut-alla-reiti", "Fylltu út alla reiti."));
       return;
     }
     if (!biodyActive && !acceptHealth) {
-      setError("Samþykktu meðferð heilsufarsupplýsinga til að virkja.");
+      setError(t("acct.p.samthykktu-medferd-heilsufarsupply", "Samþykktu meðferð heilsufarsupplýsinga til að virkja."));
       return;
     }
     setSaving(true);
@@ -4853,10 +4867,10 @@ function BiodyProfileModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">{biodyActive ? "Breyta upplýsingum fyrir líkamssamsetningu" : "Virkja líkamssamsetningarmælingu"}</h2>
+          <h2 className="text-xl font-semibold">{biodyActive ? t("acct.p.breyta-upplysingum-fyrir-likamssam", "Breyta upplýsingum fyrir líkamssamsetningu") : t("acct.p.virkja-likamssamsetningarmaelingu", "Virkja líkamssamsetningarmælingu")}</h2>
           <p className="text-sm text-gray-600 mt-1">
             {biodyActive
-              ? "Hafðu upplýsingarnar réttar svo mælingar og ráðleggingar séu nákvæmar."
+              ? t("acct.p.hafdu-upplysingarnar-rettar-svo-ma", "Hafðu upplýsingarnar réttar svo mælingar og ráðleggingar séu nákvæmar.")
               : "A few quick details so we can set up your profile with our measurement partner."}
           </p>
         </div>
@@ -4893,7 +4907,7 @@ function BiodyProfileModal({
                 <input type="number" min={30} max={300} step={0.1} value={weightKg} onChange={(e) => setWeightKg(e.target.value)} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </label>
               <div className="block sm:col-span-2">
-                <span className="block text-xs font-medium text-gray-700 mb-1">Fæðingardagur</span>
+                <span className="block text-xs font-medium text-gray-700 mb-1">{t("acct.p.faedingardagur", "Fæðingardagur")}</span>
                 <DobFields value={dob} onChange={setDob} />
               </div>
             </div>
@@ -4947,12 +4961,13 @@ function DoctorSlotPickerModal({
   onBooked: () => Promise<void> | void;
   onCancelled: () => void;
 }) {
+  const { t } = useI18n();
   const [selectedId, setSelectedId] = useState<string>("");
   const [note, setNote] = useState<string>(existing?.booking_note || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : "Á staðnum";
+  const modeLabel = (m: "video" | "phone" | "in_person") => m === "video" ? "Video call" : m === "phone" ? "Phone call" : t("acct.p.a-stadnum", "Á staðnum");
 
   type SlotRow = typeof slots[number];
   const grouped = useMemo(() => {
@@ -4966,7 +4981,7 @@ function DoctorSlotPickerModal({
   }, [slots]);
 
   const save = async () => {
-    if (!selectedId) { setError("Veldu tíma."); return; }
+    if (!selectedId) { setError(t("acct.p.veldu-tima-2", "Veldu tíma.")); return; }
     setSaving(true);
     setError("");
     // Atomic swap when changing an existing claim: claim new first, then
@@ -4982,9 +4997,9 @@ function DoctorSlotPickerModal({
     if (row && row.ok === false) {
       setError(
         row.error === "slot_unavailable" ? "That slot was just taken. Pick another."
-        : row.error === "already_booked" ? "Þú átt þegar bókun."
-        : row.error === "company_reserved" ? "Þessi tími er frátekinn fyrir annað fyrirtæki."
-        : row.error || "Bókun tókst ekki.",
+        : row.error === "already_booked" ? t("acct.p.thu-att-thegar-bokun", "Þú átt þegar bókun.")
+        : row.error === "company_reserved" ? t("acct.p.thessi-timi-er-fratekinn-fyrir", "Þessi tími er frátekinn fyrir annað fyrirtæki.")
+        : row.error || t("acct.p.bokun-tokst-ekki", "Bókun tókst ekki."),
       );
       return;
     }
@@ -4993,7 +5008,7 @@ function DoctorSlotPickerModal({
   };
 
   const cancel = async () => {
-    if (!confirm("Afbóka viðtal við lækni?")) return;
+    if (!confirm(t("acct.p.afboka-vidtal-vid-laekni", "Afbóka viðtal við lækni?"))) return;
     const { error: cancelErr } = await supabase.rpc("cancel_doctor_slot");
     if (cancelErr) { setError(cancelErr.message); return; }
     onCancelled();
@@ -5004,7 +5019,7 @@ function DoctorSlotPickerModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">{existing ? "Breyta viðtali við lækni" : "Bóka viðtal við lækni"}</h2>
+          <h2 className="text-xl font-semibold">{existing ? t("acct.p.breyta-vidtali-vid-laekni", "Breyta viðtali við lækni") : t("acct.p.boka-vidtal-vid-laekni", "Bóka viðtal við lækni")}</h2>
           <p className="text-sm text-gray-600 mt-1">
             Meet 1:1 with your Lifeline doctor to go through the report and agree an action plan.
           </p>
@@ -5052,7 +5067,7 @@ function DoctorSlotPickerModal({
           )}
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Note (optional)</span>
-            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Eitthvað sem læknirinn ætti að vita fyrir fram" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-400" />
+            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("acct.p.eitthvad-sem-laeknirinn-aetti-ad", "Eitthvað sem læknirinn ætti að vita fyrir fram")} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-400" />
           </label>
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
@@ -5073,10 +5088,11 @@ function DoctorSlotPickerModal({
 }
 
 // Pillar icons and colors match the Lifeline app (Ionicons + brand.ts palette)
-const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: string; border: string; icon: React.ReactNode }> = [
+const APP_PILLARS = (t: (k: string, f?: string) => string) =>
+  [
     {
       title: "Hreyfing",
-      desc: "Styrkur, þol og hreyfing — prógrömm sniðin að þér.",
+      desc: t("acct.p.styrkur-thol-og-hreyfing-progromm", "Styrkur, þol og hreyfing — prógrömm sniðin að þér."),
       color: "text-[#3B82F6]",
       bg: "bg-blue-50",
       border: "border-blue-100",
@@ -5087,8 +5103,8 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
       ),
     },
     {
-      title: "Næring",
-      desc: "Ráðgjöf byggð á blóðgildum, markmiðum og næringarskiptingu.",
+      title: t("acct.p.naering", "Næring"),
+      desc: t("acct.p.radgjof-byggd-a-blodgildum-markmid", "Ráðgjöf byggð á blóðgildum, markmiðum og næringarskiptingu."),
       color: "text-[#0D9488]",
       bg: "bg-teal-50",
       border: "border-teal-100",
@@ -5101,7 +5117,7 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
     },
     {
       title: "Svefn",
-      desc: "Betri hvíld með takti, venjum og umhverfi.",
+      desc: t("acct.p.betri-hvild-med-takti-venjum", "Betri hvíld með takti, venjum og umhverfi."),
       color: "text-[#8B5CF6]",
       bg: "bg-violet-50",
       border: "border-violet-100",
@@ -5112,8 +5128,8 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
       ),
     },
     {
-      title: "Andleg líðan",
-      desc: "Núvitund, öndun, álagsstjórnun og seigla.",
+      title: t("acct.p.andleg-lidan", "Andleg líðan"),
+      desc: t("acct.p.nuvitund-ondun-alagsstjornun-og-se", "Núvitund, öndun, álagsstjórnun og seigla."),
       color: "text-[#06B6D4]",
       bg: "bg-cyan-50",
       border: "border-cyan-100",
@@ -5125,10 +5141,11 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
     },
 ];
 
-const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: string; icon: React.ReactNode }> = [
+const APP_FEATURES = (t: (k: string, f?: string) => string) =>
+  [
     {
-      title: "Daglegar aðgerðir",
-      desc: "Lítil og áþreifanleg skref á hverjum degi — valin til að hreyfa við þínum tölum.",
+      title: t("acct.p.daglegar-adgerdir", "Daglegar aðgerðir"),
+      desc: t("acct.p.litil-og-athreifanleg-skref-a", "Lítil og áþreifanleg skref á hverjum degi — valin til að hreyfa við þínum tölum."),
       color: "text-[#10B981]",
       bg: "bg-[#10B981]/10",
       icon: (
@@ -5138,8 +5155,8 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Þjálfarinn þinn",
-      desc: "Manneskja sem fylgist með þér — áætlanir, breytingar, reglulegt yfirlit og bein skilaboð þegar þig vantar ráð.",
+      title: t("acct.p.thjalfarinn-thinn", "Þjálfarinn þinn"),
+      desc: t("acct.p.manneskja-sem-fylgist-med-ther", "Manneskja sem fylgist með þér — áætlanir, breytingar, reglulegt yfirlit og bein skilaboð þegar þig vantar ráð."),
       color: "text-blue-600",
       bg: "bg-blue-50",
       icon: (
@@ -5149,8 +5166,8 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Æfingafélagi",
-      desc: "Taktu höndum saman við vin eða samstarfsmann. Sameiginleg röð og mildar áminningar — venjur festast hraðar í félagsskap.",
+      title: t("acct.p.aefingafelagi", "Æfingafélagi"),
+      desc: t("acct.p.taktu-hondum-saman-vid-vin", "Taktu höndum saman við vin eða samstarfsmann. Sameiginleg röð og mildar áminningar — venjur festast hraðar í félagsskap."),
       color: "text-amber-600",
       bg: "bg-amber-50",
       icon: (
@@ -5160,8 +5177,8 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Samfélag og viðburðir",
-      desc: "Taktu þátt í áskorunum, hóptímum og viðburðum með öðrum í prógramminu.",
+      title: t("acct.p.samfelag-og-vidburdir", "Samfélag og viðburðir"),
+      desc: t("acct.p.taktu-thatt-i-askorunum-hoptimum", "Taktu þátt í áskorunum, hóptímum og viðburðum með öðrum í prógramminu."),
       color: "text-fuchsia-600",
       bg: "bg-fuchsia-50",
       icon: (
@@ -5171,8 +5188,8 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Fræðsla",
-      desc: "Stutt, gagnreynd námskeið um allt frá svefni til próteinmarkmiða.",
+      title: t("acct.p.fraedsla", "Fræðsla"),
+      desc: t("acct.p.stutt-gagnreynd-namskeid-um-allt", "Stutt, gagnreynd námskeið um allt frá svefni til próteinmarkmiða."),
       color: "text-indigo-600",
       bg: "bg-indigo-50",
       icon: (
@@ -5182,8 +5199,8 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Einföld næringarskráning",
-      desc: "Öflugt undir húddinu — og einfalt í notkun. Skráðu máltíð á nokkrum sekúndum; prótein, kolvetni og fita reiknast sjálfkrafa út frá máltíðaráætluninni þinni.",
+      title: t("acct.p.einfold-naeringarskraning", "Einföld næringarskráning"),
+      desc: t("acct.p.oflugt-undir-huddinu-og-einfalt", "Öflugt undir húddinu — og einfalt í notkun. Skráðu máltíð á nokkrum sekúndum; prótein, kolvetni og fita reiknast sjálfkrafa út frá máltíðaráætluninni þinni."),
       color: "text-[#0D9488]",
       bg: "bg-teal-50",
       icon: (
@@ -5196,7 +5213,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
     },
     {
       title: "Weigh-ins & trends",
-      desc: "Vikulegar áminningar um vigtun, saga líkamssamsetningar og þróunarlínur sem skipta máli.",
+      desc: t("acct.p.vikulegar-aminningar-um-vigtun-sag", "Vikulegar áminningar um vigtun, saga líkamssamsetningar og þróunarlínur sem skipta máli."),
       color: "text-cyan-600",
       bg: "bg-cyan-50",
       icon: (
@@ -5245,11 +5262,12 @@ function ResumeBookingHero({
   bookingId: string;
   onCancel: () => void | Promise<void>;
 }) {
+  const { t } = useI18n();
   const pkgLabel =
     pkg === "foundational" ? "Foundational Health"
-      : pkg === "checkin" ? "Tími"
-      : pkg === "self-checkin" ? "Sjálfsmat"
-      : "Skoðunin þín";
+      : pkg === "checkin" ? t("acct.p.timi", "Tími")
+      : pkg === "self-checkin" ? t("acct.p.sjalfsmat", "Sjálfsmat")
+      : t("acct.p.skodunin-thin", "Skoðunin þín");
   const slotLabel = scheduledAt ? new Date(scheduledAt).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : null;
   return (
     <section className="relative overflow-hidden rounded-2xl shadow-sm text-white" style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)" }}>
@@ -5259,14 +5277,14 @@ function ResumeBookingHero({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span className="text-xs font-semibold uppercase tracking-wide">Haltu áfram þar sem frá var horfið</span>
+          <span className="text-xs font-semibold uppercase tracking-wide">{t("acct.p.haltu-afram-thar-sem-fra", "Haltu áfram þar sem frá var horfið")}</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold leading-tight max-w-xl">
           You have an incomplete booking.
         </h2>
         <p className="mt-3 text-base opacity-95 leading-relaxed max-w-xl">
           Your <strong>{pkgLabel}</strong> booking is reserved but hasn&apos;t been paid for yet.
-          {slotLabel ? <> Áætlaður <strong>{slotLabel}</strong>.</> : null} Finish the payment to confirm it, or cancel to start over.
+          {slotLabel ? <> {t("acct.p.aaetladur", "Áætlaður")} <strong>{slotLabel}</strong>.</> : null} Finish the payment to confirm it, or cancel to start over.
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <Link
@@ -5297,6 +5315,7 @@ function ServicesSection({
   companyName: string | null;
   onGoToCoaching: () => void;
 }) {
+  const { t } = useI18n();
   const packages: Array<{ name: string; tag: string; price: string; unit: string; desc: string; includes: string[]; accent: string; tone: string; dot: string; cta: string; href: string }> = [
     {
       name: "Foundational Health",
@@ -5305,7 +5324,7 @@ function ServicesSection({
       unit: "ISK",
       desc: "The full measurement round — great for family members, or a fresh baseline outside the company programme.",
       includes: [
-        "Mælingar á staðnum — blóðþrýstingur og líkamssamsetning",
+        t("acct.p.maelingar-a-stadnum-blodthrystingu", "Mælingar á staðnum — blóðþrýstingur og líkamssamsetning"),
         "Targeted blood panel",
         "Full health questionnaire",
         "Doctor-reviewed personal report",
@@ -5314,17 +5333,17 @@ function ServicesSection({
       accent: "from-[#3B82F6] to-[#10B981]",
       tone: "border-blue-100 bg-blue-50/40",
       dot: "text-[#3B82F6]",
-      cta: "Bóka skoðun",
+      cta: t("acct.p.boka-skodun", "Bóka skoðun"),
       href: "/account/book",
     },
     {
-      name: "Tími",
+      name: t("acct.p.timi", "Tími"),
       tag: "Follow-up",
       price: "19,900",
       unit: "ISK",
       desc: "A lighter round 3–12 months after the foundational — see what changed and refresh your action plan.",
       includes: [
-        "Mælingar á staðnum",
+        t("acct.p.maelingar-a-stadnum", "Mælingar á staðnum"),
         "Progress report vs baseline",
         "Updated health score",
         "Brief doctor review",
@@ -5333,18 +5352,18 @@ function ServicesSection({
       accent: "from-[#10B981] to-[#14B8A6]",
       tone: "border-emerald-100 bg-emerald-50/40",
       dot: "text-[#10B981]",
-      cta: "Bóka tíma",
+      cta: t("acct.p.boka-tima", "Bóka tíma"),
       href: "/account/book",
     },
     {
-      name: "Sjálfsmat",
+      name: t("acct.p.sjalfsmat", "Sjálfsmat"),
       tag: "Free",
       price: "0",
       unit: "ISK",
       desc: "A self-guided online questionnaire you can rerun any time to track your own progress through the year.",
       includes: [
         "Online health questionnaire",
-        "Mælikvarðar sem þú skráir sjálf",
+        t("acct.p.maelikvardar-sem-thu-skrair-sjalf", "Mælikvarðar sem þú skráir sjálf"),
         "Updated personal health score",
         "Instant, private insight",
         "If something flags, Lifeline reaches out",
@@ -5368,7 +5387,7 @@ function ServicesSection({
           Book services
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold text-[#0F172A] leading-tight">
-          {companyName ? "Bættu við það sem fyrirtækið greiddi" : "Þjónustan þín hjá Lifeline"}
+          {companyName ? t("acct.p.baettu-vid-thad-sem-fyrirtaekid", "Bættu við það sem fyrirtækið greiddi") : t("acct.p.thjonustan-thin-hja-lifeline", "Þjónustan þín hjá Lifeline")}
         </h2>
         <p className="text-base text-[#475569] mt-3 leading-relaxed max-w-2xl">
           {companyName
@@ -5429,7 +5448,7 @@ function ServicesSection({
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Coming soon</div>
-              <h3 className="text-xl font-bold text-[#0F172A]">Lifeline þjálfunarappið</h3>
+              <h3 className="text-xl font-bold text-[#0F172A]">{t("acct.p.lifeline-thjalfunarappid", "Lifeline þjálfunarappið")}</h3>
               <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-2xl">
                 Daily actions, a health coach, community, education and advanced macro tracking — available on three tiers. Turns your assessment into habits that actually stick.
               </p>
@@ -5479,19 +5498,20 @@ function ServicesSection({
  * Combines the feature grid + four pillars + download row.
  */
 function AppFeaturesBlock() {
+  const { t } = useI18n();
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="max-w-2xl">
-        <h2 className="text-lg font-semibold text-[#1F2937]">Hvað er í appinu</h2>
+        <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.hvad-er-i-appinu", "Hvað er í appinu")}</h2>
         <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
-          Appið breytir skýrslunni þinni í daglegar aðgerðir í svefni, hreyfingu, næringu og andlegri líðan — með þjálfara, samfélagi og fræðslu innbyggðri.
+          {t("acct.p.appid-breytir-skyrslunni-thinni-i", "Appið breytir skýrslunni þinni í daglegar aðgerðir í svefni, hreyfingu, næringu og andlegri líðan — með þjálfara, samfélagi og fræðslu innbyggðri.")}
         </p>
-        <p className="text-sm font-semibold text-[#1F2937] mt-2">Eina heilsu- og lífsstílsappið sem þú þarft.</p>
+        <p className="text-sm font-semibold text-[#1F2937] mt-2">{t("acct.p.eina-heilsu-og-lifsstilsappid-sem", "Eina heilsu- og lífsstílsappið sem þú þarft.")}</p>
       </div>
 
       {/* Feature grid */}
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {APP_FEATURES.map((f) => (
+        {APP_FEATURES(t).map((f) => (
           <div key={f.title} className="rounded-xl border border-gray-100 bg-[#f8fafc] p-4 hover:shadow-sm transition-shadow">
             <div className={`w-9 h-9 rounded-lg ${f.bg} ${f.color} flex items-center justify-center mb-2`}>
               {f.icon}
@@ -5513,15 +5533,15 @@ function AppFeaturesBlock() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Persónuleg prógrömm</div>
-              <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] leading-tight">Framfarir á öllum fjórum stoðum</h3>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">{t("acct.p.personuleg-progromm", "Persónuleg prógrömm")}</div>
+              <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] leading-tight">{t("acct.p.framfarir-a-ollum-fjorum-stodum", "Framfarir á öllum fjórum stoðum")}</h3>
               <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-2xl">
-                Styrkur, þol, liðleiki og núvitund — prógrömm byggð á þínu getustigi og áætlun læknisins þíns. Gerð fyrir raunverulegt líf: hver æfing er til bæði heima og í sal, svo þú getir æft hvar sem þú ert.
+                {t("acct.p.styrkur-thol-lidleiki-og-nuvitund", "Styrkur, þol, liðleiki og núvitund — prógrömm byggð á þínu getustigi og áætlun læknisins þíns. Gerð fyrir raunverulegt líf: hver æfing er til bæði heima og í sal, svo þú getir æft hvar sem þú ert.")}
               </p>
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {APP_PILLARS.map((p) => (
+            {APP_PILLARS(t).map((p) => (
               <div key={p.title} className={`rounded-xl border ${p.border} ${p.bg} p-3`}>
                 <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center mb-2 ${p.color}`}>
                   {p.icon}
@@ -5539,6 +5559,7 @@ function AppFeaturesBlock() {
 }
 
 function WellbeingPromptCard({ lastWellbeingAt, onStart }: { lastWellbeingAt: string | null; onStart: () => void }) {
+  const { t } = useI18n();
   const daysSince = lastWellbeingAt
     ? Math.floor((Date.now() - new Date(lastWellbeingAt).getTime()) / 86_400_000)
     : null;
@@ -5556,7 +5577,7 @@ function WellbeingPromptCard({ lastWellbeingAt, onStart }: { lastWellbeingAt: st
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900">
-            {lastWellbeingAt ? "Mánaðarlegt líðanmat" : "Svaraðu stuttu líðanmati"}
+            {lastWellbeingAt ? t("acct.p.manadarlegt-lidanmat", "Mánaðarlegt líðanmat") : t("acct.p.svaradu-stuttu-lidanmati", "Svaraðu stuttu líðanmati")}
           </h3>
           <p className="text-sm text-gray-600 mt-1">
             Five questions, 30 seconds. Helps us see how you feel over time — your answers stay private, your company sees only anonymised group trends (min 5 people).
@@ -5581,12 +5602,13 @@ function SatisfactionPromptCard({
   satisfactionDone: Record<"body_comp" | "doctor" | "overall", boolean>;
   onStart: (ctx: "body_comp" | "doctor" | "overall") => void;
 }) {
+  const { t } = useI18n();
   const bcReady = bodyCompStatus === "completed" && !satisfactionDone.body_comp;
   const drReady = myDoctorSlot != null && new Date(myDoctorSlot.slot_at).getTime() < Date.now() && !satisfactionDone.doctor;
   if (!bcReady && !drReady) return null;
   const pending: Array<{ key: "body_comp" | "doctor"; title: string; sub: string }> = [];
-  if (bcReady) pending.push({ key: "body_comp", title: "Hvernig var líkamssamsetningarmælingin?", sub: "30-second survey — 2 quick questions + an optional comment." });
-  if (drReady) pending.push({ key: "doctor", title: "Hvernig var viðtalið við lækninn?", sub: "30-second survey — 2 quick questions + an optional comment." });
+  if (bcReady) pending.push({ key: "body_comp", title: t("acct.survey.bodycomp", "Hvernig var líkamssamsetningarmælingin?"), sub: "30-second survey — 2 quick questions + an optional comment." });
+  if (drReady) pending.push({ key: "doctor", title: t("acct.survey.doctor", "Hvernig var viðtalið við lækninn?"), sub: "30-second survey — 2 quick questions + an optional comment." });
   return (
     <div className="space-y-3">
       {pending.map((p) => (
@@ -5629,6 +5651,7 @@ function RefundRequestModal({
   onClose: () => void;
   onSubmitted: (requestId: string) => void;
 }) {
+  const { t } = useI18n();
   const [reason, setReason] = useState("");
   const [includeAddon, setIncludeAddon] = useState(includeCheckinAddon);
   const [busy, setBusy] = useState(false);
@@ -5636,7 +5659,7 @@ function RefundRequestModal({
   const when = scheduledAt ? new Date(scheduledAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
 
   async function submit() {
-    if (!reason.trim()) { setErr("Segðu okkur af hverju þú þarft að afbóka svo við getum aðstoðað hratt."); return; }
+    if (!reason.trim()) { setErr(t("acct.p.segdu-okkur-af-hverju-thu", "Segðu okkur af hverju þú þarft að afbóka svo við getum aðstoðað hratt.")); return; }
     setErr(""); setBusy(true);
     const total = amountIsk + (includeAddon ? 18500 : 0);
     const { data, error } = await supabase.from("refund_requests").insert({
@@ -5694,7 +5717,7 @@ function RefundRequestModal({
           {includeCheckinAddon && (
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input type="checkbox" checked={includeAddon} onChange={(e) => setIncludeAddon(e.target.checked)} />
-              Also request refund of the 18,500 ISK Tími doctor add-on
+              {t("acct.p.also-request-refund-of-the", "Also request refund of the 18,500 ISK Tími doctor add-on")}
             </label>
           )}
           {err && <div className="text-sm text-red-600">{err}</div>}

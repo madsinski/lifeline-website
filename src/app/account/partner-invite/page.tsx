@@ -90,14 +90,13 @@ export default function PartnerInvitePage() {
         {s.k === "ready" && (
           <>
             <h1 className="mt-4 text-xl font-bold text-slate-900">
-              {s.inviter ? `${s.inviter} bað þig um að vera félagi` : "Þú fékkst boð um að vera félagi"}
+              {s.inviter ? `${s.inviter} bað þig um að vera félagi` : t("acct.partner.invited", "Þú fékkst boð um að vera félagi")}
             </h1>
             {/* What they are agreeing to, before they agree. The whole point
                 of the feature is that it is one number and nothing else, so
                 that is what the screen says. */}
             <p className="mt-2 text-sm text-slate-600">
-              Þú sérð eitt: hversu marga af síðustu 14 dögum hann gerði eitthvað.
-              Ekki hvað hann gerði, engar mælingar og engar skýrslur. Þú getur hætt hvenær sem er.
+              {t("acct.partner.yousee", t("acct.partner.yousee", "Þú sérð eitt: hversu marga af síðustu 14 dögum hann gerði eitthvað. Ekki hvað hann gerði, engar mælingar og engar skýrslur. Þú getur hætt hvenær sem er."))}
             </p>
             {s.authed ? (
               <div className="mt-5 flex flex-wrap gap-2">

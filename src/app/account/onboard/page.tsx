@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 import {
   HEALTH_CONSENT_VERSION,
   renderHealthAssessmentConsent,
@@ -24,6 +25,7 @@ type Stage = "welcome" | "consent" | "profile" | "saving";
 type ActivityLevel = "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "";
 
 export default function AccountOnboardPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("welcome");
   const [loading, setLoading] = useState(true);
@@ -88,12 +90,12 @@ export default function AccountOnboardPage() {
 
   const submit = async () => {
     if (!sex || !dob || !heightCm || !weightKg || !activityLevel) {
-      setError("Please fill in every field.");
+      setError(t("acct.ob.fillall", "Fylltu út alla reiti."));
       setStage("profile");
       return;
     }
     if (!acceptHealth) {
-      setError("Please accept the health-data consent to continue.");
+      setError(t("acct.ob.needconsent", "Samþykktu meðferð heilsufarsupplýsinga til að halda áfram."));
       setStage("consent");
       return;
     }
@@ -120,19 +122,19 @@ export default function AccountOnboardPage() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.ok) {
-        setError(typeof j.detail === "string" ? j.detail : j.error || "Setup failed. Please contact support.");
+        setError(typeof j.detail === "string" ? j.detail : j.error || t("acct.ob.failedsupport", "Uppsetning tókst ekki. Hafðu samband við þjónustuna."));
         setStage("profile");
         return;
       }
       router.push("/account");
     } catch (e) {
-      setError((e as Error).message || "Setup failed.");
+      setError((e as Error).message || t("acct.ob.failed", "Uppsetning tókst ekki."));
       setStage("profile");
     }
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">{t("acct.ob.loading", "Hleð…")}</div>;
   }
 
   return (
@@ -147,18 +149,18 @@ export default function AccountOnboardPage() {
         {email && (
           <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl border border-gray-200 bg-white/60 px-4 py-2.5 text-xs">
             <span className="text-gray-600">
-              Skráð/ur inn sem <strong className="text-gray-900 font-mono">{email}</strong>
+              {t("acct.ob.signedinas", "Skráð(ur) inn sem")} <strong className="text-gray-900 font-mono">{email}</strong>
             </span>
             <button
               type="button"
               onClick={async () => {
-                if (!confirm("Skrá út og opna skráninguna aftur með öðrum aðganga?")) return;
+                if (!confirm(t("acct.ob.signoutq", "Skrá út og opna skráninguna aftur með öðrum aðgangi?"))) return;
                 await supabase.auth.signOut();
                 router.replace("/account/login?next=/account/onboard");
               }}
               className="text-gray-500 hover:text-gray-800 underline underline-offset-2"
             >
-              Rangur aðgangur? Skrá út
+              {t("acct.ob.wrongaccount", "Rangur aðgangur? Skrá út")}
             </button>
           </div>
         )}
@@ -190,7 +192,7 @@ export default function AccountOnboardPage() {
         {stage === "saving" && (
           <div className="bg-white rounded-2xl shadow-sm p-10 text-center">
             <div className="inline-block w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-sm text-[#475569]">Setting up your profile…</p>
+            <p className="text-sm text-[#475569]">{t("acct.ob.saving", "Set upp sniðið þitt…")}</p>
           </div>
         )}
       </main>
@@ -201,6 +203,7 @@ export default function AccountOnboardPage() {
 // ──────────────────────────────────────────────────────────────────────────
 
 function StageIndicator({ stage }: { stage: Stage }) {
+  const { t } = useI18n();
   const order: Stage[] = ["welcome", "consent", "profile"];
   const idx = order.indexOf(stage);
   return (
@@ -231,36 +234,37 @@ function StageIndicator({ stage }: { stage: Stage }) {
 }
 
 function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-2xl text-white p-8 shadow-sm"
         style={{ background: "linear-gradient(135deg, #10B981, #3B82F6)" }}>
         <div className="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
         <div className="relative">
-          <div className="text-xs font-semibold uppercase tracking-wide opacity-90 mb-2">Welcome to Lifeline Health</div>
+          <div className="text-xs font-semibold uppercase tracking-wide opacity-90 mb-2">{t("acct.ob.welcome", "Velkomin(n) til Lifeline Health")}</div>
           <h1 className="text-2xl sm:text-3xl font-bold">Hi {firstName}, take control of your health.</h1>
           <p className="mt-3 text-base opacity-95 max-w-lg leading-relaxed">
-            Lifeline Health combines targeted health assessments with personalised daily coaching. Know your numbers, build better habits, track your progress — with guidance from Icelandic physicians and coaches.
+            {t("acct.ob.lede", "Lifeline Health sameinar markvissa heilsufarsskoðun og persónulega daglega þjálfun. Þekktu tölurnar þínar, byggðu upp betri venjur og fylgstu með framförum — með leiðsögn íslenskra lækna og þjálfara.")}
           </p>
         </div>
       </section>
 
       <section className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
         <div>
-          <h2 className="text-lg font-semibold mb-1 text-[#0F172A]">What happens next</h2>
-          <p className="text-sm text-[#64748B]">Two short steps so we can set up your Lifeline account and body-composition profile.</p>
+          <h2 className="text-lg font-semibold mb-1 text-[#0F172A]">{t("acct.ob.next", "Hvað gerist næst")}</h2>
+          <p className="text-sm text-[#64748B]">{t("acct.ob.twosteps", "Tvö stutt skref svo við getum sett upp Lifeline-aðganginn þinn og líkamssamsetningarsniðið.")}</p>
         </div>
         <ol className="space-y-4">
-          <Step n={1} title="Accept the health-data consent">Standard consent so we can legally process your health information.</Step>
-          <Step n={2} title="Confirm your details">Sex, date of birth, height, weight, activity level — for your body-composition profile.</Step>
+          <Step n={1} title={t("acct.ob.acceptconsent", "Samþykktu meðferð heilsufarsupplýsinga")}>{t("acct.ob.consentwhy", "Hefðbundið samþykki svo við megum vinna með heilsufarsupplýsingarnar þínar með lögmætum hætti.")}</Step>
+          <Step n={2} title={t("acct.ob.confirm", "Staðfestu upplýsingarnar þínar")}>{t("acct.ob.confirmwhy", "Kyn, fæðingardagur, hæð, þyngd og hreyfing — fyrir líkamssamsetningarsniðið þitt.")}</Step>
         </ol>
         <div className="border-t border-gray-100 pt-6">
-          <h3 className="text-sm font-semibold text-[#0F172A] mb-3">After you register</h3>
+          <h3 className="text-sm font-semibold text-[#0F172A] mb-3">{t("acct.ob.after", "Eftir skráningu")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
             <MiniCard
               color="#3B82F6"
-              title="Get assessed"
-              body="Book your Foundational Health assessment at the Lifeline station in Reykjavík."
+              title={t("account.steps.1.title", "Farðu í heilsumat")}
+              body={t("acct.ob.s1desc", "Bókaðu grunnheilsufarsskoðunina þína á mælingastöð Lifeline í Reykjavík.")}
               icon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -269,8 +273,8 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
             />
             <MiniCard
               color="#10B981"
-              title="Get your report"
-              body="A Lifeline physician reviews your results and builds a personalised plan."
+              title={t("account.steps.2.title", "Fáðu skýrsluna þína")}
+              body={t("acct.ob.s2desc", "Lifeline-læknir fer yfir niðurstöðurnar þínar og setur saman persónulega áætlun.")}
               icon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -279,8 +283,8 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
             />
             <MiniCard
               color="#8B5CF6"
-              title="Start coaching"
-              body="Daily actions across exercise, nutrition, sleep and mental wellness in the app."
+              title={t("account.steps.3.title", "Byrjaðu þjálfun")}
+              body={t("acct.ob.s3desc", "Daglegar aðgerðir í hreyfingu, næringu, svefni og andlegri líðan — í appinu.")}
               icon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -291,7 +295,7 @@ function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue
         </div>
         <div className="flex justify-end pt-2">
           <button onClick={onContinue} className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95">
-            Let&apos;s get started
+            {t("acct.ob.start", "Byrjum")}
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
             </svg>
@@ -309,12 +313,13 @@ function ConsentStage({
   acceptHealth: boolean; setAcceptHealth: (v: boolean) => void;
   onBack: () => void; onContinue: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <section className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-[#0F172A]">Upplýst samþykki fyrir heilsumat</h1>
+        <h1 className="text-2xl font-semibold text-[#0F172A]">{t("acct.doc.consent", "Upplýst samþykki fyrir heilsumat")}</h1>
         <p className="text-sm text-[#64748B] mt-2 leading-relaxed">
-          Áður en þú getur hafið heilsumat þarftu að veita upplýst samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga. Samþykkið er skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni. Þú færð staðfestingarskjal með tölvupósti.
+          {t("acct.ob.gdpr", "Áður en þú getur hafið heilsumat þarftu að veita upplýst samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga. Samþykkið er skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni. Þú færð staðfestingarskjal með tölvupósti.")}
         </p>
       </header>
 
@@ -335,14 +340,14 @@ function ConsentStage({
 
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
         <button onClick={onBack} className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm">
-          Back
+          {t("acct.ob.back", "Til baka")}
         </button>
         <button
           onClick={onContinue}
           disabled={!acceptHealth}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95"
         >
-          {acceptHealth ? "Halda áfram →" : "Samþykktu skjalið"}
+          {acceptHealth ? t("acct.ob.continue", "Halda áfram →") : t("acct.ob.acceptdoc", "Samþykktu skjalið")}
         </button>
       </div>
     </section>
@@ -362,6 +367,7 @@ function ProfileStage({
   activityLevel: ActivityLevel; setActivityLevel: (v: ActivityLevel) => void;
   error: string; onBack: () => void; onContinue: () => void;
 }) {
+  const { t } = useI18n();
   // Keep per-field local state so in-progress typing is visible even
   // when the combined ISO dob isn't complete yet. Seed from the parent
   // once (prefilled values from /account/clients row), then sync OUT
@@ -388,52 +394,52 @@ function ProfileStage({
   return (
     <section className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold text-[#0F172A]">Confirm your details</h1>
-        <p className="text-sm text-[#64748B] mt-1">These set up your body-composition profile with our measurement partner.</p>
+        <h1 className="text-2xl font-semibold text-[#0F172A]">{t("acct.ob.confirm", "Staðfestu upplýsingarnar þínar")}</h1>
+        <p className="text-sm text-[#64748B] mt-1">{t("acct.ob.bcwhy", "Þetta setur upp líkamssamsetningarsniðið þitt hjá mælingaaðilanum okkar.")}</p>
       </div>
 
       <div>
-        <div className="text-xs font-medium text-[#475569] mb-1">Email</div>
+        <div className="text-xs font-medium text-[#475569] mb-1">{t("acct.ob.email", "Netfang")}</div>
         <input type="email" value={email} disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-[#64748B]" />
       </div>
 
       <div className="border-t border-gray-100 pt-5 space-y-4">
-        <h2 className="text-sm font-semibold text-[#0F172A]">Body-composition profile</h2>
+        <h2 className="text-sm font-semibold text-[#0F172A]">{t("acct.ob.bcprofile", "Líkamssamsetningarsnið")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Sex">
             <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-              <option value="">Select…</option>
-              <option value="female">Female</option>
-              <option value="male">Male</option>
+              <option value="">{t("acct.ob.select", "Veldu…")}</option>
+              <option value="female">{t("acct.ob.female", "Kona")}</option>
+              <option value="male">{t("acct.ob.male", "Karl")}</option>
             </select>
           </Field>
-          <Field label="Activity level">
+          <Field label={t("acct.ob.activity", "Hreyfing")}>
             <select value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)} required
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-              <option value="">Select…</option>
-              <option value="sedentary">Sedentary — little or no exercise</option>
-              <option value="light">Light — exercise 1–3 days/week</option>
-              <option value="moderate">Moderate — exercise 3–5 days/week</option>
-              <option value="very_active">Very active — exercise 6–7 days/week</option>
-              <option value="extra_active">Extra active — daily intense training</option>
+              <option value="">{t("acct.ob.select", "Veldu…")}</option>
+              <option value="sedentary">{t("acct.ob.act0", "Kyrrseta — lítil sem engin hreyfing")}</option>
+              <option value="light">{t("acct.ob.act1", "Létt — hreyfing 1–3 daga í viku")}</option>
+              <option value="moderate">{t("acct.ob.act2", "Miðlungs — hreyfing 3–5 daga í viku")}</option>
+              <option value="very_active">{t("acct.ob.act3", "Mjög virk/virkur — hreyfing 6–7 daga í viku")}</option>
+              <option value="extra_active">{t("acct.ob.act4", "Mjög mikil — hörð þjálfun daglega")}</option>
             </select>
           </Field>
-          <Field label="Height (cm)">
+          <Field label={t("acct.ob.height", "Hæð (cm)")}>
             <input type="number" min={100} max={230} step={1} value={heightCm}
               onChange={(e) => setHeightCm(e.target.value)} required
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           </Field>
-          <Field label="Weight (kg)">
+          <Field label={t("acct.ob.weight", "Þyngd (kg)")}>
             <input type="number" min={30} max={300} step={0.1} value={weightKg}
               onChange={(e) => setWeightKg(e.target.value)} required
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           </Field>
           <div className="sm:col-span-2">
-            <div className="text-xs font-medium text-[#475569] mb-1">Date of birth</div>
+            <div className="text-xs font-medium text-[#475569] mb-1">{t("acct.ob.dob", "Fæðingardagur")}</div>
             <div className="flex items-stretch gap-2">
               <label className="flex-1">
-                <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Day</span>
+                <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">{t("acct.ob.day", "Dagur")}</span>
                 <input type="text" inputMode="numeric" autoComplete="bday-day" placeholder="DD" maxLength={2}
                   value={dd}
                   onChange={(e) => setDd(digits(e.target.value, 2))}
@@ -441,7 +447,7 @@ function ProfileStage({
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums" />
               </label>
               <label className="flex-1">
-                <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Month</span>
+                <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">{t("acct.ob.month", "Mánuður")}</span>
                 <input type="text" inputMode="numeric" autoComplete="bday-month" placeholder="MM" maxLength={2}
                   value={mm}
                   onChange={(e) => setMm(digits(e.target.value, 2))}
@@ -449,7 +455,7 @@ function ProfileStage({
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums" />
               </label>
               <label className="flex-[1.4]">
-                <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Year</span>
+                <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">{t("acct.ob.year", "Ár")}</span>
                 <input type="text" inputMode="numeric" autoComplete="bday-year" placeholder="YYYY" maxLength={4}
                   value={yyyy}
                   onChange={(e) => setYyyy(digits(e.target.value, 4))}
@@ -465,11 +471,11 @@ function ProfileStage({
 
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
         <button onClick={onBack} className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm">
-          Back
+          {t("acct.ob.back", "Til baka")}
         </button>
         <button onClick={onContinue}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95">
-          Save & finish setup
+          {t("acct.ob.save", "Vista og ljúka uppsetningu")}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
