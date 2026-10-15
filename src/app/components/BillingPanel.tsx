@@ -40,7 +40,7 @@ export default function BillingPanel({
   ownerType: OwnerType;
   ownerId: string;
 }) {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,7 +148,7 @@ export default function BillingPanel({
                 const name = providers.length === 1
                   ? (providers[0] === "straumur" ? STRAUMUR_BRAND.name : providers[0].replace(/^./, (c) => c.toUpperCase()))
                   : STRAUMUR_BRAND.name;
-                return `Öruggt hjá ${name}. Við geymum aðeins tákn, aldrei kortanúmerið.`;
+                return tv("comp.bill.securewith", "Öruggt hjá {{provider}}. Við geymum aðeins tákn, aldrei kortanúmerið.", { provider: name });
               })()}
             </p>
           </div>

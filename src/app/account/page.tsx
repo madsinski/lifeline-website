@@ -1192,7 +1192,7 @@ function AccountPageInner() {
             </div>
             <select
               value={activeSection}
-              onChange={(e) => { setActiveSection(e.target.value as Section); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }}
+              onChange={(e) => { setActiveSection(e.target.value as Section); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
               className="w-full bg-white rounded-2xl shadow-md pl-12 pr-12 py-4 text-sm font-semibold border-2 border-[#10B981]/30 text-[#1F2937] appearance-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/20 outline-none transition-all"
             >
               {navItems.map((item) => (
@@ -1214,7 +1214,7 @@ function AccountPageInner() {
               {navItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => { setActiveSection(item.id); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }}
+                  onClick={() => { setActiveSection(item.id); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                     activeSection === item.id
                       ? "bg-[#10B981]/10 text-[#10B981]"
@@ -1314,6 +1314,19 @@ function AccountPageInner() {
                       </div>
                     </div>
                   </div>
+                </section>
+
+                {/* The three steps, in a card like every other
+                    section on the page. They were at the bottom, under
+                    the bookings — which is the one place somebody who
+                    has not booked anything yet will never look. */}
+                <section className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+                  <NextSteps
+                    t={t}
+                    locale={locale}
+                    assessmentDone={bodyCompStatus === "completed"}
+                    onGo={(sec) => { setActiveSection(sec); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  />
                 </section>
 
 
@@ -1524,12 +1537,6 @@ function AccountPageInner() {
                   />
                 )}
 
-                <NextSteps
-                  t={t}
-                  locale={locale}
-                  assessmentDone={bodyCompStatus === "completed"}
-                  onGo={(sec) => { setActiveSection(sec); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                />
 
                 {/* No satisfaction prompt on Yfirlit.
                     "Hvernig var líkamssamsetningarmælingin?" asked somebody
@@ -1785,6 +1792,13 @@ function AccountPageInner() {
             {/* ============ ASSESSMENT ============ */}
             {activeSection === "assessment" && (
               <section className="space-y-6">
+                <SectionHero
+                  kicker={t("acct.hero.assessment.kicker", "Heilsufarsskoðun")}
+                  title={t("acct.hero.assessment.title", "Þjónustan þín hjá Lifeline")}
+                  body={t("acct.hero.assessment.body", "Bókanir, mælingar og niðurstöður. Sjúkraskráin sjálf er í Medalia.")}
+                  icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  from="#3B82F6" via="#0D9488" to="#10B981"
+                />
                 {!companyId && bodyCompPackage === "self-checkin" && bodyCompStatus !== "none" && (
                   <SelfCheckinJourney
                     completed={bodyCompStatus === "completed"}
@@ -2610,23 +2624,24 @@ function AccountPageInner() {
                 first. */}
             {activeSection === "app" && (
               <section className="space-y-6">
-                <div className="rounded-2xl bg-white p-6 shadow-sm sm:p-8">
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#047857]">{t("acct.p.lifeline-appid", "Lifeline appið")}</p>
-                  <h1 className="mt-1 text-2xl font-bold text-[#0F172A] sm:text-3xl">{t("acct.p.dagleg-thjalfun-i-simanum", "Dagleg þjálfun í símanum")}</h1>
-                  <p className="mt-2 max-w-2xl leading-relaxed text-[#6B7280]">
-                    {t("acct.p.aefingar-naering-svefn-og-andleg", "Æfingar, næring, svefn og andleg líðan — dag frá degi, með áætlun sem er þín og þjálfara sem þú nærð í. Appið keyrir í vafranum og þarf enga uppsetningu úr verslun.")}
-                  </p>
+                <SectionHero
+                  kicker={t("acct.p.lifeline-appid", "Lifeline appið")}
+                  title={t("acct.p.dagleg-thjalfun-i-simanum", "Dagleg þjálfun í símanum")}
+                  body={t("acct.p.aefingar-naering-svefn-og-andleg", "Æfingar, næring, svefn og andleg líðan — dag frá degi, með áætlun sem er þín og þjálfara sem þú nærð í. Appið keyrir í vafranum og þarf enga uppsetningu úr verslun.")}
+                  icon="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  from="#3B82F6" via="#0D9488" to="#10B981"
+                >
                   <div className="mt-5 flex flex-wrap gap-2">
                     <Link href="/app"
-                      className="inline-flex min-h-11 items-center rounded-xl bg-[#047857] px-5 font-semibold text-white transition hover:bg-emerald-800">
+                      className="inline-flex min-h-11 items-center rounded-xl bg-[#047857] px-5 font-semibold text-white transition hover:bg-[#065F46]">
                       {t("acct.p.opna-appid", "Opna appið")}
                     </Link>
                     <button type="button" onClick={() => setActiveSection("upgrade")}
-                      className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1F2937]">
+                      className="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 font-semibold text-[#1F2937] transition hover:bg-slate-50">
                       {t("acct.p.sja-hvad-fylgir", "Sjá hvað fylgir")}
                     </button>
                   </div>
-                </div>
+                </SectionHero>
 
                 {/* Installing it on the home screen — the same guide the
                     journey uses, not a second copy of the instructions. */}
@@ -2647,30 +2662,12 @@ function AccountPageInner() {
 
             {activeSection === "upgrade" && (
               <section className="space-y-6">
-                {/* Hero */}
-                <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm">
-                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] via-[#8B5CF6] to-[#06B6D4]" />
-                  <div className="p-6 sm:p-8">
-                    <div className="flex items-start gap-4">
-                      <span aria-hidden className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3B82F6] via-[#0D9488] to-[#8B5CF6] text-white shadow-sm sm:flex">
-                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      </span>
-                      <div className="min-w-0">
-                        <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-[#047857]">
-                          {t("account.coaching.kicker", "Þjálfun hjá Lifeline")}
-                        </p>
-                        <h1 className="text-2xl font-bold leading-tight text-[#0F172A] sm:text-3xl">
-                          {t("account.coaching.hero", "Úr niðurstöðum í daglegar venjur")}
-                        </h1>
-                        <p className="mt-2.5 max-w-xl text-base leading-relaxed text-[#6B7280]">
-                          {t("account.coaching.heroBody", "Daglegar aðgerðir, máltíðir, vigtun, áætlun sem er þín — og þjálfari sem þú nærð í. Þjálfunin er valkvæð og greidd sérstaklega.")}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <SectionHero
+                  kicker={t("account.coaching.kicker", "Þjálfun hjá Lifeline")}
+                  title={t("account.coaching.hero", "Úr niðurstöðum í daglegar venjur")}
+                  body={t("account.coaching.heroBody", "Daglegar aðgerðir, máltíðir, vigtun, áætlun sem er þín — og þjálfari sem þú nærð í. Þjálfunin er valkvæð og greidd sérstaklega.")}
+                  icon="M13 10V3L4 14h7v7l9-11h-7z"
+                />
 
                 {/* ── Svona virkar heilsuþjálfun ─────────────────────
                     The four steps are not retyped: they are read straight
@@ -2752,6 +2749,13 @@ function AccountPageInner() {
                 people look for it. */}
             {(activeSection === "billing" || activeSection === "settings") && (
               <section className="space-y-6">
+                <SectionHero
+                  kicker={t("acct.hero.settings.kicker", "Stillingar")}
+                  title={t("acct.hero.settings.title", "Aðgangurinn þinn")}
+                  body={t("acct.hero.settings.body", "Upplýsingar, greiðslur, samþykki og persónuvernd — allt á einum stað.")}
+                  icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  from="#64748B" via="#0D9488" to="#10B981"
+                />
                 {/* App subscription — only shown while a paid plan is active.
                     The old plan picker is gone; the app is sold on /coaching. */}
                 {activeTier && currentTier !== "free-trial" && (
@@ -3139,6 +3143,50 @@ function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGo
  * whether somebody has started using the app or taken up coaching, and a
  * tick that guesses is worse than no tick.
  */
+/**
+ * The small card every section opens with.
+ *
+ * The pages had drifted into three different shapes: Þjálfun and Appið led
+ * with a hero, Stillingar led straight into a panel, and Yfirlit was not
+ * carded at all. One component, so a section is recognisable as a section
+ * before you have read a word of it.
+ *
+ * The gradient is a hairline at the top and a tile behind the icon —
+ * colour as an accent, not a backdrop.
+ */
+function SectionHero({ kicker, title, body, icon, from, via, to, children }: {
+  kicker: string;
+  title: string;
+  body?: string;
+  icon: string;
+  from?: string; via?: string; to?: string;
+  children?: React.ReactNode;
+}) {
+  const a = from ?? "#3B82F6", bmid = via ?? "#0D9488", c = to ?? "#8B5CF6";
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm">
+      <div className="absolute inset-x-0 top-0 h-1.5"
+        style={{ backgroundImage: `linear-gradient(to right, ${a}, ${bmid}, ${c})` }} />
+      <div className="p-6 sm:p-8">
+        <div className="flex items-start gap-4">
+          <span aria-hidden className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm sm:flex"
+            style={{ backgroundImage: `linear-gradient(135deg, ${a}, ${bmid})` }}>
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={icon} />
+            </svg>
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-[#047857]">{kicker}</p>
+            <h1 className="text-2xl font-bold leading-tight text-[#0F172A] sm:text-3xl">{title}</h1>
+            {body && <p className="mt-2.5 max-w-xl text-base leading-relaxed text-[#6B7280]">{body}</p>}
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NextSteps({ assessmentDone, onGo, t, locale }: {
   assessmentDone: boolean;
   onGo: (s: Section) => void;
