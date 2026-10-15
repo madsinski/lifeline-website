@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useScrollLock } from "@/lib/hc/use-scroll-lock";
-import { Search, X } from "lucide-react";
+import { ChevronRight, Search, X } from "lucide-react";
 import {
   CATEGORY_IS, TONE_CLASS, TONE_IS, bandForValue, bandRangeText, bandsFor, parseValue, searchKnowledge,
   type KnowledgeEntry,
@@ -48,13 +48,27 @@ export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" 
     return () => clearTimeout(t);
   }, [open, initialQuery]);
 
+  // Dialog behaviour: Escape closes, Tab stays inside, and focus goes back
+  // to whatever opened it.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  useEffect(() => { closeRef.current = onClose; });
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const prev = document.activeElement as HTMLElement | null;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.stopPropagation(); closeRef.current(); return; }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const f = panelRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (!f.length) return;
+      const a = f[0], z = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === a || !panelRef.current.contains(document.activeElement))) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && (document.activeElement === z || !panelRef.current.contains(document.activeElement))) { e.preventDefault(); a.focus(); }
+    };
     window.addEventListener("keydown", onKey);
     const t = setTimeout(() => inputRef.current?.focus(), 50);
-    return () => { window.removeEventListener("keydown", onKey); clearTimeout(t); };
-  }, [open, onClose]);
+    return () => { window.removeEventListener("keydown", onKey); clearTimeout(t); prev?.focus?.(); };
+  }, [open]);
 
   const value = useMemo(() => parseValue(q), [q]);
   const results = useMemo(() => (entries ? searchKnowledge(entries, q) : []), [entries, q]);
@@ -63,10 +77,10 @@ export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 p-0 sm:p-6" role="dialog" aria-modal="true" aria-label="Fletta upp" onClick={onClose}>
-      <div className="flex h-full w-full max-w-3xl flex-col overflow-hidden bg-hc-surface shadow-2xl sm:h-auto sm:max-h-[86vh] sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-hc-ink/45 p-0 sm:p-6" onClick={onClose}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Fletta upp" className="flex h-full w-full max-w-3xl flex-col overflow-hidden bg-hc-surface shadow-2xl sm:h-auto sm:max-h-[86vh] sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 border-b border-hc-hairline p-3 sm:p-4">
-          <Search className="ml-1 h-5 w-5 shrink-0 text-hc-ink-3" />
+          <Search className="ml-1 h-5 w-5 shrink-0 text-hc-ink-3" aria-hidden />
           <input
             ref={inputRef} value={q}
             onChange={(e) => { setQ(e.target.value); setPicked(null); }}
@@ -82,7 +96,7 @@ export default function KnowledgeSearch({ api, open, onClose, initialQuery = "" 
               </button>
             ))}
           </div>
-          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-2 text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} aria-label="Loka" className="rounded-lg p-2 text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-5 w-5" aria-hidden /></button>
         </div>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 sm:grid-cols-[240px_1fr]">
@@ -135,7 +149,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
               <div key={k} className={`rounded-2xl px-4 py-3 ring-1 ${b ? TONE_CLASS[b.tone] : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline"}`}>
                 <p className="text-xs font-bold uppercase tracking-wide opacity-70">{label}</p>
                 <p className="text-sm font-semibold">
-                  {value.toString().replace(".", ",")}{e.unit ? ` ${e.unit}` : ""} → {b ? `${b.label.replace(/\s*\((karlar|konur)\)$/i, "")} (${TONE_IS[b.tone]})` : "utan bila"}
+                  {value.toString().replace(".", ",")}{e.unit ? ` ${e.unit}` : ""}<Arrow />{b ? `${b.label.replace(/\s*\((karlar|konur)\)$/i, "")} (${TONE_IS[b.tone]})` : "utan bila"}
                 </p>
                 {b?.note && <p className="mt-0.5 text-sm">{b.note}</p>}
               </div>
@@ -145,7 +159,7 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
       ) : (
         <div className={`rounded-2xl px-4 py-3 ring-1 ${hit ? TONE_CLASS[hit.tone] : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline"}`}>
           <p className="text-sm font-semibold">
-            {value.toString().replace(".", ",")}{e.unit ? ` ${e.unit}` : ""} → {hit ? `${hit.label} (${TONE_IS[hit.tone]})` : "utan skilgreindra bila"}
+            {value.toString().replace(".", ",")}{e.unit ? ` ${e.unit}` : ""}<Arrow />{hit ? `${hit.label} (${TONE_IS[hit.tone]})` : "utan skilgreindra bila"}
           </p>
           {hit?.note && <p className="mt-0.5 text-sm">{hit.note}</p>}
         </div>
@@ -181,6 +195,16 @@ function Entry({ e, value, sex }: { e: KnowledgeEntry; value: number | null; sex
         </footer>
       )}
     </article>
+  );
+}
+
+/** "value › band": an icon rather than a "→" glyph, read as "fellur í". */
+function Arrow() {
+  return (
+    <>
+      <ChevronRight className="mx-1 inline h-4 w-4 align-[-3px]" aria-hidden />
+      <span className="sr-only">fellur í </span>
+    </>
   );
 }
 

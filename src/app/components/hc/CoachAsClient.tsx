@@ -20,7 +20,7 @@ import MyActions from "./MyActions";
 import NutritionView from "./NutritionView";
 import TrainingView from "./TrainingView";
 import EmptyState from "./EmptyState";
-import { hcTabs } from "./ui";
+import Segmented from "./Segmented";
 import { DEFAULT_TRAINING, adaptExercise, hardDays, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DEFAULT_PERSONAL, personalise, type Personal } from "@/lib/hc/personalise";
 import { dayFor, type Meal } from "@/lib/hc/meals";
@@ -29,6 +29,7 @@ import { DEFAULT_NUTRITION, type NutritionPrefs } from "@/lib/hc/nutrition";
 import type { ActionLog, ActionPref } from "@/lib/hc/adherence";
 import type { Signal as ReportSignal } from "@/lib/hc/grunnheilsa";
 import type { ActionPlan } from "@/lib/hc/types";
+import { fmtDate } from "@/app/components/account/ui/dates";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -72,8 +73,7 @@ interface TrainingPart {
 
 type CoachTab = "today" | "exercise" | "nutrition";
 
-const day = (s?: string | null) =>
-  s ? new Date(s).toLocaleDateString("is-IS", { day: "numeric", month: "long" }) : "";
+const day = (s?: string | null) => (s ? fmtDate(s, { year: false }) : "");
 
 /**
  * Where the client stands on their report, in one line.
@@ -95,7 +95,7 @@ export function ConsentBanner({ consent }: { consent: ConsentState }) {
   if (!consent.on_behalf) {
     const own = consent.source === "self";
     return (
-      <p className="flex items-start gap-2 rounded-2xl bg-hc-ok-surface p-3 text-sm text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
+      <p className="flex items-start gap-2 rounded-hc-card bg-hc-ok-surface p-3 text-sm text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <span>
           {own
@@ -108,7 +108,7 @@ export function ConsentBanner({ consent }: { consent: ConsentState }) {
 
   if (consent.visible_to_client) {
     return (
-      <p className="flex items-start gap-2 rounded-2xl bg-hc-ok-surface p-3 text-sm text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
+      <p className="flex items-start gap-2 rounded-hc-card bg-hc-ok-surface p-3 text-sm text-hc-ok-ink ring-1 ring-hc-ok-ink/30">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <span>
           Staðfest af skjólstæðingi {day(consent.client_confirmed_at)} — þau sjá skýrsluna í appinu.
@@ -118,7 +118,7 @@ export function ConsentBanner({ consent }: { consent: ConsentState }) {
   }
 
   return (
-    <p className="flex items-start gap-2 rounded-2xl bg-hc-warn-surface p-3 text-sm text-hc-warn-ink ring-1 ring-hc-warn-ink/30">
+    <p className="flex items-start gap-2 rounded-hc-card bg-hc-warn-surface p-3 text-sm text-hc-warn-ink ring-1 ring-hc-warn-ink/30">
       <ShieldQuestion className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
       <span>
         Skjólstæðingur hefur ekki staðfest skýrsluna sem var skráð fyrir þau
@@ -328,16 +328,11 @@ export default function CoachAsClient({ api, journeyId, only }: {
               coach an Æfingar tab that opens on nothing.
               Hidden when the caller asked for one pillar — then the page
               around it is already the navigation. */}
-          <div className={`${hcTabs.bar} ${only ? "hidden" : ""}`}>
-            {([["today", "Í dag"], ["exercise", "Æfingar"], ["nutrition", "Næring"]] as const)
+          <Segmented<CoachTab> label="Sýn skjólstæðings" mode="tabs" value={tab} onChange={setTab}
+            className={only ? "hidden" : ""}
+            options={([["today", "Í dag"], ["exercise", "Æfingar"], ["nutrition", "Næring"]] as const)
               .filter(([k]) => k === "today" || (k === "exercise" ? !!exercise : !!plan.nutrition))
-              .map(([k, label]) => (
-                <button key={k} type="button" onClick={() => setTab(k)}
-                  aria-pressed={tab === k} className={hcTabs.tab(tab === k)}>
-                  {label}
-                </button>
-              ))}
-          </div>
+              .map(([k, label]) => ({ value: k, label }))} />
 
           {tab === "today" && (
             <MyActions api={coachApi} journeyId={d.journey_id} plan={plan}

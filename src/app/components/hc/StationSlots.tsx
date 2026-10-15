@@ -20,8 +20,10 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { CalendarPlus, Loader2, Trash2 } from "lucide-react";
-import { hcBtn } from "./ui";
+import { CalendarPlus, ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
+import { fmtDate, fmtTime } from "@/app/components/account/ui/dates";
+import { fmtWeekdayShort } from "./format";
+import { hcBtn, hcCard, hcInput } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -51,11 +53,11 @@ function mondayOf(d: Date): Date {
 
 /** "þri. 14. okt. · 09:00" — hand-formatted, as everywhere else. */
 function when(iso: string) {
-  const d = new Date(iso);
-  const day = d.toLocaleDateString("is-IS", { weekday: "short", day: "numeric", month: "short" });
-  const t = d.toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" });
-  return `${day} · ${t}`;
+  return `${fmtWeekdayShort(iso)} ${fmtDate(iso, { year: false, month: "short" })} · ${fmtTime(iso)}`;
 }
+
+/** "14. okt." for a local Date (the week's columns are built in local time). */
+const dayMonth = (d: Date) => fmtDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, { year: false, month: "short" });
 
 export default function StationSlots({ api }: { api: Api }) {
   const [slots, setSlots] = useState<Slot[] | null>(null);
@@ -120,12 +122,12 @@ export default function StationSlots({ api }: { api: Api }) {
   };
 
   return (
-    <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4">
+    <section className={`${hcCard.base} p-4`}>
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="min-w-0 flex-1 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
           Lausir mælingatímar
         </h3>
-        <button type="button" onClick={() => setOpen((v) => !v)} className={`${hcBtn.primary} min-h-9 px-3 text-xs`}>
+        <button type="button" onClick={() => setOpen((v) => !v)} className={hcBtn.primary}>
           <CalendarPlus className="h-4 w-4" aria-hidden /> Opna tíma
         </button>
       </div>
@@ -144,42 +146,42 @@ export default function StationSlots({ api }: { api: Api }) {
       {msg && <p className="mt-2 rounded-lg bg-hc-sunken px-3 py-2 text-sm text-hc-ink-2">{msg}</p>}
 
       {open && (
-        <div className="mt-3 space-y-2 rounded-xl border border-hc-hairline p-3">
+        <div className="mt-3 space-y-2 rounded-hc-element bg-hc-sunken p-3 ring-1 ring-hc-hairline">
           {/* A range, because a morning is the unit somebody thinks in. */}
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="block text-xs font-semibold text-hc-ink-2">Dagur
               <input type="date" value={date} min={today} onChange={(e) => setDate(e.target.value)}
-                className="mt-1 min-h-10 w-full rounded-lg border border-hc-control bg-hc-surface px-2 text-sm font-normal text-hc-ink" />
+                className={`mt-1 min-h-11 font-normal ${hcInput}`} />
             </label>
             <label className="block text-xs font-semibold text-hc-ink-2">Lengd hvers tíma
               <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}
-                className="mt-1 min-h-10 w-full rounded-lg border border-hc-control bg-hc-surface px-2 text-sm font-normal text-hc-ink">
+                className={`mt-1 min-h-11 font-normal ${hcInput}`}>
                 {[15, 20, 30, 45, 60].map((m) => <option key={m} value={m}>{m} mín.</option>)}
               </select>
             </label>
             <label className="block text-xs font-semibold text-hc-ink-2">Frá
               <input type="time" value={from} onChange={(e) => setFrom(e.target.value)}
-                className="mt-1 min-h-10 w-full rounded-lg border border-hc-control bg-hc-surface px-2 text-sm font-normal text-hc-ink" />
+                className={`mt-1 min-h-11 font-normal ${hcInput}`} />
             </label>
             <label className="block text-xs font-semibold text-hc-ink-2">Hver mælir
               <select value={measurerId} onChange={(e) => setMeasurerId(e.target.value)}
-                className="mt-1 min-h-10 w-full rounded-lg border border-hc-control bg-hc-surface px-2 text-sm font-normal text-hc-ink">
+                className={`mt-1 min-h-11 font-normal ${hcInput}`}>
                 <option value="">Ákveða síðar</option>
                 {staff.map((w) => <option key={w.id} value={w.id}>{w.name ?? w.id.slice(0, 8)}</option>)}
               </select>
             </label>
             <label className="block text-xs font-semibold text-hc-ink-2">Til
               <input type="time" value={to} onChange={(e) => setTo(e.target.value)}
-                className="mt-1 min-h-10 w-full rounded-lg border border-hc-control bg-hc-surface px-2 text-sm font-normal text-hc-ink" />
+                className={`mt-1 min-h-11 font-normal ${hcInput}`} />
             </label>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => void create()} disabled={busy}
-              className={`${hcBtn.primary} min-h-9 disabled:opacity-50`}>
+              className={hcBtn.primary}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null} Opna
             </button>
             <button type="button" onClick={() => setOpen(false)}
-              className="rounded-lg px-3 py-1.5 text-sm font-semibold text-hc-ink-2">Hætta við</button>
+              className={hcBtn.ghost}>Hætta við</button>
           </div>
         </div>
       )}
@@ -193,16 +195,16 @@ export default function StationSlots({ api }: { api: Api }) {
           else's. */}
       <div className="mt-3 flex items-center gap-2">
         <button type="button" onClick={() => setWeekStart((d) => { const x = new Date(d); x.setDate(x.getDate() - 7); return x; })}
-          aria-label="Fyrri vika" className="rounded-lg px-2 py-1 text-hc-ink-2 hover:bg-hc-sunken">←</button>
+          aria-label="Fyrri vika" className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken"><ChevronLeft className="h-5 w-5" aria-hidden /></button>
         <p className="min-w-0 flex-1 text-sm font-semibold text-hc-ink">
-          {weekStart.toLocaleDateString("is-IS", { day: "numeric", month: "short" })}
+          {dayMonth(weekStart)}
           {" – "}
-          {new Date(weekStart.getTime() + 6 * 86400_000).toLocaleDateString("is-IS", { day: "numeric", month: "short" })}
+          {dayMonth(new Date(weekStart.getTime() + 6 * 86400_000))}
         </p>
         <button type="button" onClick={() => setWeekStart(mondayOf(new Date()))}
-          className="rounded-lg px-2 py-1 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">Í dag</button>
+          className="inline-flex min-h-11 items-center rounded-hc-element px-3 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">Í dag</button>
         <button type="button" onClick={() => setWeekStart((d) => { const x = new Date(d); x.setDate(x.getDate() + 7); return x; })}
-          aria-label="Næsta vika" className="rounded-lg px-2 py-1 text-hc-ink-2 hover:bg-hc-sunken">→</button>
+          aria-label="Næsta vika" className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken"><ChevronRight className="h-5 w-5" aria-hidden /></button>
       </div>
 
       <div className="mt-2 grid grid-cols-7 gap-1">
@@ -226,14 +228,14 @@ export default function StationSlots({ api }: { api: Api }) {
                 <p className="px-0.5 pt-1 text-[11px] text-hc-ink-3">—</p>
               ) : (
                 <>
-                  <p className="px-0.5 text-[10px] text-hc-ink-3">{freeCount} laus / {mine.length}</p>
+                  <p className="px-0.5 text-[11px] text-hc-ink-3">{freeCount} laus / {mine.length}</p>
                   <ul className="mt-0.5 space-y-0.5">
                     {mine.slice(0, 6).map((x) => (
                       <li key={x.id}
                         className={`rounded px-1 py-0.5 text-[11px] leading-tight ${
                           x.client_id ? "bg-hc-warn-surface text-hc-warn-ink" : "bg-hc-surface text-hc-ink"}`}>
                         <span className="block font-semibold tabular-nums">
-                          {new Date(x.slot_at).toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" })}
+                          {fmtTime(x.slot_at)}
                         </span>
                         <span className="block truncate" title={x.client_name ?? x.measurer_name ?? "laus"}>
                           {x.client_name ?? (x.measurer_name ? x.measurer_name.split(" ")[0] : "laus")}
@@ -241,7 +243,7 @@ export default function StationSlots({ api }: { api: Api }) {
                       </li>
                     ))}
                     {mine.length > 6 && (
-                      <li className="px-1 text-[10px] text-hc-ink-3">+{mine.length - 6}</li>
+                      <li className="px-1 text-[11px] text-hc-ink-3">+{mine.length - 6}</li>
                     )}
                   </ul>
                 </>
@@ -269,14 +271,14 @@ export default function StationSlots({ api }: { api: Api }) {
                   {x.client_name ?? <span className="text-hc-ok-ink">laus</span>}
                 </span>
                 <select value={x.measurer_id ?? ""} onChange={(e) => void assign(x, e.target.value)}
-                  aria-label="Hver mælir" className="min-w-0 flex-1 rounded border border-hc-control bg-hc-surface px-1 py-0.5 text-xs text-hc-ink">
+                  aria-label="Hver mælir" className="min-h-11 min-w-0 flex-1 rounded-hc-element border border-hc-control bg-hc-surface px-2 text-xs text-hc-ink">
                   <option value="">Enginn skráður</option>
                   {staff.map((w) => <option key={w.id} value={w.id}>{w.name ?? w.id.slice(0, 8)}</option>)}
                 </select>
                 {!x.client_id && (
                   <button type="button" onClick={() => void remove(x)} aria-label="Fjarlægja tíma"
-                    className="shrink-0 rounded p-1 text-hc-ink-3 hover:bg-hc-bad-surface hover:text-hc-bad-ink">
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-3 hover:bg-hc-bad-surface hover:text-hc-bad-ink">
+                    <Trash2 className="h-4 w-4" aria-hidden />
                   </button>
                 )}
               </li>

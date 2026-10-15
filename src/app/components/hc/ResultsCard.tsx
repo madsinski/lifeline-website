@@ -15,6 +15,8 @@ import {
   type KnowledgeEntry,
 } from "@/lib/hc/knowledge";
 import KnowledgeSearch from "./KnowledgeSearch";
+import { badgeClass } from "./Badge";
+import { hcBtn, hcCard, hcInput } from "./ui";
 import { sexOf } from "@/lib/hc/sex";
 
 export { sexOf };
@@ -46,8 +48,8 @@ export interface HcResult {
 const TONE_PILL: Record<string, string> = {
   good: "bg-hc-ok-surface text-hc-ok-ink ring-hc-ok-ink/30",
   watch: "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30",
-  high: "bg-red-50 text-red-700 ring-red-200",
-  low: "bg-blue-50 text-blue-700 ring-blue-200",
+  high: "bg-hc-bad-surface text-hc-bad-ink ring-hc-bad-ink/30",
+  low: "bg-hc-info-surface text-hc-info-ink ring-hc-info-ink/30",
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -221,26 +223,26 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   const pick = (v: boolean) => { setOnBehalf(v); setAsking(false); fileRef.current?.click(); };
 
   return (
-    <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 sm:p-5">
+    <section className={`${hcCard.base} p-4 sm:p-5`}>
       {/* Stated, not assumed. Reading the report is lawful either way under
           9. gr. (2)(h) — this records which it was, so the participant can
           see it in their own account and say if it is wrong. */}
       {asking && (
-        <div className="mb-3 rounded-2xl border border-slate-300 bg-hc-sunken p-3">
+        <div className="mb-3 rounded-hc-card bg-hc-sunken p-3 ring-1 ring-hc-border">
           <p className="text-sm font-semibold text-hc-ink">Hvernig kom skýrslan hingað?</p>
           <div className="mt-2 grid gap-2">
             <button type="button" onClick={() => pick(true)}
-              className="rounded-xl border border-slate-300 bg-hc-surface px-3 py-2 text-left text-sm hover:border-emerald-400">
+              className="min-h-11 rounded-hc-element border border-hc-control bg-hc-surface px-3 py-2 text-left text-sm hover:border-hc-brand-dark">
               <span className="block font-semibold text-hc-ink">Skjólstæðingurinn bað mig um að setja hana inn</span>
               <span className="block text-xs text-hc-ink-2">Skráð á þig og sýnt skjólstæðingnum í hans aðgangi.</span>
             </button>
             <button type="button" onClick={() => pick(false)}
-              className="rounded-xl border border-slate-300 bg-hc-surface px-3 py-2 text-left text-sm hover:border-emerald-400">
+              className="min-h-11 rounded-hc-element border border-hc-control bg-hc-surface px-3 py-2 text-left text-sm hover:border-hc-brand-dark">
               <span className="block font-semibold text-hc-ink">Ég les hana fyrir viðtalið</span>
               <span className="block text-xs text-hc-ink-2">Hluti af þjónustunni — engin beiðni skráð.</span>
             </button>
           </div>
-          <button type="button" onClick={() => setAsking(false)} className="mt-2 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">Hætta við</button>
+          <button type="button" onClick={() => setAsking(false)} className={`${hcBtn.ghost} mt-2`}>Hætta við</button>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
@@ -248,10 +250,10 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           {audience === "client" ? "Mínar mælingar" : reportShown ? "Skrá eða lesa gildi" : "Niðurstöður"}
         </h3>
         {recorded.length > 0 && (
-          <span className="rounded-full bg-hc-sunken-2 px-2.5 py-0.5 text-xs font-semibold text-hc-ink-2">{recorded.length} skráð</span>
+          <span className={badgeClass("neutral", "md")}>{recorded.length} skráð</span>
         )}
         {flagged > 0 && (
-          <span className="rounded-full bg-hc-warn-surface px-2.5 py-0.5 text-xs font-bold text-hc-warn-ink ring-1 ring-hc-warn-ink/30">{flagged} utan viðmiða</span>
+          <span className={badgeClass("warn", "md")}>{flagged} utan viðmiða</span>
         )}
         <span className="flex-1" />
         {!editing && (
@@ -259,8 +261,8 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             <input ref={fileRef} type="file" accept="application/pdf,image/*" multiple className="hidden"
               onChange={(e) => { if (e.target.files?.length) void readReport(e.target.files); e.target.value = ""; }} />
             <button type="button" onClick={() => setAsking(true)} disabled={reading}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-brand-dark px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
-              {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+              className={hcBtn.primary}>
+              {reading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileUp className="h-4 w-4" aria-hidden />}
               {reading ? "Les skýrsluna…" : "Lesa úr skýrslu"}
             </button>
             {/* Was a pre-ticked checkbox. A box that arrives already ticked
@@ -273,7 +275,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
               </span>
             )}
             <button type="button" onClick={() => setEditing(true)}
-              className="inline-flex min-h-9 items-center rounded-xl border border-slate-300 bg-hc-surface px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+              className={hcBtn.secondary}>
               {recorded.length ? "Breyta gildum" : "Skrá gildi"}
             </button>
           </>
@@ -282,38 +284,40 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
       </div>
 
       {needsConsent && (
-        <div className="mt-3 rounded-2xl bg-hc-warn-surface p-4 ring-1 ring-hc-warn-ink/30">
+        <div className="mt-3 rounded-hc-card bg-hc-warn-surface p-4 ring-1 ring-hc-warn-ink/30">
           <p className="font-bold text-hc-warn-ink">Við gátum ekki lesið þetta skjal hér</p>
           {warnings.map((w, i) => <p key={i} className="mt-1 text-sm leading-relaxed text-hc-warn-ink">{w}</p>)}
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <button type="button" disabled={reading || !pending.length} onClick={() => void readReport(pending, true)}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-amber-900 px-4 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50">
-              {reading ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Senda í AI-lestur
+              className={`${hcBtn.base} bg-amber-900 text-white hover:bg-amber-800`}>
+              {reading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null} Senda í AI-lestur
             </button>
             <button type="button" onClick={() => { setNeedsConsent(false); setWarnings([]); setPending([]); }}
-              className="text-sm font-semibold text-hc-warn-ink hover:underline">Nei, ég skrái gildin sjálf</button>
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-hc-warn-ink hover:underline">Nei, ég skrái gildin sjálf</button>
           </div>
         </div>
       )}
 
       {found && found.length > 0 && (
-        <div className="mt-3 rounded-2xl border border-slate-900/10 bg-hc-sunken p-3">
+        <div className="mt-3 rounded-hc-card bg-hc-sunken p-3 ring-1 ring-hc-border">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-hc-ink">Úr skýrslunni{foundDate ? ` · ${foundDate}` : ""}</p>
-            <span className="rounded-full bg-hc-surface px-2 py-0.5 text-xs font-semibold text-hc-ink-2 ring-1 ring-hc-hairline">{found.length} gildi fundust</span>
+            <span className={badgeClass("neutral", "md")}>{found.length} gildi fundust</span>
             <span className="flex-1" />
-            <button type="button" onClick={() => setFound(null)} className="text-sm font-semibold text-hc-ink-2 hover:underline">Hætta við</button>
+            <button type="button" onClick={() => setFound(null)} className={hcBtn.ghost}>Hætta við</button>
           </div>
           <p className="mt-0.5 text-xs text-hc-ink-2">Farðu yfir gildin áður en þau eru vistuð. Skráin sjálf er hvergi geymd.</p>
 
-          <ul className="mt-2 divide-y divide-slate-200 rounded-xl bg-hc-surface">
+          <ul className="mt-2 divide-y divide-hc-hairline rounded-hc-element bg-hc-surface ring-1 ring-hc-hairline">
             {found.map((v, i) => {
               const entry = markers.find((m) => m.slug === v.slug);
               const b = entry && !sexUnknown(entry, sex) ? bandForValue(entry, v.value, sex) : null;
               return (
-                <li key={`${v.code}-${i}`} className="flex items-center gap-3 px-3 py-2">
+                <li key={`${v.code}-${i}`}>
+                  {/* The whole row toggles it, not only the 16px box. */}
+                  <label className="flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2">
                   <input type="checkbox" checked={!!take[i]} onChange={(e) => setTake({ ...take, [i]: e.target.checked })}
-                    aria-label={`Vista ${entry?.title ?? v.label}`} className="h-4 w-4 accent-emerald-600" />
+                    aria-label={`Vista ${entry?.title ?? v.label}`} className="h-4 w-4 accent-hc-brand-dark" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-hc-ink">{entry?.title ?? v.label}</span>
                     <span className="block text-xs text-hc-ink-2">
@@ -326,6 +330,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                   <span className={`rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ring-1 ${b ? TONE_PILL[b.tone] : "bg-hc-sunken text-hc-ink-2 ring-hc-hairline"}`}>
                     {String(v.value).replace(".", ",")}{v.unit ? ` ${v.unit}` : ""}
                   </span>
+                  </label>
                 </li>
               );
             })}
@@ -338,8 +343,8 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           )}
 
           <button type="button" onClick={saveImported} disabled={busy || !Object.values(take).some(Boolean)}
-            className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-hc-brand px-4 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
-            <Check className="h-4 w-4" /> Vista valin gildi
+            className={`${hcBtn.primary} mt-3`}>
+            <Check className="h-4 w-4" aria-hidden /> Vista valin gildi
           </button>
         </div>
       )}
@@ -357,7 +362,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             const unknown = sexUnknown(e, sex);
             const b = unknown ? null : bandForValue(e, v, sex);
             return (
-              <li key={e.slug} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-hc-hairline">
+              <li key={e.slug} className="flex items-center gap-3 rounded-hc-element px-3 py-2 ring-1 ring-hc-hairline">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-hc-ink">{e.title}</span>
                   <span className="block text-xs text-hc-ink-2">
@@ -370,8 +375,8 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                   {String(v).replace(".", ",")}{e.unit ? ` ${e.unit}` : ""}
                 </span>
                 <button type="button" onClick={() => setLookup(`${e.title} ${v}`)} title={`Fletta upp ${e.title}`}
-                  aria-label={`Fletta upp ${e.title}`} className="rounded-lg p-1.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
-                  <BookOpen className="h-4 w-4" />
+                  aria-label={`Fletta upp ${e.title}`} className="-my-1 grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
+                  <BookOpen className="h-4 w-4" aria-hidden />
                 </button>
               </li>
             );
@@ -384,7 +389,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
           <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-3">Önnur gildi úr skýrslunni</p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {extras.map((r) => (
-              <li key={r.marker} className="flex items-center gap-3 rounded-xl px-3 py-2 ring-1 ring-hc-hairline">
+              <li key={r.marker} className="flex items-center gap-3 rounded-hc-element px-3 py-2 ring-1 ring-hc-hairline">
                 <span className="min-w-0 flex-1 truncate text-sm text-hc-ink-2">{r.note || r.marker.replace(/^x:/, "")}</span>
                 <span className="rounded-lg bg-hc-sunken px-2.5 py-1 text-sm font-bold tabular-nums text-hc-ink-2 ring-1 ring-hc-hairline">
                   {String(r.value).replace(".", ",")}{r.unit ? ` ${r.unit}` : ""}
@@ -400,7 +405,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
         <div className="mt-3 space-y-4">
           <label className="flex items-center gap-2 text-sm text-hc-ink-2">
             Mælt
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm" />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={hcInput.replace("w-full", "w-auto")} />
           </label>
 
           {(["blood", "body"] as const).map((cat) => {
@@ -428,7 +433,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
                           id={`res-${e.slug}`} inputMode="decimal" value={raw}
                           onChange={(ev) => setDraft({ ...draft, [e.slug]: ev.target.value })}
                           placeholder="—"
-                          className={`w-24 rounded-lg border px-2 py-1.5 text-right text-sm tabular-nums ${b && b.tone !== "good" ? "border-amber-300 bg-hc-warn-surface" : "border-slate-300"}`}
+                          className={`w-24 rounded-hc-element border px-2 py-1.5 text-right text-sm tabular-nums text-hc-ink placeholder:text-hc-ink-3 ${b && b.tone !== "good" ? "border-hc-warn-ink/60 bg-hc-warn-surface" : "border-hc-control bg-hc-surface"}`}
                         />
                         <span className="w-20 shrink-0 text-[11px] text-hc-ink-2">{b ? TONE_IS[b.tone] : unknown && v != null ? "kyn vantar" : ""}</span>
                       </li>
@@ -441,11 +446,11 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
 
           <div className="flex items-center gap-2 border-t border-hc-hairline pt-3">
             <button type="button" onClick={save} disabled={busy}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-hc-brand px-4 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
-              <Check className="h-4 w-4" /> {busy ? "Vista…" : "Vista gildi"}
+              className={hcBtn.primary}>
+              <Check className="h-4 w-4" aria-hidden /> {busy ? "Vista…" : "Vista gildi"}
             </button>
             <button type="button" onClick={() => { setDraft({}); setEditing(false); setMsg(""); }}
-              className="min-h-10 rounded-xl px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken-2">Hætta við</button>
+              className={hcBtn.ghost}>Hætta við</button>
             <span className="text-xs text-hc-ink-2">Skráð gildi sjást aðeins í vinnustöðinni og stjórnborði — sjúkraskráin er í Medalia.</span>
           </div>
         </div>

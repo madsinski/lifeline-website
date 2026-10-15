@@ -18,7 +18,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Minus, PenLine, ChevronDown } from "lucide-react";
-import { hcBtn } from "./ui";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { hcBtn, hcCard } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -35,10 +36,7 @@ interface Change {
 
 /** 12. okt. kl. 14:30 — hand-formatted, as everywhere else in Icelandic. */
 function when(iso: string) {
-  const d = new Date(iso);
-  const day = d.toLocaleDateString("is-IS", { day: "numeric", month: "short" });
-  const t = d.toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" });
-  return `${day} kl. ${t}`;
+  return fmtDateTime(iso, { month: "short" });
 }
 
 export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: string }) {
@@ -59,7 +57,7 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
   /* Nothing to say is said plainly rather than with an empty card. */
   if (rows.length === 0) {
     return (
-      <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4">
+      <section className={`${hcCard.base} p-4`}>
         <h3 className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Breytingar á áætlun</h3>
         <p className="mt-1 text-sm text-hc-ink-2">Engar breytingar skráðar.</p>
       </section>
@@ -69,7 +67,7 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
   const shown = all ? rows : rows.slice(0, 4);
 
   return (
-    <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4">
+    <section className={`${hcCard.base} p-4`}>
       <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
         Breytingar á áætlun
       </h3>
@@ -81,7 +79,7 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
               {/* The colour carries the who, so the eye can sort the list
                   without reading every line: amber is the client acting on
                   their own plan, slate is us. */}
-              <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${mine ? "bg-slate-400" : "bg-amber-400"}`} aria-hidden />
+              <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${mine ? "bg-hc-ink-3" : "bg-hc-signal-yellow"}`} aria-hidden />
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-hc-ink-2">
                   <span className={`font-semibold ${mine ? "text-hc-ink-2" : "text-hc-warn-ink"}`}>
@@ -95,14 +93,14 @@ export default function PlanChanges({ api, journeyId }: { api: Api; journeyId: s
                   <ul className="mt-0.5 space-y-0.5 text-sm text-hc-ink-2">
                     {c.added.map((t, i) => (
                       <li key={`a${i}`} className="flex items-start gap-1.5">
-                        <Plus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
+                        <Plus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-hc-ok-ink" aria-hidden />
                         <span className="min-w-0">{t}</span>
                       </li>
                     ))}
                     {c.removed.map((t, i) => (
                       <li key={`r${i}`} className="flex items-start gap-1.5">
-                        <Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" aria-hidden />
-                        <span className="min-w-0 line-through decoration-slate-300">{t}</span>
+                        <Minus className="mt-0.5 h-3.5 w-3.5 shrink-0 text-hc-bad-ink" aria-hidden />
+                        <span className="min-w-0 line-through decoration-hc-ink-3">{t}</span>
                       </li>
                     ))}
                     {c.edited.map((e, i) => (

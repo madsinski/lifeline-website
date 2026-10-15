@@ -6,14 +6,20 @@
 // longest should be next; a reply closes it unless the coach says otherwise.
 // Reading one does not claim it — two coaches opening the same request is
 // better than one quietly taking it and forgetting.
+//
+// The workstation's Í dag list mounts RequestRow inside its single "Bíður
+// þín" list, so a request sits beside the journey tasks and the unanswered
+// messages instead of in a section of its own. The default export is the
+// same rows as a standalone list, for anywhere that wants just these.
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, ChevronRight, Loader2 } from "lucide-react";
 import { REQUEST_IS, STATUS_IS, requestSummary, type RequestKind } from "@/lib/hc/requests";
+import { hcBtn } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-interface Row {
+export interface WsRequest {
   id: string;
   journey_id: string;
   kind: RequestKind;
@@ -26,7 +32,8 @@ interface Row {
   name: string | null;
 }
 
-const waited = (iso: string) => {
+/** "3 klst." / "2 dagar" — how long somebody has been waiting. */
+export const waited = (iso: string) => {
   const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3600000);
   if (h < 1) return "rétt í þessu";
   if (h < 24) return `${h} klst.`;
@@ -34,94 +41,113 @@ const waited = (iso: string) => {
   return `${d} ${d === 1 ? "dagur" : "dagar"}`;
 };
 
-export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journeyId: string) => void }) {
-  const [rows, setRows] = useState<Row[] | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
+const tall = (c: string) => c.replace("min-h-10", "min-h-11");
+const input = "w-full rounded-hc-element border border-hc-control bg-hc-surface px-3 py-2 text-sm text-hc-ink outline-none placeholder:text-hc-ink-3 focus:border-hc-brand-dark focus:ring-2 focus:ring-hc-brand/25";
+
+/**
+ * One request, as a list row: who, what, and "Svara" — the one action,
+ * which opens the reply in place. The name opens the client.
+ */
+export function RequestRow({ api, r, onOpen, onDone, dot }: {
+  api: Api;
+  r: WsRequest;
+  onOpen?: (journeyId: string) => void;
+  /** After a reply is saved, so the caller can reload its list. */
+  onDone: () => void;
+  /** A leading dot, so the row lines up with the rows around it. */
+  dot?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const send = async (status: string) => {
+    setBusy(true); setErr("");
+    const res = await api("/api/vinnustod/requests", { method: "POST", body: JSON.stringify({ id: r.id, status, reply: reply.trim() || undefined }) }).catch(() => null);
+    setBusy(false);
+    if (!res?.ok) { setErr("Svarið vistaðist ekki. Reyndu aftur."); return; }
+    setOpen(false); setReply("");
+    onDone();
+  };
+
+  return (
+    <li className="px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3">
+        {dot}
+        <button type="button" disabled={!onOpen} onClick={() => onOpen?.(r.journey_id)}
+          className="min-w-0 flex-1 rounded-lg text-left enabled:hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
+          <span className="block font-semibold text-hc-ink">{r.name ?? "—"}</span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-hc-ink-2">
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${REQUEST_IS[r.kind].cls}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${REQUEST_IS[r.kind].dot}`} aria-hidden />
+              {requestSummary(r.kind, r.detail)}
+            </span>
+            <span>beið í {waited(r.created_at)} · {STATUS_IS[r.status]}</span>
+          </span>
+        </button>
+        {!open && (
+          <button type="button" onClick={() => { setOpen(true); setReply(r.reply ?? ""); }}
+            className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-hc-brand/40 bg-hc-surface px-4 text-sm font-semibold text-hc-brand-text transition hover:bg-hc-brand-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
+            Svara
+          </button>
+        )}
+      </div>
+      {r.body && <p className="mt-1 text-sm text-hc-ink-2">{r.body}</p>}
+
+      {open && (
+        <div className="mt-2 space-y-2">
+          <label className="sr-only" htmlFor={`req-${r.id}`}>Svar til {r.name ?? "skjólstæðings"}</label>
+          <textarea id={`req-${r.id}`} value={reply} onChange={(e) => setReply(e.target.value)} rows={3} maxLength={4000} autoFocus
+            className={input} placeholder="Svar sem skjólstæðingurinn sér í heilsuferðinni sinni…" />
+          {err && <p role="alert" className="text-sm font-semibold text-hc-bad-ink">{err}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={busy} onClick={() => void send("done")} className={tall(hcBtn.primary)}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
+              Svara og loka
+            </button>
+            <button type="button" disabled={busy} onClick={() => void send("in_progress")} className={tall(hcBtn.secondary)}>
+              Svara, held áfram
+            </button>
+            <button type="button" onClick={() => { setOpen(false); setReply(""); setErr(""); }} className={tall(hcBtn.ghost)}>Hætta við</button>
+          </div>
+        </div>
+      )}
+    </li>
+  );
+}
+
+export default function WsRequests({ api, onOpen }: { api: Api; onOpen?: (journeyId: string) => void }) {
+  const [rows, setRows] = useState<WsRequest[] | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await api("/api/vinnustod/requests");
-    if (!r.ok) return;
-    const j = (await r.json().catch(() => ({}))) as { requests?: Row[] };
-    setTimeout(() => setRows(j.requests ?? []), 0);
+    const r = await api("/api/vinnustod/requests").catch(() => null);
+    if (!r?.ok) { setTimeout(() => setFailed(true), 0); return; }
+    const j = (await r.json().catch(() => ({}))) as { requests?: WsRequest[] };
+    setTimeout(() => { setFailed(false); setRows(j.requests ?? []); }, 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
 
-  const send = async (id: string, status: string) => {
-    setBusy(true);
-    const r = await api("/api/vinnustod/requests", { method: "POST", body: JSON.stringify({ id, status, reply: reply.trim() || undefined }) });
-    setBusy(false);
-    if (!r.ok) return;
-    setOpenId(null); setReply("");
-    await load();
-  };
-
-  if (!rows?.length) return null;
+  if (failed && rows === null) {
+    return (
+      <p role="alert" className="flex flex-wrap items-center gap-2 rounded-2xl bg-hc-bad-surface px-4 py-3 text-sm text-hc-bad-ink">
+        Náði ekki í beiðnir.
+        <button type="button" onClick={() => void load()} className={tall(hcBtn.secondary)}>Reyna aftur</button>
+      </p>
+    );
+  }
+  if (rows === null) return <div className="h-16 rounded-2xl hc-shimmer" aria-busy="true" aria-label="Hleð beiðnum" />;
+  if (!rows.length) return null;
 
   return (
     <section>
-      <h2 className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">
-        {/* Red and pulsing, like the tab badge, because these are people
-            waiting on a reply — the same thing an unread message is. A
-            count in neutral ink said "there are some" where this has to say
-            "somebody is waiting". Brand ink stays for counts of ongoing work
-            like Bíður þín, which is not new and should not flash.
-            The pulse stops after six iterations (animate-hc-ping) and
-            motion-reduce removes it entirely. */}
-        Beiðnir
-        <span className="relative grid h-5 min-w-5 place-items-center">
-          <span className="absolute inset-0 animate-hc-ping rounded-full bg-red-500/40 motion-reduce:hidden" aria-hidden />
-          <span className="relative grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
-            {rows.length}
-          </span>
-        </span>
-      </h2>
+      <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">Beiðnir · {rows.length}</h2>
       <ul className="divide-y divide-hc-hairline overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface">
         {rows.map((r) => (
-          <li key={r.id} className="px-4 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${REQUEST_IS[r.kind].cls}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${REQUEST_IS[r.kind].dot}`} aria-hidden />
-                {requestSummary(r.kind, r.detail)}
-              </span>
-              <span className="font-semibold text-hc-ink">{r.name ?? "—"}</span>
-              <span className="text-xs text-hc-ink-2">beið í {waited(r.created_at)} · {STATUS_IS[r.status]}</span>
-              {onOpen && (
-                <button type="button" onClick={() => onOpen(r.journey_id)}
-                  className="ml-auto inline-flex items-center gap-1 text-sm font-semibold text-hc-ink-2 hover:text-hc-ink">
-                  Opna <ChevronRight className="h-4 w-4" aria-hidden />
-                </button>
-              )}
-            </div>
-            {r.body && <p className="mt-1 text-sm text-hc-ink-2">{r.body}</p>}
-
-            {openId === r.id ? (
-              <div className="mt-2 space-y-2">
-                <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={3} maxLength={4000}
-                  className="w-full rounded-xl border border-slate-300 p-2 text-sm focus:border-emerald-500 focus:outline-none"
-                  placeholder="Svar sem skjólstæðingurinn sér í heilsuferðinni sinni…" />
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" disabled={busy} onClick={() => void send(r.id, "done")}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-hc-brand-dark px-3 text-sm font-semibold text-white disabled:opacity-50">
-                    {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-                    Svara og loka
-                  </button>
-                  <button type="button" disabled={busy} onClick={() => void send(r.id, "in_progress")}
-                    className="min-h-9 rounded-full border border-slate-300 px-3 text-sm font-semibold text-hc-ink-2">
-                    Svara, held áfram
-                  </button>
-                  <button type="button" onClick={() => { setOpenId(null); setReply(""); }}
-                    className="min-h-9 px-2 text-sm text-hc-ink-2">Hætta við</button>
-                </div>
-              </div>
-            ) : (
-              <button type="button" onClick={() => { setOpenId(r.id); setReply(r.reply ?? ""); }}
-                className="mt-1 text-sm font-semibold text-hc-ok-ink hover:underline">
-                Svara
-              </button>
-            )}
-          </li>
+          <RequestRow key={r.id} api={api} r={r} onDone={() => void load()}
+            onOpen={onOpen}
+            dot={onOpen ? undefined : <ChevronRight className="h-4 w-4 text-hc-ink-3" aria-hidden />} />
         ))}
       </ul>
     </section>

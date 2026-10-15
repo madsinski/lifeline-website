@@ -286,17 +286,40 @@ button.medalia-widget {
   overflow: hidden;
 }
 
-/* Better focus states for accessibility */
-*:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-  border-radius: 4px;
+/* Better focus states for accessibility.
+ *
+ * hc-brand-dark (#047857, 5.5:1 on white) rather than --primary: #10B981
+ * measures about 2.5:1 and misses the 3:1 a focus indicator needs
+ * (WCAG 1.4.11). In the workstation's dark theme brand-dark sinks into the
+ * card, so there the brand text tone (#34D399) carries it instead.
+ *
+ * Form fields are left out of the blanket rule and get their own, in the
+ * base layer: an input usually draws its own ring (focus:ring-*), and a
+ * base-layer rule loses to that component's utilities (focus:outline-none),
+ * so a field that brings its own indicator keeps it and one that does not
+ * still gets a visible outline. The old rule here removed it outright.
+ */
+@layer base {
+  /* In the base layer like the field rule below, so a component's own
+     focus:outline-none + focus-visible:ring-* wins and nothing draws two. */
+  *:not(input, textarea, select):focus-visible {
+    outline: 2px solid var(--hc-brand-dark);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--hc-brand-dark);
+    outline-offset: 1px;
+  }
 }
 
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: none;
+@layer base {
+  html[data-scheme="dark"] .hc-ws-scope *:focus-visible {
+    outline-color: var(--hc-brand-text);
+  }
 }
 
 /* Connecting lines for steps on desktop */

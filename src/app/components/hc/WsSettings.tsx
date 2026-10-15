@@ -19,9 +19,13 @@
  */
 
 import { useEffect, useState } from "react";
-import { Bell, BellOff, Calendar, KeyRound, LogOut, Check, Monitor, Moon, Sun } from "lucide-react";
+import { Bell, BellOff, Calendar, KeyRound, LogOut, Check, Monitor, Moon, Sun, Volume2 } from "lucide-react";
 import { hcBtn } from "./ui";
-import { SOUND_KEY, soundOn } from "@/lib/hc/chime";
+import { SOUND_KEY, chime, soundOn } from "@/lib/hc/chime";
+import { useWsApi } from "./ws-api";
+
+const ORG_IS: Record<string, string> = { lifeline: "Lifeline", vera: "Vera", heilsugaesla: "Heilsugæsla" };
+const orgLabel = (o: string) => ORG_IS[o] ?? (o ? o.charAt(0).toUpperCase() + o.slice(1) : "—");
 
 export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
   me: { name: string; email: string; organization: string; role: string; has_pin: boolean };
@@ -31,6 +35,17 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
   onLogout: () => void;
 }) {
   const [sound, setSound] = useState(true);
+  const api = useWsApi();
+  // Whether Google is connected, so the row says so instead of always "Tengja".
+  const [google, setGoogle] = useState<{ connected: boolean; email: string | null } | null>(null);
+  useEffect(() => {
+    let live = true;
+    api("/api/vinnustod/google")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (live && j) setGoogle({ connected: !!j.connected, email: j.email ?? null }); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [api]);
   /* "kerfið" follows the operating system, which is what most people
      actually want — their phone already switches at dusk. The two explicit
      choices exist for the cases it gets wrong: a bright clinic room, or a
@@ -83,7 +98,7 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Þú</h2>
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
           {([["Nafn", me.name], ["Netfang", me.email],
-             ["Starfsstöð", me.organization || "—"], ["Hlutverk", roleIs]] as const).map(([k, v]) => (
+             ["Starfsstöð", orgLabel(me.organization)], ["Hlutverk", roleIs]] as const).map(([k, v]) => (
             <div key={k} className="min-w-0">
               <dt className="text-xs text-hc-ink-2">{k}</dt>
               <dd className="truncate text-sm font-semibold text-hc-ink">{v}</dd>
@@ -113,10 +128,15 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
           </span>
           {/* A switch, not a checkbox: this is on/off, not a choice in a
               list, and the state should read at a glance from across a desk. */}
-          <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${sound ? "bg-hc-brand" : "bg-slate-300"}`}>
+          <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${sound ? "bg-hc-brand-dark" : "bg-hc-border"}`}>
             <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-hc-surface shadow transition-all ${sound ? "left-[1.375rem]" : "left-0.5"}`} />
           </span>
         </button>
+        {sound && (
+          <button type="button" onClick={() => chime()} className={`${hcBtn.secondary} mt-2 min-h-9 px-3 text-xs`}>
+            <Volume2 className="h-4 w-4" aria-hidden /> Prófa hljóð
+          </button>
+        )}
       </section>
 
       <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-hc-card">
@@ -138,14 +158,16 @@ export default function WsSettings({ me, mode, onPin, onCalendar, onLogout }: {
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Aðgangur og dagatal</h2>
         <div className="space-y-2">
           <Row icon={<Calendar className="h-4 w-4" aria-hidden />} title="Dagatal"
-            detail="Tengdu Google dagatal eða sæktu áskriftarslóð svo bókanir birtist hjá þér."
-            cta="Tengja" onClick={onCalendar} />
+            detail={google?.connected
+              ? `Google-dagatal tengt${google.email ? ` (${google.email})` : ""}. Bókanir birtast þar sjálfkrafa.`
+              : "Tengdu Google-dagatal eða sæktu áskriftarslóð svo bókanir birtist hjá þér."}
+            cta={google?.connected ? "Stillingar" : "Tengja"} onClick={onCalendar} done={!!google?.connected} />
           {mode === "worker" && (
-            <Row icon={<KeyRound className="h-4 w-4" aria-hidden />} title="PIN á þessu tæki"
+            <Row icon={<KeyRound className="h-4 w-4" aria-hidden />} title="PIN-númer (sama á öllum tækjum)"
               detail={me.has_pin
-                ? "PIN er virkt. Þú getur skipt um það hvenær sem er."
-                : "Settu PIN til að komast hraðar inn á þessu tæki."}
-              cta={me.has_pin ? "Breyta" : "Setja"} onClick={onPin} done={me.has_pin} />
+                ? "PIN-númerið er virkt á öllum tækjum sem muna eftir þér. Ef þú breytir því breytist það alls staðar."
+                : "Veldu PIN-númer til að komast hraðar inn á tækjum sem muna eftir þér."}
+              cta={me.has_pin ? "Breyta" : "Velja"} onClick={onPin} done={me.has_pin} />
           )}
         </div>
       </section>
@@ -176,7 +198,7 @@ function Row({ icon, title, detail, cta, onClick, done }: {
         <span className="block text-xs text-hc-ink-2">{detail}</span>
       </span>
       <button type="button" onClick={onClick}
-        className="shrink-0 rounded-full border border-hc-brand/40 bg-hc-surface px-3 py-1.5 text-xs font-semibold text-hc-brand-text transition hover:bg-hc-brand-surface">
+        className="shrink-0 rounded-full border border-hc-brand-dark/40 bg-hc-surface px-3 py-1.5 text-xs font-semibold text-hc-brand-text transition hover:bg-hc-brand-surface">
         {cta}
       </button>
     </div>

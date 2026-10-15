@@ -4,13 +4,16 @@
 //                     bio, photo_url, credentials, specialties[],
 //                     accepting_clients }
 // Invites email a one-time activation link (/vinnustod/virkja/<token>).
+// → { worker, invite_url, sent, expires_at }: sent is false when the email
+//   could not be sent (or no mail provider is configured), so the admin
+//   copies the link and delivers it another way.
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 import { adminGate } from "@/lib/hc/admin-gate";
 import { siteOrigin } from "@/lib/hc/server";
-import { issueWorkerLink } from "@/lib/hc/ws-auth";
+import { issueWorkerLink, WS_INVITE_DAYS } from "@/lib/hc/ws-auth";
 
 export const runtime = "nodejs";
 
@@ -19,12 +22,13 @@ export async function GET(req: NextRequest) {
   if (g instanceof NextResponse) return g;
   const { data } = await supabaseAdmin
     .from("hc_workers")
-    .select("id, email, name, phone, organization, role, location_ids, receives_report_sms, active, invited_at, last_login_at, password_hash, bio, photo_url, credentials, specialties, accepting_clients")
+    .select("id, email, name, phone, organization, role, location_ids, receives_report_sms, active, invited_at, invite_expires_at, last_login_at, password_hash, bio, photo_url, credentials, specialties, accepting_clients")
     .order("name");
   return NextResponse.json({
     workers: (data || []).map((w) => {
-      const { password_hash: pw, ...rest } = w;
-      return { ...rest, activated: !!pw };
+      const { password_hash: pw, invite_expires_at: exp, ...rest } = w;
+      // An expiry only matters while the link is still unused.
+      return { ...rest, activated: !!pw, invite_expires_at: exp };
     }),
   });
 }
@@ -78,9 +82,12 @@ export async function POST(req: NextRequest) {
   if (error || !data) return NextResponse.json({ error: error?.code === "23505" ? "Netfangið er þegar skráð." : error?.message }, { status: 400 });
 
   let inviteUrl: string | null = null;
+  let sent = false;
+  let expiresAt: string | null = null;
   if (b.send_invite) {
     inviteUrl = await issueWorkerLink(data.id, "invite", siteOrigin(req));
-    await sendEmail({
+    expiresAt = new Date(Date.now() + WS_INVITE_DAYS * 86400_000).toISOString();
+    const mail = await sendEmail({
       to: data.email,
       subject: "Aðgangur að vinnustöð Lifeline",
       html: renderBrandedEmail({
@@ -92,7 +99,9 @@ export async function POST(req: NextRequest) {
         ctaUrl: inviteUrl,
       }),
       text: `Virkjaðu aðganginn þinn að vinnustöð Lifeline: ${inviteUrl}`,
-    });
+    }).catch(() => ({ ok: false, id: undefined }));
+    // "dev-log" = no RESEND_API_KEY: logged to the console, not delivered.
+    sent = mail.ok && mail.id !== "dev-log";
   }
-  return NextResponse.json({ worker: data, invite_url: inviteUrl });
+  return NextResponse.json({ worker: data, invite_url: inviteUrl, sent, expires_at: expiresAt });
 }

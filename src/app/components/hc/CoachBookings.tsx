@@ -13,6 +13,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CalendarClock, Check, Loader2, Video, X } from "lucide-react";
+import { fmtDate, fmtTime } from "@/app/components/account/ui/dates";
+import { fmtWeekdayShort } from "./format";
+import { hcBtn, hcCard, hcInput } from "./ui";
 import { MEASURE_IS, MEASURE_MINUTES, bookingLabel, bookingMinutes } from "@/lib/hc/bookings";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -32,8 +35,7 @@ interface Booking {
 const TIMES = ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "13:00",
   "13:30", "14:00", "14:30", "15:00", "15:30", "16:00"];
 
-const timeLabel = (iso: string) =>
-  new Date(iso).toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" });
+const timeLabel = (iso: string) => fmtTime(iso);
 
 /**
  * When, said the way somebody checking a diary needs it.
@@ -50,8 +52,8 @@ function whenLabel(iso: string, asOf: number): { lead: string; rest: string } {
   if (days === 0) return { lead: "Í dag", rest: `kl. ${time}` };
   if (days === 1) return { lead: "Á morgun", rest: `kl. ${time}` };
   if (days === -1) return { lead: "Í gær", rest: `kl. ${time}` };
-  const date = d.toLocaleDateString("is-IS", { day: "numeric", month: "short" });
-  const weekday = d.toLocaleDateString("is-IS", { weekday: "short" });
+  const date = fmtDate(iso, { year: false, month: "short" });
+  const weekday = fmtWeekdayShort(iso);
   return { lead: date, rest: `${weekday} · kl. ${time}` };
 }
 
@@ -111,7 +113,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
   };
 
   if (rows === null) {
-    return <div className="h-24 rounded-2xl hc-shimmer" aria-busy="true" aria-label="Hleð bókunum" />;
+    return <div className="h-24 rounded-hc-card hc-shimmer" aria-busy="true" aria-label="Hleð bókunum" />;
   }
 
   const live = rows.filter((b) => b.status !== "cancelled");
@@ -151,7 +153,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
         {!dim && (
           <button type="button" onClick={() => void patch(b.id, { cancel: true })}
             disabled={busy === b.id} aria-label={`Afboða ${bookingLabel(b.kind, b.items)}`}
-            className="shrink-0 rounded-lg p-2 text-hc-ink-3 hover:bg-hc-sunken hover:text-rose-600 disabled:opacity-50">
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-hc-ink-3 hover:bg-hc-bad-surface hover:text-hc-bad-ink disabled:opacity-50">
             {busy === b.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <X className="h-4 w-4" aria-hidden />}
           </button>
         )}
@@ -167,7 +169,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
    * than from this page.
    */
   const form = adding && (
-        <div className="space-y-3 rounded-2xl border border-hc-hairline bg-hc-sunken/60 p-3">
+        <div className="space-y-3 rounded-hc-card bg-hc-sunken p-3 ring-1 ring-hc-hairline">
           {adding === "measurement" && (
             <div className="flex flex-wrap gap-1.5">
               {Object.keys(MEASURE_MINUTES).map((k) => {
@@ -175,8 +177,8 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
                 return (
                   <button key={k} type="button" aria-pressed={on}
                     onClick={() => setItems((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]))}
-                    className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                      on ? "bg-emerald-700 text-white" : "bg-hc-sunken text-hc-ink-2 ring-1 ring-hc-hairline"}`}>
+                    className={`inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs font-bold transition ${
+                      on ? "bg-hc-brand-dark text-white" : "bg-hc-surface text-hc-ink-2 ring-1 ring-hc-control"}`}>
                     {MEASURE_IS[k]} <span className="font-normal opacity-70">{MEASURE_MINUTES[k]} mín.</span>
                   </button>
                 );
@@ -189,12 +191,12 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
               <span className="font-medium text-hc-ink-2">Dagur</span>
               <input type="date" value={day} onChange={(e) => setDay(e.target.value)}
                 min={asOf ? new Date(asOf).toISOString().slice(0, 10) : undefined}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-hc-ink" />
+                className={`mt-1 ${hcInput}`} />
             </label>
             <label className="text-sm">
               <span className="font-medium text-hc-ink-2">Tími</span>
               <select value={time} onChange={(e) => setTime(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-hc-ink">
+                className={`mt-1 ${hcInput}`}>
                 {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </label>
@@ -214,11 +216,11 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           <div className="flex gap-2">
             <button type="button" onClick={() => void create()}
               disabled={!day || busy === "new" || (adding === "measurement" && !items.length)}
-              className="inline-flex items-center gap-2 rounded-xl bg-hc-brand-dark px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
+              className={hcBtn.primary}>
               {busy === "new" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Bóka
             </button>
             <button type="button" onClick={() => { setAdding(null); setErr(null); setItems([]); }}
-              className="rounded-xl px-4 py-2 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+              className={hcBtn.ghost}>
               Hætta við
             </button>
           </div>
@@ -238,7 +240,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
     const mine = { soon: soon.filter((b) => b.kind === kind), past: past.filter((b) => b.kind === kind) };
     const open = adding === kind;
     return (
-      <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-3">
+      <section className={`${hcCard.base} p-3`}>
         <div className="mb-2 flex items-center gap-2">
           <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${
             kind === "video" ? "bg-hc-info-surface text-hc-info-ink" : "bg-hc-ok-surface text-hc-ok-ink"}`}>
@@ -247,7 +249,7 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
           <h3 className="flex-1 font-bold text-hc-ink">{title}</h3>
           {!open && (
             <button type="button" onClick={() => { setAdding(kind); setErr(null); }}
-              className="shrink-0 rounded-full bg-hc-brand-dark px-3 py-1.5 text-xs font-bold text-white">
+              className={`${hcBtn.primary} shrink-0`}>
               Bóka
             </button>
           )}
@@ -258,11 +260,11 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
             {kind === "video" ? "Ekkert myndsímtal bókað." : "Engin mæling bókuð."}
           </p>
         )}
-        {mine.soon.length > 0 && <ul className="overflow-hidden rounded-xl ring-1 ring-hc-hairline">{mine.soon.map((b) => row(b, false))}</ul>}
+        {mine.soon.length > 0 && <ul className="overflow-hidden rounded-hc-element ring-1 ring-hc-hairline">{mine.soon.map((b) => row(b, false))}</ul>}
         {mine.past.length > 0 && (
           <>
             <p className="mt-2 px-1 text-[11px] font-bold uppercase tracking-wide text-hc-ink-2">Liðið</p>
-            <ul className="mt-1 overflow-hidden rounded-xl ring-1 ring-hc-hairline">{mine.past.map((b) => row(b, true))}</ul>
+            <ul className="mt-1 overflow-hidden rounded-hc-element ring-1 ring-hc-hairline">{mine.past.map((b) => row(b, true))}</ul>
           </>
         )}
         {open && <div className="mt-2">{form}</div>}

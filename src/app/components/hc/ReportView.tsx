@@ -21,23 +21,25 @@
 // where they disagree we say so quietly rather than pretend.
 
 import { useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, Minus, Plus, TrendingDown, TrendingUp, Upload } from "lucide-react";
-import { PILLAR_META, type Pillar } from "@/lib/hc/types";
+import { ArrowRight, ChevronDown, Minus, Plus, TrendingDown, TrendingUp, Upload } from "lucide-react";
+import type { Pillar } from "@/lib/hc/types";
 import { SIGNAL_LABEL, type Grunnheilsa, type ReportItem, type Signal } from "@/lib/hc/grunnheilsa";
 import type { KnowledgeBand, ReportReference } from "@/lib/hc/knowledge";
+import { badgeClass } from "./Badge";
+import { hcCard, hcKicker } from "./ui";
 
-const DOT: Record<Signal, string> = { green: "bg-emerald-500", yellow: "bg-amber-400", red: "bg-red-500" };
+const DOT: Record<Signal, string> = { green: "bg-hc-signal-green", yellow: "bg-hc-signal-yellow", red: "bg-hc-signal-red" };
 
 const CHIP: Record<Signal, string> = {
   green: "bg-hc-ok-surface text-hc-ok-ink ring-hc-ok-ink/30",
   yellow: "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30",
-  red: "bg-red-50 text-red-700 ring-red-200",
+  red: "bg-hc-bad-surface text-hc-bad-ink ring-hc-bad-ink/30",
 };
 const TONE_BAR: Record<KnowledgeBand["tone"], string> = {
-  good: "bg-emerald-400",
-  watch: "bg-amber-300",
-  high: "bg-red-400",
-  low: "bg-blue-300",
+  good: "bg-hc-signal-green",
+  watch: "bg-hc-signal-yellow",
+  high: "bg-hc-signal-red",
+  low: "bg-hc-mental",
 };
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100).replace(".", ",");
@@ -60,8 +62,29 @@ function longDateIs(iso: string | null): string | null {
  * Rows are matched by key so the order is ours, not the PDF's. Anything the
  * report grows that we have not listed still lands in the last group.
  */
+/*
+ * A section's colours, as CSS variables rather than hex.
+ *
+ * The heading used to print its title in the raw accent (#CA8A04, #0EA5E9 —
+ * under 3:1 on white) and tint itself by appending "14" to the hex, which
+ * only works for hex and not for a token that changes in the dark theme.
+ * edge = the 3px rule on the left, ink = text, soft = the heading wash —
+ * each one a pair from globals.css that holds AA in both themes.
+ */
+interface Tone { edge: string; ink: string; soft: string }
+const tok = (n: string) => `var(--hc-${n})`;
+const pillarTone = (p: Pillar): Tone => ({ edge: tok(p), ink: tok(`${p}-ink`), soft: tok(`${p}-soft`) });
+const TONE = {
+  habits: { edge: tok("muted"), ink: tok("ink-2"), soft: tok("sunken") },
+  metabolic: { edge: tok("brand"), ink: tok("brand-text"), soft: tok("brand-surface") },
+  heart: { edge: tok("signal-red"), ink: tok("bad-ink"), soft: tok("bad-surface") },
+  liver: { edge: tok("signal-yellow"), ink: tok("warn-ink"), soft: tok("warn-surface") },
+  body: { edge: tok("info-ink"), ink: tok("info-ink"), soft: tok("info-surface") },
+  rest: { edge: tok("muted"), ink: tok("ink-2"), soft: tok("sunken") },
+} satisfies Record<string, Tone>;
+
 const SECTIONS: {
-  key: string; title: string; blurb: string; accent: string; keys?: string[];
+  key: string; title: string; blurb: string; accent: Tone; keys?: string[];
   /** One of the four questionnaire pillars; its header shows their average. */
   pillar?: Pillar;
   /**
@@ -71,29 +94,29 @@ const SECTIONS: {
    */
   scoreKey?: string;
 }[] = [
-  { pillar: "sleep" as Pillar, key: "sleep", title: "Svefn", blurb: "", accent: PILLAR_META.sleep.color,
+  { pillar: "sleep" as Pillar, key: "sleep", title: "Svefn", blurb: "", accent: pillarTone("sleep"),
     keys: ["svefn_vandamal", "svefn_venjur"] },
-  { pillar: "exercise" as Pillar, key: "exercise", title: "Hreyfing", blurb: "", accent: PILLAR_META.exercise.color,
+  { pillar: "exercise" as Pillar, key: "exercise", title: "Hreyfing", blurb: "", accent: pillarTone("exercise"),
     keys: ["hreyfing_vandamal", "hreyfing_venjur"] },
-  { pillar: "nutrition" as Pillar, key: "nutrition", title: "Næring", blurb: "", accent: PILLAR_META.nutrition.color,
+  { pillar: "nutrition" as Pillar, key: "nutrition", title: "Næring", blurb: "", accent: pillarTone("nutrition"),
     keys: ["naering_vandamal", "naering_venjur"] },
-  { pillar: "mental" as Pillar, key: "mental", title: "Andleg líðan", blurb: "", accent: PILLAR_META.mental.color,
+  { pillar: "mental" as Pillar, key: "mental", title: "Andleg líðan", blurb: "", accent: pillarTone("mental"),
     keys: ["andleg_heilsa", "streita", "vellidan"] },
-  { key: "habits", title: "Ávanar", blurb: "Nikótín, áfengi og önnur efni. 10 þýðir engin notkun.", accent: "#78716C",
+  { key: "habits", title: "Ávanar", blurb: "Nikótín, áfengi og önnur efni. 10 þýðir engin notkun.", accent: TONE.habits,
     // Caffeine, screens and gambling are habits, whatever pillar the
     // questionnaire files their score under. A number in the Svefn heading
     // that counted caffeine while caffeine was listed elsewhere would
     // describe rows the reader cannot see.
     keys: ["nikotin", "afengi", "onnur_efni", "koffin", "skjanotkun", "fjarhaettuspil", "matarhegdun"] },
-  { scoreKey: "efnaskiptaheilsa", key: "metabolic", title: "Efnaskipti", blurb: "Hvernig líkaminn heldur blóðsykri í skefjum. Hér sést álag fyrst.", accent: "#0D9488",
+  { scoreKey: "efnaskiptaheilsa", key: "metabolic", title: "Efnaskipti", blurb: "Hvernig líkaminn heldur blóðsykri í skefjum. Hér sést álag fyrst.", accent: TONE.metabolic,
     keys: ["efnaskiptaheilsa", "blodsykur", "insulin", "hba1c", "homa_ir"] },
-  { key: "heart", title: "Hjarta og blóðfitur", blurb: "Blóðþrýstingur og blóðfitur — það sem ræður áhættunni til langs tíma.", accent: "#E11D48",
+  { key: "heart", title: "Hjarta og blóðfitur", blurb: "Blóðþrýstingur og blóðfitur — það sem ræður áhættunni til langs tíma.", accent: TONE.heart,
     keys: ["hjartaheilsa", "bp_efri", "bp_nedri", "kolesterol", "hdl", "ldl", "thriglyserid"] },
-  { key: "liver", title: "Lifur", blurb: "Lifrarensím. Þau svara vel breytingum á áfengi, sykri og þyngd.", accent: "#CA8A04",
+  { key: "liver", title: "Lifur", blurb: "Lifrarensím. Þau svara vel breytingum á áfengi, sykri og þyngd.", accent: TONE.liver,
     keys: ["alat", "asat"] },
-  { key: "body", title: "Líkamssamsetning", blurb: "Þyngd segir lítið ein; samsetningin segir meira.", accent: "#4F46E5",
+  { key: "body", title: "Líkamssamsetning", blurb: "Þyngd segir lítið ein; samsetningin segir meira.", accent: TONE.body,
     keys: ["thyngd", "bmi", "fitumassi", "vodvamassi"] },
-  { key: "rest", title: "Annað úr skýrslunni", blurb: "", accent: "#64748B" },
+  { key: "rest", title: "Annað úr skýrslunni", blurb: "", accent: TONE.rest },
 ];
 
 export default function ReportView({ report, signals, reference, sex, audience = "staff", onUpload }: {
@@ -173,7 +196,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
           The boxes use CHIP now, the exact classes every pill further down
           the page uses, which means the hero cannot be dark: a green chip
           needs a light ground to be green on. */}
-      <section className="overflow-hidden rounded-3xl bg-hc-surface p-5 shadow-hc-card ring-1 ring-hc-hairline sm:p-6">
+      <section className={`overflow-hidden p-5 sm:p-6 ${hcCard.base}`}>
         {/* The score sits at the right edge, the size of what it is.
             It was inside the heading — "Lífstílseinkunn 7,4" as one line of
             text — which made the number the same weight as the word in
@@ -182,7 +205,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
             belongs at the top of that column, not buried in a sentence. */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-hc-brand-text">Heilsufarsskýrsla</p>
+            <p className={`${hcKicker} text-hc-brand-text`}>Heilsufarsskýrsla</p>
             <h2 className="mt-1 text-2xl font-bold text-hc-ink sm:text-3xl">
               {overall ? "Lífstílseinkunn" : "Niðurstöður"}
             </h2>
@@ -230,8 +253,8 @@ export default function ReportView({ report, signals, reference, sex, audience =
                 onClick={() => setOnly(only === sig ? null : sig)}
                 disabled={!counts[sig]}
                 aria-label={`Sýna aðeins: ${SIGNAL_LABEL[sig]}`}
-                className={`rounded-2xl px-3 py-2.5 text-center ring-1 transition disabled:opacity-40 ${CHIP[sig]} ${
-                  only === sig ? "ring-2 ring-offset-1" : "hover:brightness-95"}`}>
+                className={`min-h-11 rounded-hc-element px-3 py-2.5 text-center ring-1 transition disabled:opacity-40 ${CHIP[sig]} ${
+                  only === sig ? "ring-2 ring-offset-1 ring-offset-hc-surface" : "hover:brightness-95"}`}>
                 <p className="text-xl font-bold tabular-nums">{counts[sig]}</p>
                 <p className="text-[11px] font-semibold leading-tight">{SIGNAL_LABEL[sig]}</p>
               </button>
@@ -245,7 +268,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
             findable without competing. */}
         {onUpload && (
           <button type="button" onClick={onUpload}
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-hc-sunken-2 px-4 py-2 text-xs font-semibold text-hc-ink-2 ring-1 ring-hc-hairline transition hover:bg-slate-200">
+            className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-hc-element bg-hc-sunken-2 px-4 py-2 text-xs font-semibold text-hc-ink-2 ring-1 ring-hc-hairline transition hover:bg-hc-brand-surface hover:text-hc-brand-text">
             <Upload className="h-3.5 w-3.5 shrink-0" aria-hidden />
             Ertu með nýrri skýrslu? Hlaða upp
           </button>
@@ -258,7 +281,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
             Sýni aðeins: {SIGNAL_LABEL[only].toLowerCase()} ({counts[only]})
           </p>
           <button type="button" onClick={() => setOnly(null)}
-            className="shrink-0 text-sm font-bold text-hc-brand-text hover:underline">Sýna allt</button>
+            className="-my-2 inline-flex min-h-11 shrink-0 items-center text-sm font-bold text-hc-brand-text hover:underline">Sýna allt</button>
         </div>
       )}
 
@@ -274,16 +297,16 @@ export default function ReportView({ report, signals, reference, sex, audience =
               const first = item.recommendations.find((x) => x.priority === "red")?.text
                 ?? r?.improves?.[0] ?? item.advice[0];
               return (
-                <li key={item.key} className="rounded-2xl bg-red-50 px-4 py-3 ring-1 ring-red-200">
+                <li key={item.key} className="rounded-hc-card bg-hc-bad-surface px-4 py-3 ring-1 ring-hc-bad-ink/30">
                   <p className="flex items-baseline gap-2">
                     <span className="font-bold text-hc-ink">{item.title}</span>
-                    <span className="ml-auto shrink-0 font-bold tabular-nums text-red-700">
+                    <span className="ml-auto shrink-0 font-bold tabular-nums text-hc-bad-ink">
                       {fmt(item.value)}{item.unit ? ` ${item.unit}` : ""}
                     </span>
                   </p>
                   {first && (
                     <p className="mt-1 text-sm leading-snug text-hc-ink-2">
-                      <span className="font-semibold text-red-800">Fyrsta skrefið: </span>{first}
+                      <span className="font-semibold text-hc-bad-ink">Fyrsta skrefið: </span>{first}
                     </p>
                   )}
                 </li>
@@ -309,13 +332,13 @@ export default function ReportView({ report, signals, reference, sex, audience =
         const off = rows.filter((r) => r.signal === "red").length;
         return (
           <section key={s.key}
-            className="overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface"
-            style={{ borderLeftWidth: 3, borderLeftColor: s.accent }}>
+            className={`overflow-hidden border-l-[3px] ${hcCard.base}`}
+            style={{ borderLeftColor: s.accent.edge }}>
             {/* A wash of the section's own colour behind the heading. Enough
                 to break the page into blocks, not enough to compete with the
                 traffic lights, which are the only thing that means anything. */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2.5" style={{ backgroundColor: `${s.accent}14` }}>
-              <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: s.accent }}>{s.title}</h3>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2.5" style={{ backgroundColor: s.accent.soft }}>
+              <h3 className="text-sm font-bold uppercase tracking-wide" style={{ color: s.accent.ink }}>{s.title}</h3>
               {/* The section's own score, where the four summary cards used
                   to put it. "af 10" rather than a sentence explaining the
                   scale: the scale needs saying once, not four times. */}
@@ -324,11 +347,11 @@ export default function ReportView({ report, signals, reference, sex, audience =
                   and "byrjum hér" belongs beside its own number rather than
                   next to a title three words long. */}
               {s.pillar && s.key === weakest && (
-                <span className="ml-auto rounded-full bg-hc-brand-dark px-2 py-0.5 text-[10px] font-bold text-white">byrjum hér</span>
+                <span className={`ml-auto ${badgeClass("brand")}`}>byrjum hér</span>
               )}
               {avg !== undefined && (
                 <span className={`flex items-baseline gap-1 ${s.pillar && s.key === weakest ? "" : "ml-auto"}`}>
-                  <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: s.accent }}>{fmt1(avg)}</span>
+                  <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: s.accent.ink }}>{fmt1(avg)}</span>
                   <span className="text-xs font-semibold text-hc-ink-2">af 10</span>
                 </span>
               )}
@@ -337,7 +360,7 @@ export default function ReportView({ report, signals, reference, sex, audience =
                   and the score now carries the summary. A value outside the
                   reference range is the one thing worth saying twice. */}
               {off > 0 && (
-                <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-800">{off} utan viðmiða</span>
+                <span className={badgeClass("bad")}>{off} utan viðmiða</span>
               )}
               {/* order-last keeps the subtext under the whole line, so the
                   score sits beside the title rather than after a sentence. */}
@@ -384,7 +407,7 @@ function Row({ item, signal, entry, sex }: {
     <li>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
         className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hc-sunken">
-        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${signal ? DOT[signal] : "bg-slate-300"}`} aria-hidden />
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${signal ? DOT[signal] : "bg-hc-border"}`} aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block font-semibold text-hc-ink">{item.title}</span>
           <span className="block text-xs text-hc-ink-2">
@@ -414,7 +437,7 @@ function Row({ item, signal, entry, sex }: {
       </button>
 
       {open && (
-        <div className="space-y-4 border-t border-hc-hairline bg-hc-sunken/70 px-4 py-4">
+        <div className="space-y-4 border-t border-hc-hairline bg-hc-sunken px-4 py-4">
           {entry && entry.bands.length > 0 && (
             <BandScale bands={entry.bands} value={item.value} unit={item.unit || entry.unit} sex={sex} />
           )}
@@ -443,7 +466,7 @@ function Row({ item, signal, entry, sex }: {
               <ul className="space-y-0.5">
                 {entry.components.map((c, i) => (
                   <li key={i} className="flex gap-1.5 text-sm leading-snug text-hc-ink-2">
-                    <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-slate-400" />{c}
+                    <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-hc-muted" />{c}
                   </li>
                 ))}
               </ul>
@@ -459,28 +482,28 @@ function Row({ item, signal, entry, sex }: {
           {(improves.length > 0 || worsens.length > 0) && (
             <div className="grid gap-3 sm:grid-cols-2">
               {improves.length > 0 && (
-                <div className="rounded-xl bg-emerald-50/80 p-3 ring-1 ring-hc-ok-ink/30">
+                <div className="rounded-hc-element bg-hc-ok-surface p-3 ring-1 ring-hc-ok-ink/30">
                   <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-hc-ok-ink">
                     <Plus className="h-3.5 w-3.5" aria-hidden /> Þetta bætir
                   </p>
                   <ul className="space-y-1">
                     {improves.map((a, i) => (
                       <li key={i} className="flex gap-1.5 text-sm leading-snug text-hc-ok-ink">
-                        <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-emerald-600" />{a}
+                        <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-hc-ok-ink" />{a}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
               {worsens.length > 0 && (
-                <div className="rounded-xl bg-red-50/70 p-3 ring-1 ring-red-200">
-                  <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-red-800">
+                <div className="rounded-hc-element bg-hc-bad-surface p-3 ring-1 ring-hc-bad-ink/30">
+                  <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-hc-bad-ink">
                     <Minus className="h-3.5 w-3.5" aria-hidden /> Þetta vinnur á móti
                   </p>
                   <ul className="space-y-1">
                     {worsens.map((a, i) => (
-                      <li key={i} className="flex gap-1.5 text-sm leading-snug text-red-900">
-                        <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-red-500" />{a}
+                      <li key={i} className="flex gap-1.5 text-sm leading-snug text-hc-bad-ink">
+                        <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-hc-bad-ink" />{a}
                       </li>
                     ))}
                   </ul>
@@ -498,7 +521,7 @@ function Row({ item, signal, entry, sex }: {
               <ul className="space-y-1">
                 {item.advice.map((a, i) => (
                   <li key={i} className="flex gap-1.5 text-sm leading-snug text-hc-ink-2">
-                    <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-slate-400" />{a}
+                    <span aria-hidden className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-hc-muted" />{a}
                   </li>
                 ))}
               </ul>
@@ -562,7 +585,7 @@ function BandScale({ bands, value, unit, sex }: {
             {fmt(value)}{unit ? ` ${unit}` : ""}
           </span>
         </div>
-        <div className="flex h-2.5 overflow-hidden rounded-full bg-slate-200">
+        <div className="flex h-2.5 overflow-hidden rounded-full bg-hc-sunken-2">
           {ordered.map((b, i) => (
             <div key={i} className={TONE_BAR[b.tone]} style={{ width: width(b.min ?? lo, b.max ?? hi) }} title={b.label} />
           ))}
@@ -607,11 +630,11 @@ function Trend({ item }: { item: ReportItem }) {
   return (
     <div className="flex items-center gap-3">
       <svg viewBox={`0 0 ${w} ${h}`} className="h-8 w-40 overflow-visible" aria-hidden>
-        <path d={d} fill="none" stroke="#10B981" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={w} cy={h - ((item.value - min) / span) * h} r={2.5} fill="#10B981" />
+        <path d={d} fill="none" stroke="var(--hc-brand)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={w} cy={h - ((item.value - min) / span) * h} r={2.5} fill="var(--hc-brand)" />
       </svg>
       <p className="text-xs text-hc-ink-2">
-        {points[0].date} · {fmt(points[0].value)} → {item.date} · {fmt(item.value)}
+        {points[0].date} · {fmt(points[0].value)} <ArrowRight className="inline h-3 w-3 align-[-1px]" aria-hidden /><span className="sr-only">til</span> {item.date} · {fmt(item.value)}
       </p>
     </div>
   );
