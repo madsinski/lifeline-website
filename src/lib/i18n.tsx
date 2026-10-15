@@ -69,16 +69,32 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = l;
   }, []);
 
-  // Load translations from Supabase
+  /*
+   * Load translations from Supabase, in pages.
+   *
+   * This used to be one unpaginated select, which worked right up until the
+   * table passed a thousand rows. PostgREST caps a response at max-rows
+   * (1000 by default) and says nothing about it: you get 1000 rows and no
+   * error. Every key past the cap then fell through to its inline fallback,
+   * so the interface silently reverted to Icelandic for part of itself —
+   * and which part depended on whatever order Postgres felt like returning.
+   *
+   * It is ordered by key so the pages tile without gaps or repeats; an
+   * unordered range query can return the same row twice and miss another.
+   */
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const { data } = await supabase
-          .from("translations")
-          .select("key, en, is_text, approved");
-        if (data) {
-          const map: TranslationMap = {};
+        const PAGE = 1000;
+        const map: TranslationMap = {};
+        for (let from = 0; ; from += PAGE) {
+          const { data, error } = await supabase
+            .from("translations")
+            .select("key, en, is_text, approved")
+            .order("key", { ascending: true })
+            .range(from, from + PAGE - 1);
+          if (error || !data) break;
           for (const row of data) {
             const r = row as { key: string; en: string; is_text: string | null; approved: boolean };
             map[r.key] = {
@@ -86,8 +102,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
               is: r.is_text || r.en,
             };
           }
-          setTranslations(map);
+          if (data.length < PAGE) break;
         }
+        if (Object.keys(map).length) setTranslations(map);
       } catch {}
       setLoading(false);
     })();
