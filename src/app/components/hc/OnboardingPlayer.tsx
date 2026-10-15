@@ -33,6 +33,7 @@ import { moduleDef, type FlowStep } from "@/lib/hc/onboarding-modules";
 import { PUBLIC_PRIVACY_VERSION, PUBLIC_TERMS_VERSION } from "@/lib/public-pages-content";
 import { supabase } from "@/lib/supabase";
 import InstallGuide from "./InstallGuide";
+import SetupFlow from "./SetupFlow";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -550,6 +551,16 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
           ) : (
             <p className="mt-4 text-sm text-hc-ink-3">Hleð…</p>
           )}
+        </section>
+      )}
+
+      {/* The four setup things, walked. Not a copy of them: SetupFlow in
+          onboarding mode is the same component /app/adgangur renders, which
+          is the whole reason the controls were pulled out of the sheet. */}
+      {step.kind === "setup" && (
+        <section>
+          <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Komdu þér af stað"}</h1>
+          <div className="mt-4"><SetupFlow api={api} place="onboarding" /></div>
         </section>
       )}
 

@@ -34,7 +34,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Bell, CalendarDays, Check, ChevronDown, PlayCircle, UserRound, Users } from "lucide-react";
-import SetupWalkthrough from "./SetupWalkthrough";
+import SetupWalkthrough, { SetupStepBody, useSetupData } from "./SetupWalkthrough";
 import type { ProfileFormData } from "./ProfileForm";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -77,6 +77,7 @@ export default function SetupFlow({ api, place = "onboarding" }: {
 }) {
   const [done, setDone] = useState<Record<Key, boolean>>({ coach: false, calendar: false, partner: false, nudge: false });
   const [walk, setWalk] = useState(false);
+  const setupData = useSetupData(api);
   /*
    * The participant's own details, for the walkthrough's profile step.
    *
@@ -164,38 +165,76 @@ export default function SetupFlow({ api, place = "onboarding" }: {
           : "Ekkert af þessu er skylda og þú getur komið að því síðar í stillingum. Það er einfaldlega best að gera það núna."}
       </p>
 
-      {/* One layout, and it is the walk.
-          This card used to be the four things as expandable rows, each
-          opening its own panel inside the step inside the page — a card in
-          a card in a card, and a dropdown you had to scroll past to reach
-          the next one. The walkthrough is the same four things done
-          properly: one at a time, with somewhere to go next.
+      {/* Two shapes for the same four things.
 
-          What stays here is the summary — which of them are done — because
-          that is the one thing a list is better at than a flow. */}
+         Onboarding gets the walkthrough: one step at a time, with somewhere
+         to go next, which is what somebody meeting these for the first time
+         needs. The settings page gets them open and in place, because
+         somebody who came to change their coach should not have to walk
+         past three other steps to reach it.
+
+         Both render the same controls — SetupStepBody — so a fix to the
+         coach picker lands in both. */}
+      {settings ? (
+        /* Settings: the controls themselves, open, in order. The
+           walkthrough is still the right shape for somebody meeting these
+           four things for the first time — it is one at a time with
+           somewhere to go next — but somebody who came here to change their
+           coach should not have to walk past three other steps to do it. */
+        <div className="mt-4 space-y-3">
+          {rows.map((row) => {
+            const Icon = row.icon;
+            const ok = done[row.key];
+            return (
+              <section key={row.key} className="rounded-2xl p-4 ring-1 ring-hc-hairline">
+                <div className="flex items-start gap-3">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-hc-sunken text-hc-ink-2"}`}>
+                    {ok ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold leading-tight text-hc-ink">{row.title}</h4>
+                    <p className="text-xs leading-snug text-hc-ink-2">{row.why}</p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <SetupStepBody rowKey={row.key} d={setupData} api={api}
+                    data={profile ?? undefined} reload={load} entry={entry} />
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <>
       <ul className="mt-4 overflow-hidden rounded-2xl ring-1 ring-hc-hairline">
-        {rows.map((row) => {
-          const Icon = row.icon;
-          const ok = done[row.key];
-          return (
-            <li key={row.key} className="flex items-center gap-3 border-b border-hc-hairline p-3 last:border-b-0">
-              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
-                {ok ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold leading-tight text-hc-ink">{row.title}</span>
-                <span className="block text-xs leading-snug text-hc-ink-2">{row.why}</span>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+            {rows.map((row) => {
+              const Icon = row.icon;
+              const ok = done[row.key];
+              return (
+                <li key={row.key} className="flex items-center gap-3 border-b border-hc-hairline p-3 last:border-b-0">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ok ? "bg-hc-brand text-white" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+                    {ok ? <Check className="h-4 w-4" aria-hidden /> : <Icon className="h-4 w-4" aria-hidden />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold leading-tight text-hc-ink">{row.title}</span>
+                    <span className="block text-xs leading-snug text-hc-ink-2">{row.why}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
 
-      <button type="button" onClick={() => setWalk(true)}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-hc-brand-dark px-5 py-3 font-bold text-white transition hover:bg-hc-brand-dark">
-        <PlayCircle className="h-4 w-4" aria-hidden />
-        {count === 0 ? "Leiða mig í gegnum það" : all ? "Skoða skref fyrir skref" : "Halda áfram"}
-      </button>
+      {/* The walkthrough is onboarding's shape, so it is offered only
+          there. On the settings page the controls are already open. */}
+      {!settings && (
+        <button type="button" onClick={() => setWalk(true)}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-hc-brand-dark px-5 py-3 font-bold text-white transition hover:bg-hc-brand">
+          <PlayCircle className="h-4 w-4" aria-hidden />
+          {count === 0 ? "Leiða mig í gegnum það" : all ? "Skoða skref fyrir skref" : "Halda áfram"}
+        </button>
+      )}
 
       {walk && (
         <SetupWalkthrough api={api} onClose={() => { setWalk(false); void load(); }}

@@ -60,29 +60,20 @@ function profileWhy(entry?: string | null): string {
     : "Nafn, kennitala, sími og heimilisfang — og samþykki fyrir heilsufarsupplýsingum.";
 }
 
-export default function SetupWalkthrough({ api, onClose, data, reload, entry }: {
-  api: Api;
-  onClose: () => void;
-  /** For the profile step; omitted where the caller has no journey loaded. */
-  data?: ProfileFormData;
-  reload?: () => Promise<void>;
-  /** Which product this is, so the coach step can be left out where there is none. */
-  entry?: string | null;
-}) {
-  const [i, setI] = useState(0);
+/**
+ * Everything the four setup steps need, loaded once.
+ *
+ * Pulled out of the walkthrough so /app/adgangur can render the same
+ * editors without opening it. The alternative was a second copy of the
+ * coach picker, the calendar button and the notification switch, which is
+ * how two screens that are supposed to do the same thing drift apart.
+ */
+export function useSetupData(api: Api) {
   const [calOpen, setCalOpen] = useState(false);
   const [coaches, setCoaches] = useState<Worker[] | null>(null);
   const [myCoach, setMyCoach] = useState<Worker | null>(null);
   const [calConnected, setCalConnected] = useState(false);
   const [busy, setBusy] = useState(false);
-  /*
-   * iPhone, and not on the home screen yet.
-   *
-   * Read once on mount. Installing happens in another context — the user
-   * leaves, adds it, and comes back through the icon — so this does not
-   * need to be live, and a value that flips under somebody's finger would
-   * be worse than one that is a minute old.
-   */
   const [iosNeedsInstall] = useState(() => {
     if (typeof window === "undefined") return false;
     const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -102,24 +93,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
       setCalConnected(!!cal?.connected);
     }, 0);
   }, [api]);
-
   useEffect(() => { void load(); }, [load]);
-
-  /*
-   * Warm what the last step needs while you are still on the first.
-   *
-   * Step 6 asks /api/hc/nudges for itself, five taps after this component
-   * mounts — plenty of time to have fetched it already. Fired on an idle
-   * callback so it never competes with the step somebody is actually
-   * looking at, and the result is thrown away: the point is that the
-   * browser has it by the time the step mounts.
-   */
-  useEffect(() => {
-    const warm = () => { void api("/api/hc/nudges").catch(() => {}); };
-    const w = window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
-    if (w.requestIdleCallback) w.requestIdleCallback(warm, { timeout: 2500 });
-    else setTimeout(warm, 1200);
-  }, [api]);
 
   const calendarApi: CalendarApi = {
     call: api,
@@ -139,6 +113,38 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
     setBusy(false);
     await load();
   };
+
+  return { calOpen, setCalOpen, coaches, myCoach, calConnected, busy,
+           iosNeedsInstall, load, calendarApi, pickCoach };
+}
+
+export type SetupData = ReturnType<typeof useSetupData>;
+
+export default function SetupWalkthrough({ api, onClose, data, reload, entry }: {
+  api: Api;
+  onClose: () => void;
+  /** For the profile step; omitted where the caller has no journey loaded. */
+  data?: ProfileFormData;
+  reload?: () => Promise<void>;
+  /** Which product this is, so the coach step can be left out where there is none. */
+  entry?: string | null;
+}) {
+  const [i, setI] = useState(0);
+  const d = useSetupData(api);
+  const { calOpen, setCalOpen, calendarApi, load } = d;
+
+  /*
+   * Warm what the last step needs while you are still on the first.
+   * Fired on an idle callback so it never competes with the step somebody
+   * is actually looking at; the result is thrown away, the point being
+   * that the browser has it by the time the step mounts.
+   */
+  useEffect(() => {
+    const warm = () => { void api("/api/hc/nudges").catch(() => {}); };
+    const w = window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+    if (w.requestIdleCallback) w.requestIdleCallback(warm, { timeout: 2500 });
+    else setTimeout(warm, 1200);
+  }, [api]);
 
   /* Intro steps only where the caller can supply what they need. */
   const intro = data && reload ? INTRO : INTRO.filter((x) => x.key === "track");
@@ -196,62 +202,7 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
             <p className="mt-1 text-sm text-hc-ink-2">{row.why}</p>
 
             <div className="mt-4">
-              {row.key === "track" && (
-                <TrackChoice api={api} preview bare onDone={() => {}} />
-              )}
-              {row.key === "profile" && data && reload && (
-                <ProfileForm data={data} reload={reload} api={api}
-                  track={entry === "app" || entry === "coach" ? "app" : "care"} />
-              )}
-              {row.key === "coach" && (
-                <CoachStep myCoach={myCoach} coaches={coaches} busy={busy} onPick={pickCoach} />
-              )}
-              {row.key === "calendar" && (
-                <div>
-                  <p className="mb-2 text-sm text-hc-ink-2">
-                    {calConnected
-                      ? "Dagatalið er tengt. Tímar og myndsímtöl birtast þar sjálfkrafa."
-                      : "Tengdu Google-dagatalið þitt. Myndsímtöl fá hlekk á fundinn og staðsetning fylgir bókuðum tímum."}
-                  </p>
-                  <button type="button" onClick={() => setCalOpen(true)}
-                    className="rounded-full bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white">
-                    {calConnected ? "Skoða dagatalstengingu" : "Tengja dagatal"}
-                  </button>
-                </div>
-              )}
-              {row.key === "partner" && <PartnerCard api={api} bare pick />}
-              {row.key === "nudge" && (
-                <div className="space-y-3">
-                  {/* Install first on iPhone, because there the order is not a
-                      preference. Safari exposes the Notification and Push APIs
-                      only to an installed app — in a tab they do not exist, so
-                      permission cannot even be asked for, and a subscription
-                      made in the tab would not serve the installed app anyway.
-                      Offering the reminder first therefore sent iPhone users at
-                      a switch that could not work, and told them why only after
-                      they had tried it.
-
-                      Android and desktop take notifications in the browser and
-                      carry them into the installed app, so there the reminder
-                      comes first and the install is the follow-up. */}
-                  {iosNeedsInstall ? (
-                    <>
-                      <InstallGuide bare defaultOpen />
-                      <div className="rounded-2xl bg-hc-sunken p-3">
-                        <p className="text-xs text-hc-ink-2">
-                          Þegar Lifeline er á heimaskjánum opnarðu appið þaðan og velur áminningu hér.
-                        </p>
-                        <div className="mt-2 opacity-60"><NudgeSettings api={api} /></div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <NudgeSettings api={api} />
-                      <InstallGuide bare />
-                    </>
-                  )}
-                </div>
-              )}
+              <SetupStepBody rowKey={row.key} d={d} api={api} data={data} reload={reload} entry={entry} />
             </div>
           </>
         )}
@@ -278,5 +229,84 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
         onClose={() => { setCalOpen(false); void load(); }}
         intro="Tímar hjá Lifeline birtast í dagatalinu þínu og myndsímtöl fá hlekk á fundinn." />
     </Sheet>
+  );
+}
+
+/**
+ * The editor for one setup step.
+ *
+ * The walkthrough shows these one at a time; /app/adgangur shows all of
+ * them at once. Same component either way — the difference between a flow
+ * and a settings page is the frame around it, not the controls.
+ */
+export function SetupStepBody({ rowKey, d, api, data, reload, entry }: {
+  rowKey: string;
+  d: SetupData;
+  api: Api;
+  data?: ProfileFormData;
+  reload?: () => Promise<void>;
+  entry?: string | null;
+}) {
+  const { myCoach, coaches, busy, pickCoach, calConnected, setCalOpen, iosNeedsInstall } = d;
+  const row = { key: rowKey };
+  return (
+    <>
+            {row.key === "track" && (
+              <TrackChoice api={api} preview bare onDone={() => {}} />
+            )}
+            {row.key === "profile" && data && reload && (
+              <ProfileForm data={data} reload={reload} api={api}
+                track={entry === "app" || entry === "coach" ? "app" : "care"} />
+            )}
+            {row.key === "coach" && (
+              <CoachStep myCoach={myCoach} coaches={coaches} busy={busy} onPick={pickCoach} />
+            )}
+            {row.key === "calendar" && (
+              <div>
+                <p className="mb-2 text-sm text-hc-ink-2">
+                  {calConnected
+                    ? "Dagatalið er tengt. Tímar og myndsímtöl birtast þar sjálfkrafa."
+                    : "Tengdu Google-dagatalið þitt. Myndsímtöl fá hlekk á fundinn og staðsetning fylgir bókuðum tímum."}
+                </p>
+                <button type="button" onClick={() => setCalOpen(true)}
+                  className="rounded-full bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white">
+                  {calConnected ? "Skoða dagatalstengingu" : "Tengja dagatal"}
+                </button>
+              </div>
+            )}
+            {row.key === "partner" && <PartnerCard api={api} bare pick />}
+            {row.key === "nudge" && (
+              <div className="space-y-3">
+                {/* Install first on iPhone, because there the order is not a
+                    preference. Safari exposes the Notification and Push APIs
+                    only to an installed app — in a tab they do not exist, so
+                    permission cannot even be asked for, and a subscription
+                    made in the tab would not serve the installed app anyway.
+                    Offering the reminder first therefore sent iPhone users at
+                    a switch that could not work, and told them why only after
+                    they had tried it.
+
+                    Android and desktop take notifications in the browser and
+                    carry them into the installed app, so there the reminder
+                    comes first and the install is the follow-up. */}
+                {iosNeedsInstall ? (
+                  <>
+                    <InstallGuide bare defaultOpen />
+                    <div className="rounded-2xl bg-hc-sunken p-3">
+                      <p className="text-xs text-hc-ink-2">
+                        Þegar Lifeline er á heimaskjánum opnarðu appið þaðan og velur áminningu hér.
+                      </p>
+                      <div className="mt-2 opacity-60"><NudgeSettings api={api} /></div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <NudgeSettings api={api} />
+                    <InstallGuide bare />
+                  </>
+                )}
+              </div>
+            )}
+    </>
   );
 }

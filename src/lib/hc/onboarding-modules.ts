@@ -33,6 +33,7 @@ export type ModuleKind =
   | "measurements"
   | "install"
   | "notifications"
+  | "setup"
   | "summary";
 
 /** What a step can depend on, and what it produces. Used to order-check. */
@@ -154,6 +155,15 @@ export const MODULES: ModuleDef[] = [
   {
     kind: "install", label: "Setja upp appið",
     blurb: "Leiðbeiningar um að bæta appinu á heimaskjáinn.",
+    needs: ["account"], gives: [], repeatable: false, config: ["skippable"],
+  },
+  {
+    /* The four-step walkthrough from /app/adgangur: coach, calendar,
+       accountability partner, reminders. It exists either way — the
+       settings page shows the same controls open and in place — but as a
+       guided walk it belongs to somebody's first week, which is here. */
+    kind: "setup", label: "Uppsetning, skref fyrir skref",
+    blurb: "Þjálfari, dagatal, ábyrgðarfélagi og áminningar — fjögur atriði, eitt í einu. Sömu stillingar og eru á aðgangssíðunni.",
     needs: ["account"], gives: [], repeatable: false, config: ["skippable"],
   },
   {
