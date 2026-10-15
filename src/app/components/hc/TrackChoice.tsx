@@ -25,6 +25,7 @@
 // survive it, and the card says so.
 
 import { useState } from "react";
+import { useToast } from "./Toast";
 import { ClipboardCheck, FileHeart, UserRound } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -57,8 +58,9 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
   const [busy, setBusy] = useState<string | null>(null);
 
   const [err, setErr] = useState("");
+  const toast = useToast();
   const choose = async (track: "coach" | "check") => {
-    if (preview) return;
+    if (preview || busy) return;
     setBusy(track); setErr("");
     const r = await api("/api/hc/journey", {
       method: "POST",
@@ -72,6 +74,7 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
         : "Tókst ekki að breyta leiðinni. Reyndu aftur.");
       return;
     }
+    toast.show(track === "coach" ? "Leiðinni var breytt í heilsuþjálfun" : "Leiðinni var breytt í heilsufarsskoðun", { tone: "ok" });
     await onDone();
   };
 
@@ -138,7 +141,7 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
                 <Icon className="h-4 w-4" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-semibold leading-snug text-hc-ink">{o.title}</span>
+                <span className="block font-semibold leading-snug text-hc-ink">{busy === o.key ? "Augnablik…" : o.title}</span>
                 <span className="mt-0.5 block text-sm leading-snug text-hc-ink-2">{o.body}</span>
                 {/* What it commits you to, in the smallest type on the card.
                     On the app option that is "no kennitala", which is true
@@ -150,7 +153,7 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
           );
         })}
       </div>
-      {err && <p role="alert" className="mt-3 text-sm text-red-600">{err}</p>}
+      {err && <p role="alert" className="mt-3 text-sm text-hc-bad-ink">{err}</p>}
     </section>
   );
 }

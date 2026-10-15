@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useMemo, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
 import CtaLink from "@/app/components/CtaLink";
 import { useI18n } from "@/lib/i18n";
 import DeviceMockup from "../components/DeviceMockup";
@@ -74,7 +75,35 @@ function FeatureCell({ value }: { value: boolean | string }) {
   return <span className="text-xs text-[#6B7280] font-medium">{value}</span>;
 }
 
-function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
+/* Where the plan buttons go for somebody who already has an account. The
+   CMS href (default /byrja?leid=coach) is the signup flow; sending a
+   signed-in customer there asked them to make a second account. The
+   subscription is sold and cancelled in one place, the app's
+   Stillingar og áskrift (#askrift), so that is where they go. */
+const SIGNED_IN_SUBSCRIBE_HREF = "/app/adgangur#askrift";
+
+/* A store badge. Until a listing exists the CMS href is "#" (or empty), and
+   a link to "#" is a button that does nothing when pressed — so it renders
+   as a plain, non-interactive badge that says the app is on its way. */
+function StoreButton({ href, soon, get, children }: { href?: string; soon: string; get: string; children: ReactNode }) {
+  const live = !!href && href !== "#";
+  const cls = "inline-flex items-center justify-center gap-3 px-8 py-4 bg-black text-white rounded-xl font-semibold border border-gray-700 shadow-lg";
+  const [icon, name] = Array.isArray(children) ? children : [null, children];
+  const label = (
+    <div className="text-left">
+      <div className="text-[10px] uppercase tracking-wider opacity-70">{live ? get : soon}</div>
+      {name}
+    </div>
+  );
+  if (!live) return <span className={`${cls} opacity-70 cursor-default`}>{icon}{label}</span>;
+  return (
+    <CtaLink href={href} className={`${cls} hover:bg-gray-900 hover:border-gray-600 transition-all duration-200`}>
+      {icon}{label}
+    </CtaLink>
+  );
+}
+
+function renderBand(id: string, c: LocaleContent, bg: string, locale: Locale, signedIn: boolean): ReactNode {
   switch (id) {
     case "why":
       return (
@@ -240,7 +269,7 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
                         </li>
                       ))}
                     </ul>
-                    <CtaLink href={c.pricing_cta_href || "/account/login"} className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${popular ? "bg-[#10B981] text-white shadow-lg shadow-green-500/30 hover:bg-[#047857]" : "bg-[#1F2937] text-white hover:bg-[#374151]"}`}>{c.pricing_cta}</CtaLink>
+                    <CtaLink href={signedIn ? SIGNED_IN_SUBSCRIBE_HREF : (c.pricing_cta_href || "/byrja?leid=coach")} className={`block w-full text-center py-3.5 rounded-full text-sm font-semibold transition-all duration-200 ${popular ? "bg-[#10B981] text-white shadow-lg shadow-green-500/30 hover:bg-[#047857]" : "bg-[#1F2937] text-white hover:bg-[#374151]"}`}>{signedIn ? (locale === "en" ? "See your subscription" : "Sjá áskriftina") : c.pricing_cta}</CtaLink>
                   </div>
                 );
               })}
@@ -313,14 +342,14 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">{c.download_title}</h2>
             <p className="text-lg text-gray-300 mb-8 leading-relaxed max-w-2xl mx-auto">{c.download_desc}</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <CtaLink href={c.download_ios_href || "#"} className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-black text-white rounded-xl font-semibold hover:bg-gray-900 transition-all duration-200 border border-gray-700 hover:border-gray-600 shadow-lg">
+              <StoreButton href={c.download_ios_href} soon={locale === "en" ? "Coming to" : "Væntanlegt í"} get={locale === "en" ? "Download on" : "Sækja í"}>
                 <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" /></svg>
-                <div className="text-left"><div className="text-[10px] uppercase tracking-wider opacity-70">Sækja í</div><div className="text-lg font-semibold leading-tight">App Store</div></div>
-              </CtaLink>
-              <CtaLink href={c.download_android_href || "#"} className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-black text-white rounded-xl font-semibold hover:bg-gray-900 transition-all duration-200 border border-gray-700 hover:border-gray-600 shadow-lg">
+                <div className="text-lg font-semibold leading-tight">App Store</div>
+              </StoreButton>
+              <StoreButton href={c.download_android_href} soon={locale === "en" ? "Coming to" : "Væntanlegt á"} get={locale === "en" ? "Get it on" : "Sækja á"}>
                 <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-1.4l2.443 1.413a1 1 0 010 1.56l-2.443 1.414-2.536-2.536 2.536-2.852zM5.864 2.658L16.8 8.99l-2.302 2.302-8.634-8.634z" /></svg>
-                <div className="text-left"><div className="text-[10px] uppercase tracking-wider opacity-70">Sækja á</div><div className="text-lg font-semibold leading-tight">Google Play</div></div>
-              </CtaLink>
+                <div className="text-lg font-semibold leading-tight">Google Play</div>
+              </StoreButton>
             </div>
           </div>
         </section>
@@ -363,6 +392,31 @@ export default function CoachingView(props: CoachingViewProps) {
 
   const visible = order.filter((id) => !hidden.has(id));
 
+  /* Signed in or not decides where the plan buttons go (see
+     SIGNED_IN_SUBSCRIBE_HREF). The CMS preview renders signed-out copy. */
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    if (controlled) return;
+    let alive = true;
+    supabase.auth.getSession()
+      .then(({ data }) => { if (alive) setSignedIn(!!data.session); })
+      .catch(() => { /* stays signed-out: the signup link still works */ });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (alive) setSignedIn(!!session);
+    });
+    return () => { alive = false; sub.subscription.unsubscribe(); };
+  }, [controlled]);
+
+  /* The section renders after hydration, so the browser's own jump to
+     #askrift / #download on load can land short. Re-run it once. */
+  useEffect(() => {
+    if (controlled || typeof window === "undefined") return;
+    const id = window.location.hash.slice(1);
+    if (id !== "askrift" && id !== "download") return;
+    const t = setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 120);
+    return () => clearTimeout(t);
+  }, [controlled]);
+
   return (
     <div>
       {/* Hero (structural, always first) */}
@@ -378,7 +432,7 @@ export default function CoachingView(props: CoachingViewProps) {
       {layoutBands(visible, DARK_IDS).map((b) => (
         <Fragment key={b.id}>
           {b.wave && <WaveSeparator from={b.wave.from} to={b.wave.to} />}
-          {renderBand(b.id, c, b.bg)}
+          {renderBand(b.id, c, b.bg, locale, signedIn)}
         </Fragment>
       ))}
     </div>

@@ -25,19 +25,27 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
   const [open, setOpen] = useState<{ kind: "lecture"; slug: string } | { kind: "program"; key: string } | null>(null);
   const [trial, setTrial] = useState<TrainingSettings>({ ...DEFAULT_TRAINING, started_on: new Date().toISOString().slice(0, 10) });
   const stage = useRef<HTMLDivElement>(null);
+  /* A dropped request used to leave "Hleð…" up for good, and a failed one
+     said "Engin birt fræðsla" — as if nothing had been published. */
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     (async () => {
-      const [l, p] = await Promise.all([api("/api/vinnustod/lectures"), api("/api/hc/plan-library")]);
-      const lj = await l.json().catch(() => ({}));
-      const pj = await p.json().catch(() => ({}));
-      setLectures(lj.lectures ?? []);
-      setCanEdit(!!lj.canEdit);
-      setPrograms(((pj.exercise ?? []) as ExerciseTemplate[]).sort((a, b) => Number(isAdaptive(b.key)) - Number(isAdaptive(a.key))));
+      const [l, p] = await Promise.all([
+        api("/api/vinnustod/lectures").catch(() => null),
+        api("/api/hc/plan-library").catch(() => null),
+      ]);
+      const lj = l?.ok ? await l.json().catch(() => null) : null;
+      const pj = p?.ok ? await p.json().catch(() => null) : null;
+      setFailed(!lj || !pj);
+      setLectures(lj?.lectures ?? []);
+      setCanEdit(!!lj?.canEdit);
+      setPrograms(((pj?.exercise ?? []) as ExerciseTemplate[]).sort((a, b) => Number(isAdaptive(b.key)) - Number(isAdaptive(a.key))));
     })();
-  }, [api]);
+  }, [api, attempt]);
 
-  if (lectures === null) return <p className="py-10 text-center text-hc-ink-2">Hleð…</p>;
+  if (lectures === null) return <p className="py-10 text-center text-hc-ink-2" aria-busy="true">Hleð…</p>;
 
   const lecture = open?.kind === "lecture" ? lectures.find((l) => l.slug === open.slug) : null;
   const program = open?.kind === "program" ? programs.find((p) => p.key === open.key) : null;
@@ -49,7 +57,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
           <button type="button" onClick={() => setOpen(null)} className={hcBtn.secondary}><ArrowLeft className="h-4 w-4" aria-hidden />Til baka</button>
           <span className="flex-1" />
           {lecture.kind === "slides" && (
-            <button type="button" onClick={() => void stage.current?.requestFullscreen?.()} className={hcBtn.primary}>Kynna á skjá</button>
+            <button type="button" onClick={() => void stage.current?.requestFullscreen?.().catch(() => { /* the browser refused; the deck is still on the page */ })} className={hcBtn.primary}>Kynna á skjá</button>
           )}
           {canEdit && <a href="/admin/lectures" className={hcBtn.secondary}>Breyta í stjórnborði</a>}
         </div>
@@ -83,6 +91,13 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
 
   return (
     <div className="space-y-6">
+      {failed && (
+        <p role="alert" className="flex flex-wrap items-center gap-2 rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">
+          Náði ekki í allt fræðsluefnið.
+          <button type="button" onClick={() => { setLectures(null); setFailed(false); setAttempt((n) => n + 1); }}
+            className="font-semibold underline underline-offset-2">Reyna aftur</button>
+        </p>
+      )}
       <section>
         <h2 className="text-sm font-bold uppercase tracking-wide text-hc-ink-2">Fyrirlestrar og fræðsla</h2>
         <p className="mt-0.5 text-sm text-hc-ink-2">Hengdu fræðslu við áætlun í síðasta skrefi áætlunarinnar. Glærur má sýna á skjá fyrir hóp.</p>
@@ -97,7 +112,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
               {l.subtitle && <p className="text-sm text-hc-ink-2">{l.subtitle}</p>}
             </button>
           ))}
-          {!lectures.length && <div className="sm:col-span-2"><EmptyState compact title="Engin birt fræðsla" body="Fræðsla er búin til og birt í stjórnborðinu (/admin/lectures)." /></div>}
+          {!lectures.length && !failed && <div className="sm:col-span-2"><EmptyState compact title="Engin birt fræðsla" body="Fræðsla er búin til og birt í stjórnborðinu (/admin/lectures)." /></div>}
         </div>
       </section>
 

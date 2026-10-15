@@ -72,8 +72,9 @@ export default function CoAdminSetupPage() {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
       body: JSON.stringify({ phone: phone.trim(), position: position.trim(), kennitala: kt }),
-    });
+    }).catch(() => null);
     setSaving(false);
+    if (!res) { setError("No connection. Check your network and try again."); return; }
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
       setError(j.error || "Could not save your details. Please try again.");
@@ -114,7 +115,7 @@ export default function CoAdminSetupPage() {
             <Field label="Confirm password">
               <input className="input" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} minLength={8} required />
             </Field>
-            {error && <div className="text-red-600 text-sm">{error}</div>}
+            {error && <div role="alert" className="text-red-600 text-sm">{error}</div>}
             <button type="submit" disabled={saving} className="btn-primary w-full">
               {saving ? "Saving…" : "Save & continue"}
             </button>

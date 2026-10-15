@@ -21,6 +21,7 @@ import NutritionView from "./NutritionView";
 import TrainingView from "./TrainingView";
 import EmptyState from "./EmptyState";
 import Segmented from "./Segmented";
+import { PreviewProvider } from "./PreviewContext";
 import { DEFAULT_TRAINING, adaptExercise, hardDays, isAdaptive, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import { DEFAULT_PERSONAL, personalise, type Personal } from "@/lib/hc/personalise";
 import { dayFor, type Meal } from "@/lib/hc/meals";
@@ -157,6 +158,9 @@ export default function CoachAsClient({ api, journeyId, only }: {
   const tab: CoachTab = only ?? tabState;
   const [err, setErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  /* Said inline rather than in a toast: this also renders on
+     /admin/coach/plans, which mounts no ToastProvider. */
+  const [saveState, setSaveState] = useState<"saved" | "failed" | null>(null);
 
   const path = `/api/vinnustod/journeys/${journeyId}/as-client`;
 
@@ -241,8 +245,9 @@ export default function CoachAsClient({ api, journeyId, only }: {
 
   /** Save the client's arrangement through the coach route. */
   const savePersonal = useCallback(async (next: Personal, fields: (keyof Personal)[]) => {
-    setT((prev) => (prev ? { ...prev, personal: next } : prev));
-    setSaving(true);
+    let before: TrainingPart | null = null;
+    setT((prev) => { before = prev; return prev ? { ...prev, personal: next } : prev; });
+    setSaving(true); setSaveState(null);
     const r = await api(`${path}?part=training`, {
       method: "POST",
       body: JSON.stringify(Object.fromEntries(fields.map((f) => [f, next[f]]))),
@@ -251,7 +256,11 @@ export default function CoachAsClient({ api, journeyId, only }: {
     setSaving(false);
     /* The server's answer replaces the optimistic copy: it carries the
        library snapshots a swap needs, which the browser cannot invent. */
-    if (j) setT((prev) => (prev ? { ...prev, ...j } : prev));
+    if (j) { setT((prev) => (prev ? { ...prev, ...j } : prev)); setSaveState("saved"); return; }
+    /* Not stored: put back what the client really has, and say so. It used
+       to keep showing the change as if it had landed on their screen. */
+    if (before) setT(before);
+    setSaveState("failed");
   }, [api, path]);
 
   /*
@@ -296,7 +305,8 @@ export default function CoachAsClient({ api, journeyId, only }: {
   }
   if (err) {
     return <EmptyState variant="empty" title="Gat ekki opnað áætlunina"
-      body="Reyndu aftur. Ef þetta heldur áfram, hafðu samband við tækniþjónustu." />;
+      body="Reyndu aftur. Ef þetta heldur áfram, hafðu samband við tækniþjónustu."
+      action={{ label: "Reyna aftur", onClick: () => { setErr(null); setD(null); void load(); } }} />;
   }
   if (!d) {
     return (
@@ -306,7 +316,12 @@ export default function CoachAsClient({ api, journeyId, only }: {
     );
   }
 
+  /* PreviewProvider: the reused components' DIRECT Supabase writes (meal_log,
+     set_logs) would use the signed-in user's id — the coach's — so inside
+     it they are shown but switched off. Writes through `coachApi` above
+     target this journey and stay live. */
   return (
+    <PreviewProvider>
     <div className="space-y-3">
       {/* Only standalone: inside a builder step this would repeat on every
           pillar, and the builder already says changes reach the client. */}
@@ -320,7 +335,7 @@ export default function CoachAsClient({ api, journeyId, only }: {
           {/* Said once, plainly: what happens here lands on their screen. */}
           <p className={`px-1 text-xs text-hc-ink-2 ${only ? "hidden" : ""}`}>
             Þetta er áætlunin eins og skjólstæðingurinn sér hana. Breytingar sem þú gerir hér
-            birtast hjá þeim og eru skráðar á þig.
+            birtast hjá þeim og eru skráðar á þig. Máltíðir og æfingasett er ekki hægt að skrá héðan.
           </p>
 
           {/* The client's own three tabs, in their order. Only the ones their
@@ -366,13 +381,20 @@ export default function CoachAsClient({ api, journeyId, only }: {
               }} />
           )}
 
-          {saving && (
-            <p className="flex items-center gap-2 px-1 text-xs text-hc-ink-2">
+          {saving ? (
+            <p className="flex items-center gap-2 px-1 text-xs text-hc-ink-2" role="status">
               <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> Vistar…
             </p>
-          )}
+          ) : saveState === "failed" ? (
+            <p className="px-1 text-sm font-semibold text-hc-bad-ink" role="alert">
+              Breytingin vistaðist ekki og var tekin til baka. Reyndu aftur.
+            </p>
+          ) : saveState === "saved" ? (
+            <p className="px-1 text-xs font-semibold text-hc-ok-ink" role="status">Vistað hjá skjólstæðingnum.</p>
+          ) : null}
         </>
       )}
     </div>
+    </PreviewProvider>
   );
 }

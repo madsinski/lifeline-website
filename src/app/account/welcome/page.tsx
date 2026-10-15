@@ -38,7 +38,7 @@ function AccountWelcomePageInner() {
       // Block onboarding for users who haven't confirmed their email yet.
       // GDPR Art. 9 health-data consent must attach to a verified identity.
       if (!user.email_confirmed_at) {
-        router.push("/account/login?verify=1");
+        router.push(`/account/login?verify=1&email=${encodeURIComponent(user.email ?? "")}&next=${encodeURIComponent("/account/welcome")}`);
         return;
       }
 

@@ -43,6 +43,7 @@ import type { ExerciseItem } from "@/lib/hc/types";
 import { muscleIs } from "@/lib/hc/exercise-labels";
 import { BASIS_IS, suggestStartWeight, type BodyData } from "@/lib/hc/start-weight";
 import { hcBtn } from "./ui";
+import { PreviewNote, usePreview } from "./PreviewContext";
 import { speakCue, speechAvailable, setVoiceEnabled, stopSpeaking, voiceEnabled, warmVoices } from "@/lib/hc/rest-voice";
 
 type Phase = "run" | "rate";
@@ -50,8 +51,12 @@ type Phase = "run" | "rate";
 export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }: {
   session: PSession;
   onClose: () => void;
-  /** Elapsed minutes and the RPE the participant gave. */
-  onDone: (info: { minutes: number; rpe: number }) => void;
+  /**
+   * Elapsed minutes and the RPE the participant gave. May return a promise:
+   * the save button then shows that it is saving and cannot be pressed twice
+   * (two taps used to store the workout twice).
+   */
+  onDone: (info: { minutes: number; rpe: number }) => void | Promise<unknown>;
   /** Opens the swap wizard for one exercise, mid-workout. */
   onSwap?: (slot: string, item: ExerciseItem) => void;
   /** Weight, body fat and sex, for suggesting a starting load. */
@@ -66,6 +71,12 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
     scroller.current?.scrollTo({ top: 0, behavior: "instant" });
   };
   const [rpe, setRpe] = useState(6);
+  const [saving, setSaving] = useState(false);
+  const done = async (info: { minutes: number; rpe: number }) => {
+    if (saving) return;
+    setSaving(true);
+    try { await onDone(info); } finally { setSaving(false); }
+  };
   const startedAt = useRef<number>(0);
   useEffect(() => { if (!startedAt.current) startedAt.current = Date.now(); }, []);
   const current = items[idx];
@@ -111,7 +122,7 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
         <button type="button" data-autofocus
           onClick={() => {
             setConfirmQuit(false);
-            if (phase === "rate") onDone({ minutes: elapsedMin, rpe });
+            if (phase === "rate") void done({ minutes: elapsedMin, rpe });
             else finish();
           }}
           className={`${hcBtn.primary} w-full`}>
@@ -146,8 +157,8 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
             </div>
             <p className="mt-1.5 text-center text-sm text-hc-ink-2">{RPE_IS[rpe]}</p>
           </div>
-          <button type="button" onClick={() => onDone({ minutes, rpe })} className={`${hcBtn.primary} w-full`}>
-            Vista æfinguna
+          <button type="button" onClick={() => void done({ minutes, rpe })} disabled={saving} className={`${hcBtn.primary} w-full`}>
+            {saving ? "Vista…" : "Vista æfinguna"}
           </button>
         </div>
       </Shell>
@@ -204,6 +215,9 @@ function ExercisePanel({ it, onSwap, body, onLogged }: {
   /** +1 when a set is stored, −1 when one is removed. */
   onLogged?: (delta: number) => void;
 }) {
+  /* Staff preview: set_logs is the signed-in user's — the coach's — so the
+     tracker would read and write their own history. Not mounted at all. */
+  const preview = usePreview();
   return (
     <div className="space-y-3 p-4">
       {/* object-contain on a dark panel: these are wide gym photos and
@@ -243,7 +257,7 @@ function ExercisePanel({ it, onSwap, body, onLogged }: {
           {it.muscles.slice(0, 4).map((m) => <span key={m} className="rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] text-hc-ink-2">{muscleIs(m)}</span>)}
         </p>
       )}
-      {isLoggable(it) ? <SetTracker it={it} body={body} onLogged={onLogged} /> : (
+      {isLoggable(it) && preview ? <PreviewNote /> : isLoggable(it) ? <SetTracker it={it} body={body} onLogged={onLogged} /> : (
         <p className="rounded-xl bg-hc-sunken p-3 text-sm text-hc-ink-2">
           {/^hiit/i.test(it.name) ? "Taktu lotuna eftir lýsingunni hér að ofan." : "Hér eru engin sett skráð."}
         </p>

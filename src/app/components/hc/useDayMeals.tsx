@@ -32,6 +32,7 @@ import { localDate } from "@/lib/hc/workout";
 import { type MealLogRow } from "@/lib/hc/nutrition-log";
 import { mealName, type Meal, type MealSlot } from "@/lib/hc/meals";
 import { SAVE_FAILED, useToast } from "./Toast";
+import { PREVIEW_NOTE, usePreview } from "./PreviewContext";
 
 export interface DayMealRow extends Omit<MealLogRow, "source"> {
   id: string;
@@ -65,10 +66,15 @@ async function myId(): Promise<string | null> {
 
 function useDayMealsState(enabled: boolean): DayMealsApi {
   const toast = useToast();
-  const [rows, setRows] = useState<DayMealRow[] | null>(null);
+  /* A staff preview of a client's screen (PreviewContext.tsx): the signed-in
+     user is the staff member, so meal_log here would be THEIR diary. Read
+     nothing and write nothing. */
+  const preview = usePreview();
+  const [rows, setRows] = useState<DayMealRow[] | null>(() => (preview ? [] : null));
   const loadedFor = useRef<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (preview) return;
     const uid = await myId();
     if (!uid) return;
     const d = localDate();
@@ -78,7 +84,7 @@ function useDayMealsState(enabled: boolean): DayMealsApi {
     if (error) return;
     loadedFor.current = d;
     setRows((data ?? []) as DayMealRow[]);
-  }, []);
+  }, [preview]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -97,6 +103,7 @@ function useDayMealsState(enabled: boolean): DayMealsApi {
 
   /** Insert the new row, then remove the slot's old ones by id. */
   const replaceSlot = useCallback(async (slot: MealSlot, row: Omit<DayMealRow, "id">): Promise<boolean> => {
+    if (preview) { toast.show(PREVIEW_NOTE); return false; }
     const uid = await myId();
     if (!uid) { toast.show("Innskráningin rann út – skráðu þig aftur inn", { tone: "bad" }); return false; }
     try {
@@ -119,7 +126,7 @@ function useDayMealsState(enabled: boolean): DayMealsApi {
       toast.show(SAVE_FAILED, { tone: "bad" });
       return false;
     }
-  }, [toast]);
+  }, [toast, preview]);
 
   const logPlanned = useCallback((slot: MealSlot, meal: Meal) => replaceSlot(slot, {
     date: localDate(), action_key: slot, source: "planned",
@@ -138,6 +145,7 @@ function useDayMealsState(enabled: boolean): DayMealsApi {
   }), [replaceSlot]);
 
   const unlog = useCallback(async (slot: MealSlot): Promise<boolean> => {
+    if (preview) { toast.show(PREVIEW_NOTE); return false; }
     const uid = await myId();
     if (!uid) { toast.show("Innskráningin rann út – skráðu þig aftur inn", { tone: "bad" }); return false; }
     const { error } = await supabase.from("meal_log").delete()
@@ -145,7 +153,7 @@ function useDayMealsState(enabled: boolean): DayMealsApi {
     if (error) { toast.show(SAVE_FAILED, { tone: "bad" }); return false; }
     setRows((r) => (r ?? []).filter((x) => x.action_key !== slot));
     return true;
-  }, [toast]);
+  }, [toast, preview]);
 
   return { rows, forSlot, refresh, logPlanned, logDescribed, unlog };
 }

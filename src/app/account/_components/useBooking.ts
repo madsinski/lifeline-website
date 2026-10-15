@@ -10,7 +10,8 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
-import { useDialog, fmtIsk } from "@/app/components/account/ui";
+import { useDialog, fmtIsk, friendlyError } from "@/app/components/account/ui";
+import { useToast } from "@/app/components/hc/Toast";
 import type { AccountState, JourneyCheckKey, Patch } from "./types";
 
 export const DOCTOR_ADDON_ISK = 18500;
@@ -25,6 +26,10 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
   const router = useRouter();
   const { t, tv } = useI18n();
   const { confirm, alert } = useDialog();
+  /* Success where the pressed control disappears (a cancelled booking's
+     card goes away) is said in a toast; failures keep the dialog, which
+     carries the reason and what to do next. */
+  const toast = useToast();
   const [cancelBusy, setCancelBusy] = useState(false);
   const [videoConfirmBusy, setVideoConfirmBusy] = useState(false);
   const [payingDoctorAddon, setPayingDoctorAddon] = useState(false);
@@ -81,7 +86,7 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
         if (!refund.ok) {
           await alert({
             title: t("acc.cancel.refund-failed", "Endurgreiðslan tókst ekki"),
-            body: tv("acc.cancel.refund-failed-body", "{{err}}. Bókunin er óbreytt. Sendu okkur línu á {{email}} og við leysum málið.", { err: refund.error, email: SUPPORT }),
+            body: tv("acc.cancel.refund-failed-body", "{{err}}. Bókunin er óbreytt. Sendu okkur línu á {{email}} og við leysum málið.", { err: friendlyError(refund.error, t("acc.cancel.refund-failed", "Endurgreiðslan tókst ekki")), email: SUPPORT }),
           });
           return false;
         }
@@ -93,7 +98,7 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
         if (error || (row && row.ok === false)) {
           await alert({
             title: t("acc.cancel.failed", "Ekki tókst að ljúka afbókuninni"),
-            body: tv("acc.cancel.failed-body", "{{err}}. Sendu okkur línu á {{email}}.", { err: error?.message || row?.error || "", email: SUPPORT }),
+            body: tv("acc.cancel.failed-body", "{{err}}. Sendu okkur línu á {{email}}.", { err: friendlyError(error?.message || row?.error, t("acc.cancel.failed", "Ekki tókst að ljúka afbókuninni")), email: SUPPORT }),
           });
           return false;
         }
@@ -122,7 +127,7 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
       });
       const row = Array.isArray(data) ? data[0] : data;
       if (error || (row && row.ok === false)) {
-        await alert({ title: t("acc.cancel.couldnot", "Ekki tókst að afbóka"), body: error?.message || row?.error || "" });
+        await alert({ title: t("acc.cancel.couldnot", "Ekki tókst að afbóka"), body: friendlyError(error?.message || row?.error, t("acc.cancel.tryagain", "Reyndu aftur eða sendu línu á contact@lifelinehealth.is.")) });
         return false;
       }
       return true;
@@ -135,6 +140,9 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
   const cancelBodyCompBooking = useCallback(async () => {
     const done = await cancelCurrentBooking("cancel");
     if (done) {
+      toast.show(state.booking.paid && state.booking.amount > 0
+        ? t("acc.cancel.done-refund", "Bókunin var afbókuð. Endurgreiðslan berst á kortið innan 3–5 virkra daga.")
+        : t("acc.cancel.done", "Bókunin var afbókuð."));
       patch((s) => ({
         bodyCompStatus: "none",
         bodyCompBookingAt: null,
@@ -143,7 +151,7 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
         mySlotAt: null,
       }));
     }
-  }, [cancelCurrentBooking, patch]);
+  }, [cancelCurrentBooking, patch, toast, state.booking.paid, state.booking.amount, t]);
 
   /** "Skipta um pakka": cancel (with refund if due), then the booking flow. */
   const changePackage = useCallback(async () => {
@@ -164,17 +172,20 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
     });
     if (!ok) return;
     // Through the atomic RPC so payments flags and slot claims stay consistent.
+    setCancelBusy(true);
     const { data, error } = await supabase.rpc("refund_and_cancel_booking", {
       p_booking_id: pending.id,
       p_include_checkin_addon: false,
     });
+    setCancelBusy(false);
     const row = Array.isArray(data) ? data[0] : data;
     if (error || (row && row.ok === false)) {
-      await alert({ title: t("acc.cancel.couldnot", "Ekki tókst að afbóka"), body: error?.message || row?.error || "" });
+      await alert({ title: t("acc.cancel.couldnot", "Ekki tókst að afbóka"), body: friendlyError(error?.message || row?.error, t("acc.cancel.tryagain", "Reyndu aftur eða sendu línu á contact@lifelinehealth.is.")) });
       return;
     }
     patch({ pendingBooking: null });
-  }, [state.pendingBooking, confirm, alert, patch, t]);
+    toast.show(t("acc.pending.cancelled", "Ófrágengna bókunin var felld niður."));
+  },[state.pendingBooking, confirm, alert, patch, t, toast]);
 
   const withdrawRefundRequest = useCallback(async () => {
     const id = state.pendingRefundRequestId;
@@ -186,9 +197,14 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
       cancelLabel: t("acc.common.no", "Nei"),
     });
     if (!ok) return;
-    await supabase.from("refund_requests").update({ status: "withdrawn" }).eq("id", id);
+    const { data, error } = await supabase.from("refund_requests").update({ status: "withdrawn" }).eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      await alert({ title: t("acc.refund.withdraw-failed", "Ekki tókst að draga beiðnina til baka"), body: friendlyError(error ?? "permission denied", t("acc.cancel.tryagain", "Reyndu aftur eða sendu línu á contact@lifelinehealth.is.")) });
+      return;
+    }
     patch({ pendingRefundRequestId: null });
-  }, [state.pendingRefundRequestId, confirm, patch, t]);
+    toast.show(t("acc.refund.withdrawn", "Afbókunarbeiðnin var dregin til baka. Bókunin stendur óbreytt."));
+  }, [state.pendingRefundRequestId, confirm, alert, patch, t, toast]);
 
   const cancelDoctorSlot = useCallback(async () => {
     if (!state.myDoctorSlot) return;
@@ -200,10 +216,13 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
       tone: "danger",
     });
     if (!ok) return;
+    setCancelBusy(true);
     const { error } = await supabase.rpc("cancel_doctor_slot");
-    if (error) { await alert({ title: t("acc.cancel.couldnot", "Ekki tókst að afbóka"), body: error.message }); return; }
+    setCancelBusy(false);
+    if (error) { await alert({ title: t("acc.cancel.couldnot", "Ekki tókst að afbóka"), body: friendlyError(error, t("acc.cancel.tryagain", "Reyndu aftur eða sendu línu á contact@lifelinehealth.is.")) }); return; }
     patch({ myDoctorSlot: null });
-  }, [state.myDoctorSlot, confirm, alert, patch, t]);
+    toast.show(t("acc.doctor.cancelled", "Viðtalið við lækninn var afbókað."));
+  }, [state.myDoctorSlot, confirm, alert, patch, t, toast]);
 
   const confirmVideoPortal = useCallback(async () => {
     const ok = await confirm({
@@ -215,9 +234,14 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
     if (!ok) return;
     setVideoConfirmBusy(true);
     const { error } = await supabase.rpc("confirm_video_consultation_portal");
-    if (!error) patch({ videoPortalConfirmedAt: new Date().toISOString() });
     setVideoConfirmBusy(false);
-  }, [confirm, patch, t]);
+    if (error) {
+      await alert({ title: t("acc.common.savefailed", "Ekki tókst að vista"), body: friendlyError(error, t("acc.video.confirm-failed", "Staðfestingin vistaðist ekki. Reyndu aftur.")) });
+      return;
+    }
+    patch({ videoPortalConfirmedAt: new Date().toISOString() });
+    toast.show(t("acc.video.confirmed", "Takk, bókunin á myndsímtalinu er skráð."));
+  }, [confirm, alert, patch, t, toast]);
 
   const clearVideoPortal = useCallback(async () => {
     const ok = await confirm({
@@ -228,9 +252,14 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
     if (!ok) return;
     setVideoConfirmBusy(true);
     const { error } = await supabase.rpc("clear_video_consultation_portal");
-    if (!error) patch({ videoPortalConfirmedAt: null });
     setVideoConfirmBusy(false);
-  }, [confirm, patch, t]);
+    if (error) {
+      await alert({ title: t("acc.common.savefailed", "Ekki tókst að vista"), body: friendlyError(error, t("acc.video.clear-failed", "Ekki tókst að hreinsa staðfestinguna. Reyndu aftur.")) });
+      return;
+    }
+    patch({ videoPortalConfirmedAt: null });
+    toast.show(t("acc.video.cleared", "Staðfestingin var hreinsuð."));
+  }, [confirm, alert, patch, t, toast]);
 
   /** The doctor add-on to an Endurmat (checkin) package. */
   const payDoctorAddon = useCallback(async () => {
@@ -252,13 +281,13 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
         customer: { name: `${profile.firstName} ${profile.lastName}`.trim() || user.email || "", email: user.email || "", phone: profile.phone || null },
         returnUrl: typeof window !== "undefined" ? window.location.href : "",
       });
-      if (!res.ok) { await alert({ title: t("acc.addon.failed", "Greiðslan tókst ekki"), body: res.error }); return; }
+      if (!res.ok) { await alert({ title: t("acc.addon.failed", "Greiðslan tókst ekki"), body: friendlyError(res.error, t("acc.addon.failed-body", "Ekkert var skuldfært. Reyndu aftur.")) }); return; }
       const paidAt = new Date().toISOString();
       const { error: updErr } = await supabase
         .from("clients_decrypted")
         .update({ checkin_doctor_addon_paid_at: paidAt })
         .eq("id", user.id);
-      if (updErr) { await alert({ title: t("acc.addon.record-failed", "Ekki tókst að skrá greiðsluna"), body: updErr.message }); return; }
+      if (updErr) { await alert({ title: t("acc.addon.record-failed", "Ekki tókst að skrá greiðsluna"), body: friendlyError(updErr, tv("acc.addon.record-failed-body", "Sendu línu á {{email}} og við leiðréttum þetta.", { email: SUPPORT })) }); return; }
       await supabase.from("payments").insert({
         owner_type: "client",
         owner_id: user.id,
@@ -274,10 +303,11 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
         paid_at: paidAt,
       });
       patch({ checkinDoctorAddonPaidAt: paidAt });
+      toast.show(t("acc.addon.paid", "Greitt. Viðtali við lækni hefur verið bætt við."));
     } finally {
       setPayingDoctorAddon(false);
     }
-  }, [user, state, confirm, alert, patch, t, tv]);
+  }, [user, state, confirm, alert, patch, t, tv, toast]);
 
   /** Manual journey ticks: optimistic, rolled back if the save fails. */
   const toggleJourneyCheck = useCallback(async (key: JourneyCheckKey) => {
@@ -294,7 +324,7 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
       .eq("id", user.id);
     if (error) {
       patch({ journeyChecks: prev });
-      await alert({ title: t("acc.common.savefailed", "Ekki tókst að vista"), body: error.message });
+      await alert({ title: t("acc.common.savefailed", "Ekki tókst að vista"), body: friendlyError(error, t("acc.journey.check-failed", "Hakið vistaðist ekki. Reyndu aftur.")) });
     }
   }, [user, state.journeyChecks, patch, alert, t]);
 

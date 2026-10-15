@@ -77,15 +77,16 @@ Standard table pattern for API-mediated data:
 
 ## Coming-soon gate
 
-`src/middleware.ts` (still `middleware.ts`, not `proxy.ts` as of this writing — pending migration) rewrites any non-allowlisted public path to `/coming-soon` unless one of:
+`src/proxy.ts` (Next 16 proxy; there is no `middleware.ts`) rewrites any path not in `BYPASS_PREFIXES` to `/coming-soon` unless one of:
 
-- A `site_preview` cookie with the shared key `lifelinepreview2026` is present
-- A `?preview=lifelinepreview2026` query param is provided (sets the cookie for 30 days)
-- The user is an active admin (the admin layout sets the bypass cookie on auth — `src/app/admin/layout.tsx`)
+- the master switch `public_site_gated()` (system_settings, toggled in admin) is off — then the site is public
+- the visitor has a claimed `site_access_token` cookie (from `/access/claim`, validated by `validate_access_token`)
+- the visitor is logged in with a **confirmed email** — every customer, not just staff (signup is open, so gating customers hid nothing and broke links like `/coaching#askrift`)
+- the logged-in user has a grant via `has_site_access()` (user / company / group grants; staff auto-granted)
 
-The allowlist currently passes `/auth`, `/admin`, `/account`, `/api`, `/research`, `/survey`, `/verkefnalysing`, `/_next`, `/favicon`, plus static assets.
+Bypassed regardless: auth/token flows (`/auth`, `/byrja`, `/account`, `/app`, `/vinnustod`, `/business/{login,signup,account,co-admin-setup,onboard,claim}`, `/business` exactly, `/business/<company-uuid>`, partner-invite, survey/research/legal-review/etc.), legal pages (`/terms`, `/privacy`, `/soluskilmalar`, `/sales-terms`), `/api`, `/admin`, static assets. Each bypassed route owns its own auth guard.
 
-**The coming-soon gate is cosmetic, not a security boundary.** The key is in source. Don't put anything sensitive behind it without a real auth gate.
+**The coming-soon gate is cosmetic, not a security boundary.** Don't put anything sensitive behind it without a real auth gate. When adding a page a not-yet-confirmed or anonymous person must reach (signup, legal, token links), add it to `BYPASS_PREFIXES`.
 
 ## Chrome-free public routes
 

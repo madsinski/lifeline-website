@@ -56,7 +56,20 @@ export type SaveStraumurMethodResult =
   | { ok: true; method: StraumurTokenisedMethod }
   | { ok: false; error: string };
 
+/**
+ * Whether card registration is real yet.
+ *
+ * saveStraumurPaymentMethod below is a STUB that invents a random card. With
+ * this false, no UI offers "Bæta við korti" (BillingPanel shows "Kortaskráning
+ * opnar fljótlega" instead) and the stub refuses to run, so a real customer
+ * can never be handed a fake Visa. Flip to true when the stub is replaced by
+ * the real Straumur tokenisation call. Existing payment_methods rows are left
+ * as they are.
+ */
+export const STRAUMUR_CARDS_LIVE = false;
+
 export async function saveStraumurPaymentMethod(): Promise<SaveStraumurMethodResult> {
+  if (!STRAUMUR_CARDS_LIVE) return { ok: false, error: "Kortaskráning opnar fljótlega." };
   await new Promise((r) => setTimeout(r, 700));
   const brands = ["Visa", "Mastercard", "AMEX"];
   const brand = brands[Math.floor(Math.random() * brands.length)];

@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
-import { Alert, Button, Field, accountCard, accountInput, accountLabel } from "./ui";
+import { Alert, Button, Field, SavedNote, accountCard, accountInput, accountLabel, friendlyError, useFlash } from "./ui";
 
 async function api(url: string, init: RequestInit = {}) {
   const { data } = await supabase.auth.getSession();
@@ -41,14 +41,21 @@ export function ProfileCard() {
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  /* "Vistað ✓" beside Breyta once the form has collapsed back to it. */
+  const [savedMsg, flashSaved, clearSaved] = useFlash(4000);
 
   const [loadKey, setLoadKey] = useState(0);
   const load = async () => { setLoadKey((k) => k + 1); };
   useEffect(() => {
     (async () => {
-    const r = await api("/api/hc/profile");
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) return;
+    const r = await api("/api/hc/profile").catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    if (!r || !r.ok || !j.profile) {
+      setLoadError(true);
+      return;
+    }
+    setLoadError(false);
     setP(j.profile);
     setNeedsConsent(!!j.has_journey && !j.health_consent);
     const a = splitAddress(j.profile.address);
@@ -58,13 +65,28 @@ export function ProfileCard() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBusy(true); setErrors({});
-    const r = await api("/api/hc/profile", { method: "POST", body: JSON.stringify({ ...f, accept_health_consent: consent }) });
-    const j = await r.json().catch(() => ({}));
-    setBusy(false);
-    if (!r.ok) { setErrors(j.errors || { form: j.error || t("comp.ac.savefailed", "Tókst ekki að vista.") }); return; }
-    setEdit(false);
-    await load();
+    setBusy(true); setErrors({}); clearSaved();
+    try {
+      const r = await api("/api/hc/profile", { method: "POST", body: JSON.stringify({ ...f, accept_health_consent: consent }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const fieldErrors = j.errors && typeof j.errors === "object" ? j.errors as Record<string, string> : null;
+        setErrors(fieldErrors && Object.keys(fieldErrors).length
+          // A field error for a field this form does not show still has to be seen.
+          ? { ...fieldErrors, form: fieldErrors.form || fieldErrors.consent || t("comp.ac.checkfields", "Lagfærðu það sem er merkt hér fyrir ofan og reyndu aftur.") }
+          : { form: friendlyError(j.error || (r.status === 401 ? "unauthorized" : ""), t("comp.ac.savefailed", "Tókst ekki að vista.")) });
+        return;
+      }
+      // Show what was saved right away; the reload below confirms it.
+      if (j.profile) setP(j.profile);
+      setEdit(false);
+      flashSaved(t("acc.common.saved", "Vistað"));
+      await load();
+    } catch (err) {
+      setErrors({ form: friendlyError(err, t("comp.ac.savefailed", "Tókst ekki að vista.")) });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const field = (k: keyof typeof f, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
@@ -79,9 +101,11 @@ export function ProfileCard() {
     <section className={card} aria-labelledby="acc-profile">
       <div className="flex items-center gap-2">
         <h2 id="acc-profile" className="flex-1 text-lg font-bold text-hc-ink">{t("comp.ac.personal", "Persónuupplýsingar")}</h2>
-        {p && !edit && <Button size="sm" variant="secondary" onClick={() => setEdit(true)} icon={<Pencil className="h-3.5 w-3.5" aria-hidden />}>{t("acct.q.edit", "Breyta")}</Button>}
+        {p && !edit && <SavedNote msg={savedMsg} />}
+        {p && !edit && <Button size="sm" variant="secondary" onClick={() => { clearSaved(); setEdit(true); }} icon={<Pencil className="h-3.5 w-3.5" aria-hidden />}>{t("acct.q.edit", "Breyta")}</Button>}
       </div>
-      {!p && (
+      {!p && loadError && <Alert tone="bad" compact className="mt-3">{t("comp.ac.loadfailed", "Tókst ekki að sækja persónuupplýsingarnar. Endurhlaððu síðuna til að reyna aftur.")}</Alert>}
+      {!p && !loadError && (
         <div className="mt-3 grid animate-pulse gap-x-6 gap-y-3 sm:grid-cols-2" aria-busy="true" aria-label={t("comp.ac.loading", "Hleð persónuupplýsingum")}>
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i}>
@@ -114,8 +138,8 @@ export function ProfileCard() {
           )}
           {(errors.form || errors.consent) && <Alert tone="bad" compact className="sm:col-span-2">{errors.form || errors.consent}</Alert>}
           <div className="flex gap-2 sm:col-span-2">
-            <Button type="submit" busy={busy}>{t("comp.ac.save", "Vista")}</Button>
-            <Button variant="ghost" onClick={() => setEdit(false)}>{t("comp.ac.cancel", "Hætta við")}</Button>
+            <Button type="submit" busy={busy}>{busy ? t("acc.common.saving", "Vista…") : t("comp.ac.save", "Vista")}</Button>
+            <Button variant="ghost" disabled={busy} onClick={() => { setEdit(false); setErrors({}); }}>{t("comp.ac.cancel", "Hætta við")}</Button>
           </div>
         </form>
       )}
@@ -128,33 +152,48 @@ export function PasswordCard() {
   const [open, setOpen] = useState(false);
   const [a, setA] = useState("");
   const [b, setB] = useState("");
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const save = async () => {
-    if (a !== b) { setMsg({ ok: false, text: t("comp.ac.nomatch", "Lykilorðin stemma ekki.") }); return; }
-    const { error } = await supabase.auth.updateUser({ password: a });
-    if (error) { setMsg({ ok: false, text: error.message }); return; }
-    setMsg({ ok: true, text: t("comp.ac.pwchanged", "Lykilorðinu var breytt.") }); setA(""); setB(""); setOpen(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [savedMsg, flashSaved, clearSaved] = useFlash(5000);
+  const save = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setErr("");
+    if (a.length < 12) { setErr(t("comp.ac.pwshort", "Lykilorðið þarf að vera að minnsta kosti 12 stafir.")); return; }
+    if (a !== b) { setErr(t("comp.ac.nomatch", "Lykilorðin stemma ekki.")); return; }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: a });
+      if (error) throw error;
+      setA(""); setB(""); setOpen(false);
+      flashSaved(t("comp.ac.pwchanged", "Lykilorðinu var breytt."));
+    } catch (e2) {
+      setErr(friendlyError(e2, t("comp.ac.pwfailed", "Tókst ekki að breyta lykilorðinu.")));
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-hc-ink">{t("comp.ac.password", "Lykilorð")}</p>
           <p className="text-xs text-hc-ink-3">{t("comp.ac.tosignin", "Til að skrá þig inn með netfangi.")}</p>
         </div>
-        {!open && <Button size="sm" variant="secondary" onClick={() => { setOpen(true); setMsg(null); }}>{t("acct.q.edit", "Breyta")}</Button>}
+        {!open && <SavedNote msg={savedMsg} />}
+        {!open && <Button size="sm" variant="secondary" onClick={() => { setOpen(true); setErr(""); clearSaved(); }}>{t("acct.q.edit", "Breyta")}</Button>}
       </div>
       {open && (
-        <div className="mt-3 max-w-sm space-y-2">
+        <form onSubmit={save} className="mt-3 max-w-sm space-y-2">
           <input type="password" value={a} onChange={(e) => setA(e.target.value)} placeholder={t("acc.pw.new12", "Nýtt lykilorð (minnst 12 stafir)")} aria-label={t("acc.pw.new12", "Nýtt lykilorð (minnst 12 stafir)")} autoComplete="new-password" className={input} />
           <input type="password" value={b} onChange={(e) => setB(e.target.value)} placeholder={t("comp.ac.newpwagain", "Nýja lykilorðið aftur")} aria-label={t("comp.ac.newpwagain", "Nýja lykilorðið aftur")} autoComplete="new-password" className={input} />
+          {a.length > 0 && a.length < 12 && <p className="text-xs text-hc-ink-3">{t("comp.ac.pwcount", "Minnst 12 stafir")} ({a.length}/12)</p>}
+          {err && <Alert tone="bad" compact>{err}</Alert>}
           <div className="flex gap-2">
-            <Button onClick={() => void save()} disabled={a.length < 12}>{t("comp.ac.savepw", "Vista lykilorð")}</Button>
-            <Button variant="ghost" onClick={() => setOpen(false)}>{t("comp.ac.cancel", "Hætta við")}</Button>
+            <Button type="submit" busy={busy} disabled={a.length < 12 || !b}>{busy ? t("acc.common.saving", "Vista…") : t("comp.ac.savepw", "Vista lykilorð")}</Button>
+            <Button variant="ghost" disabled={busy} onClick={() => { setOpen(false); setA(""); setB(""); setErr(""); }}>{t("comp.ac.cancel", "Hætta við")}</Button>
           </div>
-        </div>
+        </form>
       )}
-      {msg && <Alert tone={msg.ok ? "ok" : "bad"} compact className="mt-3">{msg.text}</Alert>}
     </div>
   );
 }
@@ -162,10 +201,17 @@ export function PasswordCard() {
 export function SignOutButton({ className = "" }: { className?: string }) {
   const { t } = useI18n();
   const router = useRouter();
+  const [busy, setBusy] = useState(false);
   return (
-    <Button variant="secondary" className={className} icon={<LogOut className="h-4 w-4" aria-hidden />}
-      onClick={async () => { await supabase.auth.signOut(); router.push("/account/login"); }}>
-      {t("comp.ac.signout", "Skrá út")}
+    <Button variant="secondary" className={className} busy={busy} icon={<LogOut className="h-4 w-4" aria-hidden />}
+      onClick={async () => {
+        setBusy(true);
+        // Leave even if the server call fails (offline): the local session
+        // is cleared either way, and staying put would look like a dead button.
+        await supabase.auth.signOut().catch(() => supabase.auth.signOut({ scope: "local" }).catch(() => undefined));
+        router.push("/account/login");
+      }}>
+      {busy ? t("comp.ac.signingout", "Skrái út…") : t("comp.ac.signout", "Skrá út")}
     </Button>
   );
 }
@@ -186,9 +232,14 @@ export function DeleteAccountCard() {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
       body: JSON.stringify({ userId: session.user.id }),
-    });
+    }).catch((e: unknown) => e as Error);
+    if (r instanceof Error) { setErr(friendlyError(r, t("comp.ac.deletefailed", "Tókst ekki að eyða aðganginum."))); setBusy(false); return; }
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) { setErr(j.error || j.message || t("comp.ac.deletefailed", "Tókst ekki að eyða aðganginum.")); setBusy(false); return; }
+    if (!r.ok) {
+      setErr(friendlyError(j.error || j.message || (r.status === 401 ? "unauthorized" : ""), t("comp.ac.deletefailed", "Tókst ekki að eyða aðganginum.")));
+      setBusy(false);
+      return;
+    }
     await supabase.auth.signOut();
     router.push("/");
   };
@@ -205,10 +256,10 @@ export function DeleteAccountCard() {
         <div className="mt-3 rounded-hc-card bg-hc-bad-surface p-4 ring-1 ring-rose-200">
           <p className="text-sm text-hc-bad-ink">{t("comp.ac.cannotundo", "Þetta er ekki hægt að afturkalla. Skrifaðu")} <strong>{t("comp.ac.deleteword", "EYÐA")}</strong> {t("comp.ac.toconfirm", "til að staðfesta.")}</p>
           <input value={text} onChange={(e) => setText(e.target.value)} className={`${input} mt-2 max-w-xs`} aria-label={t("comp.ac.confirmation", "Staðfesting")} />
-          {err && <p className="mt-2 text-sm text-hc-bad-ink">{err}</p>}
+          {err && <p role="alert" className="mt-2 text-sm text-hc-bad-ink">{err}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
             <Button variant="danger" onClick={() => void del()} disabled={text !== t("comp.ac.deleteword", "EYÐA")} busy={busy}>{busy ? t("comp.ac.deleting", "Eyði…") : t("comp.ac.yesdelete", "Já, eyða aðganginum mínum")}</Button>
-            <Button variant="ghost" onClick={() => { setOpen(false); setText(""); }}>{t("comp.ac.cancel", "Hætta við")}</Button>
+            <Button variant="ghost" disabled={busy} onClick={() => { setOpen(false); setText(""); setErr(""); }}>{t("comp.ac.cancel", "Hætta við")}</Button>
           </div>
         </div>
       )}

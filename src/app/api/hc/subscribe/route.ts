@@ -27,6 +27,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { hcAudit, requireUser, siteOrigin } from "@/lib/hc/server";
 import { createStraumurCharge } from "@/lib/straumur";
 import { priceWithCode, redeem } from "@/lib/hc/discount";
+import { cancelledButRunning, pickCurrent } from "@/lib/hc/subscription-state";
 
 export const runtime = "nodejs";
 
@@ -57,10 +58,29 @@ async function current(clientId: string) {
   return data;
 }
 
+/**
+ * What the person should be shown: the active row, or — after "Segja upp" —
+ * the cancelled one whose paid period is still running.
+ *
+ * current() above is active-only on purpose (it is what POST and DELETE act
+ * on). GET used to return it too, so the moment somebody cancelled, the
+ * panel offered to sell them the month they had already paid for.
+ */
+async function shown(clientId: string) {
+  const { data } = await supabaseAdmin.from("subscriptions")
+    .select("id, tier, status, trial_ends_at, current_period_start, current_period_end")
+    .eq("client_id", clientId).in("status", ["active", "cancelled"])
+    .order("created_at", { ascending: false }).limit(10);
+  const row = pickCurrent(data ?? []);
+  if (!row) return null;
+  const cancelled = cancelledButRunning(row);
+  return { ...row, cancelled, ends_at: cancelled ? row.current_period_end : null };
+}
+
 export async function GET(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
-  const [p, sub] = await Promise.all([pkg(), current(user.id)]);
+  const [p, sub] = await Promise.all([pkg(), shown(user.id)]);
   return NextResponse.json({ package: p, subscription: sub });
 }
 

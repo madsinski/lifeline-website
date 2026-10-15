@@ -14,7 +14,7 @@ import { Pencil } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
-import { Alert, Button, Field, SectionCard, accountInput, accountLabel, fmtDate, fmtMonthYear } from "@/app/components/account/ui";
+import { Alert, Button, Field, SavedNote, SectionCard, accountInput, accountLabel, fmtDate, fmtMonthYear, friendlyError, useFlash } from "@/app/components/account/ui";
 import { DobFields } from "./BiodyProfileModal";
 import type { Profile } from "./types";
 
@@ -30,7 +30,9 @@ export default function ProfileDetailsCard({ user, profile, onSaved }: {
   const [f, setF] = useState<Profile>(profile);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [savedMsg, setSavedMsg] = useState("");
+  /* "Vistað ✓" beside the Breyta button the form collapses back to — the
+     spot the eye lands on after pressing Vista — for a few seconds. */
+  const [savedMsg, flashSaved, clearSaved] = useFlash(4000);
 
   const sexLabel = (k: string) => ({
     male: t("acct.q.male", "Karl"),
@@ -40,7 +42,7 @@ export default function ProfileDetailsCard({ user, profile, onSaved }: {
   } as Record<string, string>)[k];
   const missing = <span className="text-hc-ink-3">{t("acct.p.ekki-skrad", "Ekki skráð")}</span>;
 
-  const start = () => { setF(profile); setError(""); setSavedMsg(""); setEditing(true); };
+  const start = () => { setF(profile); setError(""); clearSaved(); setEditing(true); };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,22 +50,35 @@ export default function ProfileDetailsCard({ user, profile, onSaved }: {
     if (!f.firstName.trim()) { setError(t("acc.profile.firstname-required", "Fornafn vantar.")); return; }
     setSaving(true);
     const fullName = `${f.firstName.trim()} ${f.lastName.trim()}`.trim();
-    const { error: upErr } = await supabase.from("clients_decrypted").update({
-      full_name: fullName,
-      phone: f.phone.trim() || null,
-      address: f.address.trim() || null,
-      emergency_contact_name: f.emergencyName.trim() || null,
-      emergency_contact_phone: f.emergencyPhone.trim() || null,
-      date_of_birth: f.dob || null,
-      sex: f.sex || null,
-      updated_at: new Date().toISOString(),
-    }).eq("id", user.id);
-    if (upErr) { setSaving(false); setError(upErr.message); return; }
-    await supabase.auth.updateUser({ data: { full_name: fullName, phone: f.phone.trim() } });
-    setSaving(false);
-    setEditing(false);
-    onSaved({ ...f, firstName: f.firstName.trim(), lastName: f.lastName.trim() });
-    setSavedMsg(t("acct.p.upplysingarnar-voru-vistadar", "Upplýsingarnar voru vistaðar."));
+    try {
+      // .select() so a write that matched no row (no client row yet, or RLS
+      // filtered it) is a failure and not a silent "saved".
+      const { data, error: upErr } = await supabase.from("clients_decrypted").update({
+        full_name: fullName,
+        phone: f.phone.trim() || null,
+        address: f.address.trim() || null,
+        emergency_contact_name: f.emergencyName.trim() || null,
+        emergency_contact_phone: f.emergencyPhone.trim() || null,
+        date_of_birth: f.dob || null,
+        sex: f.sex || null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id).select("id");
+      if (upErr) throw upErr;
+      if (!data || data.length === 0) {
+        setError(t("acc.profile.norow", "Upplýsingarnar vistuðust ekki: aðgangurinn fannst ekki. Skráðu þig út og inn aftur, eða hafðu samband á contact@lifelinehealth.is."));
+        return;
+      }
+      // The name in the auth profile is a convenience copy; the row above is
+      // what counts, so a failure here does not undo the save.
+      await supabase.auth.updateUser({ data: { full_name: fullName, phone: f.phone.trim() } }).catch(() => undefined);
+      setEditing(false);
+      onSaved({ ...f, firstName: f.firstName.trim(), lastName: f.lastName.trim() });
+      flashSaved(t("acc.common.saved", "Vistað"));
+    } catch (err) {
+      setError(friendlyError(err, t("acc.profile.savefailed", "Tókst ekki að vista upplýsingarnar. Reyndu aftur.")));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const input = (k: keyof Profile, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
@@ -76,8 +91,12 @@ export default function ProfileDetailsCard({ user, profile, onSaved }: {
   return (
     <SectionCard id="profile" title={t("acct.p.personuupplysingar", "Persónuupplýsingar")}
       description={t("acct.p.nafn-simi-heimilisfang-og-tengilid", "Nafn, sími, heimilisfang og tengiliður í neyð")}
-      action={!editing ? <Button size="sm" variant="secondary" icon={<Pencil className="h-3.5 w-3.5" aria-hidden />} onClick={start}>{t("acct.q.edit", "Breyta")}</Button> : undefined}>
-      {savedMsg && !editing && <Alert tone="ok" compact className="mb-4" onDismiss={() => setSavedMsg("")}>{savedMsg}</Alert>}
+      action={!editing ? (
+        <span className="flex items-center gap-3">
+          <SavedNote msg={savedMsg} />
+          <Button size="sm" variant="secondary" icon={<Pencil className="h-3.5 w-3.5" aria-hidden />} onClick={start}>{t("acct.q.edit", "Breyta")}</Button>
+        </span>
+      ) : undefined}>
       {!editing ? (
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("acct.q.name", "Nafn")}>{`${profile.firstName} ${profile.lastName}`.trim() || missing}</Field>
@@ -121,7 +140,7 @@ export default function ProfileDetailsCard({ user, profile, onSaved }: {
           </fieldset>
           {error && <Alert tone="bad" compact className="sm:col-span-2">{error}</Alert>}
           <div className="flex flex-wrap gap-2 sm:col-span-2">
-            <Button type="submit" busy={saving}>{t("acc.common.savechanges", "Vista breytingar")}</Button>
+            <Button type="submit" busy={saving}>{saving ? t("acc.common.saving", "Vista…") : t("acc.common.savechanges", "Vista breytingar")}</Button>
             <Button variant="ghost" onClick={() => { setEditing(false); setError(""); }} disabled={saving}>{t("acct.cancel", "Hætta við")}</Button>
           </div>
         </form>

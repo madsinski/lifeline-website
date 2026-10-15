@@ -49,7 +49,14 @@ function Adgangur() {
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
-      if (!data.session) { router.replace(`/account/login?next=${encodeURIComponent("/app/adgangur")}`); return; }
+      if (!data.session) {
+        /* Keep #askrift: the trial banner and the journey link straight to
+           the subscription card, and the login's next carries the fragment
+           (encoded as %23) through to router.push afterwards. */
+        const target = window.location.hash === "#askrift" ? "/app/adgangur#askrift" : "/app/adgangur";
+        router.replace(`/account/login?next=${encodeURIComponent(target)}`);
+        return;
+      }
       setUserId(data.session.user.id);
       const e = await cache.load(api, "/api/hc/journey/exists").catch(() => null);
       const eb = (e && e.status < 400 ? e.body : {}) as { exists?: boolean; has_plan?: boolean; entry?: string | null; paid?: boolean };

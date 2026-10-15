@@ -8,6 +8,7 @@ import { Check, FileUp, Loader2, ShieldCheck } from "lucide-react";
 import { SELF_CONSENT_LABEL, SELF_CONSENT_POINTS, SELF_CONSENT_VERSION } from "@/lib/hc/consent";
 import { hcBtn, hcCard } from "./ui";
 import * as cache from "@/lib/hc/client-cache";
+import { useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -30,19 +31,30 @@ export default function ReportUpload({ api, onDone, compact, heading, blurb }: {
    */
   const [consent, setConsent] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const toast = useToast();
 
   const upload = async (files: FileList) => {
+    if (busy) return;
     setBusy(true); setMsg(null);
     const fd = new FormData();
     for (const f of Array.from(files).slice(0, 3)) fd.append("files", f);
     // The version, not a boolean: the row records which wording was agreed.
     if (consent) fd.append("consent", SELF_CONSENT_VERSION);
-    const r = await api("/api/hc/report", { method: "POST", body: fd });
-    const j = await r.json().catch(() => ({}));
+    const r = await api("/api/hc/report", { method: "POST", body: fd }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setMsg({ ok: false, text: j.error || "Tókst ekki að lesa skýrsluna." }); return; }
+    if (!r || !r.ok) {
+      // The server's own messages are Icelandic sentences; anything else
+      // (a network drop, a bare code) gets the plain one.
+      const text = typeof j.error === "string" && /\s/.test(j.error) ? j.error : "Tókst ekki að lesa skýrsluna. Reyndu aftur.";
+      setMsg({ ok: false, text });
+      toast.show(text, { tone: "bad" });
+      return;
+    }
     cache.invalidate("/api/hc/");
     setMsg({ ok: true, text: "Skýrslan er komin inn." });
+    // The card can unmount on the reload that follows; the toast outlives it.
+    toast.show("Skýrslan er komin inn", { tone: "ok" });
     onDone();
   };
 

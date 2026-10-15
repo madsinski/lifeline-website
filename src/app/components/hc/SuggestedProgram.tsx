@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, X } from "lucide-react";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -34,6 +35,7 @@ export default function SuggestedProgram({ api, onAccepted }: { api: Api; onAcce
   const [rows, setRows] = useState<Suggestion[]>([]);
   const [busy, setBusy] = useState("");
   const [done, setDone] = useState("");
+  const toast = useToast();
 
   const load = useCallback(async () => {
     const r = await api("/api/hc/suggestions").catch(() => null);
@@ -43,14 +45,29 @@ export default function SuggestedProgram({ api, onAccepted }: { api: Api; onAcce
   useEffect(() => { void load(); }, [load]);
 
   const answer = async (id: string, a: "accept" | "decline") => {
+    if (busy) return;
     setBusy(id);
     const r = await api("/api/hc/suggestions", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, answer: a }),
     }).catch(() => null);
     setBusy("");
-    if (!r?.ok) return;
-    setDone(a === "accept" ? "Prógrammið er komið í áætlunina þína." : "Takk — við látum þjálfarann vita.");
+    /* A failed answer used to leave both buttons sitting there as if
+       nothing had been pressed. The server's own reason is shown when it
+       wrote one in Icelandic ("Prógrammið fannst ekki lengur."); an
+       already-answered card is reloaded away. */
+    if (!r?.ok) {
+      const j = await r?.json().catch(() => null);
+      const why = typeof j?.error === "string" && /[áéíóúýþæöð]/i.test(j.error) ? j.error : SAVE_FAILED;
+      toast.show(r?.status === 409 && j?.error === "already_answered" ? "Þessu var þegar svarað." : why, { tone: "bad" });
+      if (r?.status === 409) await load();
+      return;
+    }
+    const msg = a === "accept" ? "Prógrammið er komið í áætlunina þína." : "Takk — við látum þjálfarann vita.";
+    setDone(msg);
+    /* The page reloads after an accept, which can take this card (and its
+       inline confirmation) with it; the toast outlives that. */
+    toast.show(msg, { tone: "ok" });
     await load();
     if (a === "accept") onAccepted?.();
   };

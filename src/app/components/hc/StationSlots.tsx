@@ -67,7 +67,12 @@ export default function StationSlots({ api }: { api: Api }) {
   const [measurerId, setMeasurerId] = useState("");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  /* One line under the headline for what just happened; `bad` makes it an
+     alert so a failure is announced, not just shown. */
+  const [msg, setMsgState] = useState<{ text: string; bad: boolean }>({ text: "", bad: false });
+  const setMsg = (text: string, bad = false) => setMsgState({ text, bad });
+  const [loadErr, setLoadErr] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
@@ -80,6 +85,9 @@ export default function StationSlots({ api }: { api: Api }) {
     const r = await api("/api/vinnustod/slots?days=90").catch(() => null);
     const j = r?.ok ? await r.json().catch(() => null) : null;
     setTimeout(() => {
+      /* A failed load is not "no free times": saying zero when the list
+         never arrived sent people to open times that already existed. */
+      setLoadErr(!j);
       setSlots(Array.isArray(j?.slots) ? j.slots : []);
       setStaff(Array.isArray(j?.staff) ? j.staff : []);
       setFree(Number(j?.freeAhead ?? 0));
@@ -88,6 +96,7 @@ export default function StationSlots({ api }: { api: Api }) {
   useEffect(() => { void load(); }, [load]);
 
   const create = async () => {
+    if (busy) return;
     setBusy(true); setMsg("");
     const r = await api("/api/vinnustod/slots", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -95,7 +104,8 @@ export default function StationSlots({ api }: { api: Api }) {
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r?.ok) { setMsg(j.error || "Tókst ekki að opna tíma."); return; }
+    if (!r) { setMsg("Engin tenging. Athugaðu netið og reyndu aftur.", true); return; }
+    if (!r.ok) { setMsg(j.error || "Tókst ekki að opna tíma.", true); return; }
     setMsg(j.created
       ? `${j.created} tímar opnaðir${j.skipped ? ` · ${j.skipped} voru þegar til` : ""}.`
       : "Þessir tímar voru þegar opnir.");
@@ -108,17 +118,36 @@ export default function StationSlots({ api }: { api: Api }) {
        name you just picked reads as broken. */
     setSlots((xs) => xs?.map((x) => x.id === slot.id
       ? { ...x, measurer_id: id || null, measurer_name: staff.find((w) => w.id === id)?.name ?? null } : x) ?? xs);
-    await api("/api/vinnustod/slots", {
+    const r = await api("/api/vinnustod/slots", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: slot.id, measurerId: id || null }),
     }).catch(() => null);
+    /* …and put it back, out loud, when the save did not happen. It used to
+       keep showing the new name whether or not it was stored. */
+    if (!r?.ok) {
+      setSlots((xs) => xs?.map((x) => x.id === slot.id
+        ? { ...x, measurer_id: slot.measurer_id, measurer_name: slot.measurer_name } : x) ?? xs);
+      setMsg(`Ekki tókst að skrá hver mælir ${when(slot.slot_at)}. Reyndu aftur.`, true);
+    }
   };
 
   const remove = async (s: Slot) => {
+    if (removing) return;
+    setRemoving(s.id);
     const r = await api(`/api/vinnustod/slots?id=${encodeURIComponent(s.id)}`, { method: "DELETE" }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
-    if (!r?.ok) { setMsg(j.error || "Tókst ekki að fjarlægja."); return; }
-    setMsg(""); await load();
+    if (!r?.ok) {
+      setRemoving(null);
+      /* The 409 carries a sentence; the others are codes, not for people. */
+      setMsg(r?.status === 409 && j.error ? j.error
+        : r?.status === 404 ? "Tíminn var þegar fjarlægður."
+        : "Tókst ekki að fjarlægja tímann. Reyndu aftur.", true);
+      if (r?.status === 404) await load();
+      return;
+    }
+    await load();
+    setRemoving(null);
+    setMsg(`Tíminn ${when(s.slot_at)} var fjarlægður.`);
   };
 
   return (
@@ -134,7 +163,12 @@ export default function StationSlots({ api }: { api: Api }) {
 
       {/* Zero is the headline, not a footnote. */}
       <p className="mt-1 text-sm text-hc-ink-2">
-        {slots === null ? "Hleð…" : free === 0 ? (
+        {slots === null ? "Hleð…" : loadErr ? (
+          <span role="alert" className="font-semibold text-hc-bad-ink">
+            Náði ekki í tímana.{" "}
+            <button type="button" onClick={() => { setSlots(null); void load(); }} className="underline underline-offset-2">Reyna aftur</button>
+          </span>
+        ) : free === 0 ? (
           <span className="font-semibold text-hc-warn-ink">
             Enginn laus tími næstu 4 vikurnar — skjólstæðingar sjá tóman lista.
           </span>
@@ -143,7 +177,12 @@ export default function StationSlots({ api }: { api: Api }) {
         )}
       </p>
 
-      {msg && <p className="mt-2 rounded-lg bg-hc-sunken px-3 py-2 text-sm text-hc-ink-2">{msg}</p>}
+      {msg.text && (
+        <p role={msg.bad ? "alert" : "status"}
+          className={`mt-2 rounded-lg px-3 py-2 text-sm ${msg.bad ? "bg-hc-bad-surface text-hc-bad-ink" : "bg-hc-sunken text-hc-ink-2"}`}>
+          {msg.text}
+        </p>
+      )}
 
       {open && (
         <div className="mt-3 space-y-2 rounded-hc-element bg-hc-sunken p-3 ring-1 ring-hc-hairline">
@@ -277,8 +316,9 @@ export default function StationSlots({ api }: { api: Api }) {
                 </select>
                 {!x.client_id && (
                   <button type="button" onClick={() => void remove(x)} aria-label="Fjarlægja tíma"
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-3 hover:bg-hc-bad-surface hover:text-hc-bad-ink">
-                    <Trash2 className="h-4 w-4" aria-hidden />
+                    disabled={removing !== null} aria-busy={removing === x.id}
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-3 hover:bg-hc-bad-surface hover:text-hc-bad-ink disabled:opacity-50">
+                    {removing === x.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Trash2 className="h-4 w-4" aria-hidden />}
                   </button>
                 )}
               </li>

@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Archive, Loader2 } from "lucide-react";
 import { hcBtn, hcCard, hcKicker } from "./ui";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -27,10 +28,11 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
   const [r, setR] = useState<Review | null>(null);
   const [busy, setBusy] = useState<"keep" | "remove" | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
-    const res = await api("/api/hc/report/retention");
-    const j = res.ok ? await res.json().catch(() => null) : null;
+    const res = await api("/api/hc/report/retention").catch(() => null);
+    const j = res?.ok ? await res.json().catch(() => null) : null;
     setTimeout(() => setR(j?.review ?? null), 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
@@ -38,13 +40,20 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
   if (!r) return null;
 
   const decide = async (decision: "keep" | "remove") => {
+    if (busy) return;
     setBusy(decision); setErr(null);
     const res = await api("/api/hc/report/retention", {
       method: "POST", body: JSON.stringify({ id: r.id, decision }),
-    });
-    if (res.ok) { setR(null); onDone?.(); }
-    else setErr("Tókst ekki að skrá svarið. Reyndu aftur.");
+    }).catch(() => null);
     setBusy(null);
+    if (res?.ok) {
+      // The card goes away on success, so the toast is what says it worked.
+      toast.show(decision === "keep" ? "Skýrslan verður geymd áfram" : "Skýrslan var tekin út", { tone: "ok" });
+      setR(null); onDone?.();
+    } else {
+      setErr("Tókst ekki að skrá svarið. Reyndu aftur.");
+      toast.show(SAVE_FAILED, { tone: "bad" });
+    }
   };
 
   return (
@@ -68,7 +77,7 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
             {r.state === "reminded" && " Við spurðum fyrir mánuði."}
           </p>
 
-          {err && <p role="alert" className="mt-2 text-sm font-semibold text-red-700">{err}</p>}
+          {err && <p role="alert" className="mt-2 text-sm font-semibold text-hc-bad-ink">{err}</p>}
 
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" className={hcBtn.primary} disabled={busy !== null}

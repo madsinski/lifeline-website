@@ -75,7 +75,13 @@ export function Messages({ d, reload, onClose }: { d: Detail; reload: () => Prom
     const r = await api(`/api/vinnustod/journeys/${j.id}`, { method: "POST", body: JSON.stringify({ action: "message", channels, template: tpl, subject, body: text }) }).catch(() => null);
     const res = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r || (!r.ok && !res.results)) { setMsg({ ok: false, text: res.error || "Sending mistókst." }); return; }
+    if (!r) { setMsg({ ok: false, text: "Engin tenging. Ekkert var sent — reyndu aftur." }); return; }
+    if (!r.ok && !res.results) {
+      /* 400/409/429 carry an Icelandic sentence; 401/403/500 carry a code. */
+      const said = typeof res.error === "string" && /[áéíóúýþæöð]/i.test(res.error) ? res.error : null;
+      setMsg({ ok: false, text: said || (r.status === 401 ? "Lotan rann út. Skráðu þig inn aftur." : "Sending mistókst. Ekkert var sent.") });
+      return;
+    }
     const parts = (res.results as { channel: string; ok: boolean; status: string; error?: string }[]).map((x) =>
       `${x.channel === "sms" ? "SMS" : "Tölvupóstur"}: ${x.ok ? (x.status === "dry-run" ? "prufukeyrsla (ekki sent, lyklar vantar)" : "sent") : x.error || "mistókst"}`);
     setMsg({ ok: !!res.ok, text: parts.join(" · ") });

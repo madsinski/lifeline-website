@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   if (!journeyId) return NextResponse.json({ error: "not_found" }, { status: 404 });
   try {
     const body = await req.json().catch(() => ({}));
-    const { settings, personal, nutrition } = await saveTraining(journeyId, user.id, body, "client");
+    const { settings, personal, nutrition, body: selfBody } = await saveTraining(journeyId, user.id, body, "client");
     /**
      * A commitment with an hour on it belongs in their calendar, so a change
      * to the week is a change to the calendar.
@@ -58,7 +58,9 @@ export async function POST(req: NextRequest) {
       after(async () => { await syncOwner("client", user.id).catch(() => {}); });
     }
     await hcAudit("client", "training_settings", journeyId, { level: settings.level, load: settings.load, injuries: settings.injuries });
-    return NextResponse.json({ settings, personal, nutrition });
+    // body too: the weight typed on Næring is read back from it, and without
+    // it the save landed but the page went on asking for the weight.
+    return NextResponse.json({ settings, personal, nutrition, body: selfBody });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

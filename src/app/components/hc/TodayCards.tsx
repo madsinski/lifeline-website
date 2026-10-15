@@ -26,8 +26,8 @@ interface Data {
 export function useToday(api: Api) {
   const [d, setD] = useState<Data | null>(null);
   const load = useCallback(async () => {
-    const r = await api("/api/hc/today");
-    const j = r.ok ? await r.json().catch(() => null) : null;
+    const r = await api("/api/hc/today").catch(() => null);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
     setTimeout(() => setD(j), 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);

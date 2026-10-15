@@ -27,17 +27,28 @@ export function soundOn(): boolean {
   try { return window.localStorage.getItem(SOUND_KEY) !== "off"; } catch { return true; }
 }
 
-export function chime() {
+/**
+ * Play the chime. Returns whether it could play.
+ *
+ * `fromGesture`: called straight from a click (the "Prófa hljóð" button).
+ * Safari creates even a click's AudioContext suspended until resume() is
+ * called, so the test button used to do nothing there; with this flag a
+ * suspended context is resumed instead of given up on.
+ */
+export function chime(opts?: { fromGesture?: boolean }): boolean {
   // Checked here rather than at each call site, so turning sound off turns
   // it off everywhere — including anywhere that starts chiming later.
-  if (!soundOn()) return;
+  if (!soundOn()) return false;
   try {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
+    if (!Ctx) return false;
     const ctx = new Ctx();
     // suspended means no gesture has happened yet and the browser will not
     // let this through. Give up quietly rather than leaving a context open.
-    if (ctx.state === "suspended") { void ctx.close(); return; }
+    if (ctx.state === "suspended") {
+      if (!opts?.fromGesture) { void ctx.close(); return false; }
+      void ctx.resume().catch(() => {});
+    }
     [880, 1174.7].forEach((hz, n) => {
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.type = "sine"; o.frequency.value = hz;
@@ -49,5 +60,6 @@ export function chime() {
       o.start(t); o.stop(t + 0.32);
     });
     setTimeout(() => void ctx.close().catch(() => {}), 1200);
-  } catch { /* no audio on this device, or blocked. The pulse carries it. */ }
+    return true;
+  } catch { /* no audio on this device, or blocked. The pulse carries it. */ return false; }
 }

@@ -56,7 +56,7 @@ export default function ClaimPage() {
       setLoading(true);
       try {
         const res = await fetch(`/api/business/claim/${token}/complete`);
-        const j = await res.json();
+        const j = await res.json().catch(() => null);
         if (!res.ok || !j?.ok) {
           const msg = j?.error === "expired" ? "Hlekkurinn er útrunninn. Hafðu samband við Lifeline-teymið til að fá nýjan."
             : j?.error === "already_claimed" ? "Þessi aðgangur hefur þegar verið tekinn yfir. Skráðu þig inn í staðinn."
@@ -74,8 +74,8 @@ export default function ClaimPage() {
         // different email (e.g. admin tested while logged in elsewhere).
         const { data: { user } } = await supabase.auth.getUser();
         setCurrentEmail(user?.email || null);
-      } catch (e) {
-        setLoadErr((e as Error).message);
+      } catch {
+        setLoadErr("Náði ekki sambandi. Athugaðu netið og endurhlaðaðu síðunni.");
       } finally {
         setLoading(false);
       }
@@ -84,6 +84,7 @@ export default function ClaimPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     setErr("");
     if (password.length < 8) { setErr("Lykilorðið verður að vera að minnsta kosti 8 stafir."); return; }
     if (password !== password2) { setErr("Lykilorðin eru ekki eins."); return; }
@@ -106,15 +107,28 @@ export default function ClaimPage() {
           accept_dpa: !!preview?.is_sub ? false : true,
         }),
       });
-      const j = await res.json();
+      const j = await res.json().catch(() => null);
       if (!res.ok || !j?.ok) {
-        setErr(j?.detail || j?.error || "Skráning mistókst.");
+        /* The route answers with codes (and English details); say it in
+           Icelandic. */
+        const code = j?.error as string | undefined;
+        setErr(
+          code === "email_mismatch" ? "Notaðu netfangið sem boðið var sent á."
+          : code === "already_claimed" ? "Þessi aðgangur hefur þegar verið tekinn yfir. Skráðu þig inn í staðinn."
+          : code === "expired" ? "Hlekkurinn er útrunninn. Hafðu samband við Lifeline-teymið til að fá nýjan."
+          : code === "invalid_or_consumed" ? "Ógildur hlekkur — hann hefur verið notaður eða rennt út."
+          : code === "password_too_short" ? "Lykilorðið verður að vera að minnsta kosti 8 stafir."
+          : code === "tos_required" || code === "dpa_required" ? "Samþykktu bæði þjónustuskilmála og gagnavinnslusamning."
+          : code === "signatory_name_required" ? "Nafn undirritanda vantar."
+          : code === "signatory_email_required" ? "Netfang undirritanda vantar."
+          : "Skráning mistókst. Reyndu aftur eftir smástund.",
+        );
         return;
       }
       // Success — send them to business login so they can sign in.
       router.push(`/business/login?email=${encodeURIComponent(j.signed_in_email || signatoryEmail)}&claimed=1`);
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch {
+      setErr("Engin tenging. Athugaðu netið og reyndu aftur.");
     } finally {
       setSubmitting(false);
     }
@@ -263,7 +277,7 @@ export default function ClaimPage() {
             </>
           )}
 
-          {err && <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>}
+          {err && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div>}
 
           <div className="flex items-center justify-end">
             <button type="submit" disabled={submitting || (!preview.is_sub && (!acceptTos || !acceptDpa))}

@@ -124,13 +124,22 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  /* Failures are said inline, in red: this dialog also opens on the
+     workstation, which has no toast mounted. */
+  const [msgBad, setMsgBad] = useState(false);
+  const [statusFailed, setStatusFailed] = useState(false);
+  const [icsFailed, setIcsFailed] = useState(false);
+  const [icsAttempt, setIcsAttempt] = useState(0);
   const [askDisconnect, setAskDisconnect] = useState(false);
   // Back from Google: ?google=connected|<error>
   const [googleReturn, setGoogleReturn] = useState(() => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("google")));
 
   const loadStatus = useCallback(async () => {
-    const r = await api.call(api.googleStatusUrl);
-    if (r.ok) setG(await r.json());
+    const r = await api.call(api.googleStatusUrl).catch(() => null);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
+    // The Google button waits on this; when it never came the button stayed
+    // greyed out with no word as to why.
+    if (j) { setG(j); setStatusFailed(false); } else setStatusFailed(true);
   }, [api]);
 
   useEffect(() => {
@@ -145,11 +154,13 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
   useEffect(() => {
     if (!open || !choice || choice === "google" || ics) return;
     const t = setTimeout(async () => {
-      const r = await api.call(api.icsTokenUrl, { method: "POST", body: "{}" });
-      if (r.ok) setIcs(await r.json());
+      const r = await api.call(api.icsTokenUrl, { method: "POST", body: "{}" }).catch(() => null);
+      const j = r?.ok ? await r.json().catch(() => null) : null;
+      // Was "Augnablik…" for good when this failed.
+      if (j?.https) { setIcs(j); setIcsFailed(false); } else setIcsFailed(true);
     }, 0);
     return () => clearTimeout(t);
-  }, [open, choice, ics, api]);
+  }, [open, choice, ics, api, icsAttempt]);
 
   if (!open) return null;
 
@@ -157,20 +168,29 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
     const url = new URL(window.location.href);
     url.searchParams.delete("google"); url.searchParams.delete("cal");
     window.history.replaceState(null, "", url);
-    setChoice(null); setMsg(""); setGoogleReturn(null);
+    setChoice(null); setMsg(""); setMsgBad(false); setGoogleReturn(null);
     onClose();
   };
   const copy = async () => {
     if (!ics) return;
-    try { await navigator.clipboard.writeText(ics.https); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* nothing */ }
+    try { await navigator.clipboard.writeText(ics.https); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    catch { setMsgBad(true); setMsg("Ekki tókst að afrita. Veldu hlekkinn og afritaðu hann."); }
   };
   const act = async (init: RequestInit, done: string) => {
+    if (busy) return;
     setBusy(true); setMsg("");
-    const r = await api.call(api.googleStatusUrl, init);
+    const r = await api.call(api.googleStatusUrl, init).catch(() => null);
     setBusy(false);
-    setMsg(r.ok ? done : "Tókst ekki.");
+    setMsgBad(!r?.ok);
+    setMsg(r?.ok ? done : "Tókst ekki. Reyndu aftur.");
     await loadStatus();
   };
+  const icsWait = icsFailed ? (
+    <p className="mt-3 text-sm text-hc-bad-ink" role="alert">
+      Ekki tókst að sækja dagatalshlekkinn.{" "}
+      <button type="button" onClick={() => { setIcsFailed(false); setIcsAttempt((n) => n + 1); }} className="font-semibold underline">Reyna aftur</button>
+    </p>
+  ) : <p className="mt-3 text-sm text-hc-ink-2">Augnablik…</p>;
   const outlookUrl = ics ? `https://outlook.office.com/calendar/0/addfromweb?url=${encodeURIComponent(ics.https)}&name=${encodeURIComponent(api.subscriptionName)}` : "";
 
   const tiles: { key: Choice; icon: React.ReactNode; label: string; hint: string }[] = [
@@ -234,7 +254,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
 
         {choice && (
           <div>
-            <button type="button" onClick={() => { setChoice(null); setMsg(""); }} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink">
+            <button type="button" onClick={() => { setChoice(null); setMsg(""); setMsgBad(false); }} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-hc-ink-2 hover:text-hc-ink">
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Til baka
             </button>
 
@@ -268,6 +288,12 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
                 ) : (
                   <>
                     <p className="mt-1 text-sm text-hc-ink-2">Við búum til sérstakt dagatal í Google-reikningnum þínum og setjum tímana þar inn. Breytingar birtast strax. Við sjáum ekkert annað í dagatalinu þínu.</p>
+                    {statusFailed && !g && (
+                      <p className="mt-3 text-sm text-hc-bad-ink" role="alert">
+                        Ekki tókst að sækja stöðuna hjá Google.{" "}
+                        <button type="button" onClick={() => void loadStatus()} className="font-semibold underline">Reyna aftur</button>
+                      </p>
+                    )}
                     {g && !g.configured ? (
                       <p className="mt-3 rounded-xl bg-hc-warn-surface px-3 py-2 text-sm text-hc-warn-ink">Bein tenging við Google er væntanleg. Notaðu „Annað“ og bættu hlekknum við í Google-dagatali á meðan.</p>
                     ) : (
@@ -285,7 +311,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
               <>
                 <h3 className="flex items-center gap-2 text-base font-bold"><AppleMark /> Apple-dagatal</h3>
                 <p className="mt-1 text-sm text-hc-ink-2">Ýttu á hnappinn á iPhone eða Mac og veldu „Gerast áskrifandi“. Tímarnir uppfærast sjálfkrafa.</p>
-                {!ics ? <p className="mt-3 text-sm text-hc-ink-2">Augnablik…</p> : (
+                {!ics ? icsWait : (
                   <>
                     <a href={ics.webcal} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-hc-brand-dark px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 sm:w-auto">Bæta við Apple-dagatal</a>
                     <div className="mt-4 hidden items-center gap-4 rounded-2xl bg-hc-sunken p-3 sm:flex">
@@ -302,7 +328,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
               <>
                 <h3 className="flex items-center gap-2 text-base font-bold"><Mail className="h-6 w-6 text-[#0a64c9]" /> Outlook</h3>
                 <p className="mt-1 text-sm text-hc-ink-2">Opnar Outlook á vefnum og bætir dagatalinu við. Það birtist líka í Outlook-appinu.</p>
-                {!ics ? <p className="mt-3 text-sm text-hc-ink-2">Augnablik…</p> : (
+                {!ics ? icsWait : (
                   <>
                     <a href={outlookUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0a64c9] px-4 py-3 text-sm font-semibold text-white hover:brightness-95 sm:w-auto">
                       <ExternalLink className="h-4 w-4" aria-hidden /> Bæta við Outlook
@@ -317,7 +343,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
               <>
                 <h3 className="flex items-center gap-2 text-base font-bold"><Calendar className="h-6 w-6 text-hc-ink-2" /> Annað dagatal</h3>
                 <p className="mt-1 text-sm text-hc-ink-2">Bættu þessari slóð við sem áskrift í dagatalinu þínu — valkosturinn heitir „Gerast áskrifandi að dagatali“ og „Subscribe from URL“ í enskum viðmótum.</p>
-                {!ics ? <p className="mt-3 text-sm text-hc-ink-2">Augnablik…</p> : (
+                {!ics ? icsWait : (
                   <>
                     <code className="mt-3 block break-all rounded-xl bg-hc-sunken px-3 py-2 text-[11px] text-hc-ink-2">{ics.https}</code>
                     {linkRow}
@@ -326,7 +352,7 @@ export default function CalendarConnect({ api, open, onClose, intro }: {
               </>
             )}
 
-            {msg && <p className="mt-3 text-sm text-hc-ink-2" role="status">{msg}</p>}
+            {msg && <p className={`mt-3 text-sm ${msgBad ? "text-hc-bad-ink" : "text-hc-ok-ink"}`} role={msgBad ? "alert" : "status"}>{msg}</p>}
             <div className="mt-5 flex justify-end">
               <button type="button" onClick={close} className="inline-flex items-center gap-1.5 rounded-xl bg-hc-brand-dark px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">
                 Lokið <Check className="h-4 w-4" aria-hidden />

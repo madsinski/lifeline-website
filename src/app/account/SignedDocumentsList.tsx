@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import { FileText } from "lucide-react";
-import { Alert, Button, accountInset, fmtDate, useDialog } from "@/app/components/account/ui";
+import { Alert, Button, accountInset, fmtDate, friendlyError } from "@/app/components/account/ui";
 
 interface AcceptanceRow {
   id: string;
@@ -38,7 +38,7 @@ const DOC_TITLE_IS = (t: (k: string, f?: string) => string): Record<string, stri
 
 export default function SignedDocumentsList() {
   const { t, tv, locale } = useI18n();
-  const { alert } = useDialog();
+  const [dlError, setDlError] = useState<{ id: string; text: string } | null>(null);
   const [rows, setRows] = useState<AcceptanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,19 +67,23 @@ export default function SignedDocumentsList() {
 
   useEffect(() => { load(); }, [load]);
 
+  /* The tab is opened before the await: a window.open() after one is a
+     popup to Safari and gets blocked without a word. */
   const downloadPdf = async (row: AcceptanceRow) => {
     if (!row.pdf_storage_path) return;
     setDownloadingId(row.id);
+    setDlError(null);
+    const win = window.open("", "_blank");
     try {
       const { data, error: signErr } = await supabase.storage
         .from("platform-acceptance-pdfs")
         .createSignedUrl(row.pdf_storage_path, 300);
-      if (signErr || !data?.signedUrl) {
-        await alert({ title: tv("acct.docs.pdffail", "Tókst ekki að sækja PDF: {{err}}",
-          { err: signErr?.message || t("acct.docs.nourl", "engin slóð") }) });
-        return;
-      }
-      window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+      if (signErr || !data?.signedUrl) throw signErr || new Error("");
+      if (win) { win.opener = null; win.location.href = data.signedUrl; }
+      else window.location.assign(data.signedUrl);
+    } catch (err) {
+      win?.close();
+      setDlError({ id: row.id, text: friendlyError(err, t("acct.docs.pdffail2", "Tókst ekki að sækja PDF-skjalið. Reyndu aftur.")) });
     } finally {
       setDownloadingId(null);
     }
@@ -94,7 +98,7 @@ export default function SignedDocumentsList() {
     );
   }
   if (error) {
-    return <Alert tone="bad" compact>{error === "not_signed_in" ? t("acct.docs.notsignedin", "Ekki innskráð/-ur.") : error}</Alert>;
+    return <Alert tone="bad" compact>{error === "not_signed_in" ? t("acct.docs.notsignedin", "Ekki innskráð/-ur.") : friendlyError(error, t("acct.docs.loadfailed", "Tókst ekki að sækja skjölin."))}</Alert>;
   }
   if (rows.length === 0) {
     return (
@@ -109,7 +113,8 @@ export default function SignedDocumentsList() {
       {rows.map((r) => {
         const title = DOC_TITLE_IS(t)[r.document_key] || r.document_key;
         return (
-          <div key={r.id} className={`${accountInset} flex items-center justify-between gap-3 p-3`}>
+          <div key={r.id} className={`${accountInset} p-3`}>
+          <div className="flex items-center justify-between gap-3">
             <FileText className="h-5 w-5 shrink-0 text-hc-ink-3" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-hc-ink">{title}</p>
@@ -124,6 +129,8 @@ export default function SignedDocumentsList() {
               title={!r.pdf_storage_path ? t("acct.docs.nopdf", "PDF ekki tilbúið") : t("acct.docs.getpdf", "Sækja PDF")}>
               {r.pdf_storage_path ? t("acct.docs.getpdf", "Sækja PDF") : t("acct.docs.missing", "PDF vantar")}
             </Button>
+          </div>
+          {dlError?.id === r.id && <Alert tone="bad" compact className="mt-2" onDismiss={() => setDlError(null)}>{dlError.text}</Alert>}
           </div>
         );
       })}

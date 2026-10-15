@@ -34,11 +34,18 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
   settings: TrainingSettings;
   planStart: string | null;
   load: number;
-  onSave: (keys: string[]) => void;
+  /** May return a promise; the button then says it is saving and cannot be pressed twice. */
+  onSave: (keys: string[]) => void | Promise<unknown>;
   onClose: () => void;
 }) {
   const [keys, setKeys] = useState<string[]>(() => (slots?.length ? slots : slotKeysFor(focus)));
   const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try { await onSave(keys); } finally { setSaving(false); }
+  };
 
   // The actual exercises these patterns produce right now, so the list is
   // not an abstraction the person has to imagine.
@@ -176,8 +183,8 @@ export default function SessionBuilder({ name, focus, slots, settings, planStart
           )}
           <span className="flex-1" />
           <button type="button" onClick={onClose} className="px-3 text-sm font-semibold text-hc-ink-2">Hætta við</button>
-          <button type="button" onClick={() => onSave(keys)} disabled={!keys.length}
-            className={`${hcBtn.primary} disabled:opacity-40`}>Vista</button>
+          <button type="button" onClick={() => void save()} disabled={!keys.length || saving}
+            className={`${hcBtn.primary} disabled:opacity-40`}>{saving ? "Vista…" : "Vista"}</button>
         </div>
     </Sheet>
   );

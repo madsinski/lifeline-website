@@ -53,18 +53,28 @@ export default function PartnerInvitePage() {
 
   const here = `/account/partner-invite?t=${encodeURIComponent(token ?? "")}`;
 
+  const [err, setErr] = useState<string | null>(null);
+  const [pending, setPending] = useState<"yes" | "no" | null>(null);
   const answer = async (decline: boolean) => {
-    setBusy(true);
+    if (busy) return;
+    setBusy(true); setErr(null); setPending(decline ? "no" : "yes");
     const { data } = await supabase.auth.getSession();
     const at = data.session?.access_token;
     const r = await fetch("/api/hc/partner/accept", {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(at ? { Authorization: `Bearer ${at}` } : {}) },
       body: JSON.stringify({ token, decline }),
-    });
-    const j = await r.json().catch(() => ({}));
-    setBusy(false);
-    if (!r.ok) { setS({ k: "invalid" }); return; }
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    setBusy(false); setPending(null);
+    /* Only a 404 means the invitation itself is gone; anything else is a
+       failed attempt the person can retry, and saying "the link is invalid"
+       for a dropped connection sent them off to ask for a new one. */
+    if (!r) { setErr("Engin tenging. Athugaðu netið og reyndu aftur."); return; }
+    if (r.status === 404) { setS({ k: "invalid" }); return; }
+    if (r.status === 401) { setErr("Innskráningin er útrunnin. Skráðu þig inn aftur til að svara."); return; }
+    if (j.error === "self") { setErr("Þetta er þitt eigið boð. Sendu það á þann sem á að vera félagi þinn."); return; }
+    if (!r.ok) { setErr("Ekki tókst að vista svarið. Reyndu aftur."); return; }
     setS(decline ? { k: "declined" } : { k: "done", inviter: j.inviter ?? null });
   };
 
@@ -104,13 +114,16 @@ export default function PartnerInvitePage() {
             {s.authed ? (
               <div className="mt-5 flex flex-wrap gap-2">
                 <button type="button" disabled={busy} onClick={() => void answer(false)}
-                  className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-brand-dark px-5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
+                  className="inline-flex min-h-11 items-center gap-2 rounded-hc-element bg-hc-brand-dark px-5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
+                  {pending === "yes" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
                   {t("acct.partner.yes", "Já, ég er til")}
                 </button>
                 <button type="button" disabled={busy} onClick={() => void answer(true)}
-                  className="inline-flex min-h-11 items-center rounded-hc-element px-4 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken-2 disabled:opacity-50">
+                  className="inline-flex min-h-11 items-center gap-2 rounded-hc-element px-4 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken-2 disabled:opacity-50">
+                  {pending === "no" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
                   {t("acct.q.nothanks", "Nei, takk")}
                 </button>
+                {err && <p role="alert" className="w-full rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">{err}</p>}
               </div>
             ) : (
               <div className="mt-5">

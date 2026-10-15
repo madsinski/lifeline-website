@@ -16,7 +16,7 @@ export default function ComingSoon() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || status === "submitting") return;
     setStatus("submitting");
     try {
       const res = await fetch("/api/subscribe", {
@@ -25,8 +25,8 @@ export default function ComingSoon() {
         body: JSON.stringify({ email }),
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setErrorMsg(body?.error || "Eitthvað fór úrskeiðis. Reyndu aftur.");
+        /* The route's own messages are English; this page is not. */
+        setErrorMsg(res.status === 400 ? "Netfangið virðist ekki gilt." : "Eitthvað fór úrskeiðis. Reyndu aftur.");
         setStatus("error");
         return;
       }
@@ -83,12 +83,12 @@ export default function ComingSoon() {
           </form>
 
           {status === "success" && (
-            <p className="mt-3 text-sm text-emerald-600">
+            <p role="status" className="mt-3 text-sm text-emerald-600">
               Þú ert komin/n á listann. Við höfum samband.
             </p>
           )}
           {status === "error" && (
-            <p className="mt-3 text-sm text-red-600">{errorMsg}</p>
+            <p role="alert" className="mt-3 text-sm text-red-600">{errorMsg}</p>
           )}
         </div>
 

@@ -212,11 +212,12 @@ export async function POST(req: Request) {
     });
   }
 
+  // The request is recorded in dsr_requests above, which is what the DPO
+  // works from. A failed notification email must not tell the person it
+  // failed — they would send it again and file a duplicate. Log it instead.
   if (!sent.ok) {
-    return NextResponse.json(
-      { ok: false, error: `Email delivery failed: ${sent.error}` },
-      { status: 502 },
-    );
+    console.error("[account/data-subject-request] DPO notification failed:", sent.error, "request", dsrRow.id);
+    return NextResponse.json({ ok: true, type, requestId: dsrRow.id, dpo_notified: false });
   }
 
   return NextResponse.json({ ok: true, type, requestId: dsrRow.id });

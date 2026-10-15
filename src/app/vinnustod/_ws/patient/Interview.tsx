@@ -11,7 +11,7 @@
 // this is an encounter: you open it, have the conversation, close it.
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, ChevronRight, ExternalLink, Video } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronRight, ExternalLink, Loader2, Video } from "lucide-react";
 import Referrals from "@/app/components/hc/Referrals";
 import { accountInput, useDialog } from "@/app/components/account/ui";
 import { useWsApi } from "@/app/components/hc/ws-api";
@@ -62,15 +62,27 @@ export function InterviewSheet({ d, isDoctor, record, onPlan, onChanged }: {
 /** The sheet's title, matching what it holds. */
 export const interviewSheetTitle = (j: Journey) => (j.interview_done_at ? "Viðtal og eftirfylgd" : "Viðtal");
 
+/* A booking's outcome. A failure used to print in the same green as a
+   success, and the editor closed either way, so a time that did not save
+   looked saved and had to be typed in again. */
 function useRun(record: Record_) {
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
-  const run = async (p: Record<string, unknown>, ok: string) => {
-    setBusy(true); setMsg("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const run = async (p: Record<string, unknown>, ok: string): Promise<boolean> => {
+    if (busy) return false;
+    setBusy(true); setMsg(null);
     const e = await record(p);
-    setBusy(false); setMsg(e ?? ok);
+    setBusy(false); setMsg(e ? { ok: false, text: e } : { ok: true, text: ok });
+    return !e;
   };
   return { busy, msg, run };
+}
+
+function RunMsg({ msg }: { msg: { ok: boolean; text: string } | null }) {
+  if (!msg) return null;
+  return msg.ok
+    ? <p role="status" className="text-sm text-hc-ok-ink">{msg.text}</p>
+    : <p role="alert" className="text-sm font-semibold text-hc-bad-ink">{msg.text}</p>;
 }
 
 function InterviewStep({ d, isDoctor, record, onPlan, onChanged }: { d: Detail; isDoctor: boolean; record: Record_; onPlan: () => void; onChanged: () => void }) {
@@ -82,7 +94,7 @@ function InterviewStep({ d, isDoctor, record, onPlan, onChanged }: { d: Detail; 
         disabled={!j.report_generated_at && !j.report_imported_at} disabledText="Hægt að bóka þegar skýrslan er komin inn."
         onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy}
         onCancel={(noShow) => run({ event: "interview_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Viðtal afbókað.")} />
-      {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
+      <RunMsg msg={msg} />
       {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} onChanged={onChanged} mode="interview" />}
     </div>
   );
@@ -97,7 +109,7 @@ function FollowupStep({ d, isDoctor, record, onPlan, onChanged }: { d: Detail; i
         disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir fyrsta viðtal." suggest={90}
         onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy}
         onCancel={(noShow) => run({ event: "followup_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Eftirfylgd afbókuð.")} />
-      {msg && <p role="status" className="text-sm text-hc-ok-ink">{msg}</p>}
+      <RunMsg msg={msg} />
       {/* The follow-up conversation, guided like the first one but with its
           own notes and questions about how it went. Marking it done is the
           wizard's last step. */}
@@ -119,7 +131,8 @@ function FollowupStep({ d, isDoctor, record, onPlan, onChanged }: { d: Detail; i
 function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, onBook, busy, suggest, onCancel }: {
   label: string; at: string | null; done: string | null; mode?: string | null; meetingUrl?: string | null;
   disabled: boolean; disabledText: string;
-  onBook: (at: string, mode: "in_person" | "video", meetingUrl: string | null) => void; busy: boolean; suggest?: number;
+  /** Resolves true when the booking saved; the editor stays open otherwise. */
+  onBook: (at: string, mode: "in_person" | "video", meetingUrl: string | null) => Promise<boolean>; busy: boolean; suggest?: number;
   /** Cancel the slot; noShow when the time has passed and nobody came. */
   onCancel?: (noShow: boolean) => void;
 }) {
@@ -144,6 +157,19 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
       confirmLabel: "Afbóka", cancelLabel: "Halda tímanum", tone: "danger",
     });
     if (ok) onCancel?.(false);
+  };
+  const noShow = async () => {
+    const ok = await dialog.confirm({
+      title: "Skrá að skjólstæðingur mætti ekki?",
+      body: "Tíminn losnar og þú getur bókað nýjan.",
+      confirmLabel: "Mætti ekki", cancelLabel: "Hætta við",
+    });
+    if (ok) onCancel?.(true);
+  };
+  const save = async () => {
+    const t = new Date(when);
+    if (Number.isNaN(t.getTime())) return;
+    if (await onBook(t.toISOString(), m, m === "video" ? (link.trim() || null) : null)) setEditing(false);
   };
 
   return (
@@ -170,7 +196,7 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
         )}
         {!done && at && !editing && onCancel && (
           new Date(at).getTime() < openedAt
-            ? <button type="button" disabled={busy} onClick={() => onCancel(true)} className={wsBtn.ghost}>Mætti ekki</button>
+            ? <button type="button" disabled={busy} onClick={() => void noShow()} className={wsBtn.ghost}>Mætti ekki</button>
             : <button type="button" disabled={busy} onClick={() => void cancel()} className={wsBtn.ghost}>Afbóka</button>
         )}
       </div>
@@ -205,7 +231,9 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
               </a>
             </div>
           )}
-          <button type="button" disabled={busy || !when} onClick={() => { onBook(new Date(when).toISOString(), m, m === "video" ? (link.trim() || null) : null); setEditing(false); }} className={wsBtn.primary}>Vista tíma</button>
+          <button type="button" disabled={busy || !when} onClick={() => void save()} className={wsBtn.primary}>
+            {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />} Vista tíma
+          </button>
           <button type="button" onClick={() => setEditing(false)} className={wsBtn.ghost}>Hætta við</button>
         </div>
       )}
@@ -297,29 +325,33 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
   const setChecked = (v: boolean[]) => { setCheckedState(v); try { sessionStorage.setItem(`${memo}:prep`, JSON.stringify(v)); } catch { /* private mode */ } };
   const [notes, setNotes] = useState<InterviewNotes>((isFollowup ? j.followup_notes : j.interview_notes) ?? {});
   const [saved, setSaved] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const { busy, msg, run } = useRun(record);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* What is typed but not yet sent. Closing the sheet inside the 900 ms
+     used to clear the timer and drop the last words on the floor. */
+  const pending = useRef<InterviewNotes | null>(null);
 
+  const saveNotes = async (next: InterviewNotes) => {
+    pending.current = null;
+    setSaved("saving");
+    const r = await api(`/api/vinnustod/journeys/${j.id}`, { method: "PATCH", body: JSON.stringify(isFollowup ? { followup_notes: next } : { interview_notes: next }) }).catch(() => null);
+    setSaved(r?.ok ? "saved" : "error");
+  };
   // Autosave notes a second after typing stops.
   const setNote_ = (k: keyof InterviewNotes, v: string) => {
     const next = { ...notes, [k]: v };
     setNotes(next);
     setSaved("saving");
+    pending.current = next;
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      const r = await api(`/api/vinnustod/journeys/${j.id}`, { method: "PATCH", body: JSON.stringify(isFollowup ? { followup_notes: next } : { interview_notes: next }) }).catch(() => null);
-      setSaved(r?.ok ? "saved" : "error");
-    }, 900);
+    timer.current = setTimeout(() => void saveNotes(next), 900);
   };
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
-
-  const run = async (p: Record<string, unknown>, ok: string) => {
-    setBusy(true); setMsg("");
-    const e = await record(p);
-    setBusy(false); setMsg(e ?? ok);
-    return !e;
-  };
+  const saveRef = useRef(saveNotes);
+  useEffect(() => { saveRef.current = saveNotes; });
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+    if (pending.current) void saveRef.current(pending.current);
+  }, []);
 
   if (!j.report_generated_at && !j.report_imported_at) {
     return <p className="rounded-2xl border border-dashed border-hc-control bg-hc-surface p-6 text-center text-sm text-hc-ink-2">Viðtalið opnast þegar skýrslan er komin inn.</p>;
@@ -377,7 +409,9 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
                 <p className="text-sm text-hc-ink-2">Byrjaðu á því sem skjólstæðingurinn vill breyta. Punktarnir vistast sjálfkrafa og fylgja í áætlunina.</p>
               </div>
               <span className={`inline-flex items-center gap-1 text-xs font-semibold ${saved === "error" ? "text-hc-bad-ink" : "text-hc-ink-2"}`} role="status">
-                {saved === "saving" ? "Vistar…" : saved === "saved" ? <><Check className="h-3.5 w-3.5" aria-hidden /> Vistað</> : saved === "error" ? "Vistun mistókst" : ""}
+                {saved === "saving" ? "Vistar…" : saved === "saved" ? <><Check className="h-3.5 w-3.5" aria-hidden /> Vistað</> : saved === "error" ? (
+                  <>Vistun mistókst. <button type="button" onClick={() => void saveNotes(notes)} className="underline">Reyna aftur</button></>
+                ) : ""}
               </span>
             </div>
             <div className="space-y-4">
@@ -448,7 +482,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
           <FinishStep j={j} planPublished={d.plan?.status === "published"} busy={busy} run={run} isFollowup={isFollowup} />
         )}
 
-        {msg && <p role="status" className="rounded-xl bg-hc-ok-surface px-4 py-2 text-sm text-hc-ok-ink">{msg}</p>}
+        <RunMsg msg={msg} />
       </div>
     </div>
   );
@@ -478,7 +512,7 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
           <StepDot done={thisDone} n={1} />
           <span className="flex-1 text-sm font-semibold text-hc-ink">{isFollowup ? "Merkja eftirfylgd lokið" : "Merkja viðtali lokið"}</span>
           {!thisDone && (
-            <button type="button" disabled={busy} onClick={() => run({ event: isFollowup ? "followup_done" : "interview_done" }, "Skráð.")} className={wsBtn.primary}>Merkja lokið</button>
+            <button type="button" disabled={busy} onClick={() => run({ event: isFollowup ? "followup_done" : "interview_done" }, isFollowup ? "Eftirfylgd merkt lokið." : "Viðtali merkt lokið.")} className={wsBtn.primary}>Merkja lokið</button>
           )}
         </li>
         <li className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-3">

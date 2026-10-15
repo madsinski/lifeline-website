@@ -112,8 +112,9 @@ export async function POST(req: NextRequest) {
     const { data: w } = await supabaseAdmin.from("hc_workers")
       .select("id, name").eq("id", body.coach_id).eq("active", true).eq("accepting_clients", true).maybeSingle();
     if (!w) return NextResponse.json({ error: "unavailable" }, { status: 400 });
-    await supabaseAdmin.from("hc_journeys")
+    const { error } = await supabaseAdmin.from("hc_journeys")
       .update({ coach_id: w.id, coach_changed_at: new Date().toISOString() }).eq("id", journey.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     await hcAudit("client", "coach_changed", journey.id, { to: w.id });
     return NextResponse.json({ ok: true, coach_id: w.id });
   }
@@ -225,9 +226,13 @@ export async function POST(req: NextRequest) {
 
   // ── Cancel one ────────────────────────────────────────────────────────
   if (typeof body.cancel === "string") {
-    await supabaseAdmin.from("hc_bookings")
+    // Checked, so a cancel that did not happen is never answered "ok" and
+    // the booking does not stay in the diary while the page says it went.
+    const { data: gone, error } = await supabaseAdmin.from("hc_bookings")
       .update({ status: "cancelled", updated_at: new Date().toISOString() })
-      .eq("id", body.cancel).eq("client_id", user.id);
+      .eq("id", body.cancel).eq("client_id", user.id).select("id");
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!gone?.length) return NextResponse.json({ error: "not_found" }, { status: 404 });
     // A cancelled booking has to leave both calendars, or it sits there
     // looking like it is still happening.
     /*

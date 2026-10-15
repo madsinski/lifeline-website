@@ -32,7 +32,7 @@ export function useInbox(api: WsApi): Inbox {
   const [threads, setThreads] = useState<ChatThread[] | null>(null);
   const [requests, setRequests] = useState<WsRequest[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const rung = useRef(0);
+  const rung = useRef(-1);
 
   const reload = useCallback(async () => {
     const [r, rq] = await Promise.all([
@@ -51,7 +51,11 @@ export function useInbox(api: WsApi): Inbox {
       if (q) setRequests(q);
       setFailed(!t || !q);
     }, 0);
-    if (n > rung.current) chime();
+    /* A failed poll counts nothing, so it must not reset the count — the
+       next good poll then "rose" to what was already there and chimed for
+       old news. The first poll only sets the baseline. */
+    if (!t || !q) return;
+    if (rung.current >= 0 && n > rung.current) chime();
     rung.current = n;
   }, [api]);
 

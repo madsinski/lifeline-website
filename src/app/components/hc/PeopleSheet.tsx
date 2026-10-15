@@ -18,6 +18,7 @@ import { useRef, useState } from "react";
 import { Camera, Dumbbell, Flame, Hand, Send, UserRound, UsersRound } from "lucide-react";
 import Sheet from "./Sheet";
 import { hcBtn, hcInput, hcPill } from "./ui";
+import { useToast } from "./Toast";
 import type { Stats } from "./TodayCards";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -115,7 +116,10 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
     <Sheet title="Staðan" onClose={onClose} canvas>
       <div className="space-y-3 p-3 sm:p-4">
           <PersonCard name="Þú" stats={mine} today={done} of={of} highlight
-            face={<MyFace api={api} src={face} onChanged={setFace} />} />
+            /* onNudged is the page's refresh of /api/hc/today, which is
+               also where myAvatar comes from — without it the old photo
+               came back the next time this sheet was opened. */
+            face={<MyFace api={api} src={face} onChanged={(u) => { setFace(u); onNudged(); }} />} />
           {partner
             ? <PersonCard name={partner.name} stats={partner.stats}
                 face={<Face src={partner.avatar ?? null} />}
@@ -142,7 +146,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                 <Hand className="h-4 w-4 text-hc-brand-text" aria-hidden /> Ýta við {partner.name.split(" ")[0]}
               </p>
               {err && (
-                <p role="status" className="mt-2 rounded-hc-element bg-hc-bad-surface px-3 py-2 text-xs font-semibold text-hc-bad-ink ring-1 ring-hc-bad-ink/30">
+                <p role="alert" className="mt-2 rounded-hc-element bg-hc-bad-surface px-3 py-2 text-xs font-semibold text-hc-bad-ink ring-1 ring-hc-bad-ink/30">
                   {err}
                 </p>
               )}
@@ -163,7 +167,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {NUDGE_KINDS.map((k) => (
                       <button key={k.key} type="button" disabled={sending} onClick={() => void nudge(k.key)}
-                        className={`${hcPill} bg-hc-sunken-2 px-3 text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-text`}>
+                        className={`${hcPill} bg-hc-sunken-2 px-3 text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-text disabled:opacity-40`}>
                         {k.label}
                       </button>
                     ))}
@@ -313,6 +317,7 @@ function MyFace({ api, src, onChanged }: {
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
 
   const pick = async (file: File) => {
@@ -330,6 +335,7 @@ function MyFace({ api, src, onChanged }: {
     }
     const j = await r.json().catch(() => null);
     if (j?.avatar_url) onChanged(j.avatar_url as string);
+    toast.show("Myndin er vistuð", { tone: "ok" });
   };
 
   return (

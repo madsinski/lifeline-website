@@ -18,6 +18,7 @@ import {
   needsDoctor, requestSummary, type RequestKind,
 } from "@/lib/hc/requests";
 import { hcBtn, hcCard, hcInput } from "./ui";
+import { SAVE_FAILED, useToast } from "./Toast";
 import { fmtDate } from "@/app/components/account/ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -52,9 +53,12 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const toast = useToast();
+
   const load = useCallback(async () => {
-    const r = await api("/api/hc/requests");
-    if (!r.ok) return;
+    const r = await api("/api/hc/requests").catch(() => null);
+    if (!r?.ok) return;
     const j = (await r.json().catch(() => ({}))) as { requests?: HcRequest[] };
     setTimeout(() => setRows(j.requests ?? []), 0);
   }, [api]);
@@ -63,7 +67,7 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
   const reset = () => { setKind(null); setTopic(null); setBody(""); setPicked([]); setErr(""); };
 
   const send = async () => {
-    if (!kind) return;
+    if (!kind || busy) return;
     setBusy(true); setErr("");
     const detail: Record<string, unknown> =
       kind === "measurement" ? { measurements: picked }
@@ -71,18 +75,35 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
       : kind === "program" ? { pillar }
       : {};
     if (topic) detail.topic = topic;
-    const r = await api("/api/hc/requests", { method: "POST", body: JSON.stringify({ kind, detail, body }) });
-    const j = await r.json().catch(() => ({}));
+    /* A dropped connection threw past setBusy(false) and left the button
+       spinning on "Sendi…" for good. */
+    const r = await api("/api/hc/requests", { method: "POST", body: JSON.stringify({ kind, detail, body }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setErr(j.error || "Tókst ekki að senda."); return; }
+    /* Only the server's Icelandic reasons are shown as they are; a
+       database message or a code is not for the participant. */
+    if (!r?.ok) { setErr(typeof j.error === "string" && /[áéíóúýþæöð]/i.test(j.error) ? j.error : "Tókst ekki að senda. Reyndu aftur."); return; }
     setRows(j.requests ?? []);
     reset();
+    toast.show("Beiðnin er send", { tone: "ok" });
   };
 
+  /* Cancelling had no busy state, no word on failure and threw on a
+     dropped connection — a tap that did nothing looked exactly like one
+     that worked until the page was opened again. */
   const cancel = async (id: string) => {
-    const r = await api("/api/hc/requests", { method: "PATCH", body: JSON.stringify({ id, status: "cancelled" }) });
-    const j = await r.json().catch(() => ({}));
-    if (r.ok) setRows(j.requests ?? []);
+    if (cancelling) return;
+    setCancelling(id);
+    const r = await api("/api/hc/requests", { method: "PATCH", body: JSON.stringify({ id, status: "cancelled" }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    setCancelling(null);
+    if (!r?.ok) {
+      toast.show(typeof j.error === "string" && /[áéíóúýþæöð]/i.test(j.error) ? j.error : SAVE_FAILED, { tone: "bad" });
+      if (r?.status === 409) void load();
+      return;
+    }
+    setRows(j.requests ?? []);
+    toast.show("Hætt við beiðnina", { tone: "ok" });
   };
 
   const open = (rows ?? []).filter((r) => r.status === "open" || r.status === "in_progress");
@@ -240,7 +261,9 @@ export default function HelpCard({ api, portalUrl }: { api: Api; portalUrl?: str
                 </div>
                 {r.body && <p className="mt-0.5 opacity-80">{r.body}</p>}
                 {r.status === "open" && (
-                  <button type="button" onClick={() => void cancel(r.id)} className="mt-1 min-h-11 text-xs underline opacity-80 hover:opacity-100">
+                  <button type="button" onClick={() => void cancel(r.id)} disabled={!!cancelling}
+                    className="mt-1 inline-flex min-h-11 items-center gap-1 text-xs underline opacity-80 hover:opacity-100 disabled:opacity-40">
+                    {cancelling === r.id && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
                     Hætta við
                   </button>
                 )}

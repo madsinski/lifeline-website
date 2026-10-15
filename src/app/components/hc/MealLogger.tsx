@@ -21,6 +21,7 @@ import { mealName, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/mea
 import { useDayMeals, type DayMealRow } from "./useDayMeals";
 import Sheet from "./Sheet";
 import { hcBtn } from "./ui";
+import { PREVIEW_NOTE, PreviewNote, usePreview } from "./PreviewContext";
 
 export default function MealLogger({ day, compact = false, part = "list", only, flush = false, tone, onOpenMeal, onLogged, drag, lifted = false, carryY = 0, settling = false }: {
   /** The meal in each slot today, as the plan has it. */
@@ -113,13 +114,16 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
      (useDayMeals.tsx), so a tick here is seen by Í dag's habit links and by
      Næring's card without a reload. */
   const { rows, forSlot: loggedSlot, logPlanned, unlog } = useDayMeals();
+  /* Staff preview: meal_log is the signed-in user's, i.e. the coach's — the
+     ticks are shown but cannot be pressed (PreviewContext.tsx). */
+  const preview = usePreview();
   const [busy, setBusy] = useState<MealSlot | null>(null);
   /** A described meal waiting for "yes, delete it". */
   const [confirmDel, setConfirmDel] = useState<MealSlot | null>(null);
 
   const toggle = async (slot: MealSlot, confirmed = false) => {
     const meal = day[slot];
-    if (!meal || busy) return;
+    if (!meal || busy || preview) return;
     const already = loggedSlot(slot);
     /* Unticking a planned meal is undoing a tick. Unticking one the person
        described is deleting what they wrote — that asks first. */
@@ -221,7 +225,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                         background: lifted ? "#FFFFFF" : done ? "#FFFFFF" : tone?.soft ?? "#F4FAE9",
                       }}>
                       <div className="flex items-start gap-3">
-                        <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
+                        <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null || preview} title={preview ? PREVIEW_NOTE : undefined}
                           aria-pressed={done}
                           aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${SLOT_IS[slot]} — ${shown.name}`}
                           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-hc-surface transition active:scale-90 ${
@@ -267,7 +271,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
 
                 return (
                   <li key={slot}>
-                    <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
+                    <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null || preview} title={preview ? PREVIEW_NOTE : undefined}
                       aria-pressed={done}
                       className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition ${
                         done ? "bg-hc-ok-surface ring-2 ring-hc-brand-dark" : "bg-hc-surface ring-hc-hairline hover:ring-hc-control"}`}>
@@ -291,7 +295,12 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
               })}
           </>
         );
-        return flush ? rows : <ul className="space-y-2">{rows}</ul>;
+        return flush ? rows : (
+          <>
+            {preview && <PreviewNote />}
+            <ul className="space-y-2">{rows}</ul>
+          </>
+        );
       })()}
 
       {/* part="button": the one solid action at the foot of Næring's "í dag"
@@ -319,7 +328,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
           {described && (
             <p className="text-center text-sm text-hc-ink-2">Skráð í staðinn: <span className="font-semibold text-hc-ink">{logged!.description}</span></p>
           )}
-          <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
+          <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null || preview} title={preview ? PREVIEW_NOTE : undefined}
             aria-pressed={done}
             className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold transition disabled:opacity-60 ${
               done
@@ -334,6 +343,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                 checklist rows do it. */}
             Ég borðaði þetta
           </button>
+          {preview && <PreviewNote />}
           </div>
         );
       })()}

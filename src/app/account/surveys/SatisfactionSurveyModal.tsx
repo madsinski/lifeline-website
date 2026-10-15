@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
-import { Alert, Button, Modal, accountInput, accountLabel } from "@/app/components/account/ui";
+import { Alert, Button, Modal, accountInput, accountLabel, friendlyError } from "@/app/components/account/ui";
 
 type Props = {
   companyId: string | null;
@@ -43,7 +43,7 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
       comment: comment.trim() || null,
     }, { onConflict: "client_id,context" });
     setSaving(false);
-    if (upErr) { setError(upErr.message); return; }
+    if (upErr) { setError(friendlyError(upErr, t("acct.survey.sendfailed", "Svörin sendust ekki. Reyndu aftur."))); return; }
     onSubmitted();
     onClose();
   }
@@ -58,7 +58,7 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
         ? t("acct.survey.lead-b2b", "Tekur um 30 sekúndur. Svörin þín eru trúnaðarmál; fyrirtækið sér aðeins samantekna heildarmynd.")
         : t("acct.survey.lead", "Tekur um 30 sekúndur. Svörin þín eru trúnaðarmál og hjálpa okkur að bæta þjónustuna.")}
       footer={<>
-        <Button variant="secondary" onClick={onClose}>{t("acct.q.later", "Síðar")}</Button>
+        <Button variant="secondary" onClick={onClose} disabled={saving}>{t("acct.q.later", "Síðar")}</Button>
         <Button onClick={submit} busy={saving} disabled={nps == null}>{t("acct.survey.submit", "Senda")}</Button>
       </>}>
       <div className="space-y-5">

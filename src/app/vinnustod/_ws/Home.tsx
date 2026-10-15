@@ -20,6 +20,7 @@ import ReportIntake from "@/app/components/hc/ReportIntake";
 import Sheet from "@/app/components/hc/Sheet";
 import { RequestRow, waited } from "@/app/components/hc/WsRequests";
 import { useWsApi } from "@/app/components/hc/ws-api";
+import { useToast } from "@/app/components/hc/Toast";
 import { Alert } from "@/app/components/account/ui";
 import { cleanName, isTest, longDate, time, wsBtn } from "./format";
 import type { Inbox } from "./inbox";
@@ -45,6 +46,7 @@ export function TodayView({ rows, me, isDoctor, onOpen, inbox }: {
      follow-up" does not also hide "the report needs confirming". */
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [dismissErr, setDismissErr] = useState("");
+  const toast = useToast();
   const loadDismissed = useCallback(async () => {
     const r = await api("/api/vinnustod/queue-dismiss").catch(() => null);
     const j = r?.ok ? await r.json().catch(() => null) : null;
@@ -65,8 +67,28 @@ export function TodayView({ rows, me, isDoctor, onOpen, inbox }: {
     if (!r?.ok) {
       setDismissed((d) => { const n = new Set(d); n.delete(`${journeyId}:${taskKey}`); return n; });
       setDismissErr(`Ekki tókst að fjarlægja ${name} af listanum. Atriðið er komið aftur — reyndu aftur eftir smástund.`);
+      return;
     }
-  }, [api]);
+    /* One tap took it off with no confirm, so the way back is right there
+       (the route has always had an undo; nothing called it). */
+    toast.show(`Fjarlægt af listanum: ${name}.`, {
+      action: {
+        label: "Afturkalla",
+        onClick: () => {
+          setDismissed((d) => { const n = new Set(d); n.delete(`${journeyId}:${taskKey}`); return n; });
+          void api("/api/vinnustod/queue-dismiss", {
+            method: "DELETE", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ journeyId, taskKey }),
+          }).then((u) => {
+            if (!u.ok) throw new Error(String(u.status));
+          }).catch(() => {
+            setDismissed((d) => new Set(d).add(`${journeyId}:${taskKey}`));
+            toast.show("Ekki tókst að afturkalla. Reyndu aftur.", { tone: "bad" });
+          });
+        },
+      },
+    });
+  }, [api, toast]);
 
   const tasks = useMemo(
     () => rows.map((r) => { const t = nextTask(r, isDoctor); return { r, t, f: rowFlags(r, t) }; })

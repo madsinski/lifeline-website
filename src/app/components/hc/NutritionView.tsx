@@ -20,6 +20,7 @@ import ShoppingList, { ShoppingListButton } from "./ShoppingList";
 import DescribeMeal from "./DescribeMeal";
 import Segmented from "./Segmented";
 import { DayMealsScope, useDayMealsRoot } from "./useDayMeals";
+import { usePreview } from "./PreviewContext";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -95,7 +96,7 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
    * Without this the protein target — the number the whole page is built
    * around — simply never appears on the coaching track.
    */
-  onSelfWeight?: (kg: number) => void;
+  onSelfWeight?: (kg: number) => void | Promise<unknown>;
 }) {
   const [meals, setMeals] = useState<Meal[] | null>(() => cache.peek<{ meals: Meal[] }>("/api/hc/library?kind=meals")?.body.meals ?? null);
   const [slotOpen, setSlotOpen] = useState<MealSlot | null>(null);
@@ -167,11 +168,26 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
   /** The Prógrammið sleeve. */
   const [detail, setDetail] = useState(false);
   const [wInput, setWInput] = useState("");
+  const [wBusy, setWBusy] = useState(false);
+  /** Said when the number is not a weight the server will keep (30–300 kg). */
+  const [wErr, setWErr] = useState<string | null>(null);
+  const saveWeight = async () => {
+    if (!onSelfWeight || wBusy) return;
+    const v = Number(wInput.replace(",", "."));
+    // The server drops anything outside 30–300 kg without an error, so a
+    // typo used to look like a save that did nothing.
+    if (!Number.isFinite(v) || v < 30 || v > 300) { setWErr("Sláðu inn þyngd á bilinu 30–300 kg."); return; }
+    setWErr(null);
+    setWBusy(true);
+    try { await onSelfWeight(v); } finally { setWBusy(false); }
+  };
   /** How the swap library is being looked at. */
   const [libFilter, setLibFilter] = useState<"all" | "fav" | "protein">("all");
   const [shopOpen, setShopOpen] = useState(false);
   /** Which slot a described meal is replacing, when that sheet is open. */
   const [describe, setDescribe] = useState<MealSlot | null>(null);
+  /* Staff preview: describing a meal writes the signed-in user's meal_log. */
+  const preview = usePreview();
   /** The sliding week. Its scroll position is its own, not React's. */
   const stripRef = useRef<HTMLDivElement | null>(null);
   /*
@@ -319,10 +335,12 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                       Secondary to the tick, because most days the planned
                       meal is what happened — but one tap away, because the
                       days it is not are the days the diary goes wrong. */}
+                  {!preview && (
                   <button type="button" onClick={() => setDescribe(nextSlot)}
                     className="min-h-11 w-full rounded-2xl px-4 py-2 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-sunken">
                     Ég borðaði eitthvað annað
                   </button>
+                  )}
                 </div>
               )}
             </div>
@@ -645,16 +663,19 @@ export default function NutritionView({ api, nutrition, picks, onPick, onChangeP
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <input id="self-weight" type="number" inputMode="decimal" min={30} max={300} step="0.5"
-                            value={wInput} onChange={(e) => setWInput(e.target.value)}
+                            value={wInput} onChange={(e) => { setWInput(e.target.value); setWErr(null); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") void saveWeight(); }}
+                            aria-invalid={!!wErr} aria-describedby={wErr ? "self-weight-err" : undefined}
                             placeholder="kg"
                             className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-lime-500/30" />
                           <button type="button"
-                            disabled={!wInput.trim()}
-                            onClick={() => { const v = Number(wInput.replace(",", ".")); if (Number.isFinite(v)) onSelfWeight(v); }}
+                            disabled={!wInput.trim() || wBusy}
+                            onClick={() => void saveWeight()}
                             className="rounded-full bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
-                            Vista
+                            {wBusy ? "Vista…" : "Vista"}
                           </button>
                         </div>
+                        {wErr && <p id="self-weight-err" role="alert" className="mt-1.5 text-xs font-semibold text-hc-bad-ink">{wErr}</p>}
                       </div>
                     )}
                   </div>

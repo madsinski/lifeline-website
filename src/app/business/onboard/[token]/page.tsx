@@ -99,6 +99,7 @@ export default function OnboardPage() {
 
   const verifyPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError("");
     try {
@@ -116,7 +117,8 @@ export default function OnboardPage() {
       setKennitala(j.kennitala || "");
       setStage(j.completed_at ? "done" : "welcome");
     } catch (e) {
-      setError((e as Error).message);
+      // A dropped connection rejects with the browser's English TypeError.
+      setError(e instanceof TypeError ? "Engin tenging. Athugaðu netið og reyndu aftur." : (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -176,7 +178,8 @@ export default function OnboardPage() {
       }
       setStage("done");
     } catch (e) {
-      setError((e as Error).message);
+      // A dropped connection rejects with the browser's English TypeError.
+      setError(e instanceof TypeError ? "Engin tenging. Athugaðu netið og reyndu aftur." : (e as Error).message);
     } finally {
       setLoading(false);
     }

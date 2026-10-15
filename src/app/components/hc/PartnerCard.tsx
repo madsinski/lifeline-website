@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from "react";
 import Sheet from "./Sheet";
 import { Handshake } from "lucide-react";
 import { hcBtn, hcCard, hcKicker } from "./ui";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -67,19 +68,30 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
   const [err, setErr] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const toast = useToast();
 
   const load = useCallback(async () => {
-    const r = await api("/api/hc/partner");
-    const j = r.ok ? await r.json().catch(() => null) : null;
+    const r = await api("/api/hc/partner").catch(() => null);
+    const j = r?.ok ? await r.json().catch(() => null) : null;
     setTimeout(() => setD(j), 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
 
   const choose = async (partnerId: string | null) => {
+    if (busy) return;
     setBusy(true); setErr(null);
-    const r = await api("/api/hc/partner", { method: "POST", body: JSON.stringify({ partnerId }) });
-    if (r.ok) { setPicking(false); await load(); }
-    else setErr("Tókst ekki að vista. Reyndu aftur.");
+    /* A dropped connection threw past setBusy(false), and every button on
+       the card stayed disabled until the page was reloaded. */
+    const r = await api("/api/hc/partner", { method: "POST", body: JSON.stringify({ partnerId }) }).catch(() => null);
+    if (r?.ok) {
+      setPicking(false);
+      await load();
+      toast.show(partnerId ? "Félaginn er vistaður" : "Félaginn var fjarlægður", { tone: "ok" });
+    } else {
+      setErr("Tókst ekki að vista. Reyndu aftur.");
+      // The error line is on the card, under the sheet the pick was made in.
+      if (picking) toast.show(SAVE_FAILED, { tone: "bad" });
+    }
     setBusy(false);
   };
 
@@ -98,12 +110,12 @@ export default function PartnerCard({ api, bare = false, pick = false }: {
    */
   const invite = async () => {
     const v = email.trim();
-    if (!v) return;
+    if (!v || busy) return;
     setBusy(true); setErr(null);
-    const r = await api("/api/hc/partner", { method: "POST", body: JSON.stringify({ invite_email: v }) });
-    const j = await r.json().catch(() => ({}));
+    const r = await api("/api/hc/partner", { method: "POST", body: JSON.stringify({ invite_email: v }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) {
+    if (!r?.ok) {
       setErr(j.error === "bad-email" ? "Þetta netfang virkar ekki."
         : j.error === "self" ? "Það er netfangið þitt."
         : "Tókst ekki að senda boðið.");

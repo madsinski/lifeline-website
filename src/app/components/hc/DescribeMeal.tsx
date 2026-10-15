@@ -24,6 +24,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Loader2, Mic, Square, Utensils } from "lucide-react";
 import { SLOT_IS, type MealSlot } from "@/lib/hc/meals";
 import { useDayMeals } from "./useDayMeals";
+import { useToast } from "./Toast";
+import { PreviewNote, usePreview } from "./PreviewContext";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -72,6 +74,9 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
   /** An estimate was made and then the text changed under it. */
   const [stale, setStale] = useState(false);
   const { logDescribed } = useDayMeals();
+  const toast = useToast();
+  /* Staff preview: the meal would land in the coach's own diary. */
+  const preview = usePreview();
   /*
    * Editing the description after an estimate throws the estimate away.
    * The numbers described the old sentence; saving them against the new
@@ -138,7 +143,7 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
 
   const allZero = !!macros && macros.kcal === 0 && macros.protein === 0 && macros.carbs === 0 && macros.fat === 0;
   const save = async () => {
-    if (!macros || (allZero && !estimated)) return;
+    if (!macros || (allZero && !estimated) || busy) return;
     setBusy("save"); setErr(null);
     /* One row per slot per day: the described lunch replaces the planned
        one rather than sitting beside it and double-counting the day. The
@@ -148,6 +153,8 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
     setBusy(null);
     if (!ok) { setErr("Vistaðist ekki – reyndu aftur."); return; }
     onLogged?.();
+    /* The sheet closes on success, so say it landed rather than just vanish. */
+    toast.show("Máltíðin skráð", { tone: "ok" });
     onClose();
   };
 
@@ -162,6 +169,8 @@ export default function DescribeMeal({ api, slot, onLogged, onClose }: {
       </span>
     </label>
   );
+
+  if (preview) return <div className="p-3"><PreviewNote /></div>;
 
   return (
     <div className="space-y-3 p-3">

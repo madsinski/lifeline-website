@@ -14,6 +14,13 @@ import { INVITE_TEMPLATES, fillName, inviteTemplate } from "@/lib/hc/invite-temp
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
+/** The routes answer in Icelandic sentences, except for their two codes. */
+const sayError = (r: Response | null, j: { error?: string }, fallback: string) =>
+  !r ? "Engin tenging. Athugaðu netið og reyndu aftur."
+  : r.status === 401 ? "Lotan rann út. Skráðu þig inn aftur."
+  : !j.error || j.error === "bad_request" || j.error === "unauthorized" ? fallback
+  : j.error;
+
 /** Mirrors ReadMethod in src/lib/hc/report-local.ts. */
 type ReadMethod = "local" | "ai-text" | "ai-document" | "needs-consent";
 
@@ -55,9 +62,11 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
   const [iTpl, setITpl] = useState(INVITE_TEMPLATES[0].key);
   const [iSms, setISms] = useState(false);
   const [iBusy, setIBusy] = useState(false);
-  const [iMsg, setIMsg] = useState("");
+  const [iMsg, setIMsgState] = useState<{ text: string; bad: boolean }>({ text: "", bad: false });
+  const setIMsg = (text: string, bad = false) => setIMsgState({ text, bad });
 
   const sendInvite = async () => {
+    if (iBusy) return;
     setIBusy(true); setIMsg("");
     const r = await api("/api/vinnustod/invite", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -69,7 +78,7 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setIBusy(false);
-    if (!r?.ok) { setIMsg(j.error || "Tókst ekki að senda boð."); return; }
+    if (!r?.ok) { setIMsg(sayError(r, j, "Tókst ekki að senda boð."), true); return; }
     /* What actually left, not what was asked for: a phone number with no
        Twilio behind it would otherwise look like a text that was sent. */
     const bits: string[] = [];
@@ -79,7 +88,7 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
       ? `Boð sent í ${bits.join(" og ")}.`
       : iPhone.trim() && !j.smsConfigured
         ? "Aðgangur stofnaður, en SMS er ekki uppsett — boðið fór ekki út."
-        : "Aðgangur stofnaður, en boðið fór ekki út.");
+        : "Aðgangur stofnaður, en boðið fór ekki út.", !bits.length);
     if (bits.length) { setIName(""); setIEmail(""); setIPhone(""); }
   };
   const [busy, setBusy] = useState(false);
@@ -92,15 +101,18 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
   const fileRef = useRef<HTMLInputElement>(null);
 
   const read = async (files: FileList | File[], allowAi = false) => {
+    if (busy) return;
     const list = Array.from(files).slice(0, 8);
     setBusy(true); setMsg(""); setResult(null);
     const fd = new FormData();
     for (const f of list) fd.append("files", f);
     if (allowAi) fd.append("allow_ai", "true");
-    const r = await api("/api/vinnustod/intake", { method: "POST", body: fd });
-    const j = await r.json().catch(() => ({}));
+    /* A dropped connection used to throw here and leave "Les skýrsluna…"
+       spinning for good. */
+    const r = await api("/api/vinnustod/intake", { method: "POST", body: fd }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setMsg(j.error || "Lesturinn mistókst."); return; }
+    if (!r?.ok) { setMsg(sayError(r, j, "Lesturinn mistókst.")); return; }
     // Held only so the nurse can agree to send them; never written anywhere.
     setPending(list);
     setResult(j);
@@ -116,7 +128,7 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
   };
 
   const commit = async (clientId: string | null) => {
-    if (!result) return;
+    if (!result || busy) return;
     setBusy(true); setMsg("");
     const values = result.values.filter((_, i) => take[i]).map((v) => ({
       marker: v.slug ?? `x:${v.code}`, value: v.value, unit: v.unit, note: v.slug ? null : v.label,
@@ -132,10 +144,10 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
         method: result.method ?? "local",
         sex: result.identity?.sex ?? null,
       }),
-    });
-    const j = await r.json().catch(() => ({}));
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setMsg(j.error || "Tókst ekki að opna skjólstæðing."); return; }
+    if (!r?.ok) { setMsg(sayError(r, j, "Tókst ekki að opna skjólstæðing.")); return; }
     setResult(null);
     onOpen(j.journey_id);
   };
@@ -144,7 +156,7 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
     <section
       onDragOver={(e) => { e.preventDefault(); setOver(true); }}
       onDragLeave={() => setOver(false)}
-      onDrop={(e) => { e.preventDefault(); setOver(false); if (e.dataTransfer.files?.length) void read(e.dataTransfer.files); }}
+      onDrop={(e) => { e.preventDefault(); setOver(false); if (!busy && !result && e.dataTransfer.files?.length) void read(e.dataTransfer.files); }}
       className={`rounded-hc-hero border-2 border-dashed p-5 transition ${over ? "border-hc-brand-dark bg-hc-ok-surface" : "border-hc-control bg-hc-surface"}`}
     >
       {/* Stacked or in a row, decided by the caller.
@@ -253,7 +265,10 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
                   Hætta við
                 </button>
               </div>
-              {iMsg && <p className="text-sm text-hc-ink-2">{iMsg}</p>}
+              {iMsg.text && (
+                <p role={iMsg.bad ? "alert" : "status"}
+                  className={`text-sm font-semibold ${iMsg.bad ? "text-hc-bad-ink" : "text-hc-ok-ink"}`}>{iMsg.text}</p>
+              )}
             </div>
           )}
         </div>

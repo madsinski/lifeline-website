@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { Bell, BellOff, ChevronDown } from "lucide-react";
 import { hcBtn } from "./ui";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 type Channel = "push" | "email" | "sms";
 type Mode = "daily" | "behind" | "weekly";
@@ -34,6 +35,9 @@ export default function NudgeSettings({ api }: { api: Api }) {
   const [avail, setAvail] = useState({ push: false, email: false, sms: false });
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  /* A failed read used to shimmer for ever, which looks like loading. */
+  const [loadFailed, setLoadFailed] = useState(false);
   const [dates] = useState(() => ({
     today: new Date().toISOString().slice(0, 10),
     inWeek: new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10),
@@ -47,18 +51,23 @@ export default function NudgeSettings({ api }: { api: Api }) {
 
   useEffect(() => {
     (async () => {
-      const r = await api("/api/hc/nudges");
-      const j = await r.json().catch(() => ({}));
-      if (r.ok) { setPrefs(j.prefs); setAvail(j.available); }
+      const r = await api("/api/hc/nudges").catch(() => null);
+      const j = r ? await r.json().catch(() => ({})) : {};
+      if (r?.ok) { setPrefs(j.prefs); setAvail(j.available); } else setLoadFailed(true);
     })();
   }, [api]);
 
-  const save = async (next: Prefs) => {
+  /* `quiet` for the channel toggle, which writes its own line below.
+     Everything else (mode, hour, pause) changed only a highlight, which
+     is what it looks like before the save as well as after. */
+  const save = async (next: Prefs, quiet = false) => {
     const prev = prefs;
     setPrefs(next); setBusy(true); setMsg("");
-    const r = await api("/api/hc/nudges", { method: "POST", body: JSON.stringify(next) });
+    // A dropped connection threw here and left every control disabled.
+    const r = await api("/api/hc/nudges", { method: "POST", body: JSON.stringify(next) }).catch(() => null);
     setBusy(false);
-    if (!r.ok) { setPrefs(prev); setMsg("Tókst ekki að vista."); return false; }
+    if (!r?.ok) { setPrefs(prev); setMsg("Tókst ekki að vista."); toast.show(SAVE_FAILED, { tone: "bad" }); return false; }
+    if (!quiet) toast.show("Vistað", { tone: "ok" });
     return true;
   };
 
@@ -145,7 +154,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
       if (!ok) return;
     }
     const channels = on ? prefs.channels.filter((x) => x !== c) : [...prefs.channels, c];
-    if (await save({ ...prefs, channels })) setMsg(on ? "Slökkt." : c === "push" ? "Tilkynningar virka á þessu tæki." : "Kveikt.");
+    if (await save({ ...prefs, channels }, true)) setMsg(on ? "Slökkt." : c === "push" ? "Tilkynningar virka á þessu tæki." : "Kveikt.");
   };
 
   /*
@@ -157,6 +166,13 @@ export default function NudgeSettings({ api }: { api: Api }) {
    * layout from the first frame and the content fills in rather than
    * arriving.
    */
+  if (!prefs && loadFailed) {
+    return (
+      <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">
+        Ekki tókst að sækja áminningarnar. Athugaðu nettenginguna og opnaðu síðuna aftur.
+      </p>
+    );
+  }
   if (!prefs) {
     return (
       <div className="space-y-2" aria-busy="true" aria-label="Hleð áminningum">
@@ -227,7 +243,7 @@ export default function NudgeSettings({ api }: { api: Api }) {
             <div className="mt-2 grid gap-2 sm:grid-cols-3">
               {MODES.map((m) => (
                 <button key={m.key} type="button" disabled={busy} onClick={() => void save({ ...prefs, mode: m.key })} aria-pressed={prefs.mode === m.key}
-                  className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${prefs.mode === m.key ? "bg-hc-brand-dark text-white" : "bg-hc-sunken text-hc-ink-2 ring-1 ring-hc-hairline"}`}>
+                  className={`rounded-xl px-3 py-2.5 text-left text-sm font-semibold disabled:opacity-60 ${prefs.mode === m.key ? "bg-hc-brand-dark text-white" : "bg-hc-sunken text-hc-ink-2 ring-1 ring-hc-hairline"}`}>
                   {m.label}
                   <span className={`block text-xs font-normal ${prefs.mode === m.key ? "text-white/80" : "text-hc-ink-2"}`}>{m.hint}</span>
                 </button>

@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, ChevronRight, Loader2 } from "lucide-react";
 import { REQUEST_IS, STATUS_IS, requestSummary, type RequestKind } from "@/lib/hc/requests";
 import { hcBtn } from "./ui";
+import { useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -61,12 +62,21 @@ export function RequestRow({ api, r, onOpen, onDone, dot }: {
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [sending, setSending] = useState<string | null>(null);
+  const toast = useToast();
 
   const send = async (status: string) => {
-    setBusy(true); setErr("");
+    if (busy) return;
+    setBusy(true); setSending(status); setErr("");
     const res = await api("/api/vinnustod/requests", { method: "POST", body: JSON.stringify({ id: r.id, status, reply: reply.trim() || undefined }) }).catch(() => null);
-    setBusy(false);
-    if (!res?.ok) { setErr("Svarið vistaðist ekki. Reyndu aftur."); return; }
+    setBusy(false); setSending(null);
+    if (!res) { setErr("Engin tenging. Athugaðu netið og reyndu aftur."); return; }
+    if (!res.ok) { setErr("Svarið vistaðist ekki. Reyndu aftur."); return; }
+    /* The row leaves the list on reload, which on its own reads as the
+       request vanishing. Say what happened to it. */
+    toast.show(status === "done"
+      ? (reply.trim() ? "Svarið er sent og beiðninni lokað." : "Beiðninni er lokað.")
+      : "Svarið er sent. Beiðnin er áfram opin í vinnslu.");
     setOpen(false); setReply("");
     onDone();
   };
@@ -103,10 +113,12 @@ export function RequestRow({ api, r, onOpen, onDone, dot }: {
           {err && <p role="alert" className="text-sm font-semibold text-hc-bad-ink">{err}</p>}
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy} onClick={() => void send("done")} className={tall(hcBtn.primary)}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-              Svara og loka
+              {sending === "done" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
+              {reply.trim() ? "Svara og loka" : "Loka án svars"}
             </button>
-            <button type="button" disabled={busy} onClick={() => void send("in_progress")} className={tall(hcBtn.secondary)}>
+            {/* Keeping it open only means something with an answer in it. */}
+            <button type="button" disabled={busy || !reply.trim()} onClick={() => void send("in_progress")} className={tall(hcBtn.secondary)}>
+              {sending === "in_progress" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
               Svara, held áfram
             </button>
             <button type="button" onClick={() => { setOpen(false); setReply(""); setErr(""); }} className={tall(hcBtn.ghost)}>Hætta við</button>

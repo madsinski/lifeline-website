@@ -217,7 +217,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   const [week] = useState(() => weekDays());
 
   /** Apply now, send in order, roll back on failure. */
-  const send = (body: Record<string, unknown>, apply: () => void, undo: () => void) => {
+  const send = (body: Record<string, unknown>, apply: () => void, undo: () => void, said?: { msg: string; undo?: () => void }) => {
     apply();
     waiting.current += 1;
     queue.current = queue.current.then(async () => {
@@ -232,6 +232,9 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       if (!ok) { undo(); toast.show(SAVE_FAILED, { tone: "bad" }); return; }
       cache.invalidate("/api/hc/actions");
       if (waiting.current === 0) { if (j.logs) setLogs(j.logs); if (j.prefs) setPrefs(j.prefs); }
+      /* Said only once the server has it — a hidden row or a note that
+         vanished from view used to leave no sign it had been kept. */
+      if (said) toast.show(said.msg, { tone: "ok", ...(said.undo ? { action: { label: "Afturkalla", onClick: said.undo } } : {}) });
     });
   };
 
@@ -295,11 +298,21 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
   }, [dayMeals.rows]);
 
   const setPref = (uid: string, patch: { hidden?: boolean; note?: string; at_time?: string | null }) => {
-    const before = prefs;
+    /* Through the ref: the toast's undo calls this seconds later, and the
+       prefs it closed over by then are the ones from before the hide. */
+    const before = prefsRef.current;
+    /* Hiding takes the row out of view, so it says where it went and
+       offers it back; a note is typed into a box that gives no sign of
+       its own. Times and un-hiding show themselves on the row. */
+    const ok = patch.hidden === true
+      ? { msg: "Lagt til hliðar", undo: () => setPref(uid, { hidden: false }) }
+      : typeof patch.note === "string"
+        ? { msg: "Athugasemdin vistuð" }
+        : undefined;
     send({ action_uid: uid, ...patch }, () => setPrefs((ps) => {
       const cur = ps.find((p) => p.action_uid === uid) ?? { action_uid: uid, hidden: false, note: null };
       return [...ps.filter((p) => p.action_uid !== uid), { ...cur, ...patch, note: patch.note ?? cur.note }];
-    }), () => setPrefs(before));
+    }), () => setPrefs(before), ok);
   };
 
   /**
@@ -378,7 +391,9 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       });
       return next;
     });
-    const r = await api("/api/hc/actions", { method: "POST", body: JSON.stringify({ order }) }).catch(() => null);
+    /* The journey this list belongs to — without it the server falls back
+       to the newest open journey, which is not always the one on screen. */
+    const r = await api("/api/hc/actions", { method: "POST", body: JSON.stringify({ journey_id: journeyId, order }) }).catch(() => null);
     // A list that silently springs back on the next load is worse than one
     // that springs back now and says why.
     if (!r?.ok) {
@@ -387,7 +402,7 @@ export default function MyActions({ api, journeyId, plan, logs: initialLogs, pre
       return;
     }
     cache.invalidate("/api/hc/actions");
-  }, [api, toast]);
+  }, [api, toast, journeyId]);
 
   const reorder = useReorder(commitOrder);
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
-import { Alert, Button, Modal, fmtDate, fmtTime, useDialog } from "@/app/components/account/ui";
+import { Alert, Button, Modal, fmtDate, fmtTime, friendlyError, useDialog, useFlash } from "@/app/components/account/ui";
 
 interface Slot {
   slot_at: string;
@@ -37,6 +37,9 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState("");
+  /* The grid re-marks "Þinn tími ✓" after a reload; this says it in words
+     at the top of the modal, where it cannot be missed. */
+  const [okMsg, flashOk, clearOk] = useFlash(5000);
 
   // Defence-in-depth: hide any slot that falls inside the day's lunch
   // break. The list_event_slots RPC already skips these once the
@@ -51,7 +54,7 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
   const load = async () => {
     setLoading(true);
     const { data, error: err } = await supabase.rpc("list_event_slots", { p_event_id: event.id });
-    if (err) setError(err.message);
+    if (err) setError(friendlyError(err, t("acc.slot.loadfailed", "Tókst ekki að sækja tímana.")));
     else setSlots(((data || []) as Slot[]).filter((s) => !inBreak(s.slot_at)));
     setLoading(false);
   };
@@ -65,6 +68,7 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
   const book = async (slotAt: string) => {
     setSaving(slotAt);
     setError("");
+    clearOk();
     const { error: err } = await supabase.rpc("book_body_comp_slot", {
       p_event_id: event.id,
       p_slot_at: slotAt,
@@ -76,11 +80,12 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
           ? t("b2b.welcome.slot.full", "Þessi tími var að fyllast. Veldu annan.")
           : err.message.includes("forbidden")
             ? t("b2b.welcome.slot.forbidden", "Þú getur aðeins bókað tíma á viðburði þíns eigin fyrirtækis.")
-            : err.message,
+            : friendlyError(err, t("acc.slot.bookfailed", "Tókst ekki að bóka tímann.")),
       );
       load();
       return;
     }
+    flashOk(tv("acc.slot.booked", "Tíminn kl. {{time}} er bókaður.", { time: fmtTime(slotAt) }));
     onBooked();
     load();
   };
@@ -93,13 +98,15 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
     if (!ok) return;
     setSaving("cancel");
     setError("");
+    clearOk();
     const { error } = await supabase.rpc("cancel_body_comp_slot", { p_event_id: event.id });
     if (error) {
-      setError(error.message);
+      setError(friendlyError(error, t("acc.slot.cancelfailed", "Tókst ekki að afbóka tímann.")));
       setSaving(null);
       return;
     }
     setSaving(null);
+    flashOk(t("acc.slot.cancelled", "Tíminn var afbókaður. Þú getur valið annan."));
     onBooked();
     load();
   };
@@ -122,10 +129,11 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
         {slots.some((s) => s.is_mine) && (
           <Button variant="dangerOutline" className="mr-auto" onClick={cancel} disabled={saving !== null} busy={saving === "cancel"}>{t("b2b.welcome.slot.cancel", "Afbóka")}</Button>
         )}
-        <Button variant="secondary" onClick={onClose}>{t("acct.q.close", "Loka")}</Button>
+        <Button variant="secondary" onClick={onClose} disabled={saving !== null}>{t("acct.q.close", "Loka")}</Button>
       </>}>
       {loading && <p className="text-sm text-hc-ink-3">{t("b2b.welcome.slot.loading", "Sæki tíma…")}</p>}
       {error && <Alert tone="bad" compact className="mb-3">{error}</Alert>}
+      {okMsg && !error && <Alert tone="ok" compact className="mb-3">{okMsg}</Alert>}
       {!loading && slots.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {slots.map((s) => {

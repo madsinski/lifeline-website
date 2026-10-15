@@ -28,6 +28,7 @@ import PartnerCard from "./PartnerCard";
 import { CoachStep, SETUP_ROWS } from "./SetupFlow";
 import ProfileForm, { type ProfileFormData } from "./ProfileForm";
 import TrackChoice from "./TrackChoice";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 interface Worker { id: string; name: string | null; role: string | null; photo_url?: string | null; bio?: string | null }
@@ -74,6 +75,7 @@ export function useSetupData(api: Api) {
   const [myCoach, setMyCoach] = useState<Worker | null>(null);
   const [calConnected, setCalConnected] = useState(false);
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
   const [iosNeedsInstall] = useState(() => {
     if (typeof window === "undefined") return false;
     const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -99,18 +101,23 @@ export function useSetupData(api: Api) {
     call: api,
     googleStatusUrl: "/api/hc/google",
     startGoogle: async () => {
-      const r = await api("/api/hc/google/start", { method: "POST", body: "{}" });
-      const j = await r.json().catch(() => ({}));
-      if (r.ok && j.url) window.location.href = j.url;
+      const r = await api("/api/hc/google/start", { method: "POST", body: "{}" }).catch(() => null);
+      const j = r ? await r.json().catch(() => ({})) : {};
+      if (r?.ok && j.url) { window.location.href = j.url; return; }
+      // Was silent: the button did nothing at all when Google was not set up.
+      toast.show(r ? "Ekki tókst að tengjast Google. Reyndu aftur eða notaðu dagatalsslóðina." : "Engin tenging. Athugaðu netið og reyndu aftur.", { tone: "bad" });
     },
     icsTokenUrl: "/api/hc/calendar-token",
     subscriptionName: "Lifeline heilsuferð",
   };
 
   const pickCoach = async (id: string) => {
+    if (busy) return;
     setBusy(true);
-    await api("/api/hc/coach", { method: "POST", body: JSON.stringify({ coach_id: id }) }).catch(() => null);
+    const r = await api("/api/hc/coach", { method: "POST", body: JSON.stringify({ coach_id: id }) }).catch(() => null);
     setBusy(false);
+    if (!r || !r.ok) { toast.show(SAVE_FAILED, { tone: "bad" }); return; }
+    toast.show("Þjálfarinn er valinn", { tone: "ok" });
     await load();
   };
 

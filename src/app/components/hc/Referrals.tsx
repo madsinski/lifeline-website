@@ -44,11 +44,11 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
   const [note, setNote] = useState("");
   const [pick, setPick] = useState<ReferralTarget>("lifeline_doctor");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [over, setOver] = useState(false);
 
   const add = (target: ReferralTarget, reason: string, from: "ai" | "nurse" = "nurse") => {
-    setMsg("");
+    setMsg(null);
     setStaged((prev) =>
       prev.some((x) => x.target === target && x.reason === reason) ? prev : [...prev, { target, reason, from }]);
   };
@@ -69,26 +69,35 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
   });
 
   const send = async () => {
-    if (!staged.length) return;
-    setBusy(true); setMsg("");
+    if (!staged.length || busy) return;
+    setBusy(true); setMsg(null);
     const r = await api(`/api/vinnustod/journeys/${journeyId}/referrals`, {
       method: "POST",
       // A doctor adding a referral has made the decision already.
       body: JSON.stringify({ items: staged.map((x) => ({ target: x.target, reason: x.reason, note: note || null, suggested_by: x.from })), decided: isDoctor }),
-    });
-    const j = await r.json().catch(() => ({}));
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setMsg(j.error || "Tókst ekki að skrá tilvísun."); return; }
+    if (!r) { setMsg({ ok: false, text: "Engin tenging. Tilvísunin var ekki skráð — reyndu aftur." }); return; }
+    if (!r.ok) {
+      const said = typeof j.error === "string" && /[áéíóúýþæöð]/i.test(j.error) ? j.error : null;
+      setMsg({ ok: false, text: said || "Tókst ekki að skrá tilvísun. Reyndu aftur." });
+      return;
+    }
     setStaged([]); setNote("");
-    setMsg(j.note ?? (j.notified ? "Skráð og skeyti sent til læknis." : "Skráð."));
+    setMsg({ ok: true, text: j.note ?? (j.notified ? "Skráð og skeyti sent til læknis." : "Skráð.") });
     onChanged();
   };
 
+  const DECIDED_IS = { approved: "Tilvísun samþykkt.", declined: "Skráð: ekki þörf á tilvísun.", done: "Skráð sem metið." } as const;
   const decide = async (id: string, status: "approved" | "declined" | "done") => {
-    setBusy(true); setMsg("");
-    const r = await api(`/api/vinnustod/journeys/${journeyId}/referrals`, { method: "PATCH", body: JSON.stringify({ id, status }) });
+    if (busy) return;
+    setBusy(true); setMsg(null);
+    const r = await api(`/api/vinnustod/journeys/${journeyId}/referrals`, { method: "PATCH", body: JSON.stringify({ id, status }) }).catch(() => null);
     setBusy(false);
-    if (!r.ok) { setMsg("Tókst ekki að uppfæra."); return; }
+    if (!r) { setMsg({ ok: false, text: "Engin tenging. Reyndu aftur." }); return; }
+    if (!r.ok) { setMsg({ ok: false, text: "Tókst ekki að uppfæra. Reyndu aftur." }); return; }
+    setMsg({ ok: true, text: DECIDED_IS[status] });
     onChanged();
   };
 
@@ -172,9 +181,10 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         {staged.length > 0 && (
           <>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
+              aria-label="Athugasemd til læknisins"
               placeholder="Til læknisins — fer ekki til skjólstæðings"
               className={`mt-2 ${hcInput}`} />
-            <button type="button" disabled={busy} onClick={send}
+            <button type="button" disabled={busy} onClick={() => void send()}
               className={`${hcBtn.primary} mt-2 w-full`}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
               {isDoctor ? "Skrá tilvísun" : "Senda til læknis"}
@@ -183,7 +193,9 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         )}
       </div>
 
-      {msg && <p role="status" className="text-xs leading-snug text-hc-ok-ink">{msg}</p>}
+      {msg && (msg.ok
+        ? <p role="status" className="text-xs leading-snug text-hc-ok-ink">{msg.text}</p>
+        : <p role="alert" className="text-sm font-semibold leading-snug text-hc-bad-ink">{msg.text}</p>)}
 
       {/* What the plan proposal thought */}
       {fresh.length > 0 && (

@@ -11,6 +11,7 @@ import { tenantIdForHost } from "@/lib/tenant";
 // flows and must always work. Everything else (marketing site, signup,
 // /account/*, etc.) goes through the gate. The only ways in are:
 //   • staff (auto-granted via has_site_access)
+//   • any logged-in user whose email is confirmed (customers included)
 //   • a logged-in user with a matching access_grant
 //   • an unauthenticated visitor with a claimed site_access_token cookie
 // Bypassing the proxy is NOT the same as bypassing auth — /admin still
@@ -28,6 +29,8 @@ const BYPASS_PREFIXES = [
                             //   makes the gate the product
   "/business/login",        //   "          "
   "/business/signup",       //   "  (B2B company signup, after /business/login)
+  "/business/account",      // company admin area — own session guard → /business/login
+  "/business/co-admin-setup",// co-admin magic-link landing
   // ── Token-gated / unguessable-URL flows: the URL itself is the
   //    access mechanism (per-recipient secret token, noindex'd, never
   //    listed), so they have to bypass the coming-soon gate the same
@@ -45,6 +48,8 @@ const BYPASS_PREFIXES = [
   "/leidbeiningar",         // public, printable measurement-station instructions
   "/legal-review",          // no-login tokenised legal-document review links (external counsel)
   "/privacy",               // public privacy policy — must be reachable pre-launch (GDPR)
+  "/terms",                 // terms of service — the /byrja clickwrap links here, so it
+                            //   has to be readable before the account exists
   "/soluskilmalar",         // binding sales terms — linked from heilsuferð checkout, must be readable
   "/sales-terms",           //   "  (English)
   "/heilsuskodun",          // public health-check entry per location (posters, employers, heilsugæsla)
@@ -96,7 +101,15 @@ export async function proxy(request: NextRequest) {
   }
 
   // 1. Hard bypass for system routes + static assets.
-  if (BYPASS_PREFIXES.some((p) => pathname.startsWith(p)) || STATIC_EXT_RE.test(pathname)) {
+  //    /business (exact) is the B2B landing that outreach emails link to;
+  //    /business/<company uuid> is the company admin, behind its own guard
+  //    (linked from the b2b-digest email) — gating it hid the login redirect.
+  if (
+    BYPASS_PREFIXES.some((p) => pathname.startsWith(p)) ||
+    STATIC_EXT_RE.test(pathname) ||
+    pathname === "/business" ||
+    /^\/business\/[0-9a-f-]{36}(\/|$)/i.test(pathname)
+  ) {
     return NextResponse.next();
   }
 
@@ -145,6 +158,12 @@ export async function proxy(request: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    // Anyone who has signed up and confirmed their email sees the whole
+    // site. Signup is open (/byrja bypasses the gate), so gating a customer
+    // out of /coaching or /assessment hid nothing from anyone — it only
+    // broke links like /coaching#askrift for the people they were for.
+    // has_site_access still lets explicit grants in before confirmation.
+    if (user?.email_confirmed_at) return response;
     if (user?.id) {
       const { data: ok } = await supabase.rpc("has_site_access", { p_uid: user.id });
       if (ok === true) return response;

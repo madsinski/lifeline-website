@@ -21,6 +21,7 @@ import WsSettings from "@/app/components/hc/WsSettings";
 import { hcPage, hcTabs } from "@/app/components/hc/ui";
 import { cookieApi, useWsApi, WS_SESSION_EXPIRED, type WsApi } from "@/app/components/hc/ws-api";
 import { Alert, DialogProvider, useDialog } from "@/app/components/account/ui";
+import { ToastProvider, useToast } from "@/app/components/hc/Toast";
 import { cleanName, wsBtn } from "./format";
 import { CalendarTab, ClientsTab, TodayView } from "./Home";
 import { useInbox } from "./inbox";
@@ -65,9 +66,14 @@ const SESSION_EXPIRED = WS_SESSION_EXPIRED;
  */
 export function WorkstationApp({ mode }: { mode: "worker" | "staff" }) {
   return (
-    <DialogProvider>
-      <Root mode={mode} />
-    </DialogProvider>
+    /* One toast for every save in the workstation, so a save that worked
+       says so and one that failed says that too (hc/Toast). Mounted here,
+       not in the route, so /admin/vinnustod gets it as well. */
+    <ToastProvider>
+      <DialogProvider>
+        <Root mode={mode} />
+      </DialogProvider>
+    </ToastProvider>
   );
 }
 
@@ -250,7 +256,14 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
   }, []);
 
   const inbox = useInbox(api);
-  const logout = async () => { await ws("/api/vinnustod/auth/logout", { method: "POST" }).catch(() => null); onLogout(); };
+  const toast = useToast();
+  /* On a shared station a sign-out that did not reach the server leaves the
+     session open behind a login screen. Say so instead of pretending. */
+  const logout = async () => {
+    const r = await ws("/api/vinnustod/auth/logout", { method: "POST" }).catch(() => null);
+    if (!r?.ok) { toast.show("Útskráning tókst ekki. Athugaðu netið og reyndu aftur.", { tone: "bad" }); return; }
+    onLogout();
+  };
   useKnowledgeHotkey(() => setShowBook(true));
 
   const menu: WsMenuItem[] = [
@@ -338,7 +351,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
       </main>
 
       <KnowledgeSearch api={api} open={showBook} onClose={() => setShowBook(false)} />
-      {showPin && <PinModal onClose={() => setShowPin(false)} onDone={() => { setShowPin(false); onPinSet(); }} />}
+      {showPin && <PinModal onClose={() => setShowPin(false)} onDone={() => { setShowPin(false); toast.show("PIN-númerið er vistað."); onPinSet(); }} />}
       <CalendarConnect
         api={mode === "worker" ? WORKER_CALENDAR : staffCalendar(api, (message) => void dialog.alert({ title: "Google-dagatal", body: message }))}
         open={showCal} onClose={() => setShowCal(false)}

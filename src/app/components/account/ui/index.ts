@@ -5,3 +5,4 @@ export { PageHero, SectionCard, Alert, Field, Switch, accountCard, accountInset,
 export { Modal, ConfirmDialog, DialogProvider, useDialog, type ConfirmOptions } from "./Modal";
 export { fmtDate, fmtTime, fmtDateTime, fmtNumericDate, fmtMonthYear, fmtIsk, type DateOpts } from "./dates";
 export { useNow } from "./useNow";
+export { useFlash, SavedNote, friendlyError } from "./feedback";

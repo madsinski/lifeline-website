@@ -33,6 +33,21 @@ import {
   type ActionPlan, type ExerciseTemplate, type NutritionTemplate, type Pillar, type PlanGoal,
   type PlanItem, type PlanLibrary, type PlanModule, type ExerciseSession } from "@/lib/hc/types";
 
+
+/**
+ * What to say when a plan call fails. The routes answer in Icelandic for the
+ * things a coach can fix (409/400 with a sentence) and in codes or raw
+ * database text otherwise, which is not for people.
+ */
+function planError(r: Response | null, j: { error?: string } | null, fallback: string): string {
+  if (!r) return "Engin tenging. Athugaðu netið og reyndu aftur.";
+  if (r.status === 401) return "Lotan rann út. Skráðu þig inn aftur — breytingarnar eru enn hér.";
+  if (r.status === 403 || r.status === 404) return "Þú hefur ekki aðgang að þessari heilsuferð lengur.";
+  const e = j?.error;
+  if (e && (r.status === 400 || r.status === 409) && /[áéíóúýþæöð]/i.test(e)) return e;
+  return fallback;
+}
+
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
 type Draft = {
@@ -202,21 +217,29 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   useEffect(() => {
     if (!preview || !isAdaptive(adaptiveKey)) return;
     (async () => {
-      const r = await api(`/api/vinnustod/journeys/${journeyId}/training`);
-      const j = await r.json().catch(() => ({}));
-      if (r.ok && j.settings) setPreviewTraining(j.settings);
+      const r = await api(`/api/vinnustod/journeys/${journeyId}/training`).catch(() => null);
+      const j = r ? await r.json().catch(() => ({})) : {};
+      if (r?.ok && j.settings) setPreviewTraining(j.settings);
     })();
   }, [preview, adaptiveKey, api, journeyId]);
   const [step, setStep] = useState(0);
   const dialog = useDialog();
   const [dragOver, setDragOver] = useState<string | null>(null);
 
+  /* Bumped by "Reyna aftur" on a failed first load. */
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     (async () => {
-      const [l, p] = await Promise.all([api("/api/hc/plan-library"), api(`/api/hc/plans/${journeyId}`)]);
-      if (!l.ok || !p.ok) { setMsg({ tone: "err", text: "Gat ekki sótt áætlun eða safn." }); return; }
-      const library = (await l.json()) as PlanLibrary;
-      const pj = await p.json();
+      /* A dropped connection used to throw here and leave "Hleð áætlun…"
+         up for good, with no way on but a reload. */
+      const [l, p] = await Promise.all([
+        api("/api/hc/plan-library").catch(() => null),
+        api(`/api/hc/plans/${journeyId}`).catch(() => null),
+      ]);
+      const library = l?.ok ? ((await l.json().catch(() => null)) as PlanLibrary | null) : null;
+      const pj = p?.ok ? await p.json().catch(() => null) : null;
+      if (!library || !pj) { setMsg({ tone: "err", text: planError(!l || !p ? null : (p.ok ? l : p), null, "Gat ekki sótt áætlun eða safn.") }); return; }
+      setMsg(null);
       setLib(library);
       setClientName(pj.client?.full_name ?? null);
       setSignals(pj.signals ?? {});
@@ -244,7 +267,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       if (!plan && (seed?.summary || seed?.goals?.length)) setDirty(true);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- seed is only read for a brand-new plan on first load
-  }, [api, journeyId]);
+  }, [api, journeyId, attempt]);
 
   const update = useCallback((patch: Partial<Draft>) => {
     setDraft((d) => (d ? { ...d, ...patch } : d));
@@ -395,17 +418,36 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
     } catch { /* not ours */ }
   };
 
+  /*
+   * One save at a time. The autosave and "Vista drög" / "Birta" could run
+   * together, and the later answer would land first. And the draft that was
+   * SENT is remembered, so an edit made while a save is in flight stays
+   * "Óvistað" (and is autosaved next) instead of being marked saved by the
+   * answer to an older copy.
+   */
+  const inFlight = useRef<Promise<boolean> | null>(null);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
   const save = async (quiet = false): Promise<boolean> => {
     if (!draft) return false;
-    if (!quiet) { setBusy(true); setMsg(null); }
-    const r = await api(`/api/hc/plans/${journeyId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft) });
-    if (!quiet) setBusy(false);
-    if (!r.ok) { setMsg({ tone: "err", text: (await r.json().catch(() => ({}))).error || "Vistun mistókst." }); return false; }
-    const j = await r.json();
-    setStatus(j.plan?.status ?? "draft");
-    setDirty(false);
-    setMsg({ tone: "ok", text: quiet ? "Drög vistuð sjálfkrafa." : "Drög vistuð." });
-    return true;
+    if (inFlight.current) {
+      if (quiet) return false;
+      await inFlight.current;
+    }
+    const sent = draftRef.current ?? draft;
+    const run = (async () => {
+      if (!quiet) { setBusy(true); setMsg(null); }
+      const r = await api(`/api/hc/plans/${journeyId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sent) }).catch(() => null);
+      const j = r ? await r.json().catch(() => null) : null;
+      if (!quiet) setBusy(false);
+      if (!r?.ok) { setMsg({ tone: "err", text: planError(r, j, quiet ? "Sjálfvirk vistun mistókst. Ýttu á „Vista drög“." : "Vistun mistókst.") }); return false; }
+      setStatus(j?.plan?.status ?? "draft");
+      if (draftRef.current === sent) setDirty(false);
+      setMsg({ tone: "ok", text: quiet ? "Drög vistuð sjálfkrafa." : "Drög vistuð." });
+      return true;
+    })();
+    inFlight.current = run;
+    try { return await run; } finally { if (inFlight.current === run) inFlight.current = null; }
   };
   // Autosave a draft a moment after the last change: a live interview is no
   // place to lose work. A published plan is what the client sees, so edits
@@ -425,11 +467,20 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
   const publish = async () => {
+    if (busy) return;
+    /* Publishing (and re-publishing) emails the client, so it asks first.
+       Native confirm outside a <DialogProvider>, as applyTemplate above. */
+    if (!(await dialog.confirm({
+      title: "Birta áætlunina?",
+      body: `${clientName || "Skjólstæðingurinn"} fær tölvupóst.`,
+      confirmLabel: status === "published" ? "Uppfæra og birta" : "Birta",
+    }))) return;
     if (!(await save())) return;
     setBusy(true);
-    const r = await api(`/api/hc/plans/${journeyId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "publish" }) });
+    const r = await api(`/api/hc/plans/${journeyId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "publish" }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => null) : null;
     setBusy(false);
-    if (!r.ok) { setMsg({ tone: "err", text: (await r.json().catch(() => ({}))).error || "Birting mistókst." }); return; }
+    if (!r?.ok) { setMsg({ tone: "err", text: planError(r, j, "Birting mistókst. Drögin eru vistuð.") }); return; }
     setStatus("published");
     setMsg({ tone: "ok", text: "Áætlunin er birt á aðgangi skjólstæðings og tölvupóstur sendur." });
     onPublished?.();
@@ -456,7 +507,16 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
   }, [preview, printAfter]);
 
   if (!draft || !lib) {
-    return <div className={`${hcCard.base} p-8 text-center text-sm text-hc-ink-2`}>{msg?.text ?? "Hleð áætlun…"}</div>;
+    return (
+      <div className={`${hcCard.base} p-8 text-center text-sm ${msg?.tone === "err" ? "text-hc-bad-ink" : "text-hc-ink-2"}`}
+        role={msg?.tone === "err" ? "alert" : undefined} aria-busy={!msg}>
+        {msg?.text ?? "Hleð áætlun…"}
+        {msg?.tone === "err" && (
+          <button type="button" onClick={() => { setMsg(null); setAttempt((n) => n + 1); }}
+            className={`${hcBtn.secondary} mx-auto mt-3 flex`}>Reyna aftur</button>
+        )}
+      </div>
+    );
   }
 
   if (preview) {
@@ -523,7 +583,9 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
           </select>
           <button type="button" onClick={() => setPreview(true)} className={hcBtn.secondary}>Forskoða</button>
           <button type="button" onClick={() => { setPreview(true); setPrintAfter(true); }} className={hcBtn.secondary}>Prenta</button>
-          <button type="button" onClick={() => void save()} disabled={busy} className={hcBtn.secondary}>Vista drög</button>
+          <button type="button" onClick={() => void save()} disabled={busy} className={hcBtn.secondary}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null} Vista drög
+          </button>
           <button type="button" onClick={publish} disabled={busy || draft.modules.length === 0} className={hcBtn.primary}>
             {status === "published" ? "Uppfæra birta áætlun" : "Birta skjólstæðingi"}
           </button>
@@ -531,7 +593,7 @@ export default function PlanBuilder({ journeyId, api, onPublished, seed, readyPr
       )}
 
       {msg && (
-        <div role="status" className={`rounded-hc-element px-4 py-2 text-sm ${msg.tone === "ok" ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-hc-bad-surface text-hc-bad-ink"}`}>{msg.text}</div>
+        <div role={msg.tone === "ok" ? "status" : "alert"} className={`rounded-hc-element px-4 py-2 text-sm ${msg.tone === "ok" ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-hc-bad-surface text-hc-bad-ink"}`}>{msg.text}</div>
       )}
 
       {step === 0 && <AiProposalPanel api={api} journeyId={journeyId} ready={readyProposal} onApply={applyProposal} />}
@@ -860,21 +922,24 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
   onDone: (r: { sessions?: ExerciseSession[]; day_example?: { meal: string; example: string }[]; note: string; dropped: number }) => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [constraints, setConstraints] = useState("");
   const [open, setOpen] = useState(false);
 
   const run = async () => {
-    setBusy(true); setMsg("");
+    if (busy) return;
+    setBusy(true); setMsg(null);
     const r = await api(`/api/vinnustod/journeys/${journeyId}/compose`, {
       method: "POST",
       body: JSON.stringify({ kind, template: templateKey, constraints: constraints.trim() || null }),
-    });
-    const j = await r.json().catch(() => ({}));
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r.ok) { setMsg(j.error || "Samsetningin mistókst."); return; }
+    /* The compose route's own failure text is already Icelandic ("Samsetningin
+       mistókst: …"); it was shown in the success green. */
+    if (!r?.ok) { setMsg({ ok: false, text: r && r.status >= 500 && j.error ? j.error : planError(r, j, "Samsetningin mistókst.") }); return; }
     setOpen(false);
-    setMsg(j.dropped ? `Sett saman. ${j.dropped} atriði voru sleppt því þau voru ekki í safninu.` : "Sett saman úr safninu.");
+    setMsg({ ok: true, text: j.dropped ? `Sett saman. ${j.dropped} atriði voru sleppt því þau voru ekki í safninu.` : "Sett saman úr safninu." });
     onDone(j);
   };
 
@@ -887,7 +952,7 @@ function ComposeButton({ api, journeyId, kind, templateKey, disabled, onDone }: 
           {busy ? "Set saman…" : "Láta AI setja saman"}
         </button>
         {disabled && <span className="text-xs text-hc-ink-2">Veldu sniðmát fyrst.</span>}
-        {msg && <span className="text-xs text-hc-ok-ink">{msg}</span>}
+        {msg && <span role={msg.ok ? "status" : "alert"} className={`text-xs font-semibold ${msg.ok ? "text-hc-ok-ink" : "text-hc-bad-ink"}`}>{msg.text}</span>}
       </div>
       {open && !disabled && (
         <div className="mt-2 rounded-hc-element bg-hc-sunken p-3">
@@ -914,19 +979,20 @@ function AdaptiveSettings({ api, journeyId }: { api: Api; journeyId: string }) {
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
-      const r = await api(`/api/vinnustod/journeys/${journeyId}/training`);
-      const j = await r.json().catch(() => ({}));
-      setS(r.ok && j.settings ? j.settings : DEFAULT_TRAINING);
+      const r = await api(`/api/vinnustod/journeys/${journeyId}/training`).catch(() => null);
+      const j = r ? await r.json().catch(() => ({})) : {};
+      if (!r?.ok) setErr("Náði ekki í stillingar skjólstæðings. Sjálfgefnar stillingar eru sýndar.");
+      setS(r?.ok && j.settings ? j.settings : DEFAULT_TRAINING);
     })();
   }, [api, journeyId]);
   if (!s) return <p className="text-sm text-hc-ink-3">Hleð stillingum…</p>;
   const change = async (next: TrainingSettings) => {
     const prev = s;
     setS(next); setSaving(true); setErr(null);
-    const r = await api(`/api/vinnustod/journeys/${journeyId}/training`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
-    const j = await r.json().catch(() => ({}));
+    const r = await api(`/api/vinnustod/journeys/${journeyId}/training`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
     setSaving(false);
-    if (r.ok && j.settings) setS(j.settings); else { setS(prev); setErr("Gat ekki vistað stillingarnar."); }
+    if (r?.ok && j.settings) setS(j.settings); else { setS(prev); setErr(r ? "Gat ekki vistað stillingarnar." : "Engin tenging. Stillingarnar vistuðust ekki."); }
   };
   return (
     <div>
