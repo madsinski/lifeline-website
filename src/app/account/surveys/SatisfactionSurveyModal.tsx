@@ -99,7 +99,7 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
               })}
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Ekki gagnlegt</span>
+              <span>{t("acct.q.notuseful", "Ekki gagnlegt")}</span>
               <span>{t("acct.survey.veryuseful", "Mjög gagnlegt")}</span>
             </div>
           </div>
@@ -110,7 +110,7 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
         <div className="p-4 border-t border-gray-100 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Later</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">{t("acct.q.later", "Síðar")}</button>
           <button onClick={submit} disabled={saving || nps == null} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
             {saving ? "Saving…" : "Submit"}
           </button>

@@ -221,7 +221,7 @@ export default function BillingPanel({
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[#6B7280] border-b border-gray-100">
-                  <th className="pb-3 font-medium">Dagsetning</th>
+                  <th className="pb-3 font-medium">{t("acct.q.date", "Dagsetning")}</th>
                   <th className="pb-3 font-medium">{t("comp.bill.description", "Lýsing")}</th>
                   <th className="pb-3 font-medium text-right">{t("comp.bill.amount", "Upphæð")}</th>
                   <th className="pb-3 font-medium text-right">{t("comp.bill.status", "Staða")}</th>

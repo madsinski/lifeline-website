@@ -74,7 +74,7 @@ export default function ReplayOnboardingPage() {
             {/* What it clears, before it clears it — a reset that lists its
                 own scope afterwards is a reset you have to undo to read. */}
             <ul className="mt-3 space-y-1 text-sm text-gray-600">
-              <li>· Kynningin birtist aftur</li>
+              <li>{t("acct.q.introagain", "· Kynningin birtist aftur")}</li>
               <li>{t("acct.replay.b1", t("acct.replay.b1", "· Skilmálar þarf að samþykkja á ný"))}</li>
               <li>{t("acct.replay.b2", t("acct.replay.b2", "· Samþykki fyrir heilsufarsupplýsingum núllstillist"))}</li>
             </ul>

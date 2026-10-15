@@ -416,7 +416,7 @@ function AccountLoginContent() {
           {mode === "login" && usePin && pinAvailable ? (
             <div>
               <p className="text-center text-sm text-gray-600">
-                Sláðu inn PIN{pinAvailable.email_hint ? <> fyrir <span className="font-medium text-gray-800">{pinAvailable.email_hint}</span></> : null}
+                Sláðu inn PIN{pinAvailable.email_hint ? <> {t("acct.q.for", "fyrir")} <span className="font-medium text-gray-800">{pinAvailable.email_hint}</span></> : null}
               </p>
               <div className="mt-5">
                 <PinPad value={pin} onChange={setPin} onComplete={handlePin} disabled={loading} error={!!pinError} />
@@ -479,7 +479,7 @@ function AccountLoginContent() {
                       htmlFor="firstName"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Fornafn
+                      {t("acct.q.firstname", "Fornafn")}
                     </label>
                     <input
                       id="firstName"
@@ -488,7 +488,7 @@ function AccountLoginContent() {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                      placeholder="Fornafn"
+                      placeholder={t("acct.q.firstname", "Fornafn")}
                     />
                   </div>
                   <div className="flex-1">
@@ -496,7 +496,7 @@ function AccountLoginContent() {
                       htmlFor="lastName"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Eftirnafn
+                      {t("acct.q.lastname", "Eftirnafn")}
                     </label>
                     <input
                       id="lastName"
@@ -505,7 +505,7 @@ function AccountLoginContent() {
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                      placeholder="Eftirnafn"
+                      placeholder={t("acct.q.lastname", "Eftirnafn")}
                     />
                   </div>
                 </div>
@@ -517,7 +517,7 @@ function AccountLoginContent() {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Netfang
+                {t("acct.q.email", "Netfang")}
               </label>
               <input
                 id="email"
@@ -776,7 +776,7 @@ function TermsConsentStage({
           onClick={onBack}
           className="px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
         >
-          ← Til baka
+          {t("acct.q.backarrow", "← Til baka")}
         </button>
         <button
           type="submit"

@@ -1350,9 +1350,9 @@ function AccountPageInner() {
                       <button
                         onClick={() => setResolvedRefundRequest(null)}
                         className={`shrink-0 text-xs font-medium px-2 py-1 rounded-md hover:bg-white/60 ${resolvedRefundRequest.status === "approved" ? "text-emerald-700" : "text-red-700"}`}
-                        title="Dismiss"
+                        title={t("acct.q.dismiss", "Loka")}
                       >
-                        Dismiss
+                        {t("acct.q.dismiss", "Loka")}
                       </button>
                     </div>
                   </section>
@@ -1594,7 +1594,7 @@ function AccountPageInner() {
                   <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.personuupplysingar", "Persónuupplýsingar")}</h2>
                   {!editingProfile && (
                     <button onClick={() => setEditingProfile(true)} className="text-sm font-medium text-[#10B981] hover:underline">
-                      Breyta
+                      {t("acct.q.edit", "Breyta")}
                     </button>
                   )}
                 </div>
@@ -1603,18 +1603,18 @@ function AccountPageInner() {
                   <div className="space-y-4 max-w-lg">
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Fornafn</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t("acct.q.firstname", "Fornafn")}</label>
                         <input value={profileFirstName} onChange={(e) => setProfileFirstName(e.target.value)}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Eftirnafn</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t("acct.q.lastname", "Eftirnafn")}</label>
                         <input value={profileLastName} onChange={(e) => setProfileLastName(e.target.value)}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Netfang</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("acct.q.email", "Netfang")}</label>
                       <input value={user.email || ""} disabled
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 cursor-not-allowed" />
                     </div>
@@ -1625,10 +1625,10 @@ function AccountPageInner() {
                         placeholder={t("acct.phone", "Símanúmer")} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Heimilisfang</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("acct.q.address", "Heimilisfang")}</label>
                       <input value={address} onChange={(e) => setAddress(e.target.value)}
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
-                        placeholder="Heimilisfang" />
+                        placeholder={t("acct.q.address", "Heimilisfang")} />
                     </div>
                     <div className="flex gap-3">
                       <div className="flex-1">
@@ -1650,7 +1650,7 @@ function AccountPageInner() {
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Kyn</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("acct.q.sex", "Kyn")}</label>
                       <div className="flex gap-2">
                         {[
                           { key: "male", label: "Karl" },
@@ -1694,13 +1694,13 @@ function AccountPageInner() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Nafn</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">{t("acct.q.name", "Nafn")}</span>
                       <p className={`font-medium mt-0.5 ${profileFirstName ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
                         {profileFirstName || profileLastName ? `${profileFirstName} ${profileLastName}`.trim() : t("acct.p.ekki-skrad", "Ekki skráð")}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Netfang</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">{t("acct.q.email", "Netfang")}</span>
                       <p className="text-[#1F2937] font-medium mt-0.5">{user.email}</p>
                     </div>
                     <div>
@@ -1708,7 +1708,7 @@ function AccountPageInner() {
                       <p className={`font-medium mt-0.5 ${phone ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{phone || t("acct.p.ekki-skrad", "Ekki skráð")}</p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Heimilisfang</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">{t("acct.q.address", "Heimilisfang")}</span>
                       <p className={`font-medium mt-0.5 ${address ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>{address || t("acct.p.ekki-skrad", "Ekki skráð")}</p>
                     </div>
                     <div>
@@ -1724,7 +1724,7 @@ function AccountPageInner() {
                       </p>
                     </div>
                     <div>
-                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">Kyn</span>
+                      <span className="text-[#6B7280] text-xs uppercase tracking-wider">{t("acct.q.sex", "Kyn")}</span>
                       <p className={`font-medium mt-0.5 ${sex ? "text-[#1F2937]" : "text-[#9CA3AF]"}`}>
                         {sex ? ({ male: "Karl", female: "Kona", other: t("acct.p.annad", "Annað"), prefer_not_to_say: "Vil ekki svara" }[sex] || t("acct.p.ekki-skrad", "Ekki skráð")) : t("acct.p.ekki-skrad", "Ekki skráð")}
                       </p>
@@ -1741,7 +1741,7 @@ function AccountPageInner() {
             {/* ============ MESSAGES ============ */}
             {activeSection === "messages" && (
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                <h2 className="text-lg font-semibold text-[#1F2937] mb-6">Messages</h2>
+                <h2 className="text-lg font-semibold text-[#1F2937] mb-6">{t("acct.q.messages", "Skilaboð")}</h2>
                 {conversationsCount > 0 ? (
                   <div className="space-y-3">
                     <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3 text-xs text-amber-900 leading-relaxed">
@@ -1750,17 +1750,17 @@ function AccountPageInner() {
                       <strong>Medalia</strong> or book a doctor&apos;s appointment.
                     </div>
                     <p className="text-sm text-[#6B7280]">
-                      You have <span className="font-semibold text-[#1F2937]">{conversationsCount}</span> conversation{conversationsCount !== 1 ? "s" : ""}.
+                      {t("acct.q.youhave", "Þú ert með")} <span className="font-semibold text-[#1F2937]">{conversationsCount}</span> conversation{conversationsCount !== 1 ? "s" : ""}.
                     </p>
                     <p className="text-sm text-[#6B7280]">
-                      Open the Lifeline app to view and reply to your messages.
+                      {t("acct.q.openapp-msg", "Opnaðu Lifeline appið til að lesa og svara skilaboðunum þínum.")}
                     </p>
                     <Link href="/coaching#download"
                       className="inline-flex items-center gap-2 mt-2 px-5 py-2.5 bg-[#10B981] text-white text-sm font-semibold rounded-full hover:bg-[#047857] transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
-                      Download the App
+                      {t("acct.q.downloadapp", "Sækja appið")}
                     </Link>
                   </div>
                 ) : (
@@ -1768,13 +1768,13 @@ function AccountPageInner() {
                     <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
-                    <p className="text-sm font-medium text-[#1F2937] mb-1">No messages yet</p>
+                    <p className="text-sm font-medium text-[#1F2937] mb-1">{t("acct.q.nomessages", "Engin skilaboð enn")}</p>
                     <p className="text-xs text-[#6B7280] mb-3">
-                      Direct messaging with your coach is available on the Premium plan.
+                      {t("acct.q.dmpremium", "Bein skilaboð við þjálfarann þinn fylgja Premium-áskrift.")}
                     </p>
                     <button onClick={() => setActiveSection("billing")}
                       className="text-sm font-medium text-[#10B981] hover:underline">
-                      View plans & billing
+                      {t("acct.q.viewplans", "Skoða áskriftir og greiðslur")}
                     </button>
                   </div>
                 )}
@@ -1966,8 +1966,8 @@ function AccountPageInner() {
                         </svg>
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold text-[#1F2937]">Daily Snippets</h2>
-                        <p className="text-xs text-[#6B7280]">Quick health & fitness insights, 7 days a week</p>
+                        <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.q.snippets", "Fræðslumolar")}</h2>
+                        <p className="text-xs text-[#6B7280]">{t("acct.q.snippetsdesc", "Stuttar heilsu- og æfingaábendingar, alla daga vikunnar")}</p>
                       </div>
                     </div>
 
@@ -2016,7 +2016,7 @@ function AccountPageInner() {
                       </svg>
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-[#1F2937]">Courses</h2>
+                      <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.q.courses", "Námskeið")}</h2>
                       <p className="text-xs text-[#6B7280]">{eduCourses.length} course{eduCourses.length !== 1 ? "s" : ""} available</p>
                     </div>
                   </div>
@@ -2026,7 +2026,7 @@ function AccountPageInner() {
                       <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                       </svg>
-                      <p className="text-sm text-[#6B7280]">No courses available yet. Check back soon!</p>
+                      <p className="text-sm text-[#6B7280]">{t("acct.q.nocourses", "Engin námskeið í boði enn. Kíktu aftur fljótlega.")}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -2077,7 +2077,7 @@ function AccountPageInner() {
                             {isOpen && (
                               <div className="border-t border-gray-100">
                                 {course.modules.length === 0 ? (
-                                  <p className="p-5 text-sm text-[#9CA3AF] text-center">No modules yet.</p>
+                                  <p className="p-5 text-sm text-[#9CA3AF] text-center">{t("acct.q.nomodules", "Engar einingar enn.")}</p>
                                 ) : (
                                   <div className="divide-y divide-gray-100">
                                     {course.modules.map((mod, mi) => {
@@ -2109,7 +2109,7 @@ function AccountPageInner() {
                                               {/* Quiz */}
                                               {mod.quizQuestions && mod.quizQuestions.length > 0 && (
                                                 <div className="mt-4 border border-purple-100 rounded-xl p-4 bg-purple-50/30">
-                                                  <p className="text-xs font-semibold text-purple-700 mb-3">Knowledge Check</p>
+                                                  <p className="text-xs font-semibold text-purple-700 mb-3">{t("acct.q.knowledge", "Þekkingarpróf")}</p>
                                                   <div className="space-y-4">
                                                     {mod.quizQuestions.map((q, qi) => {
                                                       const qKey = `${mod.id}-${q.id}`;
@@ -2141,7 +2141,7 @@ function AccountPageInner() {
                                                           {selected !== undefined && !answered && (
                                                             <button onClick={() => setEduQuizSubmitted(prev => ({ ...prev, [qKey]: true }))}
                                                               className="mt-1 px-4 py-1.5 text-xs font-medium bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                                                              Check Answer
+                                                              {t("acct.q.checkanswer", "Athuga svar")}
                                                             </button>
                                                           )}
                                                           {answered && (
@@ -2177,8 +2177,8 @@ function AccountPageInner() {
                     <svg className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
-                    <h3 className="text-base font-semibold text-[#1F2937] mb-1">Education content coming soon</h3>
-                    <p className="text-sm text-[#6B7280]">Your coach is preparing courses and daily snippets for you.</p>
+                    <h3 className="text-base font-semibold text-[#1F2937] mb-1">{t("acct.q.educoming", "Fræðsluefni væntanlegt")}</h3>
+                    <p className="text-sm text-[#6B7280]">{t("acct.q.edudesc", "Þjálfarinn þinn er að undirbúa námskeið og fræðslumola fyrir þig.")}</p>
                   </div>
                 )}
               </section>
@@ -2193,7 +2193,7 @@ function AccountPageInner() {
 
                 {/* Assigned programs */}
                 <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Assigned Programs</h2>
+                  <h2 className="text-lg font-semibold text-[#1F2937] mb-4">{t("acct.q.assigned", "Úthlutuð prógrömm")}</h2>
                   {programs.length > 0 ? (
                     <div className="space-y-3">
                       {programs.map((prog) => {
@@ -2209,7 +2209,7 @@ function AccountPageInner() {
                                 <p className="text-sm font-medium text-[#1F2937]">{displayName}</p>
                                 <p className="text-xs text-[#6B7280]">
                                   {prog.category_key.charAt(0).toUpperCase() + prog.category_key.slice(1)}
-                                  {isCustom && <span className="ml-1 text-[#10B981] font-medium">· Custom</span>}
+                                  {isCustom && <span className="ml-1 text-[#10B981] font-medium">{t("acct.q.custom", "· Sérsniðið")}</span>}
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
@@ -2222,13 +2222,13 @@ function AccountPageInner() {
                                   onClick={() => setChangingProgram(isChanging ? null : prog.category_key)}
                                   className="text-xs font-medium text-[#3B82F6] hover:text-[#2563EB] transition-colors"
                                 >
-                                  {isChanging ? "Cancel" : "Change"}
+                                  {isChanging ? t("acct.q.cancel", "Hætta við") : "Change"}
                                 </button>
                               </div>
                             </div>
                             {isChanging && categoryProgs.length > 0 && (
                               <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                                <p className="text-xs font-medium text-[#6B7280] mb-2">Select a different program:</p>
+                                <p className="text-xs font-medium text-[#6B7280] mb-2">{t("acct.q.selectdiff", "Veldu annað prógramm:")}</p>
                                 {categoryProgs.filter(ap => ap.key !== prog.program_key).map(ap => (
                                   <button
                                     key={ap.key}
@@ -2248,7 +2248,7 @@ function AccountPageInner() {
                     </div>
                   ) : (
                     <div className="bg-[#ecf0f3] rounded-xl p-6 text-center">
-                      <p className="text-sm text-[#1F2937] font-medium mb-1">Your programs will appear here</p>
+                      <p className="text-sm text-[#1F2937] font-medium mb-1">{t("acct.q.progshere", "Prógrömmin þín birtast hér")}</p>
                       <p className="text-xs text-[#6B7280]">
                         {bodyCompStatus === "completed"
                           ? "Your Lifeline physician will assign programs after reviewing your report. You can also build your own below."
@@ -2262,10 +2262,10 @@ function AccountPageInner() {
                 {!showProgramBuilder && (
                   <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-[#1F2937]">My Custom Programs</h2>
+                      <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.q.mycustom", "Mín eigin prógrömm")}</h2>
                       <button onClick={() => openBuilder()} className="inline-flex items-center gap-2 px-4 py-2 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                        Create Program
+                        {t("acct.q.createprog", "Búa til prógramm")}
                       </button>
                     </div>
                     {customPrograms.length > 0 ? (
@@ -2279,10 +2279,10 @@ function AccountPageInner() {
                             </div>
                             <div className="flex items-center gap-2">
                               {programs.some(p => p.program_key === `custom-${cp.id}`) ? (
-                                <span className="text-xs font-medium text-[#10B981] bg-[#10B981]/10 px-3 py-1 rounded-full">Active</span>
+                                <span className="text-xs font-medium text-[#10B981] bg-[#10B981]/10 px-3 py-1 rounded-full">{t("acct.q.active", "Virkt")}</span>
                               ) : (
                                 <button onClick={() => activateCustomProgram(cp)} className="text-xs font-medium text-[#3B82F6] hover:text-white hover:bg-[#3B82F6] border border-[#3B82F6] px-3 py-1 rounded-full transition-colors" title="Make active">
-                                  Activate
+                                  {t("acct.q.activate", "Virkja")}
                                 </button>
                               )}
                               <button onClick={() => openBuilder(cp)} className="p-2 text-[#6B7280] hover:text-[#10B981] transition-colors" title="Edit">
@@ -2300,7 +2300,7 @@ function AccountPageInner() {
                         <svg className="w-10 h-10 text-[#9CA3AF] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>
-                        <p className="text-sm text-[#6B7280]">Build your own custom workout program</p>
+                        <p className="text-sm text-[#6B7280]">{t("acct.q.buildown", "Búðu til þitt eigið æfingaprógramm")}</p>
                       </div>
                     )}
                   </div>
@@ -2310,8 +2310,8 @@ function AccountPageInner() {
                 {showProgramBuilder && (
                   <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
                     <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-lg font-semibold text-[#1F2937]">{editingProgramId ? "Edit Program" : "Create Program"}</h2>
-                      <button onClick={() => { setShowProgramBuilder(false); resetBuilder(); }} className="text-sm text-[#6B7280] hover:text-[#1F2937] transition-colors">Cancel</button>
+                      <h2 className="text-lg font-semibold text-[#1F2937]">{editingProgramId ? "Edit Program" : t("acct.q.createprog", "Búa til prógramm")}</h2>
+                      <button onClick={() => { setShowProgramBuilder(false); resetBuilder(); }} className="text-sm text-[#6B7280] hover:text-[#1F2937] transition-colors">{t("acct.q.cancel", "Hætta við")}</button>
                     </div>
 
                     {/* Step indicators */}
@@ -2319,7 +2319,7 @@ function AccountPageInner() {
                       {[1, 2, 3].map(s => (
                         <div key={s} className="flex items-center gap-2">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${builderStep === s ? "bg-[#10B981] text-white" : builderStep > s ? "bg-[#10B981]/20 text-[#10B981]" : "bg-[#ecf0f3] text-[#9CA3AF]"}`}>{s}</div>
-                          <span className={`text-sm hidden sm:inline ${builderStep === s ? "text-[#1F2937] font-medium" : "text-[#9CA3AF]"}`}>{s === 1 ? "Basics" : s === 2 ? "Workouts" : "Review"}</span>
+                          <span className={`text-sm hidden sm:inline ${builderStep === s ? "text-[#1F2937] font-medium" : "text-[#9CA3AF]"}`}>{s === 1 ? "Basics" : s === 2 ? "Workouts" : t("acct.q.review", "Yfirlit")}</span>
                           {s < 3 && <div className={`w-8 h-0.5 ${builderStep > s ? "bg-[#10B981]" : "bg-[#ecf0f3]"}`} />}
                         </div>
                       ))}
@@ -2329,19 +2329,19 @@ function AccountPageInner() {
                     {builderStep === 1 && (
                       <div className="space-y-5">
                         <div>
-                          <label className="block text-sm font-medium text-[#374151] mb-1.5">Program Name</label>
+                          <label className="block text-sm font-medium text-[#374151] mb-1.5">{t("acct.q.progname", "Heiti prógramms")}</label>
                           <input type="text" value={builderName} onChange={e => setBuilderName(e.target.value)} placeholder="e.g., Morning Strength Routine"
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none" />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-[#374151] mb-1.5">Goal</label>
+                          <label className="block text-sm font-medium text-[#374151] mb-1.5">{t("acct.q.goal", "Markmið")}</label>
                           <select value={builderGoal} onChange={e => setBuilderGoal(e.target.value)}
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none bg-white">
                             {goalOptions.map(g => <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>)}
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-[#374151] mb-1.5">Duration</label>
+                          <label className="block text-sm font-medium text-[#374151] mb-1.5">{t("acct.q.duration", "Lengd")}</label>
                           <div className="flex gap-2">
                             {[4, 8, 12].map(w => (
                               <button key={w} onClick={() => setBuilderDuration(w)}
@@ -2352,7 +2352,7 @@ function AccountPageInner() {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-[#374151] mb-1.5">Days per Week</label>
+                          <label className="block text-sm font-medium text-[#374151] mb-1.5">{t("acct.q.daysweek", "Dagar í viku")}</label>
                           <div className="flex gap-2">
                             {[3, 4, 5, 6].map(d => (
                               <button key={d} onClick={() => setBuilderDaysPerWeek(d)}
@@ -2365,7 +2365,7 @@ function AccountPageInner() {
                         <div className="flex justify-end pt-2">
                           <button onClick={() => { if (builderName.trim()) setBuilderStep(2); }} disabled={!builderName.trim()}
                             className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                            Next
+                            {t("acct.q.next", "Áfram")}
                           </button>
                         </div>
                       </div>
@@ -2417,17 +2417,17 @@ function AccountPageInner() {
                               </div>
                               <div className="grid grid-cols-3 gap-2">
                                 <div>
-                                  <label className="block text-xs text-[#9CA3AF] mb-0.5">Sets</label>
+                                  <label className="block text-xs text-[#9CA3AF] mb-0.5">{t("acct.q.sets", "Sett")}</label>
                                   <input type="number" min={1} max={20} value={ex.sets} onChange={e => updateExerciseInDay(builderActiveDay, exIdx, "sets", parseInt(e.target.value) || 1)}
                                     className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-[#9CA3AF] mb-0.5">Reps</label>
+                                  <label className="block text-xs text-[#9CA3AF] mb-0.5">{t("acct.q.reps", "Endurtekningar")}</label>
                                   <input type="text" value={ex.reps} onChange={e => updateExerciseInDay(builderActiveDay, exIdx, "reps", e.target.value)}
                                     className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none" placeholder="8-12" />
                                 </div>
                                 <div>
-                                  <label className="block text-xs text-[#9CA3AF] mb-0.5">Rest</label>
+                                  <label className="block text-xs text-[#9CA3AF] mb-0.5">{t("acct.q.rest", "Hvíld")}</label>
                                   <input type="text" value={ex.rest} onChange={e => updateExerciseInDay(builderActiveDay, exIdx, "rest", e.target.value)}
                                     className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none" placeholder="60s" />
                                 </div>
@@ -2445,7 +2445,7 @@ function AccountPageInner() {
                         {!showExercisePicker ? (
                           <button onClick={() => setShowExercisePicker(true)}
                             className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-sm text-[#6B7280] hover:border-[#10B981] hover:text-[#10B981] transition-colors">
-                            + Add Exercise
+                            {t("acct.q.addex", "+ Bæta við æfingu")}
                           </button>
                         ) : (
                           <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -2454,7 +2454,7 @@ function AccountPageInner() {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none" autoFocus />
                               <div className="flex gap-1.5 mt-2 flex-wrap">
                                 <button onClick={() => setExerciseCategoryFilter("")}
-                                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!exerciseCategoryFilter ? "bg-[#1F2937] text-white" : "bg-[#ecf0f3] text-[#6B7280]"}`}>All</button>
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!exerciseCategoryFilter ? "bg-[#1F2937] text-white" : "bg-[#ecf0f3] text-[#6B7280]"}`}>{t("acct.q.all", "Allt")}</button>
                                 {Object.keys(categoryColors).map(cat => (
                                   <button key={cat} onClick={() => setExerciseCategoryFilter(cat)}
                                     className="px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
@@ -2487,26 +2487,26 @@ function AccountPageInner() {
                                       )}
                                       <button onClick={() => addExerciseToDay(builderActiveDay, ex)}
                                         className="mt-2 px-3 py-1 text-xs font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#047857] transition-colors">
-                                        + Add to workout
+                                        {t("acct.q.addtoworkout", "+ Bæta í æfinguna")}
                                       </button>
                                     </div>
                                   </div>
                                 </div>
                               )) : (
-                                <p className="px-4 py-6 text-sm text-[#9CA3AF] text-center">No exercises found</p>
+                                <p className="px-4 py-6 text-sm text-[#9CA3AF] text-center">{t("acct.q.noexfound", "Engar æfingar fundust")}</p>
                               )}
                             </div>
                             <div className="p-2 border-t border-gray-200 bg-gray-50">
                               <button onClick={() => { setShowExercisePicker(false); setExerciseSearch(""); setExerciseCategoryFilter(""); }}
-                                className="w-full py-1.5 text-sm text-[#6B7280] hover:text-[#1F2937] transition-colors">Close</button>
+                                className="w-full py-1.5 text-sm text-[#6B7280] hover:text-[#1F2937] transition-colors">{t("acct.q.close", "Loka")}</button>
                             </div>
                           </div>
                         )}
 
                         {/* Navigation */}
                         <div className="flex justify-between mt-6 pt-4 border-t border-gray-100">
-                          <button onClick={() => setBuilderStep(1)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">Back</button>
-                          <button onClick={() => setBuilderStep(3)} className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors">Review</button>
+                          <button onClick={() => setBuilderStep(1)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">{t("acct.q.back", "Til baka")}</button>
+                          <button onClick={() => setBuilderStep(3)} className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors">{t("acct.q.review", "Yfirlit")}</button>
                         </div>
                       </div>
                     )}
@@ -2533,14 +2533,14 @@ function AccountPageInner() {
                                   ))}
                                 </div>
                               ) : (
-                                <p className="text-xs text-[#9CA3AF] italic">No exercises</p>
+                                <p className="text-xs text-[#9CA3AF] italic">{t("acct.q.noex", "Engar æfingar")}</p>
                               )}
                             </div>
                           ))}
                         </div>
 
                         <div className="flex justify-between pt-4 border-t border-gray-100">
-                          <button onClick={() => setBuilderStep(2)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">Back</button>
+                          <button onClick={() => setBuilderStep(2)} className="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#1F2937] transition-colors">{t("acct.q.back", "Til baka")}</button>
                           <button onClick={saveCustomProgram} disabled={programSaving}
                             className="px-6 py-2.5 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 flex items-center gap-2">
                             {programSaving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
@@ -2569,7 +2569,7 @@ function AccountPageInner() {
                         {viewingExercise.description && <p className="text-sm text-[#4B5563] mb-4 leading-relaxed">{viewingExercise.description}</p>}
                         {viewingExercise.muscles_targeted && viewingExercise.muscles_targeted.length > 0 && (
                           <div className="mb-4">
-                            <p className="text-xs font-semibold text-[#6B7280] mb-2">Muscles targeted</p>
+                            <p className="text-xs font-semibold text-[#6B7280] mb-2">{t("acct.q.muscles", "Vöðvar sem reynir á")}</p>
                             <div className="flex flex-wrap gap-1.5">
                               {viewingExercise.muscles_targeted.map(m => <span key={m} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">{m}</span>)}
                             </div>
@@ -2577,7 +2577,7 @@ function AccountPageInner() {
                         )}
                         {viewingExercise.instructions && viewingExercise.instructions.length > 0 && (
                           <div className="mb-4">
-                            <p className="text-xs font-semibold text-[#6B7280] mb-2">How to perform</p>
+                            <p className="text-xs font-semibold text-[#6B7280] mb-2">{t("acct.q.howto", "Framkvæmd")}</p>
                             <div className="space-y-2">
                               {viewingExercise.instructions.map((step, i) => (
                                 <div key={i} className="flex gap-3">
@@ -2590,9 +2590,9 @@ function AccountPageInner() {
                         )}
                         <div className="flex gap-3 pt-3 border-t border-gray-100">
                           <button onClick={() => { addExerciseToDay(builderActiveDay, viewingExercise); setViewingExercise(null); }}
-                            className="flex-1 py-2.5 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#047857] transition-colors">+ Add to workout</button>
+                            className="flex-1 py-2.5 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#047857] transition-colors">{t("acct.q.addtoworkout", "+ Bæta í æfinguna")}</button>
                           <button onClick={() => setViewingExercise(null)}
-                            className="px-4 py-2.5 text-sm font-medium text-[#6B7280] bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Close</button>
+                            className="px-4 py-2.5 text-sm font-medium text-[#6B7280] bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">{t("acct.q.close", "Loka")}</button>
                         </div>
                       </div>
                     </div>
@@ -2801,7 +2801,7 @@ function AccountPageInner() {
             {/* ============ SETTINGS ============ */}
             {activeSection === "settings" && (
               <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-                <h2 className="text-lg font-semibold text-[#1F2937] mb-6">Stillingar</h2>
+                <h2 className="text-lg font-semibold text-[#1F2937] mb-6">{t("acct.q.settings", "Stillingar")}</h2>
 
                 {/* Personal information entry (opens the Profile section) */}
                 <div className="border-b border-gray-100 pb-5 mb-5">
@@ -2812,7 +2812,7 @@ function AccountPageInner() {
                     </div>
                     <button onClick={() => setActiveSection("profile")}
                       className="text-sm font-medium text-[#10B981] hover:underline">
-                      Breyta
+                      {t("acct.q.edit", "Breyta")}
                     </button>
                   </div>
                 </div>
@@ -2837,7 +2837,7 @@ function AccountPageInner() {
                     </div>
                     <button onClick={() => setShowPasswordForm(!showPasswordForm)}
                       className="text-sm font-medium text-[#10B981] hover:underline">
-                      {showPasswordForm ? t("acct.cancel", "Hætta við") : "Breyta"}
+                      {showPasswordForm ? t("acct.cancel", "Hætta við") : t("acct.q.edit", "Breyta")}
                     </button>
                   </div>
                   {showPasswordForm && (
@@ -2912,7 +2912,7 @@ function AccountPageInner() {
                   {showDeleteConfirm && (
                     <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
                       <p className="text-sm text-red-700 mb-3">
-                        This will permanently delete your account and all data. This cannot be undone.
+                        {t("acct.q.deletewarn", "Þetta eyðir aðganginum þínum og öllum gögnum varanlega. Það er ekki hægt að afturkalla.")}
                       </p>
                       <p className="text-sm text-red-700 mb-2">
                         {t("acct.p.skrifadu", "Skrifaðu")} <span className="font-bold">{t("acct.p.eyda", "EYÐA")}</span> {t("acct.p.til-ad-stadfesta", "til að staðfesta:")}
@@ -3029,7 +3029,7 @@ function BodyCompositionCard({ userId }: { userId: string }) {
         <div>
           <h2 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.likamssamsetning", "Líkamssamsetning")}</h2>
           <p className="text-xs text-[#6B7280] mt-0.5">
-            Latest readings from your Biody scan — pulled live, not stored here.
+            {t("acct.q.biodylive", "Nýjustu gildin úr Biody-mælingunni þinni — sótt beint, ekki geymd hér.")}
           </p>
         </div>
         {latest && (
@@ -3194,7 +3194,7 @@ function SelfCheckinJourney({ completed, onChangePackage }: { completed: boolean
         <h3 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.heilsuferdin-thin", "Heilsuferðin þín")}</h3>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
-            Change package
+            {t("acct.q.changepkg", "Skipta um pakka")}
           </button>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
             <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
@@ -3340,7 +3340,7 @@ function CheckinJourney({
           <div className="flex flex-wrap items-center gap-2">
             {hasAvailableInPersonSlots ? (
               <button onClick={onPickInPersonDoctorSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                Pick a time (in person)
+                {t("acct.q.picktime-inperson", "Veldu tíma (á staðnum)")}
               </button>
             ) : null}
             <MedaliaButton label={t("acct.p.boka-myndsimtal-i-gattinni", "Bóka myndsímtal í gáttinni")} size="sm" variant="outline" />
@@ -3371,7 +3371,7 @@ function CheckinJourney({
         <h3 className="text-lg font-semibold text-[#1F2937]">{t("acct.p.heilsuferdin-thin", "Heilsuferðin þín")}</h3>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={onChangePackage} className="text-xs font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2">
-            Change package
+            {t("acct.q.changepkg", "Skipta um pakka")}
           </button>
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -3474,7 +3474,7 @@ function JourneyTimeline({
     description: biodyActivated
       ? t("acct.p.stadfest-thu-getur-uppfaert-upplys", "Staðfest. Þú getur uppfært upplýsingarnar þínar (hæð, þyngd, hreyfingu) hvenær sem er.")
       : t("acct.p.virkjadu-adganginn-thinn-tekur-um", "Virkjaðu aðganginn þinn — tekur um mínútu."),
-    cta: { label: biodyActivated ? t("acct.p.breyta-upplysingum", "Breyta upplýsingum") : "Activate", onClick: onGoToBiody },
+    cta: { label: biodyActivated ? t("acct.p.breyta-upplysingum", "Breyta upplýsingum") : t("acct.q.activate", "Virkja"), onClick: onGoToBiody },
   };
   const b2cBookStep: JourneyStep = {
     // B2C: one step covers measurement + blood-draw referral via Medalia booking
@@ -3494,7 +3494,7 @@ function JourneyTimeline({
     // Only shown for B2C — B2B packages are set by the company.
     customBody: onChangePackage ? (
       <div className="mt-3 flex items-center gap-2 text-xs text-gray-600 flex-wrap">
-        <span>Pakki:</span>
+        <span>{t("acct.q.package", "Pakki:")}</span>
         <span className="inline-flex items-center gap-1.5 font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
           Foundational
@@ -3504,7 +3504,7 @@ function JourneyTimeline({
           onClick={onChangePackage}
           className="inline-flex items-center gap-1 font-medium text-gray-500 hover:text-gray-700 underline underline-offset-2 transition-colors"
         >
-          Skipta um pakka
+          {t("acct.q.changepkg2", "Skipta um pakka")}
         </button>
       </div>
     ) : undefined,
@@ -3528,7 +3528,7 @@ function JourneyTimeline({
     <div className="mt-3 space-y-3">
       <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-900">
         <div className="font-semibold mb-0.5">{t("acct.p.fasta-fra-midnaetti", "Fasta frá miðnætti")}</div>
-        Water only — no food, coffee, tea, juice, or alcohol.
+        {t("acct.q.wateronly", "Aðeins vatn — enginn matur, kaffi, te, safi eða áfengi.")}
       </div>
       <details className="group rounded-lg border border-gray-200 bg-white">
         <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">
@@ -3636,7 +3636,7 @@ function JourneyTimeline({
             <p className="text-xs text-blue-900/80 leading-snug mb-2">{t("acct.p.hittu-laekninn-a-starfsstod-lifeli", "Hittu lækninn á starfsstöð Lifeline, á tíma sem við ákveðum.")}</p>
             {hasAvailableInPersonSlots ? (
               <button onClick={onPickInPersonDoctorSlot} className="text-xs font-semibold px-3 py-1.5 rounded-md bg-blue-600 text-white hover:bg-blue-700">
-                Pick a time
+                {t("acct.q.picktime", "Veldu tíma")}
               </button>
             ) : (
               <div className="text-xs text-blue-900/70">{t("acct.p.engir-timar-a-stadnum-lausir", "Engir tímar á staðnum lausir eins og er.")}</div>
@@ -3648,7 +3648,7 @@ function JourneyTimeline({
               <svg className="w-4 h-4 text-violet-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
-              <span className="text-sm font-semibold text-violet-900">Video via patient portal</span>
+              <span className="text-sm font-semibold text-violet-900">{t("acct.q.videoportal", "Myndsímtal í sjúklingagátt")}</span>
             </div>
             <p className="text-xs text-violet-900/80 leading-snug mb-2">Video meetings are booked inside the patient portal (Zoom Healthcare). Book there, then come back to confirm.</p>
             <div className="flex flex-wrap gap-2">
@@ -3670,7 +3670,7 @@ function JourneyTimeline({
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <MedaliaButton label={t("acct.p.opna-sjuklingagatt", "Opna sjúklingagátt")} size="sm" />
           <button onClick={onClearVideoPortal} disabled={videoConfirmBusy} className="text-xs font-medium text-red-600 hover:underline disabled:opacity-60">
-            Clear confirmation
+            {t("acct.q.clearconf", "Hreinsa staðfestingu")}
           </button>
         </div>
       ) : null;
@@ -3799,7 +3799,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
           </svg>
         </div>
         <div className="min-w-0">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 mb-1">Foundational assessment complete</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 mb-1">{t("acct.q.foundationdone", "Grunnheilsufarsskoðun lokið")}</div>
           <h3 className="text-xl font-bold text-gray-900">What&apos;s next, now you&apos;ve got your baseline.</h3>
           <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">
             You have your numbers, your doctor-reviewed action plan, and a clear direction. The next step is turning that into daily habits — and coming back for regular checkpoints so your plan stays accurate.
@@ -3816,7 +3816,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
         {/* ── PATH 1: COOL / BLUE — The app + two tracks ─────────────── */}
         <div className="rounded-2xl bg-white border-2 border-sky-200 p-5 shadow-md hover:shadow-lg transition-shadow">
           <div className="inline-flex items-center gap-1.5 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-sky-700 bg-sky-100 border border-sky-200 px-2 py-0.5 rounded">Path 1 · Daily</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-sky-700 bg-sky-100 border border-sky-200 px-2 py-0.5 rounded">{t("acct.q.path1", "Leið 1 · Daglegt")}</span>
           </div>
           <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-sky-100">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-sm">
@@ -3835,7 +3835,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
               <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-sky-400 to-sky-500" />
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-sky-500 px-2 py-0.5 rounded-md shadow-sm">{t("acct.p.leid-a", "Leið A")}</span>
-                <span className="text-sm font-bold text-gray-900">Self-managed journey</span>
+                <span className="text-sm font-bold text-gray-900">{t("acct.q.selfmanaged", "Sjálfstýrð vegferð")}</span>
               </div>
               <p className="text-[12px] text-gray-700 leading-snug pl-1">
                 The whole programme, on your own. Daily actions, programmes across the four pillars, tracking and community — at your own pace.
@@ -3845,14 +3845,14 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
             <div className="relative overflow-hidden rounded-xl border-2 border-indigo-300 bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-white p-4 shadow-sm ring-1 ring-indigo-100">
               <div className="absolute top-0 left-0 h-full w-1 bg-gradient-to-b from-indigo-500 to-indigo-700" />
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-600 px-2 py-0.5 rounded-md shadow-sm">Track B</span>
-                <span className="text-sm font-bold text-gray-900">Personal coaching</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-600 px-2 py-0.5 rounded-md shadow-sm">{t("acct.q.trackb", "Leið B")}</span>
+                <span className="text-sm font-bold text-gray-900">{t("acct.q.personalcoaching", "Persónuleg þjálfun")}</span>
               </div>
               <p className="text-[12px] text-gray-700 leading-snug pl-1">
                 {t("acct.p.everything-in-leid-a-plus", "Everything in Leið A plus a dedicated health coach who reviews your progress, adjusts your plan and checks in with you each week.")}
               </p>
               <Link href="/coaching" className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-indigo-700 hover:text-indigo-800 hover:underline pl-1">
-                Learn about coaching
+                {t("acct.q.learncoaching", "Kynntu þér þjálfunina")}
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
@@ -3877,7 +3877,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
         {/* ── PATH 2: WARM / AMBER — Cadence over time ─────────────── */}
         <div className="rounded-2xl bg-white border-2 border-amber-200 p-5 shadow-md hover:shadow-lg transition-shadow">
           <div className="inline-flex items-center gap-1.5 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">Path 2 · Recheck</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded">{t("acct.q.path2", "Leið 2 · Endurmat")}</span>
           </div>
           <div className="flex items-center gap-2.5 mb-3 pb-3 border-b border-amber-100">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-sm">
@@ -3898,9 +3898,9 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 mb-0.5">Every month</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 mb-0.5">{t("acct.q.everymonth", "Í hverjum mánuði")}</div>
                 <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">{t("acct.p.sjalfsmat", "Sjálfsmat")}</div>
-                <p className="text-[12px] text-gray-700 leading-snug">Free, five-minute questionnaire. Catches changes early.</p>
+                <p className="text-[12px] text-gray-700 leading-snug">{t("acct.q.freequest", "Gjaldfrjáls spurningalisti sem tekur fimm mínútur. Nemur breytingar snemma.")}</p>
               </div>
             </li>
             <li className="relative flex items-start gap-3 rounded-xl border-2 border-orange-300 bg-gradient-to-br from-orange-50 via-orange-50/50 to-white p-3 shadow-sm">
@@ -3909,7 +3909,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" strokeWidth={2} /><circle cx="12" cy="12" r="3" strokeWidth={2} /></svg>
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-orange-700 mb-0.5">Every 3–6 months</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-orange-700 mb-0.5">{t("acct.q.every36", "Á 3–6 mánaða fresti")}</div>
                 <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">{t("acct.p.maelingatimi", "Mælingatími")}</div>
                 <p className="text-[12px] text-gray-700 leading-snug">{t("acct.p.endurtaktu-likamssamsetningu-og-he", "Endurtaktu líkamssamsetningu og helstu blóðgildi svo áætlunin haldist rétt stillt.")}</p>
               </div>
@@ -3920,8 +3920,8 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
               </div>
               <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-rose-700 mb-0.5">Every 6–12 months</div>
-                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">Full Foundational re-assessment</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-rose-700 mb-0.5">{t("acct.q.every612", "Á 6–12 mánaða fresti")}</div>
+                <div className="text-sm font-bold text-gray-900 leading-tight mb-0.5">{t("acct.q.fullre", "Full endurtekin grunnskoðun")}</div>
                 <p className="text-[12px] text-gray-700 leading-snug">{t("acct.p.full-blodprufa-uppfaerd-skyrsla-og", "Full blóðprufa, uppfærð skýrsla og nýtt mat læknis.")}</p>
               </div>
             </li>
@@ -3930,7 +3930,7 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
           <div className="mt-4 pt-4 border-t border-amber-100 space-y-2">
             {isB2C ? (
               <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-sm">
-                Book a check-in
+                {t("acct.q.bookcheckin", "Bóka eftirfylgd")}
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
@@ -3941,10 +3941,10 @@ function WhatsNextCard({ isB2C }: { isB2C: boolean }) {
                   Your employer schedules the next full round. We&apos;ll email you when it&apos;s open — it takes priority over anything you&apos;ve booked yourself.
                 </p>
                 <p className="text-[11px] text-gray-500 leading-relaxed">
-                  Want an extra check-in before then? You can self-pay for one between employer rounds.
+                  {t("acct.q.extracheckin", "Viltu aukaeftirfylgd fyrr? Þú getur greitt fyrir hana sjálf(ur) á milli umferða hjá vinnuveitanda.")}
                 </p>
                 <Link href="/account/book" className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-md border border-amber-300 text-amber-800 bg-white hover:bg-amber-50">
-                  Book an extra check-in
+                  {t("acct.q.bookextra", "Bóka aukaeftirfylgd")}
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                   </svg>
@@ -4056,7 +4056,7 @@ function CurrentBookings({
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">Measurements</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">{t("acct.q.measurements", "Mælingar")}</div>
                   <div className="font-semibold text-gray-900 leading-tight">{t("acct.p.a-stadnum", "Á staðnum")}</div>
                 </div>
               </div>
@@ -4087,12 +4087,12 @@ function CurrentBookings({
               <div className="mt-3 rounded-lg bg-blue-50/70 border border-blue-100 px-3 py-2 text-xs text-blue-900">
                 <div className="font-semibold mb-1">{t("acct.p.vid-hverju-ma-buast", "Við hverju má búast")}</div>
                 <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-blue-900/90">
-                  <li>Blood pressure</li>
-                  <li>Height</li>
-                  <li>Weight</li>
-                  <li>Body composition (muscle mass %, fat %)</li>
+                  <li>{t("acct.q.bp", "Blóðþrýstingur")}</li>
+                  <li>{t("acct.q.height", "Hæð")}</li>
+                  <li>{t("acct.q.weight", "Þyngd")}</li>
+                  <li>{t("acct.q.bodycomp", "Líkamssamsetning (vöðvamassi %, fita %)")}</li>
                 </ul>
-                <div className="mt-1.5 text-[11.5px] text-blue-900/80">Takes about 5 minutes. Avoid heavy meals just before.</div>
+                <div className="mt-1.5 text-[11.5px] text-blue-900/80">{t("acct.q.takes5", "Tekur um 5 mínútur. Forðastu þungar máltíðir rétt á undan.")}</div>
               </div>
               <div className="mt-4 pt-4 border-t border-blue-100/70 flex flex-wrap gap-2">
                 <button onClick={onChangeBcSlot} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors">
@@ -4103,7 +4103,7 @@ function CurrentBookings({
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  Cancel slot
+                  {t("acct.q.cancelslot", "Afbóka tímann")}
                 </button>
                 {calButtons(
                   {
@@ -4132,7 +4132,7 @@ function CurrentBookings({
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-rose-600">Blood test</div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-rose-600">{t("acct.q.bloodtest", "Blóðprufa")}</div>
                   <div className="font-semibold text-gray-900 leading-tight">{t("acct.p.maeting-hja-sameind", "Mæting hjá Sameind")}</div>
                 </div>
               </div>
@@ -4157,12 +4157,12 @@ function CurrentBookings({
                   <li>{t("acct.p.maettu-a-hvada-sameind-stod-3", "Mættu á hvaða Sameind-stöð sem er á þeim degi sem þú valdir")}</li>
                   <li>{t("acct.p.maettu-sem-fyrst-helst-a", "Mættu sem fyrst — helst á milli 08:00 og 12:00")}</li>
                   <li>{t("acct.p.skradu-thig-i-mottokunni", "Skráðu þig í móttökunni")}</li>
-                  <li>Short blood draw (5 minutes)</li>
+                  <li>{t("acct.q.shortdraw", "Stutt blóðtaka (5 mínútur)")}</li>
                   <li>{t("acct.p.nidurstodurnar-birtast-i-lokaskyrs", "Niðurstöðurnar birtast í lokaskýrslunni þinni")}</li>
                 </ul>
               </div>
               <div className="mt-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-900">
-                <span className="font-semibold">{t("acct.p.fasta-fra-midnaetti-2", "Fasta frá miðnætti.")}</span> Water only — no food, coffee, tea, juice or alcohol.
+                <span className="font-semibold">{t("acct.p.fasta-fra-midnaetti-2", "Fasta frá miðnætti.")}</span> {t("acct.q.wateronly2", "Aðeins vatn — enginn matur, kaffi, te, safi eða áfengi.")}
               </div>
               <div className="mt-4 pt-4 border-t border-rose-100/70 flex flex-wrap gap-2">
                 {!isB2C && (
@@ -4202,7 +4202,7 @@ function CurrentBookings({
                 </svg>
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Doctor</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">{t("acct.q.doctor", "Læknir")}</div>
                 <div className="font-semibold text-gray-900 leading-tight">
                   {myDoctorSlot.doctor_name ? `Consultation with ${myDoctorSlot.doctor_name}` : "Doctor consultation"}
                 </div>
@@ -4233,7 +4233,7 @@ function CurrentBookings({
               </div>
               {myDoctorSlot.meeting_link && (
                 <a href={myDoctorSlot.meeting_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-violet-700 hover:text-violet-900 pl-6">
-                  Join link ↗
+                  {t("acct.q.joinlink", "Tengjast ↗")}
                 </a>
               )}
               {myDoctorSlot.notes && <div className="text-xs text-gray-500 pl-6">{myDoctorSlot.notes}</div>}
@@ -4258,7 +4258,7 @@ function CurrentBookings({
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                Cancel
+                {t("acct.q.cancel", "Hætta við")}
               </button>
               {calButtons(
                 {
@@ -4288,7 +4288,7 @@ function CurrentBookings({
                 </svg>
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">Doctor · Video meeting</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">{t("acct.q.doctorvideo", "Læknir · Myndsímtal")}</div>
                 <div className="font-semibold text-gray-900 leading-tight">{t("acct.p.myndsimtal-bokad-i-sjuklingagattin", "Myndsímtal bókað í sjúklingagáttinni")}</div>
               </div>
             </div>
@@ -4313,7 +4313,7 @@ function CurrentBookings({
             <div className="mt-4 pt-4 border-t border-violet-100/70 flex flex-wrap items-center gap-2">
               <MedaliaButton label={t("acct.p.fara-i-sjuklingagatt", "Fara í sjúklingagátt")} size="sm" />
               <button onClick={onClearVideoPortal} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 hover:border-rose-300 transition-colors">
-                Clear
+                {t("acct.q.clear", "Hreinsa")}
               </button>
             </div>
           </div>
@@ -4330,7 +4330,7 @@ function CurrentBookings({
                 </svg>
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Measurements</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{t("acct.q.measurements", "Mælingar")}</div>
                 <div className="font-semibold text-gray-900 leading-tight">{t("acct.p.a-maelingastod-lifeline", "Á mælingastöð Lifeline")}</div>
               </div>
             </div>
@@ -4351,7 +4351,7 @@ function CurrentBookings({
             <div className="mt-3 rounded-lg bg-emerald-50/70 border border-emerald-100 px-3 py-2 text-xs text-emerald-900">
               <div className="font-semibold mb-1">{t("acct.p.vid-hverju-ma-buast", "Við hverju má búast")}</div>
               <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-emerald-900/90">
-                <li>Blood pressure, height, weight, body composition</li>
+                <li>{t("acct.q.bphwbc", "Blóðþrýstingur, hæð, þyngd og líkamssamsetning")}</li>
                 <li>{t("acct.p.markviss-blodprufa-fasta-fra-midna", "Markviss blóðprufa — fasta frá miðnætti")}</li>
                 <li>{t("acct.p.nidurstodurnar-birtast-i-skyrslunn", "Niðurstöðurnar birtast í skýrslunni þinni")}</li>
               </ul>
@@ -4363,13 +4363,13 @@ function CurrentBookings({
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Cancellation request sent — waiting for Lifeline
+                    {t("acct.q.cancelsent", "Afbókunarbeiðni send — bíður svars frá Lifeline")}
                   </span>
                   <button
                     onClick={onWithdrawRefundRequest}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
                   >
-                    Withdraw
+                    {t("acct.q.withdraw", "Draga til baka")}
                   </button>
                 </>
               ) : (
@@ -4382,7 +4382,7 @@ function CurrentBookings({
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    {cancelBusy ? "Cancelling…" : "Cancel booking"}
+                    {cancelBusy ? "Cancelling…" : t("acct.q.cancelbooking", "Afbóka")}
                   </button>
                   <span className="text-[11px] text-gray-500 self-center">{t("acct.p.full-endurgreidsla-fram-ad-48", "Full endurgreiðsla fram að 48 klukkustundum fyrir — eftir það má óska eftir endurskoðun")}</span>
                 </>
@@ -4401,7 +4401,7 @@ function CurrentBookings({
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold uppercase tracking-wide text-violet-600">{t("acct.p.sjalfsmat", "Sjálfsmat")}</div>
-                <div className="font-semibold text-gray-900 leading-tight">Remote questionnaire</div>
+                <div className="font-semibold text-gray-900 leading-tight">{t("acct.q.remotequest", "Spurningalisti í fjarþjónustu")}</div>
               </div>
             </div>
             <p className="text-sm text-gray-700 leading-relaxed">
@@ -4478,7 +4478,7 @@ function CurrentBookings({
             {past.length > 0 && (
               <div className="mt-6 pt-5 border-t border-gray-100">
                 <div className="flex items-center gap-2 mb-3">
-                  <h4 className="text-sm font-semibold text-gray-700">Past bookings</h4>
+                  <h4 className="text-sm font-semibold text-gray-700">{t("acct.q.pastbookings", "Fyrri bókanir")}</h4>
                   <span className="text-[11px] font-medium text-gray-500">{past.length} completed</span>
                 </div>
                 <ul className="space-y-2">
@@ -4491,7 +4491,7 @@ function CurrentBookings({
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                           </svg>
-                          Completed
+                          {t("acct.q.completed", "Lokið")}
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-900 truncate">{p.label}</div>
@@ -4604,12 +4604,12 @@ function BloodTestDayPickerModal({
             </div>
           )}
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Note (optional)</span>
+            <span className="text-sm font-medium text-gray-700">{t("acct.q.note", "Athugasemd (valfrjálst)")}</span>
             <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. I'll aim for 8:30" className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
           </label>
           <div className="rounded-lg bg-amber-50 border border-amber-100 p-3 text-xs text-amber-900">
             <div className="font-semibold mb-1">{t("acct.p.mikilvaegt-fasta-fyrir-blodprufu", "Mikilvægt — fasta fyrir blóðprufu")}</div>
-            You must <strong>fast from midnight</strong> the night before your visit. Water is fine; no food, no coffee, no tea, no juice, no alcohol.
+            {t("acct.q.youmust", "Þú verður að")} <strong>{t("acct.q.fastmidnight", "fasta frá miðnætti")}</strong> the night before your visit. Water is fine; no food, no coffee, no tea, no juice, no alcohol.
           </div>
           <details className="group rounded-lg border border-gray-200 bg-white">
             <summary className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer list-none select-none text-xs font-semibold text-gray-700 hover:bg-gray-50 rounded-lg">
@@ -4632,10 +4632,10 @@ function BloodTestDayPickerModal({
         </div>
         <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
           {existing ? (
-            <button onClick={cancel} className="text-sm text-red-600 hover:underline">Cancel booking</button>
+            <button onClick={cancel} className="text-sm text-red-600 hover:underline">{t("acct.q.cancelbooking", "Afbóka")}</button>
           ) : <span />}
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Close</button>
+            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">{t("acct.q.close", "Loka")}</button>
             <button onClick={save} disabled={saving || !selectedDay} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
               {saving ? "Saving…" : existing ? "Update" : "Confirm day"}
             </button>
@@ -4683,7 +4683,7 @@ function DobFields({
   return (
     <div className="flex items-stretch gap-2">
       <label className="flex-1">
-        <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Day</span>
+        <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">{t("acct.q.day", "Dagur")}</span>
         <input
           type="text"
           inputMode="numeric"
@@ -4701,7 +4701,7 @@ function DobFields({
         />
       </label>
       <label className="flex-1">
-        <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Month</span>
+        <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">{t("acct.q.month", "Mánuður")}</span>
         <input
           ref={monthRef}
           type="text"
@@ -4720,7 +4720,7 @@ function DobFields({
         />
       </label>
       <label className="flex-[1.4]">
-        <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">Year</span>
+        <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">{t("acct.q.year", "Ár")}</span>
         <input
           ref={yearRef}
           type="text"
@@ -4875,35 +4875,35 @@ function BiodyProfileModal({
           </p>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-sm text-gray-500">Loading…</div>
+          <div className="p-8 text-center text-sm text-gray-500">{t("acct.q.loading", "Hleð…")}</div>
         ) : (
           <form onSubmit={save} className="p-6 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <label className="block">
-                <span className="block text-xs font-medium text-gray-700 mb-1">Sex</span>
+                <span className="block text-xs font-medium text-gray-700 mb-1">{t("acct.q.sexlabel", "Kyn")}</span>
                 <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-                  <option value="">Select…</option>
-                  <option value="female">Female</option>
-                  <option value="male">Male</option>
+                  <option value="">{t("acct.q.select", "Veldu…")}</option>
+                  <option value="female">{t("acct.q.female", "Kona")}</option>
+                  <option value="male">{t("acct.q.male", "Karl")}</option>
                 </select>
               </label>
               <label className="block">
-                <span className="block text-xs font-medium text-gray-700 mb-1">Activity level</span>
+                <span className="block text-xs font-medium text-gray-700 mb-1">{t("acct.q.activity", "Hreyfing")}</span>
                 <select value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as typeof activityLevel)} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-                  <option value="">Select…</option>
-                  <option value="sedentary">Sedentary — little or no exercise</option>
-                  <option value="light">Light — exercise 1–3 days/week</option>
-                  <option value="moderate">Moderate — exercise 3–5 days/week</option>
-                  <option value="very_active">Very active — exercise 6–7 days/week</option>
-                  <option value="extra_active">Extra active — daily intense training</option>
+                  <option value="">{t("acct.q.select", "Veldu…")}</option>
+                  <option value="sedentary">{t("acct.q.act0", "Kyrrseta — lítil sem engin hreyfing")}</option>
+                  <option value="light">{t("acct.q.act1", "Létt — hreyfing 1–3 daga í viku")}</option>
+                  <option value="moderate">{t("acct.q.act2", "Miðlungs — hreyfing 3–5 daga í viku")}</option>
+                  <option value="very_active">{t("acct.q.act3", "Mjög virk/virkur — hreyfing 6–7 daga í viku")}</option>
+                  <option value="extra_active">{t("acct.q.act4", "Mjög mikil — hörð þjálfun daglega")}</option>
                 </select>
               </label>
               <label className="block">
-                <span className="block text-xs font-medium text-gray-700 mb-1">Height (cm)</span>
+                <span className="block text-xs font-medium text-gray-700 mb-1">{t("acct.q.heightcm", "Hæð (cm)")}</span>
                 <input type="number" min={100} max={230} step={1} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </label>
               <label className="block">
-                <span className="block text-xs font-medium text-gray-700 mb-1">Weight (kg)</span>
+                <span className="block text-xs font-medium text-gray-700 mb-1">{t("acct.q.weightkg", "Þyngd (kg)")}</span>
                 <input type="number" min={30} max={300} step={0.1} value={weightKg} onChange={(e) => setWeightKg(e.target.value)} required className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </label>
               <div className="block sm:col-span-2">
@@ -4938,9 +4938,9 @@ function BiodyProfileModal({
             )}
 
             {error && <div className="text-red-600 text-sm">{error}</div>}
-            {saved && <div className="text-emerald-700 text-sm">Saved.</div>}
+            {saved && <div className="text-emerald-700 text-sm">{t("acct.q.saved", "Vistað.")}</div>}
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-              <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Close</button>
+              <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">{t("acct.q.close", "Loka")}</button>
               <button type="submit" disabled={saving || (!biodyActive && !acceptHealth)} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
                 {saving ? (biodyActive ? "Saving…" : "Activating…") : (biodyActive ? "Save changes" : "Save & activate")}
               </button>
@@ -5021,7 +5021,7 @@ function DoctorSlotPickerModal({
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-xl font-semibold">{existing ? t("acct.p.breyta-vidtali-vid-laekni", "Breyta viðtali við lækni") : t("acct.p.boka-vidtal-vid-laekni", "Bóka viðtal við lækni")}</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Meet 1:1 with your Lifeline doctor to go through the report and agree an action plan.
+            {t("acct.q.meet11", "Hittu Lifeline-lækninn þinn einslega til að fara yfir skýrsluna og koma ykkur saman um aðgerðaáætlun.")}
           </p>
         </div>
         <div className="p-6 space-y-4">
@@ -5035,7 +5035,7 @@ function DoctorSlotPickerModal({
           )}
           {grouped.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
-              No open slots right now. The Lifeline team will open new times soon.
+              {t("acct.q.noslots", "Engir lausir tímar eins og er. Lifeline opnar nýja tíma fljótlega.")}
             </div>
           ) : (
             <div className="space-y-4">
@@ -5066,17 +5066,17 @@ function DoctorSlotPickerModal({
             </div>
           )}
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Note (optional)</span>
+            <span className="text-sm font-medium text-gray-700">{t("acct.q.note", "Athugasemd (valfrjálst)")}</span>
             <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("acct.p.eitthvad-sem-laeknirinn-aetti-ad", "Eitthvað sem læknirinn ætti að vita fyrir fram")} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-violet-400" />
           </label>
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
         <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
           {existing ? (
-            <button onClick={cancel} className="text-sm text-red-600 hover:underline">Cancel booking</button>
+            <button onClick={cancel} className="text-sm text-red-600 hover:underline">{t("acct.q.cancelbooking", "Afbóka")}</button>
           ) : <span />}
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Close</button>
+            <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">{t("acct.q.close", "Loka")}</button>
             <button onClick={save} disabled={saving || !selectedId} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-violet-600 to-fuchsia-500 disabled:opacity-50">
               {saving ? "Saving…" : existing ? "Update" : "Confirm time"}
             </button>
@@ -5280,10 +5280,10 @@ function ResumeBookingHero({
           <span className="text-xs font-semibold uppercase tracking-wide">{t("acct.p.haltu-afram-thar-sem-fra", "Haltu áfram þar sem frá var horfið")}</span>
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold leading-tight max-w-xl">
-          You have an incomplete booking.
+          {t("acct.q.incomplete", "Þú átt ófrágengna bókun.")}
         </h2>
         <p className="mt-3 text-base opacity-95 leading-relaxed max-w-xl">
-          Your <strong>{pkgLabel}</strong> booking is reserved but hasn&apos;t been paid for yet.
+          {t("acct.q.your", "Þín")} <strong>{pkgLabel}</strong> booking is reserved but hasn&apos;t been paid for yet.
           {slotLabel ? <> {t("acct.p.aaetladur", "Áætlaður")} <strong>{slotLabel}</strong>.</> : null} Finish the payment to confirm it, or cancel to start over.
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -5291,7 +5291,7 @@ function ResumeBookingHero({
             href={`/account/book?resume=${bookingId}`}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white text-[#92400E] text-base font-semibold shadow-lg shadow-black/20 hover:shadow-black/30 hover:opacity-95 transition-all"
           >
-            Finish booking
+            {t("acct.q.finishbooking", "Ljúka bókun")}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
             </svg>
@@ -5300,7 +5300,7 @@ function ResumeBookingHero({
             onClick={onCancel}
             className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-white/40 text-white text-sm font-semibold hover:bg-white/10"
           >
-            Cancel and start over
+            {t("acct.q.cancelstart", "Hætta við og byrja upp á nýtt")}
           </button>
         </div>
       </div>
@@ -5384,7 +5384,7 @@ function ServicesSection({
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
           </svg>
-          Book services
+          {t("acct.q.bookservices", "Bóka þjónustu")}
         </div>
         <h2 className="text-2xl sm:text-3xl font-bold text-[#0F172A] leading-tight">
           {companyName ? t("acct.p.baettu-vid-thad-sem-fyrirtaekid", "Bættu við það sem fyrirtækið greiddi") : t("acct.p.thjonustan-thin-hja-lifeline", "Þjónustan þín hjá Lifeline")}
@@ -5398,7 +5398,7 @@ function ServicesSection({
 
       {/* Assessment packages */}
       <div>
-        <div className="text-xs font-semibold uppercase tracking-wide text-[#64748B] mb-3 px-1">Assessment packages</div>
+        <div className="text-xs font-semibold uppercase tracking-wide text-[#64748B] mb-3 px-1">{t("acct.q.packages", "Heilsufarspakkar")}</div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {packages.map((p) => (
             <div key={p.name} className={`relative overflow-hidden rounded-2xl border ${p.tone} bg-white shadow-sm flex flex-col`}>
@@ -5447,7 +5447,7 @@ function ServicesSection({
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Coming soon</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">{t("acct.q.comingsoon", "Væntanlegt")}</div>
               <h3 className="text-xl font-bold text-[#0F172A]">{t("acct.p.lifeline-thjalfunarappid", "Lifeline þjálfunarappið")}</h3>
               <p className="text-sm text-[#475569] mt-2 leading-relaxed max-w-2xl">
                 Daily actions, a health coach, community, education and advanced macro tracking — available on three tiers. Turns your assessment into habits that actually stick.
@@ -5468,7 +5468,7 @@ function ServicesSection({
                 onClick={onGoToCoaching}
                 className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 shadow-sm"
               >
-                See the Lifeline app
+                {t("acct.q.seeapp", "Skoða Lifeline appið")}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
@@ -5583,7 +5583,7 @@ function WellbeingPromptCard({ lastWellbeingAt, onStart }: { lastWellbeingAt: st
             Five questions, 30 seconds. Helps us see how you feel over time — your answers stay private, your company sees only anonymised group trends (min 5 people).
           </p>
           <button onClick={onStart} className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-emerald-500 to-teal-500 hover:opacity-90">
-            Start check-in
+            {t("acct.q.startcheckin", "Hefja eftirfylgd")}
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -5624,7 +5624,7 @@ function SatisfactionPromptCard({
               <h3 className="text-base font-semibold text-gray-900">{p.title}</h3>
               <p className="text-sm text-gray-600 mt-0.5">{p.sub}</p>
               <button onClick={() => onStart(p.key)} className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-br from-blue-600 to-cyan-500 hover:opacity-90">
-                Give feedback
+                {t("acct.q.feedback", "Senda ábendingu")}
               </button>
             </div>
           </div>
@@ -5688,7 +5688,7 @@ function RefundRequestModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-[#0F172A]">Request cancellation</h2>
+          <h2 className="text-xl font-semibold text-[#0F172A]">{t("acct.q.requestcancel", "Óska eftir afbókun")}</h2>
           <p className="text-sm text-[#64748B] mt-1">
             Your booking is less than 48 hours away, so we need to review this manually. Tell us what&apos;s going on and our team will get back to you by email within one working day.
           </p>
@@ -5696,16 +5696,16 @@ function RefundRequestModal({
         <div className="p-6 space-y-4">
           <div className="rounded-xl border border-gray-100 bg-[#f8fafc] p-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-[#64748B]">Booking</span>
+              <span className="text-[#64748B]">{t("acct.q.booking", "Bókun")}</span>
               <span className="font-medium text-[#0F172A] text-right">{when}</span>
             </div>
             <div className="flex justify-between mt-1">
-              <span className="text-[#64748B]">Amount paid</span>
+              <span className="text-[#64748B]">{t("acct.q.amountpaid", "Greidd upphæð")}</span>
               <span className="font-medium text-[#0F172A]">{(amountIsk + (includeAddon ? 18500 : 0)).toLocaleString("is-IS")} ISK</span>
             </div>
           </div>
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Reason</span>
+            <span className="text-sm font-medium text-gray-700">{t("acct.q.reason", "Ástæða")}</span>
             <textarea
               rows={4}
               value={reason}
@@ -5727,7 +5727,7 @@ function RefundRequestModal({
         </div>
         <div className="p-4 border-t border-gray-100 flex items-center justify-end gap-2">
           <button onClick={onClose} disabled={busy} className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50">
-            Close
+            {t("acct.q.close", "Loka")}
           </button>
           <button onClick={submit} disabled={busy} className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60">
             {busy ? "Sending…" : "Send cancellation request"}

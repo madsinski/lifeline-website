@@ -678,7 +678,7 @@ function StageIndicator({ stage, includeGrant }: { stage: Stage; includeGrant: b
     { key: "package", label: "Package" },
     { key: "schedule", label: t("acct.book.timing", "Tímasetning") },
     ...(includeGrant ? [{ key: "grant" as Stage, label: t("acct.book.uniongrant", "Styrkur stéttarfélags") }] : []),
-    { key: "review", label: "Review" },
+    { key: "review", label: t("acct.q.review", "Yfirlit") },
     { key: "pay", label: "Payment" },
     { key: "done", label: "Done" },
   ];
@@ -920,7 +920,7 @@ function TímasetningStage({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
-          Back
+          {t("acct.q.back", "Til baka")}
         </button>
         <button
           type="button"
@@ -928,7 +928,7 @@ function TímasetningStage({
           disabled={!canÁfram}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95"
         >
-          Review
+          {t("acct.q.review", "Yfirlit")}
         </button>
       </div>
     </div>
@@ -1027,7 +1027,7 @@ function GrantStage({
 
           <div>
             <label htmlFor="grant-kennitala" className="block text-xs font-semibold uppercase tracking-wide text-[#64748B] mb-1.5">
-              Kennitala
+              {t("acct.q.kennitala", "Kennitala")}
             </label>
             <input
               id="grant-kennitala"
@@ -1046,7 +1046,7 @@ function GrantStage({
               {t("acct.book.ktwhy", "Sjóðurinn þarf kennitöluna til að staðfesta aðild þína. Hún er dulkóðuð hjá okkur.")}
             </p>
             {kennitala.length === 10 && !ktValid && (
-              <p className="text-[11px] text-red-600 mt-1">Kennitalan stenst ekki gilt form.</p>
+              <p className="text-[11px] text-red-600 mt-1">{t("acct.q.ktinvalid", "Kennitalan stenst ekki gilt form.")}</p>
             )}
           </div>
 
@@ -1080,7 +1080,7 @@ function GrantStage({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
-          Til baka
+          {t("acct.q.tilbaka", "Til baka")}
         </button>
         <div className="flex items-center gap-3 flex-wrap">
           <button
@@ -1194,7 +1194,7 @@ function ReviewStage({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
-          Back
+          {t("acct.q.back", "Til baka")}
         </button>
         <button
           type="button"
@@ -1280,7 +1280,7 @@ function PayStage({
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
-          Back
+          {t("acct.q.back", "Til baka")}
         </button>
         <button
           type="button"

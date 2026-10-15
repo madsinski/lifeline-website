@@ -406,7 +406,7 @@ function ProfileStage({
       <div className="border-t border-gray-100 pt-5 space-y-4">
         <h2 className="text-sm font-semibold text-[#0F172A]">{t("acct.ob.bcprofile", "Líkamssamsetningarsnið")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Sex">
+          <Field label={t("acct.q.sexlabel", "Kyn")}>
             <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
               <option value="">{t("acct.ob.select", "Veldu…")}</option>

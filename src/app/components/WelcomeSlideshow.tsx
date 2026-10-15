@@ -99,7 +99,7 @@ export default function WelcomeSlideshow({
         onClick={() => scrollToSlide(TOTAL)}
         className="absolute top-4 right-4 z-30 text-xs font-medium text-gray-500 hover:text-gray-800 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full shadow-sm border border-gray-200"
       >
-        Sleppa →
+        {t("acct.q.skip", "Sleppa →")}
       </button>
 
       {/* Progress rail */}
@@ -144,7 +144,7 @@ export default function WelcomeSlideshow({
               onClick={() => scrollToSlide(2)}
               className="mt-10 inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:text-emerald-800"
             >
-              Byrja
+              {t("acct.q.begin", "Byrja")}
               <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>

@@ -117,7 +117,7 @@ export default function WellbeingSurveyModal({ companyId, onClose, onSubmitted }
           {error && <div className="text-red-600 text-sm">{error}</div>}
         </div>
         <div className="p-4 border-t border-gray-100 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">Later</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">{t("acct.q.later", "Síðar")}</button>
           <button onClick={submit} disabled={saving || !allAnswered} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
             {saving ? "Saving…" : "Submit"}
           </button>
