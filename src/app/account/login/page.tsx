@@ -88,7 +88,10 @@ function AccountLoginContent() {
   // Two-stage signup: collect name/email/password first, then take the
   // user to a dedicated review page where they read + accept the TOS
   // and Privacy Policy before the account is actually created.
-  const [signupStage, setSignupStage] = useState<"form" | "terms">("form");
+  const [signupStage, setSignupStage] = useState<"form" | "terms" | "done">("form");
+  /* The address the account was just created for — shown back to them, so
+     they know which inbox to open. */
+  const [signedUpEmail, setSignedUpEmail] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -321,16 +324,26 @@ function AccountLoginContent() {
            */
         } catch {}
       }
-      setInfo(
-        t("acct.login.created", "Aðgangurinn er stofnaður. Staðfestu netfangið með hlekknum sem við sendum þér og skráðu þig svo inn.")
-      );
-      showMessage();
-      setMode("login");
-      setSignupStage("form");
+      /*
+       * Land on a confirmation screen, not on the login form.
+       *
+       * This used to setMode("login"), which is how somebody who had just
+       * created an account for one address was shown the PIN pad for a
+       * different one: /api/account/pin answers for the DEVICE, so a PIN
+       * set up by a previous user of this browser was still on offer, and
+       * the login view prefers it. Staying in the signup flow means that
+       * branch cannot render, and the screen says the one thing that is
+       * actually true at this point — go and open your email.
+       */
+      setSignedUpEmail(email);
+      setSignupStage("done");
+      setError("");
+      setInfo("");
       setPassword("");
       setConfirmPassword("");
       setAcceptTerms(false);
       setLoading(false);
+      if (typeof window !== "undefined") window.scrollTo({ top: 0 });
       return;
     }
 
@@ -428,6 +441,36 @@ function AccountLoginContent() {
                 className="mt-5 block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981]"
               >
                 {t("acct.login.usepassword", "Nota lykilorð í staðinn")}
+              </button>
+            </div>
+          ) : mode === "signup" && signupStage === "done" ? (
+            <div className="text-center">
+              <span aria-hidden className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-[#047857]">
+                <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </span>
+              <h2 className="mt-4 text-xl font-bold text-[#0F172A]">
+                {t("acct.login.checkemail.title", "Opnaðu póstinn þinn")}
+              </h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[#6B7280]">
+                {t("acct.login.checkemail.body", "Aðgangurinn er stofnaður. Við sendum staðfestingarhlekk á netfangið hér fyrir neðan — smelltu á hann til að ljúka skráningunni.")}
+              </p>
+              <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-[#0F172A]">
+                {signedUpEmail}
+              </p>
+              <p className="mt-4 text-xs leading-relaxed text-[#9CA3AF]">
+                {t("acct.login.checkemail.spam", "Finnurðu hann ekki? Athugaðu ruslpóstinn. Hlekkurinn gildir í eina klukkustund.")}
+              </p>
+              {/* Only once the email is confirmed does signing in work, so
+                  this is a way back rather than the next step. */}
+              <button
+                type="button"
+                onClick={() => { setMode("login"); setSignupStage("form"); setSignedUpEmail(""); setError(""); setInfo(""); }}
+                className="mt-6 text-sm font-semibold text-[#047857] hover:underline"
+              >
+                {t("acct.login.checkemail.back", "Til baka á innskráningu")}
               </button>
             </div>
           ) : mode === "signup" && signupStage === "terms" ? (
