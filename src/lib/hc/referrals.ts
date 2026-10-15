@@ -18,7 +18,10 @@
 export const REFERRAL_TARGETS = ["lifeline_doctor", "heilsugaesla", "physio", "psychologist", "nutritionist", "specialist"] as const;
 export type ReferralTarget = (typeof REFERRAL_TARGETS)[number];
 
-export const REFERRAL_STATUSES = ["requested", "approved", "declined", "done"] as const;
+/* requested/approved/declined: the doctor's path (in-house review and advice
+   to seek heilsugæsla or a specialist). sent/failed/done: a Vera partner
+   contacted on the client's behalf — no doctor in between. */
+export const REFERRAL_STATUSES = ["requested", "approved", "declined", "done", "sent", "failed"] as const;
 export type ReferralStatus = (typeof REFERRAL_STATUSES)[number];
 
 export interface Referral {
@@ -33,15 +36,51 @@ export interface Referral {
   decided_by: string | null;
   decided_at: string | null;
   created_at: string;
+  /* Vera partner contact (migration-hc-partners.sql). */
+  partner_id?: string | null;
+  consent_at?: string | null;
+  consent_by?: string | null;
+  sent_at?: string | null;
+  sent_by?: string | null;
+  contacted_at?: string | null;
 }
+
+/** A therapist at Vera heilsusetur (admin → Heilsuferð → Samstarfsaðilar). */
+export interface Partner {
+  id: string;
+  name: string;
+  profession: PartnerProfession;
+  organization: string;
+  email: string;
+  phone: string | null;
+  note: string | null;
+  active: boolean;
+}
+
+/**
+ * Lifeline does not refer patients. These three are partners at Vera
+ * heilsusetur that the nurse contacts ON THE CLIENT'S BEHALF, with consent:
+ * an email carrying only name, kennitala and contact details.
+ */
+export const PARTNER_TARGETS = ["physio", "psychologist", "nutritionist"] as const;
+export type PartnerProfession = (typeof PARTNER_TARGETS)[number];
+export const isPartner = (t: string): t is PartnerProfession => (PARTNER_TARGETS as readonly string[]).includes(t);
+/** Heilsugæsla / specialist: advice to the client, which a doctor confirms. */
+export const isAdvice = (t: string) => t === "heilsugaesla" || t === "specialist";
+
+export const PROFESSION_IS: Record<PartnerProfession, { one: string; service: string }> = {
+  physio: { one: "sjúkraþjálfari", service: "sjúkraþjálfun" },
+  psychologist: { one: "sálfræðingur", service: "sálfræðiþjónustu" },
+  nutritionist: { one: "næringarfræðingur", service: "næringarráðgjöf" },
+};
 
 export const TARGET_IS: Record<ReferralTarget, { label: string; blurb: string; color: string }> = {
   lifeline_doctor: { label: "Læknir Lifeline", blurb: "Læknir metur niðurstöðu eða spurningu áður en lengra er haldið", color: "#0F172A" },
-  heilsugaesla: { label: "Heilsugæslan", blurb: "Læknismat, lyf, framhaldsrannsóknir", color: "#E11D48" },
-  physio: { label: "Sjúkraþjálfari", blurb: "Verkir og stoðkerfi", color: "#F59E0B" },
-  psychologist: { label: "Sálfræðingur", blurb: "Andleg líðan, streita, fíkn", color: "#8B5CF6" },
-  nutritionist: { label: "Næringarfræðingur", blurb: "Mataræði og matarhegðun", color: "#10B981" },
-  specialist: { label: "Sérfræðingur", blurb: "Beint til viðeigandi sérgreinar", color: "#0EA5E9" },
+  heilsugaesla: { label: "Heilsugæslan", blurb: "Ráðlegging til skjólstæðings um að leita til heilsugæslu. Læknir staðfestir.", color: "#E11D48" },
+  physio: { label: "Sjúkraþjálfari (Vera)", blurb: "Samstarfsaðili hjá Vera heilsusetri hefur samband við skjólstæðinginn.", color: "#F59E0B" },
+  psychologist: { label: "Sálfræðingur (Vera)", blurb: "Samstarfsaðili hjá Vera heilsusetri hefur samband við skjólstæðinginn.", color: "#8B5CF6" },
+  nutritionist: { label: "Næringarfræðingur (Vera)", blurb: "Samstarfsaðili hjá Vera heilsusetri hefur samband við skjólstæðinginn.", color: "#10B981" },
+  specialist: { label: "Sérfræðingur", blurb: "Ráðlegging til skjólstæðings um að leita til sérfræðings. Læknir staðfestir.", color: "#0EA5E9" },
 };
 
 /** In-house assessment: the doctor's answer is "assessed", not approve/decline. */
@@ -49,10 +88,54 @@ export const isInHouse = (t: ReferralTarget) => t === "lifeline_doctor";
 
 export const STATUS_IS: Record<ReferralStatus, string> = {
   requested: "Bíður læknis",
-  approved: "Samþykkt",
+  approved: "Ráðlagt skjólstæðingi",
   declined: "Ekki þörf",
   done: "Frágengið",
+  sent: "Sent samstarfsaðila",
+  failed: "Tölvupóstur fór ekki",
 };
+
+/** A partner contact's status says who and when, not just a word. */
+export function partnerStatus(r: Referral, partnerName: string | null): string {
+  const who = partnerName ?? "samstarfsaðila";
+  if (r.status === "done") return `Samband komið á við ${who}`;
+  if (r.status === "failed") return `Tölvupóstur til ${who} fór ekki`;
+  return `Sent til ${who}`;
+}
+
+/**
+ * The email to the partner. ONLY name, kennitala and contact details — the
+ * reason, notes and anything from the health check stay in Lifeline.
+ */
+export function partnerEmail(o: {
+  partnerName: string; profession: PartnerProfession; clientName: string; kennitala: string | null;
+  phone: string | null; email: string | null; nurse: string;
+}) {
+  const kt = o.kennitala ? `${o.kennitala.slice(0, 6)}-${o.kennitala.slice(6)}` : "—";
+  const lines = [
+    `Nafn: ${o.clientName}`,
+    `Kennitala: ${kt}`,
+    `Sími: ${o.phone ?? "—"}`,
+    `Netfang: ${o.email ?? "—"}`,
+  ];
+  const intro = `${o.clientName} hefur óskað eftir ${PROFESSION_IS[o.profession].service} og samþykkt að við sendum þér nafn sitt, kennitölu og samskiptaupplýsingar. Viltu hafa samband við viðkomandi?`;
+  return {
+    subject: `Beiðni um samband frá Lifeline Health`,
+    intro, lines,
+    text: `Góðan dag ${o.partnerName}.\n\n${intro}\n\n${lines.join("\n")}\n\nKveðja,\n${o.nurse}\nLifeline Health`,
+  };
+}
+
+/** The client's copy: what was shared, with whom. */
+export function clientShareEmail(o: { clientName: string; partnerName: string; profession: PartnerProfession; organization: string }) {
+  const first = o.clientName.split(" ")[0];
+  const body = `Eins og við ræddum höfum við sent nafn þitt, kennitölu og samskiptaupplýsingar til ${o.partnerName}, ${PROFESSION_IS[o.profession].one} hjá ${o.organization}, sem hefur samband við þig. Engar heilsufarsupplýsingar voru sendar.`;
+  return {
+    subject: `Við létum ${o.organization} vita`,
+    body,
+    text: `Hæ ${first}.\n\n${body}\n\nKveðja,\nLifeline Health`,
+  };
+}
 
 /**
  * The reasons that come up again and again, so they are one click.

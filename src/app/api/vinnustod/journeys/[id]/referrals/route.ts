@@ -21,9 +21,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
-import { hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
+import { decryptKennitala, getClientProfile, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
 import { sendSms, smsConfigured } from "@/lib/sms";
-import { REFERRAL_STATUSES, REFERRAL_TARGETS, referralSms, type ReferralTarget } from "@/lib/hc/referrals";
+import { renderBrandedEmail, sendEmail } from "@/lib/email";
+import {
+  REFERRAL_STATUSES, REFERRAL_TARGETS, clientShareEmail, isPartner, partnerEmail, referralSms,
+  type PartnerProfession, type ReferralTarget,
+} from "@/lib/hc/referrals";
+
+/*
+ * ── Vera partners (Mads, 2026-10-15) ─────────────────────────────────
+ *
+ * physio / psychologist / nutritionist are not referrals: the nurse emails a
+ * registered partner at Vera heilsusetur on the client's behalf, with the
+ * client's consent (body.consent, confirmed by the nurse and recorded), and
+ * the email carries ONLY name, kennitala and contact details. No doctor step.
+ * The row is saved as 'sent' (or 'failed' if the email did not go, with a
+ * resend), any staff member can mark contact made ('done'), and the client
+ * gets a copy saying what was shared with whom. The reason stays in Lifeline.
+ */
+async function sendToPartner(req: NextRequest, actorLabel: string, ref: { id: string; client_id: string; target: string }, partnerId: string) {
+  const [{ data: partner }, profile] = await Promise.all([
+    supabaseAdmin.from("hc_partners").select("id, name, profession, organization, email, active").eq("id", partnerId).maybeSingle(),
+    getClientProfile(ref.client_id),
+  ]);
+  if (!partner?.active || partner.profession !== ref.target || !profile) return false;
+  const kennitala = await decryptKennitala(profile.kennitala_encrypted ?? null, {
+    actorRole: "workstation", purpose: "partner_contact", subjectId: ref.client_id, req,
+  });
+  const name = profile.full_name ?? "Skjólstæðingur";
+  const mail = partnerEmail({
+    partnerName: partner.name, profession: partner.profession as PartnerProfession, clientName: name,
+    kennitala, phone: profile.phone ?? null, email: profile.email ?? null, nurse: actorLabel,
+  });
+  const esc = (x: string) => x.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+  const sent = await sendEmail({
+    to: partner.email,
+    replyTo: profile.email ?? undefined,
+    subject: mail.subject,
+    html: renderBrandedEmail({
+      title: "Beiðni um samband",
+      bodyHtml: `<p style="margin:0 0 12px;">Góðan dag ${esc(partner.name)}.</p><p style="margin:0 0 12px;">${esc(mail.intro)}</p>`
+        + `<p style="margin:0 0 12px;">${mail.lines.map(esc).join("<br>")}</p><p style="margin:0;">Kveðja,<br>${esc(actorLabel)}<br>Lifeline Health</p>`,
+    }),
+    text: mail.text,
+  });
+  const now = new Date().toISOString();
+  await supabaseAdmin.from("hc_referrals").update(sent.ok
+    ? { status: "sent", sent_at: now, sent_by: actorLabel }
+    : { status: "failed" }).eq("id", ref.id);
+  if (sent.ok && profile.email) {
+    const copy = clientShareEmail({ clientName: name, partnerName: partner.name, profession: partner.profession as PartnerProfession, organization: partner.organization });
+    await sendEmail({
+      to: profile.email, subject: copy.subject, text: copy.text,
+      html: renderBrandedEmail({ title: copy.subject, bodyHtml: `<p style="margin:0;">${esc(copy.body)}</p>` }),
+    });
+  }
+  return sent.ok;
+}
 
 export const runtime = "nodejs";
 
@@ -71,10 +126,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       reason: str(x.reason, 300),
       note: str(x.note, 1000),
       suggested_by: str(x.suggested_by, 20) === "ai" ? "ai" : "nurse",
+      partner_id: str(x.partner_id, 64),
     }))
     .filter((x: { target: ReferralTarget | null; reason: string | null }) =>
       x.target && x.reason && (REFERRAL_TARGETS as readonly string[]).includes(x.target))
-    .map((x: { target: ReferralTarget; reason: string; note: string | null; suggested_by: string }) => ({
+    .map((x: { target: ReferralTarget; reason: string; note: string | null; suggested_by: string; partner_id: string | null }) => ({
       journey_id: id,
       client_id: journey.client_id,
       target: x.target,
@@ -82,14 +138,41 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       note: x.note,
       suggested_by: x.suggested_by,
       requested_by: actor.label,
-      // A doctor recording it has decided already.
-      ...(actor.isDoctor && body.decided === true ? { status: "approved", decided_by: actor.label, decided_at: new Date().toISOString() } : {}),
+      ...(isPartner(x.target)
+        ? { partner_id: x.partner_id, status: "failed", consent_at: new Date().toISOString(), consent_by: actor.label }
+        // A doctor recording it has decided already.
+        : actor.isDoctor && body.decided === true ? { status: "approved", decided_by: actor.label, decided_at: new Date().toISOString() } : {}),
     }));
-  if (!rows.length) return NextResponse.json({ error: "Engin gild tilvísun." }, { status: 400 });
+  if (!rows.length) return NextResponse.json({ error: "Engin gild færsla." }, { status: 400 });
+  const partnerRows = rows.filter((x: { target: string }) => isPartner(x.target));
+  if (partnerRows.length) {
+    if (body.consent !== true) {
+      return NextResponse.json({ error: "Staðfestu að skjólstæðingurinn hafi samþykkt að upplýsingarnar séu sendar." }, { status: 400 });
+    }
+    if (partnerRows.some((x: { partner_id?: string | null }) => !x.partner_id)) {
+      return NextResponse.json({ error: "Veldu meðferðaraðila hjá Vera fyrir hverja færslu." }, { status: 400 });
+    }
+  }
 
   const { data: made, error } = await supabaseAdmin.from("hc_referrals").insert(rows).select("*");
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  await mirrorOnJourney(id, actor.label, made ?? []);
+  if (error) return NextResponse.json({ error: "Tókst ekki að vista." }, { status: 400 });
+  await mirrorOnJourney(id, actor.label, (made ?? []).filter((m) => !isPartner(m.target)));
+
+  /* Partner contacts go out now; rows start as 'failed' and become 'sent'
+     only when the email did, so a crash in between can never look sent. */
+  let partnersSent = 0;
+  for (const m of (made ?? []).filter((x) => isPartner(x.target))) {
+    if (await sendToPartner(req, actor.label, m, m.partner_id)) partnersSent++;
+  }
+  const doctorRows = (made ?? []).filter((x) => !isPartner(x.target));
+  if (!doctorRows.length) {
+    await hcAudit(actor.label, "partner_contact_sent", id, { count: made?.length ?? 0, sent: partnersSent, targets: (made ?? []).map((m) => m.target) });
+    const { data: fresh } = await supabaseAdmin.from("hc_referrals").select("*").in("id", (made ?? []).map((m) => m.id));
+    return NextResponse.json({
+      referrals: fresh ?? made ?? [], partners_sent: partnersSent,
+      note: partnersSent === (made?.length ?? 0) ? "Sent. Skjólstæðingurinn fékk afrit." : "Vistað, en tölvupóstur fór ekki. Reyndu „Senda aftur“.",
+    });
+  }
 
   // Tell the doctor. One message however many referrals were added, because
   // five texts about one client is how an alert gets muted.
@@ -101,12 +184,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       supabaseAdmin.from("clients_decrypted").select("full_name").eq("id", journey.client_id).maybeSingle(),
     ]);
     const url = `${siteOrigin(req)}/vinnustod`;
-    const first = made?.[0];
+    const first = doctorRows[0];
     const text = referralSms({
       clientName: (client?.full_name ?? "Skjólstæðingur").split(" ").slice(0, 2).join(" "),
       target: first.target as ReferralTarget,
       reason: first.reason,
-      count: made?.length ?? 1,
+      count: doctorRows.length,
       url,
     });
     for (const doc of doctors ?? []) {
@@ -118,7 +201,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       await supabaseAdmin
         .from("hc_referrals")
         .update({ doctor_notified_at: new Date().toISOString() })
-        .in("id", (made ?? []).map((m) => m.id));
+        .in("id", doctorRows.map((m) => m.id));
     }
     if (!smsConfigured()) smsNote = "Twilio er ekki uppsett, svo skeytið var skráð í annál en ekki sent.";
     else if (!notified) smsNote = "Enginn læknir með símanúmer er skráður, svo ekkert skeyti fór út.";
@@ -131,7 +214,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     targets: (made ?? []).map((m) => m.target),
     notified,
   });
-  return NextResponse.json({ referrals: made ?? [], notified, note: smsNote });
+  const { data: fresh } = await supabaseAdmin.from("hc_referrals").select("*").in("id", (made ?? []).map((m) => m.id));
+  return NextResponse.json({ referrals: fresh ?? made ?? [], notified, partners_sent: partnersSent, note: smsNote });
 }
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -139,12 +223,33 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   const r = await reach(req, id);
   if ("error" in r) return r.error;
   const { actor } = r;
+  const body = await req.json().catch(() => ({}));
+
+  /* Partner contacts: any staff member may resend or record contact made. */
+  if (body.action === "resend" || body.action === "contacted") {
+    const refId = str(body.id, 64);
+    const { data: ref } = refId
+      ? await supabaseAdmin.from("hc_referrals").select("id, client_id, target, partner_id, status").eq("id", refId).eq("journey_id", id).maybeSingle()
+      : { data: null };
+    if (!ref || !isPartner(ref.target)) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    if (body.action === "contacted") {
+      await supabaseAdmin.from("hc_referrals").update({ status: "done", contacted_at: new Date().toISOString(), decided_by: actor.label, decided_at: new Date().toISOString() }).eq("id", ref.id);
+      await hcAudit(actor.label, "partner_contact_done", id, { referral: ref.id });
+    } else {
+      if (!ref.partner_id) return NextResponse.json({ error: "Enginn meðferðaraðili skráður." }, { status: 400 });
+      const ok = await sendToPartner(req, actor.label, ref, ref.partner_id);
+      await hcAudit(actor.label, "partner_contact_resent", id, { referral: ref.id, ok });
+      if (!ok) return NextResponse.json({ error: "Tölvupósturinn fór ekki. Athugaðu netfang meðferðaraðilans." }, { status: 502 });
+    }
+    const { data: fresh } = await supabaseAdmin.from("hc_referrals").select("*").eq("id", ref.id).maybeSingle();
+    return NextResponse.json({ referral: fresh });
+  }
+
   // A referral is a clinical decision; only a doctor closes one.
   if (!actor.isDoctor) {
     return NextResponse.json({ error: "Aðeins læknir getur afgreitt tilvísun." }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => ({}));
   const refId = str(body.id, 64);
   const status = str(body.status, 20);
   if (!refId || !status || !(REFERRAL_STATUSES as readonly string[]).includes(status)) {
