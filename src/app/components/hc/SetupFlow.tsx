@@ -35,6 +35,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, CalendarDays, Check, ChevronDown, PlayCircle, UserRound, Users } from "lucide-react";
 import SetupWalkthrough, { SetupStepBody, useSetupData } from "./SetupWalkthrough";
+import CalendarConnect from "./CalendarConnect";
 import type { ProfileFormData } from "./ProfileForm";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -234,6 +235,14 @@ export default function SetupFlow({ api, place = "onboarding" }: {
           <PlayCircle className="h-4 w-4" aria-hidden />
           {count === 0 ? "Leiða mig í gegnum það" : all ? "Skoða skref fyrir skref" : "Halda áfram"}
         </button>
+      )}
+
+      {/* The settings rows open the calendar sheet through the shared data;
+          the walkthrough draws its own, so this one is for settings only. */}
+      {settings && (
+        <CalendarConnect api={setupData.calendarApi} open={setupData.calOpen}
+          onClose={() => { setupData.setCalOpen(false); void setupData.load(); void load(); }}
+          intro="Tímar hjá Lifeline birtast í dagatalinu þínu og myndsímtöl fá hlekk á fundinn." />
       )}
 
       {walk && (

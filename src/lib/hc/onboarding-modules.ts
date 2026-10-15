@@ -34,7 +34,8 @@ export type ModuleKind =
   | "install"
   | "notifications"
   | "setup"
-  | "summary";
+  | "summary"
+  | "training";
 
 /** What a step can depend on, and what it produces. Used to order-check. */
 export type Capability =
@@ -110,6 +111,19 @@ export const MODULES: ModuleDef[] = [
        produces a programme. */
     kind: "limits", label: "Meiðsli og takmarkanir",
     blurb: "Verkir, meiðsli, þungun eða annað sem breytir æfingum. Kemur á undan áætlun. Á við þjálfun.",
+    needs: ["account"], gives: ["limits"], repeatable: false,
+    coachingOnly: true,
+  },
+  {
+    /* The coaching track's one real decision, on one screen: how much they
+       move now and what the body needs spared. It writes
+       hc_training_settings — the training source of truth — directly, so
+       what is asked here is what the programme is built from. Before this,
+       the move and limits answers sat in hc_onboarding_progress where
+       nothing ever read them. The player adds it for the coaching tracks
+       when a flow leaves it out, so it can never be lost by a republish. */
+    kind: "training", label: "Hreyfing og það sem þarf að varast",
+    blurb: "Hve mikið viðkomandi hreyfir sig og hvað þarf að hlífa. Vistast beint í æfingastillingarnar. Á við þjálfun.",
     needs: ["account"], gives: ["limits"], repeatable: false,
     coachingOnly: true,
   },
@@ -236,16 +250,68 @@ export function flowProblems(steps: FlowStep[], audience?: string): { id: string
   return out;
 }
 
-/** The sequence shipped today, as a starting point rather than a blank page. */
+/**
+ * Kinds the player no longer shows, whatever a published flow says.
+ *
+ * Each was either asked somewhere else first (the route and the three
+ * questions on /byrja, the terms at signup), promised something nothing
+ * applied (pillars, summary, recommend), or was a link out of onboarding
+ * into a screen that sent the person straight back into it (package,
+ * measurements, profile). They stay in the registry so old flows still
+ * validate; the player simply walks past them.
+ */
+export const RETIRED_KINDS: ModuleKind[] = [
+  "welcome", "pillars", "recommend", "summary", "track", "profile",
+  "package", "measurements", "setup", "notifications",
+  // Asked on the training screen instead, where the answer is used.
+  "limits",
+];
+
+/** What the player knows about the person, to decide what still applies. */
+export interface FlowContext {
+  /** The journey's track: coaching-only ("coach"/"app") or the health check. */
+  entry: "check" | "coach" | "app" | null;
+  /** Terms already accepted (at signup or earlier). */
+  termsAccepted: boolean;
+  /** Answers on file, including those carried over from /byrja. */
+  answers: Record<string, unknown>;
+  /** hc_training_settings already exists for this journey. */
+  trainingSaved: boolean;
+}
+
+export const isCoachingEntry = (e: FlowContext["entry"]) => e === "coach" || e === "app";
+
+/**
+ * Whether one step of a published flow still has anything to ask.
+ *
+ * The flow in the database is whatever an admin last published, and it may
+ * predate /byrja. Rather than trusting it to be short, the player asks this
+ * of every step and skips what is already answered — so a long flow
+ * degrades to a short one instead of asking the same thing twice.
+ */
+export function stepApplies(s: FlowStep, ctx: FlowContext): boolean {
+  if (RETIRED_KINDS.includes(s.kind)) return false;
+  const coaching = isCoachingEntry(ctx.entry);
+  if (moduleDef(s.kind)?.coachingOnly && !coaching) return false;
+  if (s.kind === "consent") return !ctx.termsAccepted;
+  if (s.kind === "training") return coaching && !ctx.trainingSaved;
+  if (s.kind === "question") {
+    if (!s.questionKey) return false;
+    if (ctx.answers[s.questionKey]) return false;
+    // The training screen asks this itself, next to the limits.
+    if (s.questionKey === "move") return false;
+    return true;
+  }
+  return true;
+}
+
+/** The sequence shipped today, as a starting point rather than a blank page.
+ *  Short on purpose: the route, goal, activity and age are asked on /byrja
+ *  and the terms at signup, so all that is left for the coaching track is
+ *  the training screen, and the app on the home screen for everyone. */
 export const DEFAULT_FLOW: Omit<FlowStep, "id">[] = [
   { kind: "consent" },
   { kind: "question", questionKey: "goal" },
-  { kind: "question", questionKey: "move" },
-  { kind: "question", questionKey: "age" },
-  { kind: "pillars" },
-  { kind: "limits" },
-  { kind: "summary" },
-  { kind: "track" },
-  { kind: "profile", skippable: true },
+  { kind: "training" },
   { kind: "install", skippable: true },
 ];

@@ -1,127 +1,62 @@
 "use client";
 
+// Where Supabase lands an email confirmation that was started from the
+// mobile app (its emailRedirectTo). Supabase has already verified the
+// address server side by the time anyone sees this page.
+//
+// On a phone it still hands over to the app (lifelinehealth://), as before.
+// But people open mail on a computer too, and a countdown to a URL scheme a
+// desktop browser cannot open stranded them on an English "Account
+// confirmed!" with nowhere to go. So: on a phone, the deep link (automatic,
+// with a button); everywhere, a way on to the web app.
+//
+// This page makes no Supabase call of its own: a ?code= on this URL belongs
+// to the app's PKCE flow.
+
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import Link from "next/link";
+import { Check } from "lucide-react";
+import AuthShell, { authPrimary, authSecondary } from "@/app/components/AuthShell";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cfnibfxzltxiriqxvvru.supabase.co",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmbmlmYnh6bHR4aXJpcXh2dnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4NjIyMzgsImV4cCI6MjA1OTQzODIzOH0.LPHjGqPhBm-kNbhFVLaPGSFDGYMDl29sor1PKXGMQ0U"
-);
-
-type Status = "verifying" | "success" | "error";
+const APP_URL = "lifelinehealth://auth?confirmed=true";
 
 export default function ConfirmPage() {
-  const [status, setStatus] = useState<Status>("verifying");
+  const [mobile, setMobile] = useState<boolean | null>(null);
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
-    // Supabase verifies the email server-side, then redirects here.
-    // By the time the user lands on this page, confirmation is already done.
-    // We just show success — the user can sign in from the app.
-    setStatus("success");
+    const t = setTimeout(() => setMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)), 0);
+    return () => clearTimeout(t);
   }, []);
 
-  // Countdown to redirect back to app
+  // On a phone, hand over to the app after a short countdown.
   useEffect(() => {
-    if (status !== "success") return;
-    if (countdown <= 0) {
-      window.location.href = "lifelinehealth://auth?confirmed=true";
-      return;
-    }
+    if (!mobile) return;
+    if (countdown <= 0) { window.location.href = APP_URL; return; }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
-  }, [status, countdown]);
+  }, [mobile, countdown]);
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-[#ecf0f3] px-4">
-      <div className="max-w-md w-full text-center">
-        {status === "verifying" && (
-          <div className="bg-white rounded-2xl shadow-sm p-10">
-            <div className="animate-spin w-10 h-10 border-4 border-[#10B981] border-t-transparent rounded-full mx-auto mb-5" />
-            <h1 className="text-xl font-bold text-gray-900 mb-2">
-              Verifying your email...
-            </h1>
-            <p className="text-gray-500 text-sm">
-              Please wait while we confirm your account.
-            </p>
-          </div>
+    <AuthShell>
+      <section className="text-center">
+        <span aria-hidden className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-hc-brand-surface text-hc-brand-text">
+          <Check className="h-7 w-7" />
+        </span>
+        <h1 className="mt-4 text-2xl font-bold text-hc-ink">Netfangið er staðfest</h1>
+        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-hc-ink-2">
+          Aðgangurinn þinn er tilbúinn. Haltu áfram í appinu eða á vefnum.
+        </p>
+        {mobile && countdown > 0 && (
+          <p className="mt-3 text-xs text-hc-ink-3">Opna appið eftir {countdown} s…</p>
         )}
-
-        {status === "success" && (
-          <div className="bg-white rounded-2xl shadow-sm p-10">
-            <div className="w-16 h-16 bg-[#10B981] rounded-full flex items-center justify-center mx-auto mb-5">
-              <svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Account confirmed!
-            </h1>
-            <p className="text-gray-500 text-sm mb-6">
-              Your email has been verified successfully. You can now sign in to
-              Lifeline Health.
-            </p>
-            <p className="text-gray-400 text-xs mb-4">
-              Redirecting to the app in {countdown} second
-              {countdown !== 1 ? "s" : ""}...
-            </p>
-            <a
-              href="lifelinehealth://auth?confirmed=true"
-              className="inline-block bg-[#10B981] hover:bg-[#10B981] text-white font-semibold rounded-full px-8 py-3 transition-colors text-sm"
-            >
-              Open Lifeline Health
-            </a>
-            <p className="text-gray-400 text-xs mt-4">
-              If the app doesn&apos;t open, go back to the app and sign in with
-              your email and password.
-            </p>
-          </div>
-        )}
-
-        {status === "error" && (
-          <div className="bg-white rounded-2xl shadow-sm p-10">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
-              <svg
-                className="w-8 h-8 text-red-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Verification failed
-            </h1>
-            <p className="text-gray-500 text-sm mb-6">
-              The confirmation link may have expired or already been used. Please
-              try signing in, or request a new confirmation email.
-            </p>
-            <a
-              href="lifelinehealth://auth"
-              className="inline-block bg-[#10B981] hover:bg-[#10B981] text-white font-semibold rounded-full px-8 py-3 transition-colors text-sm"
-            >
-              Open Lifeline Health
-            </a>
-          </div>
-        )}
-      </div>
-    </div>
+        <div className="mt-6 space-y-2.5">
+          {mobile !== false && (
+            <a href={APP_URL} className={authPrimary}>Opna appið</a>
+          )}
+          <Link href="/app" className={mobile === false ? authPrimary : authSecondary}>Halda áfram á vefnum</Link>
+        </div>
+      </section>
+    </AuthShell>
   );
 }

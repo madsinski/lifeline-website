@@ -2,12 +2,14 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { createStraumurCharge, STRAUMUR_BRAND } from "@/lib/straumur";
 import { PACKAGES, type PackageKey, type PackageDef } from "@/lib/assessment-packages";
 import { cleanKennitala, formatKennitala, isValidKennitala } from "@/lib/kennitala";
 import { useI18n } from "@/lib/i18n";
+import { ArrowLeft } from "lucide-react";
+import { AccountLoading, ButtonLink, DialogProvider, buttonClass, fmtDate, fmtDateTime, fmtTime, useDialog } from "@/app/components/account/ui";
+import { packageView } from "../_components/packages";
 import {
   UNION_FUNDS,
   OTHER_UNION_CODE,
@@ -28,16 +30,18 @@ async function authHeader(): Promise<Record<string, string>> {
 }
 
 export default function BookAssessmentPage() {
-  const { t } = useI18n();
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">{t("acct.loading", "Hleð…")}</div>}>
-      <BookAssessmentContent />
+    <Suspense fallback={<AccountLoading />}>
+      <DialogProvider>
+        <BookAssessmentContent />
+      </DialogProvider>
     </Suspense>
   );
 }
 
 function BookAssessmentContent() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const { confirm, alert } = useDialog();
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeBookingId = searchParams.get("resume");
@@ -130,9 +134,9 @@ function BookAssessmentContent() {
           const sched = (paidActive as { scheduled_at?: string | null }).scheduled_at;
           const hoursUntil = sched ? (new Date(sched).getTime() - Date.now()) / 3_600_000 : Infinity;
           const msg = hoursUntil >= 48
-            ? "You already have a paid booking. Cancel it from your dashboard first to get a full refund, then book a new package."
-            : "You already have a paid booking less than 48 hours away. Email contact@lifelinehealth.is to change or refund it.";
-          alert(msg);
+            ? t("acc.book.has-paid", "Þú átt þegar greidda bókun. Afbókaðu hana fyrst á Mínum síðum til að fá fulla endurgreiðslu og bókaðu svo nýjan pakka.")
+            : t("acc.book.has-paid-48", "Þú átt þegar greidda bókun sem er eftir minna en 48 klukkustundir. Sendu póst á contact@lifelinehealth.is til að breyta henni eða fá endurgreitt.");
+          await alert({ title: t("acc.book.has-paid-title", "Þú átt þegar bókun"), body: msg });
           router.push("/account");
           return;
         }
@@ -225,7 +229,9 @@ function BookAssessmentContent() {
       }
       setAuthChecking(false);
     })();
-  }, [router, resumeBookingId]);
+    // t/alert only word a message on the way out; re-running the auth check
+    // when translations load would be wrong.
+  }, [router, resumeBookingId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createBooking(): Promise<string | null> {
     if (!userId || !pkg) return null;
@@ -389,16 +395,17 @@ function BookAssessmentContent() {
         });
         if (protectedBookings.length > 0) {
           setPaymentError(
-            "You already have an active measurement booking. Go to your dashboard to manage it, or email contact@lifelinehealth.is for help.",
+            t("acc.book.has-active", "Þú átt þegar virka mælingabókun. Sýslaðu með hana á Mínum síðum eða sendu póst á contact@lifelinehealth.is."),
           );
           await supabase.from("body_comp_bookings").update({ status: "cancelled" }).eq("id", id);
           setBookingId(null);
           setStage("schedule");
           return;
         }
-        const ok = typeof window !== "undefined" && window.confirm(
-          t("acct.book.unfinished", "Þú átt þegar ófrágengna mælingabókun. Viltu fella hana niður og nota þennan tíma í staðinn?"),
-        );
+        const ok = await confirm({
+          title: t("acct.book.unfinished", "Þú átt þegar ófrágengna mælingabókun. Viltu fella hana niður og nota þennan tíma í staðinn?"),
+          confirmLabel: t("acc.book.use-this", "Já, nota þennan tíma"), cancelLabel: t("acc.common.no", "Nei"),
+        });
         if (ok) {
           // Cancel each unpaid draft through the atomic RPC so the station
           // claim is released per-booking — no more bulk release that could
@@ -521,7 +528,7 @@ function BookAssessmentContent() {
       .eq("id", bookingId)
       .eq("payment_status", "pending");
     if (upErr) {
-      setPaymentError(`Payment succeeded but booking update failed: ${upErr.message}. We'll reconcile — email contact@lifelinehealth.is with your booking id ${bookingId}.`);
+      setPaymentError(`${t("acc.book.paid-not-saved", "Greiðslan tókst en ekki tókst að uppfæra bókunina")}: ${upErr.message}. ${t("acc.book.paid-not-saved-2", "Við leiðréttum þetta — sendu póst á contact@lifelinehealth.is með bókunarnúmerinu")} ${bookingId}.`);
       setPaying(false);
       return;
     }
@@ -548,40 +555,27 @@ function BookAssessmentContent() {
     setStage("done");
   }
 
-  if (authChecking) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">{t("acct.loading", "Hleð…")}</div>;
-  }
+  if (authChecking) return <AccountLoading label={t("acct.loading", "Hleð…")} />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5]">
-      <main className="max-w-3xl mx-auto px-6 py-10 sm:py-14 space-y-8">
-        <header className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="min-h-screen bg-gradient-to-b from-hc-brand-surface via-white to-white">
+      <main className="mx-auto max-w-3xl space-y-6 px-4 py-10 sm:px-6 sm:py-14">
+        <header className="relative flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-hc-hero bg-gradient-to-br from-hc-hero-from to-hc-hero-to p-5 text-white shadow-hc-raised sm:p-6">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">{t("acct.book.title", "Bókaðu heilsufarsskoðun")}</div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A]">{pkg ? pkg.name : "Veldu pakka"}</h1>
+            <p className="mb-1 text-xs font-bold uppercase tracking-[0.08em] text-emerald-200">{t("acct.book.title", "Bókaðu heilsufarsskoðun")}</p>
+            <h1 className="text-2xl font-bold sm:text-3xl">{pkg ? packageView(pkg.key, locale).name : t("acc.book.pickpkg", "Veldu pakka")}</h1>
           </div>
-          <Link
-            href="/account"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
+          <ButtonLink href="/account" size="sm" variant="inverseOutline" icon={<ArrowLeft className="h-3.5 w-3.5" aria-hidden />}>
             {t("acct.book.backoverview", "Til baka á yfirlitið")}
-          </Link>
+          </ButtonLink>
         </header>
 
         {isB2BEmployee && stage === "package" && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 flex items-start gap-3">
-            <svg className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <div className="font-semibold mb-1">{t("acct.book.extraown", "Þetta er aukatími á eigin kostnað")}</div>
-              <p className="leading-relaxed text-amber-900/90">
-                Your employer covers your standard Lifeline rounds — we&apos;ll email you when the next one opens. Anything you book here is an <strong>extra you pay for yourself</strong>, on top of what your employer provides. You can still take the employer round when it opens.
-              </p>
-            </div>
+          <div role="note" className="rounded-hc-card bg-hc-warn-surface p-4 text-sm text-hc-warn-ink ring-1 ring-amber-200">
+            <p className="mb-1 font-semibold">{t("acct.book.extraown", "Þetta er aukatími á eigin kostnað")}</p>
+            <p className="leading-relaxed">
+              {t("acc.book.b2b-extra", "Vinnuveitandinn greiðir hefðbundnar Lifeline-umferðir og við sendum þér póst þegar sú næsta opnar. Það sem þú bókar hér er aukatími á þinn kostnað, til viðbótar við það sem vinnuveitandinn býður. Þú getur samt tekið þátt í næstu umferð vinnuveitandans.")}
+            </p>
           </div>
         )}
 
@@ -675,12 +669,12 @@ function BookAssessmentContent() {
 function StageIndicator({ stage, includeGrant }: { stage: Stage; includeGrant: boolean }) {
   const { t } = useI18n();
   const steps: Array<{ key: Stage; label: string }> = [
-    { key: "package", label: "Package" },
+    { key: "package", label: t("acc.book.st-package", "Pakki") },
     { key: "schedule", label: t("acct.book.timing", "Tímasetning") },
     ...(includeGrant ? [{ key: "grant" as Stage, label: t("acct.book.uniongrant", "Styrkur stéttarfélags") }] : []),
     { key: "review", label: t("acct.q.review", "Yfirlit") },
-    { key: "pay", label: "Payment" },
-    { key: "done", label: "Done" },
+    { key: "pay", label: t("acc.book.st-pay", "Greiðsla") },
+    { key: "done", label: t("acc.book.st-done", "Lokið") },
   ];
   const currentIdx = steps.findIndex((s) => s.key === stage);
   return (
@@ -690,10 +684,10 @@ function StageIndicator({ stage, includeGrant }: { stage: Stage; includeGrant: b
         const active = i === currentIdx;
         return (
           <li key={s.key} className="flex items-center gap-2">
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold ${
-              done ? "bg-emerald-500 text-white"
-              : active ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-400"
+            <span className={`flex h-6 w-6 items-center justify-center rounded-full font-bold ${
+              done ? "bg-hc-brand-dark text-white"
+              : active ? "bg-hc-focus text-white"
+              : "bg-slate-200 text-hc-ink-3"
             }`}>
               {done ? "✓" : i + 1}
             </span>
@@ -715,11 +709,11 @@ function PackageStage({
   onSelect: (k: PackageKey) => void;
   onÁfram: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   return (
     <div className="space-y-4">
       <p className="text-sm text-[#475569] leading-relaxed">
-        Pick the package that fits. Most people start with Foundational Health; Check-in is for follow-up rounds; Self Check-in is free and remote.
+        {t("acc.book.pkg-lede", "Veldu pakkann sem hentar. Flestir byrja á grunnskoðun; endurmat er fyrir eftirfylgd og sjálfsmat er ókeypis og fer fram á netinu.")}
       </p>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {PACKAGES.map((p) => {
@@ -730,22 +724,22 @@ function PackageStage({
               type="button"
               onClick={() => onSelect(p.key)}
               className={`relative overflow-hidden rounded-2xl border-2 bg-white shadow-sm text-left transition-all ${
-                isSelected ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-200 hover:border-gray-300"
+                isSelected ? "border-hc-brand-dark ring-2 ring-emerald-100" : "border-slate-200 hover:border-hc-control"
               }`}
             >
               <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${p.accent}`} />
               <div className="p-5">
                 <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 mb-3">{p.tag}</div>
-                <h3 className="text-lg font-bold text-[#0F172A]">{p.name}</h3>
+                <h3 className="text-lg font-bold text-[#0F172A]">{packageView(p.key, locale).name}</h3>
                 <div className="mt-2 flex items-baseline gap-1.5">
                   <span className="text-2xl font-bold text-[#0F172A]">
-                    {p.priceIsk === 0 ? "Free" : p.priceIsk.toLocaleString("is-IS")}
+                    {p.priceIsk === 0 ? t("acc.pkg.free", "Ókeypis") : p.priceIsk.toLocaleString("is-IS")}
                   </span>
                   {p.priceIsk > 0 && <span className="text-xs font-medium text-[#64748B]">kr. · eitt skipti</span>}
                 </div>
-                <p className="text-sm text-[#475569] mt-2 leading-relaxed">{p.summary}</p>
+                <p className="text-sm text-[#475569] mt-2 leading-relaxed">{packageView(p.key, locale).desc}</p>
                 <ul className="mt-3 space-y-1">
-                  {p.includes.map((x) => (
+                  {packageView(p.key, locale).includes.map((x) => (
                     <li key={x} className="flex items-start gap-1.5 text-xs text-[#334155]">
                       <svg className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${p.dot}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -764,7 +758,7 @@ function PackageStage({
           type="button"
           onClick={onÁfram}
           disabled={!selected}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95"
+          className={buttonClass("primary")}
         >
           {t("acct.continue", "Áfram")}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -801,12 +795,12 @@ function TímasetningStage({
   onBack: () => void;
   onÁfram: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [slots, setSlots] = useState<StationSlotRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(needsVisit);
 
   useEffect(() => {
-    if (!needsVisit) { setLoading(false); return; }
+    if (!needsVisit) return;
     (async () => {
       const nowIso = new Date().toISOString();
       const { data } = await supabase
@@ -860,7 +854,7 @@ function TímasetningStage({
             {grouped.map(([day, daySlots]) => (
               <div key={day}>
                 <div className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-2">
-                  {new Date(day + "T00:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
+                  {fmtDate(day, { weekday: true, year: false }, locale)}
                 </div>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {daySlots.map((s) => {
@@ -874,7 +868,7 @@ function TímasetningStage({
                           selected ? "border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200" : "border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50/40"
                         }`}
                       >
-                        <div>{new Date(s.slot_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
+                        <div>{fmtTime(s.slot_at)}</div>
                         <div className="text-[10px] text-gray-500">{s.duration_minutes} min</div>
                       </button>
                     );
@@ -886,7 +880,7 @@ function TímasetningStage({
               <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-sm text-blue-900">
                 Selected:{" "}
                 <strong>
-                  {new Date(selectedSlotAt).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}
+                  {fmtDateTime(selectedSlotAt, { weekday: "short" }, locale)}
                 </strong>
               </div>
             )}
@@ -915,7 +909,7 @@ function TímasetningStage({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm"
+          className={buttonClass("secondary")}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -926,7 +920,7 @@ function TímasetningStage({
           type="button"
           onClick={onÁfram}
           disabled={!canÁfram}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95"
+          className={buttonClass("primary")}
         >
           {t("acct.q.review", "Yfirlit")}
         </button>
@@ -1075,7 +1069,7 @@ function GrantStage({
           type="button"
           onClick={onBack}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm disabled:opacity-50"
+          className={buttonClass("secondary")}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -1095,7 +1089,7 @@ function GrantStage({
             type="button"
             onClick={onÁfram}
             disabled={saving || !picked || (isLive && (!ktValid || !consent))}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={buttonClass("primary")}
           >
             {saving && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             {saving ? t("acct.book.registering", "Skrái…") : t("acct.continue", "Áfram")}
@@ -1132,20 +1126,20 @@ function ReviewStage({
   onÁfram: () => void;
   error: string | null;
 }) {
-  const { t, tv } = useI18n();
+  const { t, tv, locale } = useI18n();
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
       <h2 className="text-lg font-semibold text-[#0F172A]">{t("acct.book.review", "Farðu yfir bókunina")}</h2>
 
       <div className="rounded-xl border border-gray-100 bg-[#f8fafc] p-4 space-y-2 text-sm">
-        <Row label="Package" value={pkg.name} />
+        <Row label={t("acc.book.st-package", "Pakki")} value={packageView(pkg.key, locale).name} />
         {needsVisit && selectedSlotAt && (
           <Row
             label="When"
-            value={new Date(selectedSlotAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
+            value={fmtDateTime(selectedSlotAt, { weekday: true, year: true }, locale)}
           />
         )}
-        {needsVisit && <Row label="Where" value={selectedLocation || t("acct.book.station", "Lifeline station, Reykjavík")} />}
+        {needsVisit && <Row label={t("acc.book.where", "Staður")} value={selectedLocation || t("acct.book.station", "Lifeline station, Reykjavík")} />}
         <Row label="Name" value={fullName || "—"} />
         <Row label="Email" value={email} />
         {notes && <Row label="Notes" value={notes} />}
@@ -1189,7 +1183,7 @@ function ReviewStage({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm"
+          className={buttonClass("secondary")}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -1199,7 +1193,7 @@ function ReviewStage({
         <button
           type="button"
           onClick={onÁfram}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95"
+          className={buttonClass("primary")}
         >
           {pkg.priceIsk > 0 ? t("acct.book.topayment", "Áfram í greiðslu") : "Confirm"}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1275,7 +1269,7 @@ function PayStage({
           type="button"
           onClick={onBack}
           disabled={paying}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className={buttonClass("secondary")}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -1286,7 +1280,7 @@ function PayStage({
           type="button"
           onClick={onPay}
           disabled={paying}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60"
+          className={buttonClass("primary")}
         >
           {paying && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
           {paying ? t("acct.book.processing", "Vinn úr…") : `Pay ${payableIsk.toLocaleString("is-IS")} ISK`}
@@ -1306,9 +1300,9 @@ function DoneStage({
   selectedSlotAt: string | null;
   selectedLocation: string | null;
 }) {
-  const { t } = useI18n();
+  const { t, tv, locale } = useI18n();
   const when = selectedSlotAt
-    ? new Date(selectedSlotAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false })
+    ? fmtDateTime(selectedSlotAt, { weekday: true }, locale)
     : "";
   return (
     <div className="relative overflow-hidden rounded-2xl shadow-sm bg-white p-8 sm:p-10 text-center">
@@ -1321,13 +1315,13 @@ function DoneStage({
       <h2 className="text-2xl font-bold text-[#0F172A]">{t("acct.book.done", "Bókunin er frágengin.")}</h2>
       <p className="text-sm text-[#475569] mt-2 max-w-md mx-auto leading-relaxed">
         {needsVisit
-          ? `See you at ${selectedLocation || "the Lifeline station"} on ${when}. We'll email you a reminder the day before.`
-          : `Your ${pkg.name} is ready. Start the questionnaire from your dashboard whenever you're ready.`}
+          ? tv("acc.book.done-visit", "Sjáumst á {{where}}, {{when}}. Við sendum þér áminningu í tölvupósti daginn áður.", { where: selectedLocation || t("acc.book.station-is", "mælingastöð Lifeline"), when: when ?? "" })
+          : tv("acc.book.done-self", "{{pkg}} er tilbúið. Byrjaðu á spurningalistanum á Mínum síðum þegar þér hentar.", { pkg: packageView(pkg.key, locale).name })}
       </p>
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
         <a
           href="/account"
-          className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 shadow-sm"
+          className={buttonClass("primary")}
         >
           {t("acct.book.tooverview", "Fara á yfirlitið")}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -6,11 +6,12 @@
 // portal, workstation). Backed by /api/hc/*.
 
 import * as cache from "@/lib/hc/client-cache";
-import { hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { hcBtn, hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { ensureSignupConsentRecorded } from "@/lib/signup-consent";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import SettingsCard from "@/app/components/hc/SettingsCard";
 import OnboardingPlayer from "@/app/components/hc/OnboardingPlayer";
@@ -22,8 +23,8 @@ import RetentionReview from "@/app/components/hc/RetentionReview";
 import JourneyNav from "@/app/components/hc/JourneyNav";
 import ProfileForm, { ConsentBox } from "@/app/components/hc/ProfileForm";
 import Paywall from "@/app/components/hc/Paywall";
-import SetupFlow from "@/app/components/hc/SetupFlow";
-import TrackChoice from "@/app/components/hc/TrackChoice";
+import NextStepCard from "@/app/components/hc/NextStepCard";
+import StepHeader from "@/app/components/hc/StepHeader";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
@@ -95,11 +96,26 @@ function Heilsuferd() {
   const [error, setError] = useState("");
   const [open, setOpen] = useState<StepKey | null>(null);
   const [noJourney, setNoJourney] = useState(false);
+  /* What the server said when there was no journey yet: whether this is a
+     B2B employee and which route /byrja recorded. Read once, in the effect
+     below, to decide whether anything still has to be asked. */
+  const startInfo = useRef<{ b2b: boolean; start_track: "check" | "coach" | null } | null>(null);
+  /* "choose" only when neither /byrja nor an employer has decided the
+     route; otherwise the journey is created and the route applied at once. */
+  const [choosing, setChoosing] = useState(false);
 
   const load = useCallback(async (fresh = false): Promise<JourneyData | null> => {
     const url = `/api/hc/journey${stadur ? `?stadur=${encodeURIComponent(stadur)}` : startParam ? "?start=1" : ""}`;
     const show = (j: JourneyData) => {
-      if (!j.journey) { setNoJourney(true); return false; }
+      if (!j.journey) {
+        const raw = j as unknown as { b2b?: boolean; start_track?: string | null };
+        startInfo.current = {
+          b2b: !!raw.b2b,
+          start_track: raw.start_track === "coach" || raw.start_track === "check" ? raw.start_track : null,
+        };
+        setNoJourney(true);
+        return false;
+      }
       setNoJourney(false);
       if (j.plan && !showJourney) { router.replace("/app/aaetlun"); return false; }
       setData(j);
@@ -128,19 +144,69 @@ function Heilsuferd() {
     if (next) setTimeout(() => document.getElementById(`step-${next}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }, [load]);
 
+  /** Create the journey, with its route applied in the same request. */
+  const startJourney = useCallback(async (track: "check" | "coach" | null) => {
+    const qs = new URLSearchParams({ start: "1" });
+    if (stadur) qs.set("stadur", stadur);
+    if (track) qs.set("track", track);
+    await api(`/api/hc/journey?${qs.toString()}`).catch(() => null);
+    setChoosing(false);
+    await load(true);
+  }, [stadur, load]);
+
+  /* Stable, because the player refetches when it changes. */
+  const onboardingFinished = useCallback(() => {
+    void load(true).then((j) => {
+      /* The coaching track has no workup to follow: its next thing is the
+         plan, and that page knows how to start one. Redirected before the
+         journey page renders, so it does not flash past. */
+      if (j && (j.journey.entry === "coach" || j.journey.entry === "app") && !j.plan && !showJourney) {
+        router.replace("/app/aaetlun");
+        return;
+      }
+      setOnboarded(true);
+    });
+  }, [load, router, showJourney]);
+
   useEffect(() => {
     (async () => {
       const { data: s } = await supabase.auth.getSession();
       if (!s.session) { setAuthed(false); return; }
       if (!s.session.user.email_confirmed_at) { router.replace("/account/login?verify=1"); return; }
       setAuthed(true);
-      await load();
+      /* The /byrja clickwrap, copied onto the clients row server side.
+         Fire-and-forget: it never throws and skips itself once done. */
+      void ensureSignupConsentRecorded();
+      const j = await load();
+      if (j) return;
+      /* No journey yet. The route is already known for almost everybody —
+         /byrja asked it, or an employer paid for the check — so the journey
+         is made with it straight away. Only somebody who arrived some other
+         way, with nothing recorded, is asked. */
+      const info = startInfo.current;
+      if (!info) return;
+      if (info.b2b) await startJourney("check");
+      else if (info.start_track) await startJourney(info.start_track);
+      else setChoosing(true);
     })();
-  }, [load, router]);
+  }, [load, router, startJourney]);
 
   if (authed === false) return <FirstStep stadur={stadur} />;
 
-  /* A published onboarding flow runs before the journey does.
+  if (choosing) return <ChooseRoute onChoose={startJourney} />;
+
+  /* Until the journey exists there is nothing for the player to key its
+     flow on (the track decides which flow and which screens). */
+  if (!data && !error) {
+    return (
+      <Shell>
+        <div className="grid min-h-[50vh] place-items-center text-sm text-hc-ink-2">Hleð…</div>
+      </Shell>
+    );
+  }
+
+  /* A published onboarding flow runs after the journey is created and
+     before its page is shown.
      OnboardingPlayer renders nothing when there is no flow, when this person
      has finished it, or when the fetch fails — so the app is never behind a
      screen that cannot load. That is deliberate: onboarding which can strand
@@ -149,12 +215,18 @@ function Heilsuferd() {
   if (!onboarded) {
     return (
       <Shell>
-        <OnboardingPlayer api={api} onFinished={() => { setOnboarded(true); void load(true); }} />
+        <OnboardingPlayer api={api} onFinished={onboardingFinished} />
       </Shell>
     );
   }
 
-  if (noJourney) return <StartJourney onStarted={() => void load(true)} />;
+  if (noJourney) {
+    return (
+      <Shell>
+        <div className="grid min-h-[50vh] place-items-center text-sm text-hc-ink-2">Augnablik…</div>
+      </Shell>
+    );
+  }
 
   if (!data) {
     return (
@@ -164,8 +236,15 @@ function Heilsuferd() {
     );
   }
 
-  const done = data.steps.filter((s) => s.state === "done" && !s.optional).length;
-  const required = data.steps.filter((s) => !s.optional).length;
+  const coaching = data.journey.entry === "coach" || data.journey.entry === "app";
+  /* The ring counts what the participant does. The account is made before
+     they arrive here, and on the health check the report and the plan are
+     ours — counting them made the ring stall for weeks at a time on steps
+     nobody could act on. */
+  const isOurs = (k: StepKey) => !coaching && OURS_KEYS.has(k);
+  const mine = data.steps.filter((s) => !s.optional && s.key !== "account" && !isOurs(s.key));
+  const done = mine.filter((s) => s.state === "done").length;
+  const required = mine.length;
   const current = data.steps.find((s) => s.state === "current");
   // The step being worked on, unless the customer has picked another.
   const shownStep = data.steps.find((x) => x.key === open)
@@ -179,7 +258,7 @@ function Heilsuferd() {
   const next = upcomingAppointments(data.journey, data.location)[0] ?? null;
   // Steps where the next move is Lifeline's, not the participant's.
   const jj = data.journey;
-  const ours = !!current && (
+  const ours = !coaching && !!current && (
     current.key === "report"
     || current.key === "plan"
     || (current.key === "interview" && !jj.interview_booked_for)
@@ -191,30 +270,13 @@ function Heilsuferd() {
     <Shell>
       {/* sm:mb-4 — on a phone JourneyNav draws nothing here (its bar is
           fixed to the bottom), so the margin was 16px of nothing. */}
-      {data.plan && <div className="sm:mb-4"><JourneyNav active="journey" /></div>}
+      {(data.plan || coaching) && <div className="sm:mb-4"><JourneyNav active="journey" /></div>}
       {/* First thing on the page: a report somebody else entered is not
           shown anywhere until the person says it is theirs. */}
       <div className="mb-4"><ReportApproval api={api} onDone={() => load(true)} /></div>
       <RetentionReview api={api} onDone={() => load(true)} />
       {next && <div className="mb-4"><AppointmentCard a={next} /></div>}
       {data.profile.complete && data.profile.health_consent === false && <ConsentCard reload={() => load(true)} />}
-      {/* Which journey this is, while the choice is still free.
-          Hidden once anything is paid for — after that the money has
-          decided and a card offering to change it would be lying — and
-          hidden on the coaching track, where it has been answered. A B2B
-          employee never sees it either: their employer bought the check,
-          so "bara þjálfunin" is not theirs to pick. */}
-      {!data.journey.paid_at
-        && data.journey.entry !== "coach"
-        && data.journey.entry !== "b2b"
-        && !data.plan
-        && <TrackChoice api={api}
-             onDone={async () => { await load(true); }}
-             /* The uploader already lives in the tests step, which knows
-                how to record a report somebody brought themselves
-                (own_report_at). Opening that step beats a second copy of
-                it here. */
-             onUpload={() => setOpen("tests")} />}
       {/* Hero: where you are, in one glance, and the one thing to do next. */}
       <section className={`${hcCard.hero} overflow-hidden p-6 sm:p-8`}>
         <div className="flex items-center gap-5">
@@ -273,25 +335,67 @@ function Heilsuferd() {
             It opens on the current step, which is the only one that is ever
             the answer to "what now". */}
         <div className="min-w-0 space-y-4">
-          {/* The map. Compact, scrollable, every step reachable — somebody
-              who wants to re-read what the interview involves should not
-              have to walk back through four screens. */}
-          <div className="flex gap-1.5 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {data.steps.map((st) => {
+          {/* The map: four phases rather than twelve chips. Twelve read as
+              twelve errands, half of which were ours or a year away. The
+              phase is what somebody actually wants to know ("where am I?");
+              its steps are listed underneath, and the ones that are ours to
+              do are grouped as such so nobody waits on themselves. */}
+          {(() => {
+            const phases = PHASES
+              .map((ph) => ({ ...ph, steps: data.steps.filter((st) => ph.keys.includes(st.key)) }))
+              .filter((ph) => ph.steps.length);
+            const activePhase = phases.find((ph) => ph.steps.some((st) => st.key === shownStep?.key)) ?? phases[0];
+            const theirs = activePhase?.steps.filter((st) => !isOurs(st.key)) ?? [];
+            const ourSteps = activePhase?.steps.filter((st) => isOurs(st.key)) ?? [];
+            const pill = (st: JourneyStep) => {
               const on = st.key === shownStep?.key;
               return (
-                <button key={st.key} type="button" onClick={() => setOpen(st.key)}
-                  aria-pressed={on}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                <button key={st.key} type="button" onClick={() => setOpen(st.key)} aria-pressed={on}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
                     on ? "bg-hc-brand-dark text-white"
-                      : st.state === "done" ? "bg-hc-brand/10 text-hc-brand-text ring-1 ring-hc-brand/30"
-                      : "bg-hc-surface text-hc-ink-3 ring-1 ring-slate-200 hover:bg-hc-sunken"}`}>
+                      : st.state === "done" ? "text-hc-brand-text hover:bg-hc-sunken"
+                      : "text-hc-ink-3 hover:bg-hc-sunken"}`}>
                   {st.state === "done" && !on && <CheckIcon />}
                   {STEP_SHORT[st.key]}
                 </button>
               );
-            })}
-          </div>
+            };
+            return (
+              <div>
+                <ol className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${phases.length}, minmax(0, 1fr))` }}>
+                  {phases.map((ph) => {
+                    const on = ph.title === activePhase?.title;
+                    const req = ph.steps.filter((st) => !st.optional);
+                    const allDone = req.length > 0 && req.every((st) => st.state === "done");
+                    const here = ph.steps.some((st) => st.state === "current");
+                    return (
+                      <li key={ph.title} className="min-w-0">
+                        <button type="button" aria-pressed={on}
+                          onClick={() => setOpen((ph.steps.find((st) => st.state === "current") ?? ph.steps.find((st) => st.state !== "done") ?? ph.steps[0]).key)}
+                          className="w-full text-left">
+                          <span className={`block h-1.5 rounded-full ${allDone ? "bg-hc-brand-dark" : here ? "bg-hc-brand/60" : "bg-hc-sunken-2"}`} />
+                          <span className={`mt-1.5 block truncate text-xs font-bold ${on ? "text-hc-ink" : "text-hc-ink-3"}`}>
+                            {ph.title}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
+                {(theirs.length > 1 || ourSteps.length > 0) && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1">
+                    {theirs.map(pill)}
+                    {ourSteps.length > 0 && (
+                      <>
+                        <span className="ml-1 text-[11px] font-bold uppercase tracking-wide text-hc-ink-3">Á okkar könnu:</span>
+                        {ourSteps.map(pill)}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {shownStep && (() => {
             const idx = data.steps.findIndex((x) => x.key === shownStep.key);
@@ -299,10 +403,10 @@ function Heilsuferd() {
             const nextStep = idx < data.steps.length - 1 ? data.steps[idx + 1] : null;
             const phase = PHASES.find((ph) => ph.keys.includes(shownStep.key));
             return (
-              <section className={`${hcCard.base} p-5 sm:p-6`}>
+              <section className={`${shownStep.state === "current" ? hcCard.raised : hcCard.base} p-5 sm:p-6`}>
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <p className={`${hcKicker} text-hc-ink-3`}>
-                    {phase?.title}{" · "}Skref {idx + 1} af {data.steps.length}
+                    {phase?.title}{isOurs(shownStep.key) ? " · Á okkar könnu" : ""}
                   </p>
                   {shownStep.state === "done" && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-hc-brand/10 px-2.5 py-0.5 text-xs font-bold text-hc-brand-text">
@@ -331,7 +435,7 @@ function Heilsuferd() {
                   ) : <span />}
                   {nextStep ? (
                     <button type="button" onClick={() => setOpen(nextStep.key)}
-                      className="inline-flex min-w-0 items-center gap-1 rounded-full bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white">
+                      className="inline-flex min-h-11 min-w-0 items-center gap-1 rounded-hc-element bg-hc-brand-dark px-4 text-sm font-semibold text-white">
                       <span className="truncate">{STEP_SHORT[nextStep.key]}</span> →
                     </button>
                   ) : <span />}
@@ -339,6 +443,9 @@ function Heilsuferd() {
               </section>
             );
           })()}
+
+          {/* One optional thing at a time, once the required details are in. */}
+          {data.profile.complete && <NextStepCard api={api} entry={data.journey.entry} />}
         </div>
 
         {/* Side */}
@@ -375,10 +482,13 @@ function Heilsuferd() {
 /** The journey's phases: the steps grouped the way people think about them. */
 const PHASES: { title: string; keys: StepKey[] }[] = [
   { title: "Undirbúningur", keys: ["account", "profile", "welcome", "package"] },
-  { title: "Heilsufarsskoðun", keys: ["tests", "upload", "report"] },
+  { title: "Skoðun", keys: ["tests", "upload", "report"] },
   { title: "Viðtal og áætlun", keys: ["interview", "plan"] },
-  { title: "Eftirfylgd", keys: ["followup", "reevaluation"] },
+  { title: "Eftirfylgd", keys: ["subscription", "followup", "reevaluation"] },
 ];
+
+/** On the health check, the steps where the next move is Lifeline's. */
+const OURS_KEYS = new Set<StepKey>(["report", "plan"]);
 
 const CheckIcon = () => (
   <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden><path fillRule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 111.4-1.4l3.8 3.8 6.8-6.8a1 1 0 011.4 0z" clipRule="evenodd" /></svg>
@@ -430,119 +540,47 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 // ── Step 1 when logged out ─────────────────────────────────────────────────
 
-/** Signed in, no journey yet: starting one is a choice, not a side effect of looking. */
 /**
- * What this is going to be, asked before anything is committed to.
+ * The route, for the few who arrive without one.
  *
- * This was a hero for the health check and one button, so the only question
- * a new account was asked is whether it wanted the thing we had decided to
- * sell it. Somebody who came for the coaching had to start a health check to
- * find out the coaching existed — TrackChoice offers exactly that choice,
- * but only renders once a journey is already underway, which is after the
- * decision it is asking about.
- *
- * Two routes, because there are two products:
- *
- *   Heilsufarsskoðun   measurements, bloods, a doctor's reading, a plan.
- *                      Booked through Medalia.
- *   Þjálfun í appinu   sleep, food, movement, mind — daily, no workup.
- *
- * The third door stays, quietly: somebody who already holds a report should
- * not be sold the tests again, and that path (own_report_at) is built and
- * works. It is a line rather than a card because it is the rarer case.
+ * /byrja asks this and stores it, and an employer-paid check decides it, so
+ * almost nobody sees this screen — it is for an account made some other way.
+ * Two cards, one line each, one tap: the same two routes /byrja names, in
+ * the same words, so the choice reads as one product wherever it is made.
+ * Either can be changed later under Stillingar → „Skipta um leið“.
  */
-function StartJourney({ onStarted }: { onStarted: () => void }) {
+function ChooseRoute({ onChoose }: { onChoose: (track: "check" | "coach") => Promise<void> }) {
   const [busy, setBusy] = useState<"check" | "coach" | null>(null);
-
-  /* Somebody who came through /byrja already answered this. Asking again on
-     arrival would make the question they just answered look like it was not
-     listened to. */
-  useEffect(() => {
-    const t = setTimeout(async () => {
-      const { data } = await supabase.auth.getSession();
-      const chosen = data.session?.user?.user_metadata?.start_track;
-      if (chosen === "check" || chosen === "coach") void begin(chosen);
-    }, 0);
-    return () => clearTimeout(t);
-    // begin is stable for the life of this component.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /* Both routes create the journey the same way; they differ in the track
-     recorded on it. Done in one step from here so the choice is the first
-     thing that happens, not something corrected afterwards. */
-  const begin = async (track: "check" | "coach") => {
-    setBusy(track);
-    await api("/api/hc/journey?start=1").catch(() => null);
-    if (track === "coach") {
-      await api("/api/hc/journey", {
-        method: "POST",
-        body: JSON.stringify({ action: "choose_track", track: "coach" }),
-      }).catch(() => null);
-    }
+  const pick = async (t: "check" | "coach") => {
+    setBusy(t);
+    await onChoose(t);
     setBusy(null);
-    onStarted();
   };
-
+  const routes = [
+    { key: "check" as const, title: "Heilsufarsskoðun",
+      line: "Mælingar, blóðprufa og viðtal við hjúkrunarfræðing — áætlun út frá þínum tölum." },
+    { key: "coach" as const, title: "Þjálfun í appinu",
+      line: "Æfingar, næring og svefn frá fyrsta degi, án mælinga." },
+  ];
   return (
     <Shell>
-      <section className={`${hcCard.hero} p-6 sm:p-8`}>
-        <p className={`${hcKicker} text-emerald-300`}>Lifeline</p>
-        <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Hvað viltu byrja á?</h1>
-        <p className="mt-2 max-w-2xl text-emerald-100">
-          Þú getur byrjað á heilsufarsskoðun eða farið beint í þjálfunina. Hvort tveggja er hægt síðar —
-          þú ert ekki að loka neinni leið.
+      <div className="mx-auto max-w-xl">
+        <StepHeader n={1} total={2} />
+        <h1 className="text-2xl font-bold leading-tight text-hc-ink">Hvernig viltu byrja?</h1>
+        <p className="mt-1.5 text-sm text-hc-ink-2">Þú getur skipt um leið síðar í stillingum.</p>
+        <div className="mt-5 space-y-3">
+          {routes.map((r) => (
+            <button key={r.key} type="button" disabled={!!busy} onClick={() => void pick(r.key)}
+              className="flex min-h-11 w-full flex-col rounded-2xl border-2 border-transparent bg-hc-surface p-4 text-left shadow-sm transition hover:border-hc-control disabled:opacity-60">
+              <span className="font-bold text-hc-ink">{busy === r.key ? "Augnablik…" : r.title}</span>
+              <span className="mt-1 text-sm leading-relaxed text-hc-ink-2">{r.line}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-hc-ink-3">
+          Ertu þegar með skýrslu frá Lifeline? Veldu heilsufarsskoðun og settu hana inn í skrefinu „Settu skýrsluna inn“.
         </p>
-      </section>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <article className="flex flex-col rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-hairline">
-          <h2 className="font-bold text-hc-ink">Heilsufarsskoðun</h2>
-          <p className="mt-1 flex-1 text-sm leading-relaxed text-hc-ink-2">
-            Mælingar og blóðprufa, skýrsla sem læknir fer yfir, viðtal við hjúkrunarfræðing og
-            aðgerðaáætlun til þriggja mánaða. Tímar bókast í Medalia.
-          </p>
-          <ul className="mt-3 space-y-1 text-sm text-hc-ink-2">
-            <li>· Líkamssamsetning, þrek og styrkur</li>
-            <li>· Blóðprufa og læknisyfirferð</li>
-            <li>· Áætlun út frá þínum tölum</li>
-          </ul>
-          <button type="button" onClick={() => void begin("check")} disabled={!!busy}
-            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-hc-element bg-hc-brand-dark px-5 font-bold text-white transition hover:bg-emerald-800 disabled:opacity-50">
-            {busy === "check" ? "Augnablik…" : "Hefja heilsufarsskoðun"}
-          </button>
-        </article>
-
-        <article className="flex flex-col rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-hc-hairline">
-          <h2 className="font-bold text-hc-ink">Þjálfun í appinu</h2>
-          <p className="mt-1 flex-1 text-sm leading-relaxed text-hc-ink-2">
-            Dagleg þjálfun í svefni, næringu, hreyfingu og andlegri líðan — án mælinga til að byrja með.
-            Þú færð áætlun og getur náð í þjálfarann þinn.
-          </p>
-          <ul className="mt-3 space-y-1 text-sm text-hc-ink-2">
-            <li>· Æfingar og máltíðir sem passa þér</li>
-            <li>· Dagleg skref og eftirfylgd</li>
-            <li>· Skilaboð við þjálfara</li>
-          </ul>
-          <button type="button" onClick={() => void begin("coach")} disabled={!!busy}
-            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-hc-element bg-hc-brand-dark px-5 font-bold text-white transition hover:bg-emerald-800 disabled:opacity-50">
-            {busy === "coach" ? "Augnablik…" : "Byrja í þjálfun"}
-          </button>
-        </article>
       </div>
-
-      {/* The rarer case, kept reachable. */}
-      <p className="mt-4 text-center text-sm text-hc-ink-2">
-        Ertu þegar með niðurstöður?{" "}
-        <button type="button" onClick={() => void begin("check")} disabled={!!busy}
-          className="font-semibold text-hc-brand-text underline">
-          Byrjaðu hér og settu skýrsluna inn
-        </button>
-      </p>
-
-      <p className="mt-4 text-center text-sm">
-        <Link href="/app/adgangur" className="text-hc-ink-2 underline">Stillingar</Link>
-      </p>
     </Shell>
   );
 }
@@ -550,18 +588,17 @@ function StartJourney({ onStarted }: { onStarted: () => void }) {
 function FirstStep({ stadur }: { stadur: string }) {
   const next = `/app${stadur ? `?stadur=${encodeURIComponent(stadur)}` : ""}`;
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-white via-[#f0fdf4] to-[#dcfce7] px-4 py-16">
+    <div className={`flex min-h-screen items-center justify-center px-4 py-16 ${hcPage.participant}`}>
       <div className="w-full max-w-md text-center">
         <LifelineLogo size="lg" />
-        <h1 className="mt-6 text-2xl font-bold text-[#0F172A]">Taktu fyrsta skrefið</h1>
-        <p className="mt-2 text-hc-ink-2">Stofnaðu frían aðgang og sjáðu valmöguleikana þína þaðan.</p>
+        <h1 className="mt-6 text-2xl font-bold text-hc-ink">Taktu fyrsta skrefið</h1>
+        <p className="mt-2 text-hc-ink-2">Þrjár stuttar spurningar og frír aðgangur. Þú sérð hvað þér stendur til boða áður en þú skráir þig.</p>
         <div className="mt-6 space-y-3">
-          <Link href={`/account/login?mode=signup&next=${encodeURIComponent(next)}`}
-            className="block rounded-full bg-[#10B981] px-6 py-3 font-semibold text-white shadow-lg shadow-green-500/25 hover:bg-[#047857]">
-            Stofna frían aðgang
+          <Link href="/byrja" className={`${hcBtn.cta} w-full`}>
+            Byrja
           </Link>
           <Link href={`/account/login?next=${encodeURIComponent(next)}`} className="block text-sm font-medium text-hc-ink-2 hover:text-hc-ink">
-            Ég á nú þegar aðgang
+            Ég á nú þegar aðgang — skrá inn
           </Link>
         </div>
       </div>
@@ -610,7 +647,7 @@ function InterviewBooking({ j, portal }: { j: HcJourney; portal: string }) {
   }
   return (
     <a href={portal} target="_blank" rel="noreferrer"
-      className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white">
+      className={hcBtn.cta}>
       Bóka viðtal í sjúklingagátt
     </a>
   );
@@ -692,11 +729,13 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
        * whether they come back to be found later, or never. They are
        * offered here, at the first step they actually do.
        */
+      /* Only the details this route needs: a name on the coaching track,
+         the kennitala and the rest for the health check, with the explicit
+         Art. 9 consent box either way. The optional setup (reminder,
+         calendar, partner, coach) comes afterwards, one card at a time. */
       return (
-        <div className="space-y-5">
-          <ProfileForm data={data} reload={reload} api={api} />
-          <SetupFlow api={api} />
-        </div>
+        <ProfileForm data={data} reload={reload} api={api}
+          track={j.entry === "coach" || j.entry === "app" ? "app" : "care"} />
       );
     case "welcome":
       return <WelcomeStep data={data} />;
@@ -733,7 +772,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           {!healthOrder ? <p>Virkjunarkóðinn birtist hér eftir greiðslu.</p> : (
             <>
               <p>
-                Heilsufarsskoðunin fer fram í sjúklingagáttinni, þar sem heilbrigðisgögnin þín eru
+                Heilsufarsskoðunin fer fram í sjúklingagáttinni (Medalia), þar sem heilbrigðisgögnin þín eru
                 varðveitt. Þrennt þarf að gerast og þú ræður röðinni á tvennu af því.
               </p>
 
@@ -798,7 +837,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
             <>
               <p>
                 Heilsufarsskoðunin sjálf fer fram í sjúklingagáttinni. Þegar niðurstöðurnar eru
-                komnar sækir þú Grunnheilsa-skýrsluna þangað og setur PDF-skjalið hér inn.
+                komnar sækir þú Grunnheilsa-skýrsluna (PDF-skjal) þangað og setur hana hér inn.
               </p>
               {/* The location's own portal where it has one, which is what
                   the rest of this page already uses. */}
@@ -827,7 +866,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
             ? (
               <div className="flex flex-wrap gap-2">
                 <Link href="/app/aaetlun?tab=report" className="inline-flex min-h-10 items-center rounded-full border border-slate-300 bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">Skoða niðurstöðurnar</Link>
-                {!data.plan && <Link href="/app/aaetlun?breyta=1" className="inline-flex min-h-10 items-center rounded-full bg-hc-brand px-4 font-semibold text-white hover:bg-hc-brand-dark">Búa til áætlun sjálf(ur)</Link>}
+                {!data.plan && <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Búa til áætlun sjálf(ur)</Link>}
               </div>
             )
             : <ReportUpload api={api} onDone={() => void reload()} />}
@@ -843,7 +882,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
                 <p>Bókað: <strong>{fmtDateTime(j.interview_booked_for)}</strong>{j.interview_mode === "video" ? " · myndsímtal" : loc?.interview_site ? ` · ${loc.interview_site}` : ""}</p>
                 {j.meeting_url && (
                   <a href={j.meeting_url} target="_blank" rel="noreferrer"
-                    className="mt-1.5 inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-[#10B981] px-3 text-sm font-semibold text-white hover:bg-[#047857]">
+                    className={`${hcBtn.cta} mt-1.5`}>
                     Fara í fjarfundinn
                   </a>
                 )}
@@ -858,18 +897,27 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           <div className="space-y-3 text-sm">
             <p className="text-hc-ink-2"><strong>{data.plan.headline || "Aðgerðaáætlunin þín"}</strong>{data.plan.review_date ? ` · endurmat ${fmtDate(data.plan.review_date)}` : ""}</p>
             <div className="flex flex-wrap gap-2">
-              <Link href="/app/aaetlun" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">Opna áætlunina</Link>
+              <Link href="/app/aaetlun" className={hcBtn.cta}>Opna áætlunina</Link>
               <Link href="/app/aaetlun?breyta=1" className="inline-block rounded-full border border-slate-300 bg-hc-surface px-5 py-2.5 font-semibold text-hc-ink-2 hover:bg-hc-sunken">Breyta áætluninni</Link>
             </div>
           </div>
         )
         : (
+          j.entry === "coach" || j.entry === "app" ? (
+            /* The coaching track has no interview: the plan is theirs to put
+               together, so this step is a button, not a wait. */
+            <div className="space-y-3 text-sm text-hc-ink-2">
+              <p>Veldu venjur og æfingar úr safninu. Þú getur breytt áætluninni hvenær sem er.</p>
+              <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Settu saman áætlunina þína</Link>
+            </div>
+          ) : (
           <div className="space-y-3 text-sm text-hc-ink-2">
             <p>Hjúkrunarfræðingurinn gengur frá áætluninni eftir viðtalið. Hún birtist hér og þú færð tölvupóst.</p>
             {(j.report_generated_at || j.own_report_at) && (
-              <Link href="/app/aaetlun?breyta=1" className="inline-block rounded-full bg-hc-brand px-5 py-2.5 font-semibold text-white hover:bg-hc-brand-dark">Búa til áætlun sjálf(ur)</Link>
+              <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Búa til áætlun sjálf(ur)</Link>
             )}
           </div>
+          )
         );
     case "subscription":
       /*
@@ -903,7 +951,7 @@ function CompleteButton({ label, action, onDone }: { label: string; action: stri
           if (!r.ok) { setErr(j.error || "Tókst ekki."); return; }
           await onDone();
         }}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#10B981] px-5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+        className={hcBtn.cta}>
         <svg viewBox="0 0 16 16" className="h-4 w-4" aria-hidden><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         {busy ? "Augnablik…" : label}
       </button>
@@ -949,7 +997,7 @@ function ConsentCard({ reload }: { reload: () => Promise<unknown> }) {
           if (!r.ok) { setErr("Tókst ekki að vista. Reyndu aftur."); return; }
           await reload();
         }}
-        className="mt-3 rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+        className={`${hcBtn.cta} mt-3`}>
         {busy ? "Vistar…" : "Staðfesta samþykki"}
       </button>
     </section>
@@ -965,7 +1013,7 @@ function WelcomeStep({ data }: { data: JourneyData }) {
     <div className="space-y-3 text-sm text-hc-ink-2">
       <p>Stutt kynning á því sem framundan er og fjórum stoðum heilsu: svefni, hreyfingu, næringu og andlegri líðan.</p>
       {welcome
-        ? <Link href={`/app/fraedsla/${welcome.slug}`} className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">
+        ? <Link href={`/app/fraedsla/${welcome.slug}`} className={hcBtn.cta}>
             {welcome.completed_at ? "Horfa aftur" : "Horfa á kynninguna"}{welcome.duration_min ? ` · ${welcome.duration_min} mín.` : ""}
           </Link>
         : <p>Kynningin er væntanleg.</p>}
@@ -990,7 +1038,7 @@ function ContributionToggle({ on, onToggle, title, hint, disabled, children }: {
   return (
     <div className={`rounded-2xl border transition ${on ? "border-[#10B981] bg-emerald-50/40 ring-2 ring-[#10B981]/20" : "border-slate-200 bg-hc-surface"} ${disabled ? "opacity-50" : ""}`}>
       <button type="button" aria-pressed={on} disabled={disabled} onClick={onToggle} className="flex w-full items-start gap-3 p-4 text-left disabled:cursor-not-allowed">
-        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${on ? "border-[#10B981] bg-[#10B981] text-white" : "border-slate-300 bg-hc-surface"}`}>
+        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${on ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-slate-300 bg-hc-surface"}`}>
           {on && <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
         </span>
         <span><span className="block text-sm font-semibold text-hc-ink-2">{title}</span><span className="block text-xs text-hc-ink-3">{hint}</span></span>
@@ -1147,7 +1195,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
       </label>
       {info.eligibility_error && <p className="text-sm text-hc-warn-ink">{info.eligibility_error}</p>}
       {err && <p role="alert" className="text-sm text-red-600">{err}</p>}
-      <button type="button" onClick={pay} disabled={!canPay} className="w-full rounded-full bg-[#10B981] px-6 py-3 font-semibold text-white shadow-lg shadow-green-500/20 hover:bg-[#047857] disabled:opacity-40">
+      <button type="button" onClick={pay} disabled={!canPay} className={`${hcBtn.cta} w-full`}>
         {busy ? "Augnablik…" : q.chargedIsk > 0 ? `Greiða ${formatIsk(q.chargedIsk)}` : "Staðfesta"}
       </button>
     </div>
@@ -1197,7 +1245,7 @@ function TestStep({ kind, title, address, info, bookedFor, done, portal, reload 
       </div>
       {done ? <p className="text-hc-ok-ink">Lokið. Niðurstöður berast lækni sjálfkrafa.</p> : (
         <>
-          <a href={portal} target="_blank" rel="noreferrer" className="inline-block rounded-full bg-[#10B981] px-5 py-2.5 font-semibold text-white hover:bg-[#047857]">Bóka í sjúklingagátt</a>
+          <a href={portal} target="_blank" rel="noreferrer" className={hcBtn.cta}>Bóka í sjúklingagátt</a>
           <div className="flex flex-wrap items-end gap-2">
             <label className="text-xs font-medium text-hc-ink-2">
               Bókaður tími (fer í dagatalið þitt)
@@ -1254,7 +1302,7 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
               <p className="text-sm text-hc-ink-3">{p.description}</p>
             </div>
             <span className="font-semibold text-[#047857]">{formatIsk(p.price_isk)}</span>
-            <button onClick={() => setBuying(p.key)} className="rounded-full bg-[#10B981] px-4 py-2 text-sm font-semibold text-white hover:bg-[#047857]">Velja</button>
+            <button onClick={() => setBuying(p.key)} className={hcBtn.cta}>Velja</button>
           </div>
         ),
       )}
@@ -1321,7 +1369,7 @@ function ClaimsCard({ claims, reload }: { claims: JourneyData["claims"]; reload:
             <div className="mt-2 flex gap-2">
               <button type="button" onClick={() => download(c.order_id)} className="rounded-lg border border-slate-300 bg-hc-surface px-3 py-1.5 text-xs font-semibold">Sækja PDF</button>
               <button type="button" onClick={() => send(c.order_id, !!c.sent_at)} disabled={busy === c.order_id}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${c.sent_at ? "border border-slate-300 bg-hc-surface text-hc-ink-2" : "bg-[#10B981] text-white"}`}>
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${c.sent_at ? "border border-slate-300 bg-hc-surface text-hc-ink-2" : "bg-hc-brand-dark text-white"}`}>
                 {busy === c.order_id ? "Sendir…" : c.sent_at ? "Senda aftur" : "Senda á félagið"}
               </button>
             </div>

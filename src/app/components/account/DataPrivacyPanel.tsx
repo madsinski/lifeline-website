@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
+import { Alert, Button, Switch, accountInput, accountInset, useDialog } from "./ui";
 
 // ── Data & privacy panel (Settings) ──────────────────────────────────────
 
@@ -53,13 +54,14 @@ const DSR_OPTIONS = (t: (k: string, f?: string) => string) =>
 
 export default function DataPrivacyPanel({ userId }: { userId: string }) {
   const { t } = useI18n();
+  const { alert } = useDialog();
   const [biodyConsent, setBiodyConsent] = useState<boolean | null>(null);
   const [savingConsent, setSavingConsent] = useState(false);
   const [dsrType, setDsrType] = useState("");
   const [dsrDetails, setDsrDetails] = useState("");
   const [dsrSending, setDsrSending] = useState(false);
   const [dsrMsg, setDsrMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const dsrSelected = useMemo(() => DSR_OPTIONS(t).find((o) => o.value === dsrType) || null, [dsrType]);
+  const dsrSelected = useMemo(() => DSR_OPTIONS(t).find((o) => o.value === dsrType) || null, [dsrType, t]);
 
   useEffect(() => {
     (async () => {
@@ -90,7 +92,7 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
       if (!res.ok || !j.ok) throw new Error(j.error || t("comp.dp.consentfailed", "Ekki tókst að vista samþykkið"));
       setBiodyConsent(action === "grant");
     } catch (e) {
-      alert(t("comp.dp.savefailed", "Ekki tókst að vista valið: ") + (e as Error).message);
+      void alert({ title: t("comp.dp.savefailed-title", "Ekki tókst að vista valið"), body: (e as Error).message });
     } finally {
       setSavingConsent(false);
     }
@@ -124,50 +126,34 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="text-sm font-medium text-[#1F2937]">{t("comp.dp.title", "Gögn og persónuvernd")}</p>
-        <p className="text-xs text-[#6B7280]">{t("comp.dp.subtitle", "Stjórnaðu hvernig heilsufarsgögnin þín eru notuð hér")}</p>
-      </div>
+      <p className="text-sm text-hc-ink-2">{t("comp.dp.subtitle", "Stjórnaðu hvernig heilsufarsgögnin þín eru notuð hér")}</p>
 
       {/* Biody import consent */}
-      <div className="bg-[#F9FAFB] rounded-xl p-4">
+      <div id="privacy-biody" className={`${accountInset} scroll-mt-28 p-4`}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <p className="text-sm font-medium text-[#1F2937]">{t("comp.dp.showbiody", "Sýna Biody-líkamssamsetningu hér")}</p>
-            <p className="text-xs text-[#6B7280] mt-0.5">
-              {t("comp.dp.biodydesc", "Sækir niðurstöður Biody-mælinga inn á þetta yfirlit. Slökkt sjálfgefið. Sjúkraskráin í Medalia breytist ekki.")}
+            <p className="text-sm font-semibold text-hc-ink">{t("comp.dp.showbiody2", "Sýna líkamssamsetningu (Biody) hér")}</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-hc-ink-2">
+              {t("comp.dp.biodydesc2", "Sækir niðurstöður líkamssamsetningarmælinga frá Biody, samstarfsaðila okkar, inn á síðuna. Slökkt sjálfgefið. Sjúkraskráin í sjúklingagáttinni breytist ekki.")}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={toggleBiodyConsent}
-            disabled={savingConsent || biodyConsent === null}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              biodyConsent ? "bg-[#10B981]" : "bg-gray-300"
-            } ${savingConsent || biodyConsent === null ? "opacity-60" : ""}`}
-            aria-pressed={!!biodyConsent}
-            aria-label={t("comp.dp.biodytoggle", "Kveikja eða slökkva á Biody-gögnum")}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                biodyConsent ? "translate-x-[22px]" : "translate-x-0.5"
-              }`}
-            />
-          </button>
+          <Switch checked={!!biodyConsent} onChange={toggleBiodyConsent} disabled={savingConsent || biodyConsent === null}
+            label={t("comp.dp.biodytoggle", "Kveikja eða slökkva á Biody-gögnum")} />
         </div>
       </div>
 
       {/* Privacy request — plain-language menu */}
-      <div className="bg-[#F9FAFB] rounded-xl p-4">
-        <p className="text-sm font-medium text-[#1F2937] mb-1">{t("comp.dp.requesttitle", "Beiðni um gögnin þín")}</p>
-        <p className="text-xs text-[#6B7280] mb-3 leading-relaxed">
+      <div className={`${accountInset} p-4`}>
+        <p className="mb-1 text-sm font-semibold text-hc-ink">{t("comp.dp.requesttitle", "Beiðni um gögnin þín")}</p>
+        <p className="mb-3 text-xs leading-relaxed text-hc-ink-2">
           {t("comp.dp.rights", "Samkvæmt persónuverndarlögum átt þú rétt á afriti af gögnunum þínum, leiðréttingu, eyðingu og fleiru. Flest getur þú gert sjálf(ur) hér. Fyrir annað skaltu velja valkost hér fyrir neðan og við svörum innan 30 daga.")}
         </p>
         <div className="space-y-3">
           <select
             value={dsrType}
             onChange={(e) => { setDsrType(e.target.value); setDsrMsg(null); }}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 bg-white"
+            aria-label={t("comp.dp.choose", "Veldu beiðni")}
+            className={accountInput}
           >
             <option value="">{t("comp.dp.choose", "Veldu beiðni")}</option>
             {DSR_OPTIONS(t).map((o) => (
@@ -175,7 +161,7 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
             ))}
           </select>
           {dsrSelected && (
-            <div className="rounded-lg bg-white border border-gray-200 px-3 py-2.5 text-xs text-[#4B5563] leading-relaxed">
+            <div className="rounded-hc-element bg-hc-surface px-3 py-2.5 text-xs leading-relaxed text-hc-ink-2 ring-1 ring-hc-hairline">
               {dsrSelected.help}
             </div>
           )}
@@ -185,24 +171,17 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
               onChange={(e) => setDsrDetails(e.target.value)}
               placeholder={t("comp.dp.anything", "Eitthvað sem við ættum að vita? (valfrjálst)")}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 resize-y"
+              aria-label={t("comp.dp.anything", "Eitthvað sem við ættum að vita? (valfrjálst)")}
+              className={`${accountInput} resize-y`}
               maxLength={4000}
             />
           )}
         </div>
-        <div className="flex items-center gap-3 mt-3">
-          <button
-            onClick={submitDsr}
-            disabled={dsrSending || !dsrType}
-            className="px-4 py-2 bg-[#10B981] text-white text-sm font-semibold rounded-lg hover:bg-[#047857] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {dsrSending ? "Sendi…" : t("comp.dp.send", "Senda beiðni")}
-          </button>
-          {dsrMsg && (
-            <p className={`text-xs ${dsrMsg.type === "ok" ? "text-emerald-600" : "text-red-600"}`}>
-              {dsrMsg.text}
-            </p>
-          )}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button onClick={submitDsr} busy={dsrSending} disabled={!dsrType}>
+            {t("comp.dp.send", "Senda beiðni")}
+          </Button>
+          {dsrMsg && <Alert tone={dsrMsg.type === "ok" ? "ok" : "bad"} compact>{dsrMsg.text}</Alert>}
         </div>
       </div>
     </div>

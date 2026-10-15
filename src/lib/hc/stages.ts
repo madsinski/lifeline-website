@@ -41,7 +41,7 @@ const DEFS: { key: StepKey; title: string; blurb: string; optional?: boolean }[]
   { key: "profile", title: "Upplýsingar um þig", blurb: "Kennitala, sími og heimilisfang. Þú getur líka sett upp PIN og tengt dagatal." },
   { key: "welcome", title: "Móttökufyrirlestur", blurb: "Stutt kynning á ferlinu og fjórum stoðum heilsu." },
   { key: "package", title: "Pakki og greiðsla", blurb: "Veldu pakka. Stéttarfélag eða vinnuveitandi getur tekið þátt í kostnaði." },
-  { key: "tests", title: "Heilsufarsskoðunin", blurb: "Virkjaðu í sjúklingagáttinni, bókaðu mælingar og farðu fastandi í blóðprufu." },
+  { key: "tests", title: "Heilsufarsskoðunin", blurb: "Virkjaðu í sjúklingagáttinni (Medalia), bókaðu mælingar og farðu fastandi í blóðprufu." },
   /*
    * The upload is its own step because it is its own piece of work.
    *
@@ -56,7 +56,7 @@ const DEFS: { key: StepKey; title: string; blurb: string; optional?: boolean }[]
    * upload (own_report_at), a nurse importing it, or one generated here.
    * Somebody whose nurse already has it is not asked to fetch a PDF.
    */
-  { key: "upload", title: "Settu skýrsluna inn", blurb: "Sóttu Grunnheilsa-skýrsluna í sjúklingagáttina og settu PDF-skjalið hér inn." },
+  { key: "upload", title: "Settu skýrsluna inn", blurb: "Sæktu Grunnheilsa-skýrsluna (PDF úr sjúklingagáttinni) og settu hana hér inn." },
   { key: "report", title: "Skýrslan þín", blurb: "Læknir Lifeline staðfestir skýrsluna þegar niðurstöður liggja fyrir." },
   { key: "interview", title: "Viðtal", blurb: "Þú og hjúkrunarfræðingur farið yfir niðurstöðurnar og gerið áætlun." },
   { key: "plan", title: "Aðgerðaáætlun", blurb: "Áætlunin þín til næstu þriggja mánaða." },

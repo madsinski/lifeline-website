@@ -21,6 +21,9 @@ export const hcBtn = {
      so 1.4.11 asks 3:1 and slate-300 gives 1.48. */
   secondary: `${base} border border-hc-control bg-hc-surface text-hc-ink-2 hover:bg-hc-sunken`,
   ghost: `${base} text-hc-ink-2 hover:bg-hc-sunken-2`,
+  /* The participant's main call to action: the primary colours at a 44px
+     touch target, for the one button a screen is about. */
+  cta: "inline-flex min-h-11 items-center justify-center gap-2 rounded-hc-element bg-hc-brand-dark px-5 font-semibold text-white transition hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:cursor-not-allowed disabled:opacity-40",
 };
 
 /**

@@ -3,6 +3,12 @@
 //      ?stadur=<location slug> or ?start=1 creates it (an explicit start —
 //      just looking at the page must not, or an app subscriber who peeks is
 //      stuck in the health-check flow).
+//      On creation the track is applied at once: ?track=coach|check, else
+//      the start_track /byrja stored in user_metadata. A B2B employee
+//      (clients.company_id) is always on the health check — their employer
+//      bought it — so a coaching track is never applied to them.
+//      { journey: null } also carries { b2b, start_track } so /app knows
+//      whether it still has to ask.
 // POST { action: "welcome_seen" } | { action: "set_booking", kind, at }
 // Schema: supabase/migration-health-journey.sql
 
@@ -10,7 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { hasHealthConsent } from "@/lib/health-consent";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
-  currentJourney, getClientProfile, getOrCreateJourney, isProfileComplete, patchJourney, requireUser,
+  currentJourney, getClientProfile, getOrCreateJourney, isProfileComplete, patchJourney, profileTrackOf, requireUser,
 } from "@/lib/hc/server";
 import { journeySteps } from "@/lib/hc/stages";
 import { appAccess } from "@/lib/hc/subscription";
@@ -24,10 +30,26 @@ export async function GET(req: NextRequest) {
 
   const stadur = req.nextUrl.searchParams.get("stadur");
   const start = !!stadur || req.nextUrl.searchParams.get("start") === "1";
-  if (!start && !(await currentJourney(user.id))) return NextResponse.json({ journey: null });
+  const existing = await currentJourney(user.id);
+  const metaTrack = user.user_metadata?.start_track;
+  const startTrack = metaTrack === "coach" || metaTrack === "check" ? metaTrack : null;
+  if (!start && !existing) {
+    const p = await getClientProfile(user.id);
+    return NextResponse.json({ journey: null, b2b: !!p?.company_id, start_track: startTrack });
+  }
   let journey = await getOrCreateJourney(user.id, stadur);
   const profile = await getClientProfile(user.id);
-  const complete = isProfileComplete(profile);
+  /* The route is decided once, when the journey is made — not by a second
+     request that can arrive before the journey exists (it used to: the
+     onboarding player posted choose_track first and got a 404). */
+  if (!existing) {
+    const asked = req.nextUrl.searchParams.get("track");
+    const track = asked === "coach" || asked === "check" ? asked : startTrack;
+    if (track === "coach" && !profile?.company_id && journey.entry !== "b2b") {
+      journey = (await patchJourney(journey.id, { entry: "coach" }, `client:${user.id}`, "journey_track_coach")) ?? journey;
+    }
+  }
+  const complete = isProfileComplete(profile, profileTrackOf(journey.entry));
   if (complete && !journey.profile_completed_at) {
     journey = (await patchJourney(journey.id, { profile_completed_at: new Date().toISOString() }, `client:${user.id}`, "profile_complete")) ?? journey;
   }
@@ -135,6 +157,9 @@ export async function POST(req: NextRequest) {
     const profile = await getClientProfile(user.id);
     if (track === "coach" || track === "app") {
       if (journey.paid_at) return NextResponse.json({ error: "already_paid" }, { status: 409 });
+      /* The employer bought the check. Letting an employee swap it for
+         coaching would quietly sideline something somebody else paid for. */
+      if (profile?.company_id || journey.entry === "b2b") return NextResponse.json({ error: "b2b" }, { status: 409 });
       await patchJourney(journey.id, { entry: track }, `client:${user.id}`, `journey_track_${track}`);
     } else {
       // Back to whatever this person would have been without the choice.

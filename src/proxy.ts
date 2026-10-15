@@ -27,6 +27,7 @@ const BYPASS_PREFIXES = [
   "/byrja",                 // the signup flow itself — gating the way IN
                             //   makes the gate the product
   "/business/login",        //   "          "
+  "/business/signup",       //   "  (B2B company signup, after /business/login)
   // ── Token-gated / unguessable-URL flows: the URL itself is the
   //    access mechanism (per-recipient secret token, noindex'd, never
   //    listed), so they have to bypass the coming-soon gate the same

@@ -32,6 +32,7 @@ import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import CoachView from "@/app/components/hc/CoachView";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
 import type { Comparison } from "@/lib/hc/compare";
+import Link from "next/link";
 import JourneyNav, { type JourneyPlace, JourneyHeader } from "@/app/components/hc/JourneyNav";
 import { LoadingBar, Skeleton } from "@/app/components/hc/Loading";
 import type { Upcoming } from "@/lib/hc/upcoming";
@@ -168,6 +169,10 @@ function PlanPageInner() {
    */
   const [access, setAccess] = useState<{ ok: boolean; reason: string; trialEndsAt: string | null; daysLeft: number | null } | null>(null);
   const [subPkg, setSubPkg] = useState<Record<string, unknown> | null>(null);
+  /* The journey's track, for the empty state: the coaching track has no
+     nurse interview to wait for, so it must not be promised one.
+     undefined = not loaded yet. */
+  const [entry, setEntry] = useState<string | null | undefined>(undefined);
   const [personal, setPersonal] = useState<Personal>(DEFAULT_PERSONAL);
   const [gym, setGym] = useState<{ name: string | null; url: string | null; info: string | null } | null>(null);
   // The setup wizard: opened on demand, and by itself the first time, when
@@ -293,6 +298,7 @@ function PlanPageInner() {
         const acc = (jr.body as { access?: typeof access }).access;
         if (acc) setAccess(acc);
       }
+      setEntry(jr.status < 400 ? ((jr.body as { journey?: { entry?: string } | null }).journey?.entry ?? null) : null);
       if (sr.status < 400) setSubPkg((sr.body as { package?: Record<string, unknown> }).package ?? null);
       /*
        * Warm everything the other tabs will ask for.
@@ -650,7 +656,19 @@ function PlanPageInner() {
             onCancel={() => { setEditing(false); setEditPillar(null); }} />
         )}
 
-        {!editing && data !== undefined && !hasSomething && (
+        {!editing && data !== undefined && !hasSomething && entry === undefined && <PlanSkeleton />}
+
+        {/* The coaching track: nothing to wait for, so one button. */}
+        {!editing && data !== undefined && !hasSomething && (entry === "coach" || entry === "app") && (
+          <div className="mt-4 space-y-4">
+            <EmptyState variant="empty" title="Settu saman áætlunina þína"
+              body="Veldu venjur og æfingar úr safninu. Æfingarnar taka mið af því sem þú sagðir okkur, og þú getur breytt öllu síðar."
+              action={{ label: "Settu saman áætlunina þína", onClick: () => setEditing(true) }} />
+            <Link href="/app?ferd=1" className="block text-center text-sm font-semibold text-hc-ink-3 underline">Sjá ferðina</Link>
+          </div>
+        )}
+
+        {!editing && data !== undefined && !hasSomething && entry !== undefined && entry !== "coach" && entry !== "app" && (
           <div className="mt-4 space-y-4">
             {next && <AppointmentCard a={next} />}
             <EmptyState variant="waiting" title="Áætlunin er ekki tilbúin enn"

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
+import { Alert, Button, Modal, fmtDate, fmtTime, useDialog } from "@/app/components/account/ui";
 
 interface Slot {
   slot_at: string;
@@ -30,7 +31,8 @@ interface Props {
 }
 
 export default function SlotPicker({ event, onClose, onBooked }: Props) {
-  const { t } = useI18n();
+  const { t, tv, locale } = useI18n();
+  const { confirm } = useDialog();
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
   // break enforced in the UI regardless of RPC version.
   const inBreak = (slotAt: string): boolean => {
     if (!event.break_start || !event.break_end) return false;
-    const hm = new Date(slotAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const hm = fmtTime(slotAt); // Icelandic wall-clock time, like the break columns
     return hm >= event.break_start.slice(0, 5) && hm < event.break_end.slice(0, 5);
   };
 
@@ -54,7 +56,11 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    // Deferred a tick: load() sets state, and an effect body should not.
+    const timer = setTimeout(() => { void load(); }, 0);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const book = async (slotAt: string) => {
     setSaving(slotAt);
@@ -80,7 +86,11 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
   };
 
   const cancel = async () => {
-    if (typeof window !== "undefined" && !window.confirm(t("acct.slot.cancelconfirm2", "Afbóka mælingatímann? Þú getur valið annan lausan tíma strax á eftir."))) return;
+    const ok = await confirm({
+      title: t("acct.slot.cancelconfirm2", "Afbóka mælingatímann? Þú getur valið annan lausan tíma strax á eftir."),
+      confirmLabel: t("acc.cancel.confirm", "Já, afbóka"), cancelLabel: t("acc.common.no", "Nei"), tone: "danger",
+    });
+    if (!ok) return;
     setSaving("cancel");
     setError("");
     const { error } = await supabase.rpc("cancel_body_comp_slot", { p_event_id: event.id });
@@ -94,71 +104,49 @@ export default function SlotPicker({ event, onClose, onBooked }: Props) {
     load();
   };
 
-  const dateLabel = new Date(event.event_date + "T00:00:00").toLocaleDateString("en-GB", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  });
+  const dateLabel = fmtDate(event.event_date, { weekday: true }, locale);
+  const choice = (mine: boolean, full: boolean) =>
+    `rounded-hc-element p-2 text-center text-sm ring-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand ${
+      mine ? "bg-hc-brand-surface font-semibold text-hc-brand-text ring-2 ring-hc-brand-dark"
+        : full ? "cursor-not-allowed bg-hc-sunken text-hc-ink-3 ring-hc-hairline"
+          : "bg-hc-surface text-hc-ink ring-slate-200 hover:ring-hc-control"}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6 border-b border-gray-100 sticky top-0 bg-white">
-          <h2 className="text-xl font-semibold">{t("b2b.welcome.slot.title", "Veldu 5 mínútna tíma")}</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {dateLabel} · {event.start_time.slice(0, 5)}–{event.end_time.slice(0, 5)}
-          </p>
-          {event.location && <p className="text-xs text-gray-500 mt-0.5">{event.location}</p>}
-          {event.room_notes && <p className="text-xs text-gray-500">{event.room_notes}</p>}
+    <Modal size="lg" title={t("b2b.welcome.slot.title", "Veldu 5 mínútna tíma")} onClose={onClose} dismissable={saving === null}
+      description={<>
+        <span className="block">{dateLabel} · {event.start_time.slice(0, 5)}–{event.end_time.slice(0, 5)}</span>
+        {event.location && <span className="block text-xs">{event.location}</span>}
+        {event.room_notes && <span className="block text-xs">{event.room_notes}</span>}
+      </>}
+      footer={<>
+        {slots.some((s) => s.is_mine) && (
+          <Button variant="dangerOutline" className="mr-auto" onClick={cancel} disabled={saving !== null} busy={saving === "cancel"}>{t("b2b.welcome.slot.cancel", "Afbóka")}</Button>
+        )}
+        <Button variant="secondary" onClick={onClose}>{t("acct.q.close", "Loka")}</Button>
+      </>}>
+      {loading && <p className="text-sm text-hc-ink-3">{t("b2b.welcome.slot.loading", "Sæki tíma…")}</p>}
+      {error && <Alert tone="bad" compact className="mb-3">{error}</Alert>}
+      {!loading && slots.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {slots.map((s) => {
+            const full = s.booked_count >= event.slot_capacity && !s.is_mine;
+            const mine = s.is_mine;
+            return (
+              <button key={s.slot_at} type="button" onClick={() => book(s.slot_at)} disabled={full || saving !== null} aria-pressed={mine} className={choice(mine, full)}>
+                <span className="block font-mono">{fmtTime(s.slot_at)}</span>
+                <span className="mt-0.5 block text-[11px]">
+                  {mine ? t("b2b.welcome.slot.mine", "Þinn tími ✓")
+                    : full ? t("acc.slot.full", "Fullt")
+                    : tv("acc.slot.taken", "{{n}}/{{cap}} bókaðir", { n: s.booked_count, cap: event.slot_capacity })}
+                </span>
+              </button>
+            );
+          })}
         </div>
-
-        <div className="p-4">
-          {loading && <div className="text-gray-500 text-sm p-4">{t("b2b.welcome.slot.loading", "Sæki tíma…")}</div>}
-          {error && <div className="text-red-600 text-sm p-4">{error}</div>}
-          {!loading && slots.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {slots.map((s) => {
-                const full = s.booked_count >= event.slot_capacity && !s.is_mine;
-                const mine = s.is_mine;
-                const time = new Date(s.slot_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
-                return (
-                  <button
-                    key={s.slot_at}
-                    onClick={() => book(s.slot_at)}
-                    disabled={full || saving !== null}
-                    className={`p-2 rounded-lg border text-center text-sm transition-colors ${
-                      mine
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold"
-                        : full
-                          ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
-                          : "border-gray-200 bg-white hover:border-blue-400 hover:bg-blue-50"
-                    }`}
-                  >
-                    <div className="font-mono">{time}</div>
-                    <div className="text-[10px] mt-0.5">
-                      {mine ? t("b2b.welcome.slot.mine", "Þinn tími ✓")
-                        : full ? t("b2b.welcome.slot.full_short", "Full")
-                        : t("b2b.welcome.slot.available", "{{n}}/{{cap}} booked").replace("{{n}}", String(s.booked_count)).replace("{{cap}}", String(event.slot_capacity))}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {!loading && slots.length === 0 && !error && (
-            <div className="text-gray-500 text-sm p-4">{t("b2b.welcome.slot.none", "Engir tímar enn.")}</div>
-          )}
-        </div>
-
-        <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2 sticky bottom-0 bg-white">
-          {slots.some((s) => s.is_mine) ? (
-            <button onClick={cancel} disabled={saving !== null} className="text-sm text-red-600 hover:underline disabled:opacity-50">
-              {t("b2b.welcome.slot.cancel", "Afbóka")}
-            </button>
-          ) : <span />}
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">
-            {t("b2b.welcome.slot.close", "Close")}
-          </button>
-        </div>
-      </div>
-    </div>
+      )}
+      {!loading && slots.length === 0 && !error && (
+        <p className="text-sm text-hc-ink-3">{t("b2b.welcome.slot.none", "Engir tímar enn.")}</p>
+      )}
+    </Modal>
   );
 }

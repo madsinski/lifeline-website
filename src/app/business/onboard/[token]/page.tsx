@@ -1,34 +1,60 @@
 "use client";
 
+// B2B employee onboarding — the invite link + 6-digit code from the
+// employer's roster. Stages: code → welcome → consent (Employee ToS + the
+// separate Art. 9 health consent, both required, plus two opt-outs) →
+// profile (skippable; measured at the measurement day anyway) → account →
+// done, signed straight in and on to /app.
+//
+// Icelandic throughout, on the shared AuthShell. The session-mismatch guard
+// stays: completing while signed in as somebody else would bind the
+// employee's consent to the wrong account.
+
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import BusinessHeader from "@/app/business/BusinessHeader";
+import { Check, Eye, EyeOff, Loader2, Smartphone, TriangleAlert } from "lucide-react";
 import DoctorsTeam from "@/app/components/DoctorsTeam";
-import { useI18n } from "@/lib/i18n";
+import AuthShell, { authInput, authLabel, authPrimary, authSecondary } from "@/app/components/AuthShell";
 import { supabase } from "@/lib/supabase";
 import { APP_LIVE, APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-links";
 import {
-  EMPLOYEE_TOS_KEY,
   EMPLOYEE_TOS_VERSION,
-  HEALTH_CONSENT_KEY,
   HEALTH_CONSENT_VERSION,
   renderEmployeeTermsOfService,
   renderHealthAssessmentConsent,
 } from "@/lib/platform-terms-content";
 
 type Stage = "password" | "welcome" | "consent" | "profile" | "account" | "done";
-
-const TERMS_VERSION = "1.2";
+type Sex = "male" | "female" | "";
+type Activity = "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "";
 
 const ORDER: Stage[] = ["welcome", "consent", "profile", "account"];
+const MIN_PW = 12;
+
+/** The complete route answers with codes; say them in Icelandic. */
+function completeError(code: string | undefined, detail?: string): string {
+  switch (code) {
+    case "email_already_registered":
+      return detail || "Þetta netfang er þegar með Lifeline-aðgang. Skráðu þig inn og hafðu samband við okkur.";
+    case "password_too_short": return `Lykilorðið þarf að vera minnst ${MIN_PW} stafir.`;
+    case "consent_required": return "Samþykktu bæði skjölin til að halda áfram.";
+    case "profile_incomplete": return "Fylltu út öll gildin, eða slepptu skrefinu.";
+    case "invalid_code": return "Kóðinn úr boðspóstinum passar ekki. Opnaðu hlekkinn aftur.";
+    case "already_completed": return "Þetta boð hefur þegar verið notað. Skráðu þig inn í staðinn.";
+    default: return "Ekki tókst að ljúka skráningu. Reyndu aftur eða hafðu samband við okkur.";
+  }
+}
 
 export default function OnboardPage() {
   const params = useParams<{ token: string }>();
   const token = params?.token || "";
+  const router = useRouter();
 
   const [stage, setStage] = useState<Stage>("password");
   const [appAccess, setAppAccess] = useState(false);
+  /* Signed in at the end (magic-link token from the complete route). */
+  const [signedIn, setSignedIn] = useState(false);
 
   // Scroll to top on every forward step
   useEffect(() => {
@@ -39,7 +65,6 @@ export default function OnboardPage() {
 
   const [password, setPassword] = useState("");
 
-  const [memberId, setMemberId] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");           // work / roster email (where the invite was sent)
   const [loginEmail, setLoginEmail] = useState(""); // email the employee will actually log in with
@@ -51,11 +76,11 @@ export default function OnboardPage() {
   const [researchOptOut, setResearchOptOut] = useState(false);
   const [marketingOptOut, setMarketingOptOut] = useState(false);
 
-  const [sex, setSex] = useState<"male" | "female" | "">("");
+  const [sex, setSex] = useState<Sex>("");
   const [heightCm, setHeightCm] = useState("");
   const [weightKg, setWeightKg] = useState("");
-  const [activityLevel, setActivityLevel] =
-    useState<"sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "">("");
+  const [activityLevel, setActivityLevel] = useState<Activity>("");
+  const [profileSkipped, setProfileSkipped] = useState(false);
 
   const [accountPassword, setAccountPassword] = useState("");
 
@@ -82,10 +107,8 @@ export default function OnboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
       });
-      const j = await res.json();
-      if (res.status === 429) throw new Error(j.error || "Too many attempts. Try again later.");
-      if (!res.ok) throw new Error(j.error || "Invalid password");
-      setMemberId(j.id);
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error || "Kóðinn passar ekki.");
       setFullName(j.full_name || "");
       setEmail(j.email || "");
       setLoginEmail(j.email || ""); // default login email to the work email; employee can change it
@@ -99,19 +122,21 @@ export default function OnboardPage() {
     }
   };
 
+  const profileFilled = !!(sex && heightCm && weightKg && activityLevel);
+
   const completeOnboarding = async () => {
-    if (!sex || !heightCm || !weightKg || !activityLevel) {
-      setError("Please fill in all fields on the previous step.");
+    if (!profileSkipped && !profileFilled) {
+      setError("Fylltu út öll gildin, eða slepptu skrefinu.");
       setStage("profile");
       return;
     }
-    if (!accountPassword || accountPassword.length < 8) {
-      setError("Choose a password of at least 8 characters.");
+    if (!accountPassword || accountPassword.length < MIN_PW) {
+      setError(`Veldu lykilorð sem er minnst ${MIN_PW} stafir.`);
       return;
     }
     const loginEmailTrimmed = loginEmail.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginEmailTrimmed)) {
-      setError("Enter a valid login email.");
+      setError("Sláðu inn gilt netfang.");
       setStage("account");
       return;
     }
@@ -125,18 +150,30 @@ export default function OnboardPage() {
           password,
           account_password: accountPassword,
           login_email: loginEmailTrimmed,
-          sex,
-          height_cm: Number(heightCm),
-          weight_kg: Number(weightKg),
-          activity_level: activityLevel,
-          terms_version: TERMS_VERSION,
+          ...(!profileSkipped && profileFilled ? {
+            sex,
+            height_cm: Number(heightCm),
+            weight_kg: Number(weightKg),
+            activity_level: activityLevel,
+          } : {}),
+          terms_version: EMPLOYEE_TOS_VERSION,
+          accept_tos: acceptTos,
+          accept_health: acceptHealth,
           research_opt_out: researchOptOut,
           marketing_opt_out: marketingOptOut,
         }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error || "Registration failed");
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(completeError(j.error, j.detail));
       setAppAccess(!!j.app_access);
+      setLoginEmail(j.email || loginEmailTrimmed);
+      if (j.token_hash) {
+        /* Sign in now, so the last button goes into the app rather than to
+           a login form. A failure only costs the shortcut. */
+        await supabase.auth.signOut().catch(() => {});
+        const { error: otpErr } = await supabase.auth.verifyOtp({ token_hash: j.token_hash, type: "magiclink" });
+        setSignedIn(!otpErr);
+      }
       setStage("done");
     } catch (e) {
       setError((e as Error).message);
@@ -145,29 +182,28 @@ export default function OnboardPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
-      <BusinessHeader
-        minimal
-        pillI18nKey="b2b.onboard.header"
-        pillLabel="Employee registration"
-      />
+  const mismatch = !!(currentEmail && email && currentEmail.toLowerCase() !== email.toLowerCase());
+  const stepIdx = ORDER.indexOf(stage);
+  const backTo: Record<string, Stage> = { consent: "welcome", profile: "consent", account: "profile" };
 
-      <main className="max-w-2xl mx-auto px-6 py-12">
+  return (
+    <AuthShell
+      width={stage === "consent" ? "lg" : "md"}
+      step={stepIdx >= 0 && !mismatch ? { n: stepIdx + 1, of: ORDER.length } : undefined}
+      back={backTo[stage] && !mismatch && !loading ? () => { setError(""); setStage(backTo[stage]); } : undefined}
+    >
         {/* Session-mismatch guard. If the user is signed in as a
             different account from the one the invite was sent to,
             refuse to let them proceed (a silent mismatch would bind
             the new account's onboarding data to the wrong user). */}
-        {currentEmail && email && currentEmail.toLowerCase() !== email.toLowerCase() && (
-          <div className="mb-6 rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm">
+        {mismatch && (
+          <div className="rounded-hc-element bg-hc-warn-surface p-5 ring-1 ring-amber-300">
             <div className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M4.929 19h14.142a2 2 0 001.78-2.924L13.78 4.924a2 2 0 00-3.56 0L3.15 16.076A2 2 0 004.929 19z" />
-              </svg>
+              <TriangleAlert className="mt-0.5 h-6 w-6 shrink-0 text-hc-warn-ink" aria-hidden />
               <div className="min-w-0 flex-1">
-                <div className="font-semibold text-amber-900 mb-1">Ertu skráð/ur inn sem rétti notandi?</div>
-                <p className="text-sm text-amber-900/90 leading-relaxed">
-                  Boðshlekkurinn var sendur á <strong className="font-mono">{email}</strong>, en þú ert núna skráð/ur inn sem <strong className="font-mono">{currentEmail}</strong>. Haltu ekki áfram — skráning myndi festast á rangan notanda. Skráðu þig út og opnaðu hlekkinn aftur.
+                <div className="mb-1 font-semibold text-hc-warn-ink">Ertu skráð/ur inn sem rétti notandi?</div>
+                <p className="text-sm leading-relaxed text-hc-warn-ink">
+                  Boðshlekkurinn var sendur á <strong className="break-all">{email}</strong>, en þú ert núna skráð/ur inn sem <strong className="break-all">{currentEmail}</strong>. Haltu ekki áfram — skráning myndi festast á rangan notanda. Skráðu þig út og opnaðu hlekkinn aftur.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -179,11 +215,11 @@ export default function OnboardPage() {
                       setSigningOut(false);
                     }}
                     disabled={signingOut}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60"
+                    className="inline-flex min-h-10 items-center rounded-hc-element bg-amber-700 px-3 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-60"
                   >
                     {signingOut ? "Skráir út…" : `Skrá út ${currentEmail}`}
                   </button>
-                  <Link href="/" className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-300 text-amber-900 bg-white hover:bg-amber-50">
+                  <Link href="/" className="inline-flex min-h-10 items-center rounded-hc-element border border-amber-300 bg-hc-surface px-3 text-sm font-semibold text-hc-warn-ink hover:bg-amber-50">
                     Hætta við
                   </Link>
                 </div>
@@ -193,16 +229,9 @@ export default function OnboardPage() {
         )}
 
         {/* Hide the stage content entirely when a session mismatch is
-            detected — the banner above is the only path forward. Password
-            stage is exempt because the token lookup populates `email`
-            which the mismatch check depends on. */}
-        {(() => {
-          const mismatch = !!(currentEmail && email && currentEmail.toLowerCase() !== email.toLowerCase());
-          if (mismatch) return null;
-          return (
-            <>
-        {stage !== "password" && stage !== "done" && <Progress stage={stage} />}
-
+            detected — the banner above is the only path forward. */}
+        {!mismatch && (
+          <>
         {stage === "password" && <PasswordStage
           password={password} setPassword={setPassword}
           error={error} loading={loading} onSubmit={verifyPassword}
@@ -218,25 +247,24 @@ export default function OnboardPage() {
           acceptHealth={acceptHealth} setAcceptHealth={setAcceptHealth}
           researchOptOut={researchOptOut} setResearchOptOut={setResearchOptOut}
           marketingOptOut={marketingOptOut} setMarketingOptOut={setMarketingOptOut}
-          onBack={() => setStage("welcome")}
           onContinue={() => setStage("profile")}
         />}
 
         {stage === "profile" && <ProfileStage
-          fullName={fullName} setFullName={setFullName}
-          email={email} phone={phone} setPhone={setPhone} kennitala={kennitala}
+          email={email} kennitala={kennitala} fullName={fullName} phone={phone}
           sex={sex} setSex={setSex}
           heightCm={heightCm} setHeightCm={setHeightCm}
           weightKg={weightKg} setWeightKg={setWeightKg}
           activityLevel={activityLevel} setActivityLevel={setActivityLevel}
           error={error}
-          onBack={() => setStage("consent")}
+          onSkip={() => { setError(""); setProfileSkipped(true); setStage("account"); }}
           onContinue={() => {
-            if (!sex || !heightCm || !weightKg || !activityLevel) {
-              setError("Please fill in every field.");
+            if (!profileFilled) {
+              setError("Fylltu út öll gildin, eða slepptu skrefinu.");
               return;
             }
             setError("");
+            setProfileSkipped(false);
             setStage("account");
           }}
         />}
@@ -245,30 +273,19 @@ export default function OnboardPage() {
           accountPassword={accountPassword} setAccountPassword={setAccountPassword}
           workEmail={email} loginEmail={loginEmail} setLoginEmail={setLoginEmail}
           loading={loading} error={error}
-          onBack={() => setStage("profile")}
           onSubmit={completeOnboarding}
         />}
 
-        {stage === "done" && <DoneStage firstName={(fullName.split(" ")[0] || "").trim()} appAccess={appAccess} />}
-            </>
-          );
-        })()}
-
-        {/* Silently consume unused vars so TS doesn't complain about one-time setters */}
-        <input type="hidden" value={memberId || ""} readOnly />
-      </main>
-
-      <style jsx global>{`
-        .input { width:100%; padding:0.625rem 0.875rem; border:1px solid #e5e7eb; border-radius:0.5rem; outline:none; background:white; }
-        .input:focus { border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.15); }
-        .input:disabled { background:#f9fafb; color:#6b7280; }
-        .btn-primary { background:linear-gradient(135deg,#3b82f6,#10b981); color:white; padding:0.75rem 1.25rem; border-radius:0.75rem; font-weight:600; transition:transform .08s; }
-        .btn-primary:hover:not(:disabled) { transform:translateY(-1px); }
-        .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-        .btn-ghost { padding:0.625rem 1rem; border:1px solid #e5e7eb; border-radius:0.625rem; font-weight:500; background:white; color:#374151; }
-        .btn-ghost:hover { background:#f9fafb; }
-      `}</style>
-    </div>
+        {stage === "done" && <DoneStage
+          firstName={(fullName.split(" ")[0] || "").trim()}
+          appAccess={appAccess}
+          signedIn={signedIn}
+          loginEmail={loginEmail}
+          onGo={() => router.push("/app")}
+        />}
+          </>
+        )}
+    </AuthShell>
   );
 }
 
@@ -281,24 +298,31 @@ function PasswordStage({
   error: string; loading: boolean; onSubmit: (e: React.FormEvent) => void;
 }) {
   return (
-    <section className="bg-white rounded-2xl p-8 shadow-sm">
-      <h1 className="text-2xl font-semibold mb-2">Enter your invite password</h1>
-      <p className="text-sm text-gray-600 mb-6">
-        You should have received a 6-digit password by email together with this link.
+    <section>
+      <h1 className="text-2xl font-bold text-hc-ink">Sláðu inn kóðann</h1>
+      <p className="mt-1 text-sm text-hc-ink-2">
+        Sex stafa kóðinn kom í tölvupósti ásamt þessum hlekk.
       </p>
-      <form onSubmit={onSubmit} className="space-y-4">
-        <input
-          type="text"
-          required autoFocus
-          inputMode="numeric"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••"
-          className="input text-center text-2xl tracking-[0.4em] font-mono"
-        />
-        {error && <div className="text-red-600 text-sm">{error}</div>}
-        <button type="submit" disabled={loading} className="btn-primary w-full">
-          {loading ? "Checking…" : "Continue"}
+      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        <label className="block">
+          <span className="sr-only">Kóði</span>
+          <input
+            type="text"
+            required autoFocus
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onInvalid={(e) => e.currentTarget.setCustomValidity("Sláðu inn kóðann.")}
+            onInput={(e) => e.currentTarget.setCustomValidity("")}
+            placeholder="••••••"
+            className={`${authInput} text-center font-mono text-2xl tracking-[0.4em]`}
+          />
+        </label>
+        {error && <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">{error}</p>}
+        <button type="submit" disabled={loading} className={authPrimary}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+          {loading ? "Athuga…" : "Áfram"}
         </button>
       </form>
     </section>
@@ -306,76 +330,38 @@ function PasswordStage({
 }
 
 function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue: () => void }) {
-  const { t } = useI18n();
   return (
-    <section className="space-y-6">
-      <div className="bg-gradient-to-br from-blue-600 via-emerald-500 to-blue-500 rounded-2xl p-8 text-white shadow-sm">
-        <p className="text-sm font-semibold tracking-[0.15em] uppercase opacity-90 mb-3">
-          {t("onboard.welcome.eyebrow", "Welcome to Lifeline Health")}
-        </p>
-        <h1 className="text-3xl sm:text-4xl font-semibold leading-tight">
-          {firstName
-            ? t("onboard.welcome.title_name", "Hi {{name}}, take control of your health.").replace("{{name}}", firstName)
-            : t("onboard.welcome.title", "Hi, take control of your health.")}
-        </h1>
-        <p className="mt-3 text-base opacity-95 max-w-lg">
-          {t("onboard.welcome.body",
-            "Lifeline Health combines targeted health assessments with personalised daily coaching. Know your numbers, build better habits, track your progress — with guidance from Icelandic physicians and coaches.")}
-        </p>
+    <section>
+      <h1 className="text-2xl font-bold text-hc-ink">
+        {firstName ? `Velkomin(n), ${firstName}` : "Velkomin(n)"}
+      </h1>
+      <p className="mt-2 text-sm leading-relaxed text-hc-ink-2">
+        Vinnuveitandinn þinn býður þér heilsumat hjá Lifeline Health: mælingar, blóðprufu og skýrslu sem læknir
+        fer yfir, ásamt áætlun til að fylgja eftir. Skráningin tekur nokkrar mínútur.
+      </p>
+
+      <ol className="mt-6 space-y-4">
+        <Step n={1} title="Samþykki">
+          Notkunarskilmálar og upplýst samþykki fyrir heilsumati.
+        </Step>
+        <Step n={2} title="Líkamsgildi (valfrjálst)">
+          Kyn, hæð, þyngd og hreyfing. Má sleppa — við mælum þig á mælingadeginum.
+        </Step>
+        <Step n={3} title="Lykilorð">
+          Þú skráir þig inn með netfanginu og lykilorðinu á vefnum og í appinu.
+        </Step>
+      </ol>
+
+      <div className="mt-6 border-t border-hc-hairline pt-6">
+        <p className="mb-3 text-sm text-hc-ink-2">Læknarnir okkar — allir með starfsleyfi frá Embætti landlæknis.</p>
+        <DoctorsTeam compact />
       </div>
 
-      <div className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold mb-1">{t("onboard.next.heading", "What happens next")}</h2>
-          <p className="text-sm text-gray-600">
-            {t("onboard.next.subtitle",
-              "A short registration so we can set up your Lifeline account and your body-composition profile.")}
-          </p>
-        </div>
+      <p className="mt-6 text-xs leading-relaxed text-hc-ink-3">
+        Lifeline mælir og fylgist með — við greinum ekki sjúkdóma og komum ekki í stað læknis.
+      </p>
 
-        <ol className="space-y-4">
-          <Step n={1} title={t("onboard.step1.title", "Accept terms & privacy")}>
-            {t("onboard.step1.body", "Standard consent so we can legally look after your data.")}
-          </Step>
-          <Step n={2} title={t("onboard.step2.title", "Confirm your details")}>
-            {t("onboard.step2.body",
-              "Your contact info is already filled in — we just need your sex, height, weight and activity level for your body-composition profile.")}
-          </Step>
-          <Step n={3} title={t("onboard.step3.title", "Choose a password")}>
-            {t("onboard.step3.body", "You'll sign in to the Lifeline app with your email and this password.")}
-          </Step>
-        </ol>
-
-        <div className="border-t border-gray-100 pt-6">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t("onboard.after.heading", "After you register")}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <MiniCard color="#3B82F6"
-              title={t("onboard.after.assess.title", "Get assessed")}
-              body={t("onboard.after.assess.body", "Body composition scan at a Lifeline station — already included in your plan.")} />
-            <MiniCard color="#10B981"
-              title={t("onboard.after.report.title", "Get your report")}
-              body={t("onboard.after.report.body", "A Lifeline physician reviews your results and builds a personalised plan.")} />
-            <MiniCard color="#8B5CF6"
-              title={t("onboard.after.coach.title", "Start coaching")}
-              body={t("onboard.after.coach.body", "Daily actions across exercise, nutrition, sleep and mental wellness in the app.")} />
-          </div>
-        </div>
-
-        {/* Healthcare team */}
-        <div className="border-t border-gray-100 pt-6 space-y-4">
-          <div>
-            <p className="text-sm text-gray-500 mb-1">{t("onboard.welcome.team.care", "Welcome aboard,")}</p>
-            <p className="text-base text-gray-800 leading-relaxed">
-              {t("onboard.welcome.team.note", "Læknarnir okkar — allir með starfsleyfi frá Embætti landlæknis.")}
-            </p>
-          </div>
-          <DoctorsTeam compact />
-        </div>
-
-        <div className="flex justify-end">
-          <button onClick={onContinue} className="btn-primary">{t("onboard.welcome.cta", "Let's get started")}</button>
-        </div>
-      </div>
+      <button type="button" onClick={onContinue} className={`mt-6 ${authPrimary}`}>Hefjast handa</button>
     </section>
   );
 }
@@ -385,19 +371,20 @@ function ConsentStage({
   acceptHealth, setAcceptHealth,
   researchOptOut, setResearchOptOut,
   marketingOptOut, setMarketingOptOut,
-  onBack, onContinue,
+  onContinue,
 }: {
   acceptTos: boolean; setAcceptTos: (v: boolean) => void;
   acceptHealth: boolean; setAcceptHealth: (v: boolean) => void;
   researchOptOut: boolean; setResearchOptOut: (v: boolean) => void;
   marketingOptOut: boolean; setMarketingOptOut: (v: boolean) => void;
-  onBack: () => void; onContinue: () => void;
+  onContinue: () => void;
 }) {
+  const pane = "max-h-72 overflow-y-auto rounded-hc-element bg-hc-sunken p-4 font-sans text-[12px] leading-relaxed text-hc-ink whitespace-pre-wrap ring-1 ring-hc-hairline";
   return (
-    <section className="bg-white rounded-2xl p-8 shadow-sm space-y-8">
+    <section className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold">Samþykki — skilmálar og heilsumat</h1>
-        <p className="text-sm text-gray-600 mt-2">
+        <h1 className="text-2xl font-bold text-hc-ink">Samþykki — skilmálar og heilsumat</h1>
+        <p className="mt-2 text-sm text-hc-ink-2">
           Áður en þú getur hafið heilsumat þarftu að samþykkja tvö skjöl: almenna notkunarskilmála og upplýst samþykki
           fyrir heilsumati. Samþykkin eru skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni.
         </p>
@@ -405,260 +392,261 @@ function ConsentStage({
 
       {/* 1. Employee TOS */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">
+        <h2 className="mb-1 text-lg font-semibold text-hc-ink">
           1. Notkunarskilmálar starfsmanns ({EMPLOYEE_TOS_VERSION})
         </h2>
-        <p className="text-xs text-gray-500 mb-2">Almennir skilmálar um notkun þína á þjónustusíðunni og snjallforritinu.</p>
-        <pre className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+        <p className="mb-2 text-xs text-hc-ink-3">Almennir skilmálar um notkun þína á þjónustusíðunni og snjallforritinu.</p>
+        <pre className={pane}>
 {renderEmployeeTermsOfService()}
         </pre>
-        <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
-          <input type="checkbox" checked={acceptTos} onChange={(e) => setAcceptTos(e.target.checked)} className="mt-1" />
-          <span className="text-sm text-gray-700">
-            Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({EMPLOYEE_TOS_VERSION}).
+        <label className="mt-3 flex cursor-pointer select-none items-start gap-3">
+          <input type="checkbox" checked={acceptTos} onChange={(e) => setAcceptTos(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#047857]" />
+          <span className="text-sm text-hc-ink">
+            Ég hef lesið og samþykki notkunarskilmála Lifeline Health ({EMPLOYEE_TOS_VERSION}).
           </span>
         </label>
       </div>
 
-      {/* 2. Informed health consent */}
+      {/* 2. Informed health consent — separate, explicit (GDPR Art. 9) */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">
+        <h2 className="mb-1 text-lg font-semibold text-hc-ink">
           2. Upplýst samþykki fyrir heilsumat ({HEALTH_CONSENT_VERSION})
         </h2>
-        <p className="text-xs text-gray-500 mb-2">
+        <p className="mb-2 text-xs text-hc-ink-3">
           Sérstakt samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga.
           Lifeline Health framkvæmir heilsumatið með leyfi frá landlækni; sjúkraskrá er varðveitt hjá Medalia.
         </p>
-        <pre className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+        <pre className={pane}>
 {renderHealthAssessmentConsent()}
         </pre>
-        <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
-          <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1" />
-          <span className="text-sm text-gray-700">
+        <label className="mt-3 flex cursor-pointer select-none items-start gap-3">
+          <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[#047857]" />
+          <span className="text-sm text-hc-ink">
             Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({HEALTH_CONSENT_VERSION}).
           </span>
         </label>
       </div>
 
       {/* Opt-out choices */}
-      <div className="border-t border-gray-100 pt-6 space-y-3">
-        <p className="text-sm font-medium text-gray-700">Val um frekari vinnslu (ekki nauðsynlegt):</p>
+      <div className="space-y-3 border-t border-hc-hairline pt-6">
+        <p className="text-sm font-medium text-hc-ink">Val um frekari vinnslu (ekki nauðsynlegt):</p>
         <Checkbox checked={researchOptOut} onChange={setResearchOptOut}>
           <strong>Afþakka rannsóknanotkun.</strong>{" "}
-          <span className="text-gray-600">Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.</span>
+          <span className="text-hc-ink-2">Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.</span>
         </Checkbox>
         <Checkbox checked={marketingOptOut} onChange={setMarketingOptOut}>
           <strong>Afþakka markaðspóst.</strong>{" "}
-          <span className="text-gray-600">Ekki senda mér vörufréttir eða kynningar frá Lifeline.</span>
+          <span className="text-hc-ink-2">Ekki senda mér vörufréttir eða kynningar frá Lifeline.</span>
         </Checkbox>
       </div>
 
-      <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-        <button onClick={onBack} className="btn-ghost">Back</button>
-        <button onClick={onContinue} disabled={!acceptTos || !acceptHealth} className="btn-primary">
-          {!acceptTos || !acceptHealth ? "Samþykktu bæði skjölin" : "Halda áfram →"}
+      <div>
+        <button type="button" onClick={onContinue} disabled={!acceptTos || !acceptHealth} className={authPrimary}>
+          Halda áfram
         </button>
+        {(!acceptTos || !acceptHealth) && (
+          <p className="mt-2 text-center text-sm text-hc-warn-ink">Hakaðu við bæði skjölin til að halda áfram.</p>
+        )}
       </div>
     </section>
   );
 }
 
 function ProfileStage({
-  fullName, setFullName, email, phone, setPhone, kennitala,
+  email, kennitala, fullName, phone,
   sex, setSex, heightCm, setHeightCm, weightKg, setWeightKg,
-  activityLevel, setActivityLevel, error, onBack, onContinue,
+  activityLevel, setActivityLevel, error, onSkip, onContinue,
 }: {
-  fullName: string; setFullName: (v: string) => void;
-  email: string; phone: string; setPhone: (v: string) => void; kennitala: string;
-  sex: "male" | "female" | ""; setSex: (v: "male" | "female" | "") => void;
+  email: string; kennitala: string; fullName: string; phone: string;
+  sex: Sex; setSex: (v: Sex) => void;
   heightCm: string; setHeightCm: (v: string) => void;
   weightKg: string; setWeightKg: (v: string) => void;
-  activityLevel: "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "";
-  setActivityLevel: (v: "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "") => void;
-  error: string; onBack: () => void; onContinue: () => void;
+  activityLevel: Activity; setActivityLevel: (v: Activity) => void;
+  error: string; onSkip: () => void; onContinue: () => void;
 }) {
   return (
-    <section className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Líkamssamsetningarsnið</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Við höfum nafn og netfang úr boðspóstinum. Við þurfum kyn, hæð, þyngd og hreyfingarstig til að stofna Biody-sniðmátið þitt — fæðingardagur kemur úr kennitölunni sem þú notaðir áðan.
-        </p>
-      </div>
-
-      {/* Light contact summary — read-only / easy-to-correct fields the
-          admin captured at invite time. No separate "confirm" framing. */}
-      <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4 space-y-3 text-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">Vinnunetfang (boð)</div>
-            <div className="text-gray-800">{email}</div>
-          </div>
-          <div>
-            <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">Kennitala</div>
-            <div className="text-gray-800 font-mono">{maskKennitala(kennitala)}</div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Nafn (má leiðrétta)">
-            <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" />
-          </Field>
-          <Field label="Símanúmer (má leiðrétta)">
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="input" />
-          </Field>
-        </div>
-      </div>
-
-      <div className="border-t border-gray-100 pt-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-700">Biody-gildi</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Sex">
-            <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required className="input">
-              <option value="">Select…</option>
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-            </select>
-          </Field>
-          <Field label="Activity level">
-            <select value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "")} required className="input">
-              <option value="">Select…</option>
-              <option value="sedentary">Sedentary — little or no exercise</option>
-              <option value="light">Light — exercise 1–3 days/week</option>
-              <option value="moderate">Moderate — exercise 3–5 days/week</option>
-              <option value="very_active">Very active — exercise 6–7 days/week</option>
-              <option value="extra_active">Extra active — daily intense training</option>
-            </select>
-          </Field>
-          <Field label="Height (cm)">
-            <input type="number" min={100} max={230} step={1} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} required className="input" />
-          </Field>
-          <Field label="Weight (kg)">
-            <input type="number" min={30} max={300} step={0.1} value={weightKg} onChange={(e) => setWeightKg(e.target.value)} required className="input" />
-          </Field>
-        </div>
-      </div>
-
-      {error && <div className="text-red-600 text-sm">{error}</div>}
-
-      <div className="flex items-center justify-between">
-        <button onClick={onBack} className="btn-ghost">Back</button>
-        <button onClick={onContinue} className="btn-primary">Continue</button>
-      </div>
-    </section>
-  );
-}
-
-function AccountStage({
-  accountPassword, setAccountPassword, workEmail, loginEmail, setLoginEmail, loading, error, onBack, onSubmit,
-}: {
-  accountPassword: string; setAccountPassword: (v: string) => void;
-  workEmail: string; loginEmail: string; setLoginEmail: (v: string) => void;
-  loading: boolean; error: string;
-  onBack: () => void; onSubmit: () => void;
-}) {
-  const [show, setShow] = useState(false);
-  const differs = loginEmail.trim().toLowerCase() !== workEmail.trim().toLowerCase();
-  return (
-    <section className="bg-white rounded-2xl p-8 shadow-sm">
-      <h1 className="text-2xl font-semibold mb-2">Create your Lifeline account</h1>
-      <p className="text-sm text-gray-600 mb-6">
-        Choose the email and password you&apos;ll use to sign in to Lifeline.
+    <section>
+      <h1 className="text-2xl font-bold text-hc-ink">Líkamsgildi</h1>
+      <p className="mt-1 text-sm text-hc-ink-2">
+        Valfrjálst. Kyn, hæð, þyngd og hreyfing gera fyrstu mælinguna fljótlegri. Fæðingardagur kemur úr kennitölunni.
       </p>
 
-      <Field label="Login email">
-        <input
-          type="email"
-          value={loginEmail}
-          onChange={(e) => setLoginEmail(e.target.value)}
-          autoComplete="email"
-          className="input"
-        />
-        <p className="text-xs text-gray-500 mt-1.5">
-          Your invite was sent to <strong>{workEmail}</strong>. You can sign in with that, or use a
-          personal email if you prefer — handy if you don&apos;t use a work inbox.
-          {differs && <span className="block mt-1 text-emerald-700">You&apos;ll log in with <strong>{loginEmail.trim().toLowerCase()}</strong>.</span>}
-        </p>
-      </Field>
+      <dl className="mt-5 grid grid-cols-1 gap-3 rounded-hc-element bg-hc-sunken p-4 text-sm sm:grid-cols-2">
+        <div><dt className="text-xs text-hc-ink-3">Nafn</dt><dd className="text-hc-ink">{fullName || "—"}</dd></div>
+        <div><dt className="text-xs text-hc-ink-3">Kennitala</dt><dd className="font-mono text-hc-ink">{maskKennitala(kennitala) || "—"}</dd></div>
+        <div className="min-w-0"><dt className="text-xs text-hc-ink-3">Netfang (boð)</dt><dd className="break-all text-hc-ink">{email}</dd></div>
+        <div><dt className="text-xs text-hc-ink-3">Sími</dt><dd className="text-hc-ink">{phone || "—"}</dd></div>
+      </dl>
 
-      <div className="mt-5" />
-      <Field label="Password (8+ characters)">
-        <div className="relative">
-          <input
-            type={show ? "text" : "password"}
-            minLength={8}
-            value={accountPassword}
-            onChange={(e) => setAccountPassword(e.target.value)}
-            required
-            autoFocus
-            className="input pr-20"
-          />
-          <button
-            type="button"
-            onClick={() => setShow(!show)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500 px-2 py-1 hover:text-gray-800"
-          >
-            {show ? "Hide" : "Show"}
-          </button>
-        </div>
-      </Field>
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className={authLabel}>Kyn</span>
+          <select value={sex} onChange={(e) => setSex(e.target.value as Sex)} className={authInput}>
+            <option value="">Veldu…</option>
+            <option value="female">Kona</option>
+            <option value="male">Karl</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className={authLabel}>Hreyfing</span>
+          <select value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as Activity)} className={authInput}>
+            <option value="">Veldu…</option>
+            <option value="sedentary">Lítil eða engin hreyfing</option>
+            <option value="light">Létt — 1–3 daga í viku</option>
+            <option value="moderate">Miðlungs — 3–5 daga í viku</option>
+            <option value="very_active">Mikil — 6–7 daga í viku</option>
+            <option value="extra_active">Mjög mikil — stíf þjálfun daglega</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className={authLabel}>Hæð (cm)</span>
+          <input type="number" inputMode="numeric" min={100} max={230} step={1} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} className={authInput} />
+        </label>
+        <label className="block">
+          <span className={authLabel}>Þyngd (kg)</span>
+          <input type="number" inputMode="decimal" min={30} max={300} step={0.1} value={weightKg} onChange={(e) => setWeightKg(e.target.value)} className={authInput} />
+        </label>
+      </div>
 
-      {error && <div className="text-red-600 text-sm mt-4">{error}</div>}
+      {error && <p role="alert" className="mt-4 rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">{error}</p>}
 
-      <div className="flex items-center justify-between mt-8">
-        <button onClick={onBack} className="btn-ghost" disabled={loading}>Back</button>
-        <button onClick={onSubmit} disabled={loading || accountPassword.length < 8} className="btn-primary">
-          {loading ? "Completing registration…" : "Complete registration"}
+      <div className="mt-6 space-y-2.5">
+        <button type="button" onClick={onContinue} className={authPrimary}>Áfram</button>
+        <button type="button" onClick={onSkip} className={authSecondary}>
+          Sleppa — við mælum þig á mælingadeginum
         </button>
       </div>
     </section>
   );
 }
 
-function DoneStage({ firstName, appAccess }: { firstName: string; appAccess?: boolean }) {
+function AccountStage({
+  accountPassword, setAccountPassword, workEmail, loginEmail, setLoginEmail, loading, error, onSubmit,
+}: {
+  accountPassword: string; setAccountPassword: (v: string) => void;
+  workEmail: string; loginEmail: string; setLoginEmail: (v: string) => void;
+  loading: boolean; error: string;
+  onSubmit: () => void;
+}) {
+  const [show, setShow] = useState(false);
+  const differs = loginEmail.trim().toLowerCase() !== workEmail.trim().toLowerCase();
   return (
-    <section className="bg-white rounded-2xl p-10 shadow-sm text-center">
-      <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
-        <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-      <h1 className="text-2xl font-semibold mb-2">You&apos;re all set{firstName ? `, ${firstName}` : ""}!</h1>
-      <p className="text-sm text-gray-600 mb-5 max-w-md mx-auto">
-        Your Lifeline account is ready.
+    <section>
+      <h1 className="text-2xl font-bold text-hc-ink">Stofnaðu aðganginn</h1>
+      <p className="mt-1 text-sm text-hc-ink-2">
+        Veldu netfangið og lykilorðið sem þú notar til að skrá þig inn hjá Lifeline.
       </p>
-      <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-left max-w-md mx-auto mb-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-2">What happens next</div>
-        <ul className="space-y-1.5 text-sm text-blue-900/90">
-          <li>• Your company schedules the on-site measurement day — you&apos;ll be notified.</li>
-          <li>• When it&apos;s time, pick a 5-minute slot + your Sameind blood-test day from the dashboard.</li>
-          <li>• A Lifeline doctor reviews your results and meets you 1:1.</li>
+
+      <form className="mt-6 space-y-4" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
+        <label className="block">
+          <span className={authLabel}>Netfang til innskráningar</span>
+          <input
+            type="email"
+            required
+            value={loginEmail}
+            onChange={(e) => setLoginEmail(e.target.value)}
+            autoComplete="email"
+            className={authInput}
+          />
+          <span className="mt-1.5 block text-xs leading-relaxed text-hc-ink-3">
+            Boðið var sent á <strong className="break-all text-hc-ink-2">{workEmail}</strong>. Þú getur notað það eða
+            persónulegt netfang ef þú vilt frekar.
+            {differs && loginEmail.trim() && (
+              <span className="mt-1 block text-hc-ok-ink">
+                Þú skráir þig inn með <strong className="break-all">{loginEmail.trim().toLowerCase()}</strong>.
+              </span>
+            )}
+          </span>
+        </label>
+
+        <label className="block">
+          <span className={authLabel}>Lykilorð</span>
+          <span className="relative block">
+            <input
+              type={show ? "text" : "password"}
+              minLength={MIN_PW}
+              value={accountPassword}
+              onChange={(e) => setAccountPassword(e.target.value)}
+              onInvalid={(e) => e.currentTarget.setCustomValidity(`Lykilorðið þarf að vera minnst ${MIN_PW} stafir.`)}
+              onInput={(e) => e.currentTarget.setCustomValidity("")}
+              required
+              autoFocus
+              autoComplete="new-password"
+              className={`${authInput} pr-12`}
+            />
+            <button
+              type="button"
+              onClick={() => setShow(!show)}
+              aria-label={show ? "Fela lykilorð" : "Sýna lykilorð"}
+              aria-pressed={show}
+              className="absolute right-1 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken-2"
+            >
+              {show ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
+            </button>
+          </span>
+          <span className="mt-1 block text-xs text-hc-ink-3">Minnst {MIN_PW} stafir</span>
+        </label>
+
+        {error && <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">{error}</p>}
+
+        <button type="submit" disabled={loading || accountPassword.length < MIN_PW} className={authPrimary}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+          {loading ? "Lýk skráningu…" : "Ljúka skráningu"}
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function DoneStage({ firstName, appAccess, signedIn, loginEmail, onGo }: {
+  firstName: string; appAccess?: boolean; signedIn: boolean; loginEmail: string; onGo: () => void;
+}) {
+  return (
+    <section className="text-center">
+      <span aria-hidden className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-hc-brand-surface text-hc-brand-text">
+        <Check className="h-7 w-7" />
+      </span>
+      <h1 className="mt-4 text-2xl font-bold text-hc-ink">Allt klárt{firstName ? `, ${firstName}` : ""}</h1>
+      <p className="mx-auto mt-2 max-w-sm text-sm text-hc-ink-2">Aðgangurinn þinn hjá Lifeline er tilbúinn.</p>
+
+      <div className="mx-auto mt-5 max-w-md rounded-hc-element bg-hc-sunken p-4 text-left">
+        <div className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-hc-ink-2">Næstu skref</div>
+        <ul className="list-disc space-y-1.5 pl-5 text-sm text-hc-ink">
+          <li>Fyrirtækið skipuleggur mælingadaginn á vinnustaðnum — þú færð að vita af honum.</li>
+          <li>Þegar að því kemur velurðu tíma í mælingu og dag fyrir blóðprufu.</li>
+          <li>Læknir hjá Lifeline fer yfir niðurstöðurnar og hittir þig.</li>
         </ul>
       </div>
 
       {/* App access — only when the employer included it. */}
       {appAccess && (
-        <div className="rounded-xl border border-violet-100 bg-violet-50/70 p-4 text-left max-w-md mx-auto mb-7">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-lg">📱</span>
-            <div className="text-sm font-semibold text-violet-900">The Lifeline app is included in your plan</div>
+        <div className="mx-auto mt-4 max-w-md rounded-hc-element p-4 text-left ring-1 ring-hc-hairline">
+          <div className="mb-1.5 flex items-center gap-2">
+            <Smartphone className="h-5 w-5 text-hc-brand-text" aria-hidden />
+            <div className="text-sm font-semibold text-hc-ink">Lifeline-appið fylgir með</div>
           </div>
-          <p className="text-[13px] text-violet-900/80 leading-relaxed mb-3">
-            Your personal plan, daily actions, programmes and coaching live in the app — sign in with the same email and password you just set.
+          <p className="mb-3 text-[13px] leading-relaxed text-hc-ink-2">
+            Áætlunin þín, dagleg verkefni og þjálfun eru í appinu — skráðu þig inn með sama netfangi og lykilorði.
           </p>
           {APP_LIVE ? (
             <div className="flex flex-wrap gap-2">
-              <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-1.5 rounded-md bg-gray-900 text-white hover:bg-gray-800">App Store</a>
-              <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold px-3 py-1.5 rounded-md bg-gray-900 text-white hover:bg-gray-800">Google Play</a>
+              <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center rounded-hc-element bg-hc-ink px-3 text-xs font-semibold text-white">App Store</a>
+              <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center rounded-hc-element bg-hc-ink px-3 text-xs font-semibold text-white">Google Play</a>
             </div>
           ) : (
-            <p className="text-[12px] font-medium text-violet-700">Launching soon on iPhone and Android — we&apos;ll email you the download link.</p>
+            <p className="text-[12px] font-medium text-hc-ink-2">Væntanlegt á iPhone og Android — við sendum þér hlekkinn í tölvupósti.</p>
           )}
         </div>
       )}
 
-      <div className="flex items-center justify-center gap-3">
-        <a href="/account" className="btn-primary">Go to your dashboard</a>
-        <Link href="/" className="btn-ghost">Back to home</Link>
+      <div className="mt-6 space-y-2.5">
+        {signedIn ? (
+          <button type="button" onClick={onGo} className={authPrimary}>Halda áfram</button>
+        ) : (
+          <Link href={`/account/login?next=${encodeURIComponent("/app")}${loginEmail ? `&email=${encodeURIComponent(loginEmail)}` : ""}`} className={authPrimary}>
+            Skrá inn
+          </Link>
+        )}
       </div>
     </section>
   );
@@ -666,48 +654,17 @@ function DoneStage({ firstName, appAccess }: { firstName: string; appAccess?: bo
 
 // ── Small components ────────────────────────────────────────────────────────
 
-function Progress({ stage }: { stage: Stage }) {
-  const idx = ORDER.indexOf(stage);
-  const labels = ["Welcome", "Terms", "Details", "Password"];
-  return (
-    <div className="flex items-center justify-center gap-2 sm:gap-3 mb-8 overflow-x-auto">
-      {labels.map((l, i) => (
-        <div key={l} className="flex items-center gap-2 sm:gap-3 whitespace-nowrap">
-          <div
-            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
-              i <= idx ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500"
-            }`}
-          >
-            {i + 1}
-          </div>
-          <span className={`text-xs sm:text-sm ${i === idx ? "font-semibold text-gray-900" : "text-gray-500"}`}>{l}</span>
-          {i < labels.length - 1 && <div className="w-5 sm:w-8 h-px bg-gray-300" />}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <li className="flex gap-4">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center text-sm font-semibold">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-hc-brand-surface text-sm font-semibold text-hc-brand-text">
         {n}
       </div>
       <div>
-        <div className="font-medium text-gray-900">{title}</div>
-        <div className="text-sm text-gray-600">{children}</div>
+        <div className="font-medium text-hc-ink">{title}</div>
+        <div className="text-sm text-hc-ink-2">{children}</div>
       </div>
     </li>
-  );
-}
-
-function MiniCard({ color, title, body }: { color: string; title: string; body: string }) {
-  return (
-    <div className="rounded-xl border border-gray-100 p-4">
-      <div className="text-xs font-semibold tracking-wider uppercase mb-1" style={{ color }}>{title}</div>
-      <div className="text-xs text-gray-600 leading-snug">{body}</div>
-    </div>
   );
 }
 
@@ -717,24 +674,15 @@ function maskKennitala(kt: string | null | undefined): string {
   return "••••••" + d.slice(-4);
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-sm font-medium text-gray-700 mb-1">{label}</span>
-      {children}
-    </label>
-  );
-}
-
 function Checkbox({
-  checked, onChange, children, required,
+  checked, onChange, children,
 }: {
-  checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode; required?: boolean;
+  checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode;
 }) {
   return (
-    <label className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 hover:border-gray-300 transition-colors">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1" required={required} />
-      <span className="text-sm text-gray-700 leading-relaxed">{children}</span>
+    <label className="flex cursor-pointer items-start gap-3 rounded-hc-element p-4 ring-1 ring-hc-border transition-colors hover:bg-hc-sunken">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#047857]" />
+      <span className="text-sm leading-relaxed text-hc-ink">{children}</span>
     </label>
   );
 }

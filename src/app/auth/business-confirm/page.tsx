@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { Loader2, X } from "lucide-react";
+import AuthShell, { authPrimary } from "@/app/components/AuthShell";
 
 // Web verify handler for the B2B email-confirmation link.
 //
@@ -34,7 +36,8 @@ function BusinessConfirmInner() {
       const type = (search.get("type") || "magiclink") as EmailOtpType;
       // Only allow same-origin relative paths as the post-confirm destination.
       const nextParam = search.get("next") || "/business/signup";
-      const next = nextParam.startsWith("/") ? nextParam : "/business/signup";
+      const next = nextParam.startsWith("/") && !nextParam.startsWith("//") && !nextParam.startsWith("/\\")
+        ? nextParam : "/business/signup";
 
       if (!tokenHash) {
         setStatus("error");
@@ -53,35 +56,28 @@ function BusinessConfirmInner() {
   }, [router, search]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-[#eff4fa] to-[#e2ebf5] px-4">
-      <div className="max-w-md w-full text-center">
-        {status === "verifying" ? (
-          <div className="bg-white rounded-2xl shadow-sm p-10">
-            <div className="animate-spin w-10 h-10 border-4 border-[#10B981] border-t-transparent rounded-full mx-auto mb-5" />
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Confirming your email&hellip;</h1>
-            <p className="text-gray-500 text-sm">Just a moment &mdash; we&apos;re signing you in.</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-sm p-10">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
-              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Confirmation link expired</h1>
-            <p className="text-gray-500 text-sm mb-6">
-              This link may have already been used or expired. Request a new confirmation email, or sign in if your
-              account is already verified.
-            </p>
-            <Link
-              href="/business/login?mode=login&next=/business/signup"
-              className="inline-block bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 text-white font-semibold rounded-full px-8 py-3 transition-opacity text-sm"
-            >
-              Go to sign in
-            </Link>
-          </div>
-        )}
-      </div>
-    </div>
+    <AuthShell>
+      {status === "verifying" ? (
+        <section className="text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin text-hc-brand-text" aria-hidden />
+          <h1 className="mt-4 text-xl font-bold text-hc-ink">Staðfesti netfangið…</h1>
+          <p className="mt-1 text-sm text-hc-ink-2">Augnablik — við skráum þig inn.</p>
+        </section>
+      ) : (
+        <section className="text-center">
+          <span aria-hidden className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-hc-bad-surface text-hc-bad-ink">
+            <X className="h-7 w-7" />
+          </span>
+          <h1 className="mt-4 text-2xl font-bold text-hc-ink">Hlekkurinn er útrunninn</h1>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-hc-ink-2">
+            Hlekkurinn hefur annaðhvort verið notaður eða er útrunninn. Biddu um nýjan staðfestingarpóst,
+            eða skráðu þig inn ef netfangið er þegar staðfest.
+          </p>
+          <Link href="/business/login?mode=login&next=/business/signup" className={`mt-6 ${authPrimary}`}>
+            Fara í innskráningu
+          </Link>
+        </section>
+      )}
+    </AuthShell>
   );
 }

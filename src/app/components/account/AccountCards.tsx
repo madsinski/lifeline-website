@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
+import { Alert, Button, Field, accountCard, accountInput, accountLabel } from "./ui";
 
 async function api(url: string, init: RequestInit = {}) {
   const { data } = await supabase.auth.getSession();
@@ -19,9 +20,10 @@ async function api(url: string, init: RequestInit = {}) {
     ? { "Content-Type": "application/json" } : {}) } });
 }
 
-const card = "rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100 sm:p-6";
-const input = "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20";
-const btn = "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold transition disabled:opacity-50";
+// On the account primitives (./ui, hc tokens), so these cards look the same
+// on /account and on /app/adgangur.
+const card = `${accountCard} p-5 sm:p-6`;
+const input = `${accountInput} mt-1`;
 
 interface Profile { email: string | null; full_name: string | null; phone: string | null; address: string | null; kennitala_last4: string | null; complete: boolean }
 
@@ -67,32 +69,32 @@ export function ProfileCard() {
 
   const field = (k: keyof typeof f, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <label className="block text-sm">
-      <span className="font-medium text-slate-700">{label}</span>
+      <span className={accountLabel}>{label}</span>
       <input value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} className={input} {...props} />
-      {errors[k] && <span className="mt-1 block text-xs text-red-600">{errors[k]}</span>}
+      {errors[k] && <span className="mt-1 block text-xs text-hc-bad-ink">{errors[k]}</span>}
     </label>
   );
 
   return (
     <section className={card} aria-labelledby="acc-profile">
       <div className="flex items-center gap-2">
-        <h2 id="acc-profile" className="flex-1 text-lg font-bold text-slate-900">{t("comp.ac.personal", "Persónuupplýsingar")}</h2>
-        {p && !edit && <button type="button" onClick={() => setEdit(true)} className={`${btn} border border-slate-300 text-slate-700 hover:bg-slate-50`}><Pencil className="h-4 w-4" aria-hidden />{t("acct.q.edit", "Breyta")}</button>}
+        <h2 id="acc-profile" className="flex-1 text-lg font-bold text-hc-ink">{t("comp.ac.personal", "Persónuupplýsingar")}</h2>
+        {p && !edit && <Button size="sm" variant="secondary" onClick={() => setEdit(true)} icon={<Pencil className="h-3.5 w-3.5" aria-hidden />}>{t("acct.q.edit", "Breyta")}</Button>}
       </div>
       {!p && (
         <div className="mt-3 grid animate-pulse gap-x-6 gap-y-3 sm:grid-cols-2" aria-busy="true" aria-label={t("comp.ac.loading", "Hleð persónuupplýsingum")}>
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i}>
-              <div className="h-3 w-20 rounded bg-slate-200/80" />
-              <div className="mt-1.5 h-4 w-40 rounded bg-slate-200/60" />
+              <div className="h-3 w-20 rounded bg-hc-sunken-2" />
+              <div className="mt-1.5 h-4 w-40 rounded bg-hc-sunken-2" />
             </div>
           ))}
         </div>
       )}
       {p && !edit && (
-        <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+        <dl className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
           {[[t("acct.q.name", "Nafn"), p.full_name], [t("acct.q.email", "Netfang"), p.email], [t("comp.ac.phone", "Sími"), p.phone], [t("acct.q.address", "Heimilisfang"), p.address], [t("acct.q.kennitala", "Kennitala"), p.kennitala_last4 ? `••••••-${p.kennitala_last4}` : null]].map(([k, v]) => (
-            <div key={k as string}><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{k}</dt><dd className="text-slate-900">{v || <span className="text-slate-400">{t("acct.q.missing", "Vantar")}</span>}</dd></div>
+            <Field key={k as string} label={k}>{v || <span className="text-hc-ink-3">{t("acct.q.missing", "Vantar")}</span>}</Field>
           ))}
         </dl>
       )}
@@ -105,15 +107,15 @@ export function ProfileCard() {
           {field("postcode", t("comp.ac.postcode", "Póstnúmer"), { inputMode: "numeric", maxLength: 3 })}
           {field("town", t("comp.ac.town", "Bæjarfélag"))}
           {needsConsent && (
-            <label className="flex items-start gap-2 text-sm text-slate-700 sm:col-span-2">
+            <label className="flex items-start gap-2 text-sm text-hc-ink-2 sm:col-span-2">
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 h-4 w-4 accent-emerald-600" />
               <span>{t("comp.ac.consent", "Ég samþykki að Lifeline vinni með heilsufarsupplýsingar mínar vegna heilsufarsskoðunarinnar.")} <a href="/privacy" className="underline">{t("comp.ac.privacypolicy", "Persónuverndarstefna")}</a></span>
             </label>
           )}
-          {(errors.form || errors.consent) && <p className="text-sm text-red-600 sm:col-span-2">{errors.form || errors.consent}</p>}
+          {(errors.form || errors.consent) && <Alert tone="bad" compact className="sm:col-span-2">{errors.form || errors.consent}</Alert>}
           <div className="flex gap-2 sm:col-span-2">
-            <button type="submit" disabled={busy} className={`${btn} bg-emerald-600 text-white hover:bg-emerald-700`}>{busy ? "Vista…" : "Vista"}</button>
-            <button type="button" onClick={() => setEdit(false)} className={`${btn} text-slate-600 hover:bg-slate-100`}>{t("comp.ac.cancel", "Hætta við")}</button>
+            <Button type="submit" busy={busy}>{t("comp.ac.save", "Vista")}</Button>
+            <Button variant="ghost" onClick={() => setEdit(false)}>{t("comp.ac.cancel", "Hætta við")}</Button>
           </div>
         </form>
       )}
@@ -137,22 +139,22 @@ export function PasswordCard() {
     <div>
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-900">{t("comp.ac.password", "Lykilorð")}</p>
-          <p className="text-xs text-slate-500">{t("comp.ac.tosignin", "Til að skrá þig inn með netfangi.")}</p>
+          <p className="text-sm font-semibold text-hc-ink">{t("comp.ac.password", "Lykilorð")}</p>
+          <p className="text-xs text-hc-ink-3">{t("comp.ac.tosignin", "Til að skrá þig inn með netfangi.")}</p>
         </div>
-        {!open && <button type="button" onClick={() => { setOpen(true); setMsg(null); }} className={`${btn} border border-slate-300 text-slate-700 hover:bg-slate-50`}>{t("acct.q.edit", "Breyta")}</button>}
+        {!open && <Button size="sm" variant="secondary" onClick={() => { setOpen(true); setMsg(null); }}>{t("acct.q.edit", "Breyta")}</Button>}
       </div>
       {open && (
-        <div className="mt-3 space-y-2">
-          <input type="password" value={a} onChange={(e) => setA(e.target.value)} placeholder={t("comp.ac.newpw", "Nýtt lykilorð (minnst 8 stafir)")} autoComplete="new-password" className={input} />
-          <input type="password" value={b} onChange={(e) => setB(e.target.value)} placeholder={t("comp.ac.newpwagain", "Nýja lykilorðið aftur")} autoComplete="new-password" className={input} />
+        <div className="mt-3 max-w-sm space-y-2">
+          <input type="password" value={a} onChange={(e) => setA(e.target.value)} placeholder={t("acc.pw.new12", "Nýtt lykilorð (minnst 12 stafir)")} aria-label={t("acc.pw.new12", "Nýtt lykilorð (minnst 12 stafir)")} autoComplete="new-password" className={input} />
+          <input type="password" value={b} onChange={(e) => setB(e.target.value)} placeholder={t("comp.ac.newpwagain", "Nýja lykilorðið aftur")} aria-label={t("comp.ac.newpwagain", "Nýja lykilorðið aftur")} autoComplete="new-password" className={input} />
           <div className="flex gap-2">
-            <button type="button" onClick={() => void save()} disabled={a.length < 8} className={`${btn} bg-emerald-600 text-white hover:bg-emerald-700`}>{t("comp.ac.savepw", "Vista lykilorð")}</button>
-            <button type="button" onClick={() => setOpen(false)} className={`${btn} text-slate-600 hover:bg-slate-100`}>{t("comp.ac.cancel", "Hætta við")}</button>
+            <Button onClick={() => void save()} disabled={a.length < 12}>{t("comp.ac.savepw", "Vista lykilorð")}</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>{t("comp.ac.cancel", "Hætta við")}</Button>
           </div>
         </div>
       )}
-      {msg && <p role="status" className={`mt-2 text-sm ${msg.ok ? "text-emerald-700" : "text-red-600"}`}>{msg.text}</p>}
+      {msg && <Alert tone={msg.ok ? "ok" : "bad"} compact className="mt-3">{msg.text}</Alert>}
     </div>
   );
 }
@@ -161,10 +163,10 @@ export function SignOutButton({ className = "" }: { className?: string }) {
   const { t } = useI18n();
   const router = useRouter();
   return (
-    <button type="button" onClick={async () => { await supabase.auth.signOut(); router.push("/account/login"); }}
-      className={`${btn} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 ${className}`}>
-      <LogOut className="h-4 w-4" aria-hidden /> {t("comp.ac.signout", "Skrá út")}
-    </button>
+    <Button variant="secondary" className={className} icon={<LogOut className="h-4 w-4" aria-hidden />}
+      onClick={async () => { await supabase.auth.signOut(); router.push("/account/login"); }}>
+      {t("comp.ac.signout", "Skrá út")}
+    </Button>
   );
 }
 
@@ -195,18 +197,18 @@ export function DeleteAccountCard() {
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-red-700">{t("comp.ac.delete", "Eyða aðgangi")}</p>
-          <p className="text-xs text-slate-500">{t("comp.ac.deletedesc", "Eyðir aðganginum og gögnunum hjá Lifeline. Sjúkraskráin í sjúklingagáttinni fylgir eigin reglum.")}</p>
+          <p className="text-xs text-hc-ink-3">{t("comp.ac.deletedesc", "Eyðir aðganginum og gögnunum hjá Lifeline. Sjúkraskráin í sjúklingagáttinni fylgir eigin reglum.")}</p>
         </div>
-        {!open && <button type="button" onClick={() => setOpen(true)} className={`${btn} border border-red-200 text-red-700 hover:bg-red-50`}>{t("comp.ac.deleteshort", "Eyða")}</button>}
+        {!open && <Button size="sm" variant="dangerOutline" onClick={() => setOpen(true)}>{t("comp.ac.deleteshort", "Eyða")}</Button>}
       </div>
       {open && (
-        <div className="mt-3 rounded-2xl bg-red-50 p-4">
-          <p className="text-sm text-red-900">{t("comp.ac.cannotundo", "Þetta er ekki hægt að afturkalla. Skrifaðu")} <strong>{t("comp.ac.deleteword", "EYÐA")}</strong> {t("comp.ac.toconfirm", "til að staðfesta.")}</p>
-          <input value={text} onChange={(e) => setText(e.target.value)} className={`${input} mt-2 bg-white`} aria-label={t("comp.ac.confirmation", "Staðfesting")} />
-          {err && <p className="mt-2 text-sm text-red-700">{err}</p>}
-          <div className="mt-2 flex gap-2">
-            <button type="button" onClick={() => void del()} disabled={text !== t("comp.ac.deleteword", "EYÐA") || busy} className={`${btn} bg-red-600 text-white hover:bg-red-700`}>{busy ? t("comp.ac.deleting", "Eyði…") : t("comp.ac.yesdelete", "Já, eyða aðganginum mínum")}</button>
-            <button type="button" onClick={() => { setOpen(false); setText(""); }} className={`${btn} text-slate-600 hover:bg-white`}>{t("comp.ac.cancel", "Hætta við")}</button>
+        <div className="mt-3 rounded-hc-card bg-hc-bad-surface p-4 ring-1 ring-rose-200">
+          <p className="text-sm text-hc-bad-ink">{t("comp.ac.cannotundo", "Þetta er ekki hægt að afturkalla. Skrifaðu")} <strong>{t("comp.ac.deleteword", "EYÐA")}</strong> {t("comp.ac.toconfirm", "til að staðfesta.")}</p>
+          <input value={text} onChange={(e) => setText(e.target.value)} className={`${input} mt-2 max-w-xs`} aria-label={t("comp.ac.confirmation", "Staðfesting")} />
+          {err && <p className="mt-2 text-sm text-hc-bad-ink">{err}</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="danger" onClick={() => void del()} disabled={text !== t("comp.ac.deleteword", "EYÐA")} busy={busy}>{busy ? t("comp.ac.deleting", "Eyði…") : t("comp.ac.yesdelete", "Já, eyða aðganginum mínum")}</Button>
+            <Button variant="ghost" onClick={() => { setOpen(false); setText(""); }}>{t("comp.ac.cancel", "Hætta við")}</Button>
           </div>
         </div>
       )}

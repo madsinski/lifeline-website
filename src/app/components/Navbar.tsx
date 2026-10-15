@@ -112,10 +112,11 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
    * training scrolled past their plan into a newsletter signup, "SÍÐUR /
    * Heim / Hafa samband" and the social icons.
    *
-   * /account/login and /account/signup keep the chrome: those are doors
-   * into the site and the brand belongs on them.
+   * The sign-in / signup screens (/byrja, /account/login, /auth/*, the B2B
+   * onboarding and the partner invite) render AuthShell, which carries its
+   * own logo — with the Navbar too there were two.
    */
-  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar", "/vinnustod", "/app"];
+  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar", "/vinnustod", "/app", "/byrja", "/account/login", "/auth", "/business/onboard", "/account/partner-invite"];
   if (chromeFree.some((p) => pathname.startsWith(p))) {
     return null;
   }
