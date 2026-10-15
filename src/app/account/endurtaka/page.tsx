@@ -21,8 +21,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { RotateCcw, Check, Loader2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export default function ReplayOnboardingPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [who, setWho] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -30,11 +32,11 @@ export default function ReplayOnboardingPage() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       const { data } = await supabase.auth.getSession();
       setWho(data.session?.user?.email ?? null);
     }, 0);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, []);
 
   const reset = useCallback(async () => {
@@ -47,23 +49,23 @@ export default function ReplayOnboardingPage() {
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r?.ok) { setErr(j.error || "Tókst ekki að núllstilla."); return; }
+    if (!r?.ok) { setErr(j.error || t("acct.replay.failed", "Tókst ekki að núllstilla.")); return; }
     setDone({ consents: j.consentsDeleted ?? 0 });
-  }, []);
+  }, [t]);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
       <div className="rounded-2xl bg-white p-6 shadow-lg">
-        <h1 className="text-lg font-bold text-[#0F172A]">Byrja upp á nýtt</h1>
+        <h1 className="text-lg font-bold text-[#0F172A]">{t("acct.replay.start", "Byrja upp á nýtt")}</h1>
         <p className="mt-1 text-sm leading-relaxed text-gray-600">
           Setur aðganginn aftur í sama horf og rétt eftir nýskráningu, svo hægt sé að fara aftur
           í gegnum kynninguna og skilmálana. Aðgangurinn, lykilorðið og netfangið haldast óbreytt.
         </p>
 
-        {who === undefined && <p className="mt-4 text-sm text-gray-500">Hleð…</p>}
+        {who === undefined && <p className="mt-4 text-sm text-gray-500">{t("acct.loading", "Hleð…")}</p>}
         {who === null && (
           <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Þú þarft að vera skráð/ur inn. <a href="/account/login" className="font-semibold underline">Skrá inn</a>
+            {t("acct.replay.signin", "Þú þarft að vera skráð/ur inn.")} <a href="/account/login" className="font-semibold underline">{t("acct.signin", "Skrá inn")}</a>
           </p>
         )}
 
@@ -101,7 +103,7 @@ export default function ReplayOnboardingPage() {
               onClick={() => router.push("/account/welcome")}
               className="mt-4 w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white hover:bg-[#047857]"
             >
-              Fara í kynninguna
+              {t("acct.replay.gotointro", "Fara í kynninguna")}
             </button>
           </>
         )}

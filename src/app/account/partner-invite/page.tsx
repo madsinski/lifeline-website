@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Handshake, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 
 type State =
   | { k: "loading" }
@@ -25,6 +26,7 @@ type State =
   | { k: "declined" };
 
 export default function PartnerInvitePage() {
+  const { t } = useI18n();
   /* From the URL, once. It cannot change without a navigation, so there is
      nothing for an effect to do here. */
   const [token] = useState<string | null>(() =>
@@ -72,15 +74,15 @@ export default function PartnerInvitePage() {
 
         {s.k === "loading" && (
           <p className="mt-4 flex items-center gap-2 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Hleð boðinu…
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {t("acct.partner.loading", "Hleð boðinu…")}
           </p>
         )}
 
         {s.k === "invalid" && (
           <>
-            <h1 className="mt-4 text-xl font-bold text-slate-900">Boðið er ekki í gildi</h1>
+            <h1 className="mt-4 text-xl font-bold text-slate-900">{t("acct.partner.invalid", "Boðið er ekki í gildi")}</h1>
             <p className="mt-1.5 text-sm text-slate-600">
-              Hlekkurinn er útrunninn eða þegar notaður. Biddu um nýtt boð.
+              {t("acct.partner.expired", "Hlekkurinn er útrunninn eða þegar notaður. Biddu um nýtt boð.")}
             </p>
           </>
         )}
@@ -101,7 +103,7 @@ export default function PartnerInvitePage() {
               <div className="mt-5 flex flex-wrap gap-2">
                 <button type="button" disabled={busy} onClick={() => void answer(false)}
                   className="rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
-                  Já, ég er til
+                  {t("acct.partner.yes", "Já, ég er til")}
                 </button>
                 <button type="button" disabled={busy} onClick={() => void answer(true)}
                   className="rounded-full px-4 py-2.5 text-sm font-semibold text-slate-500 hover:text-slate-800 disabled:opacity-50">
@@ -110,10 +112,10 @@ export default function PartnerInvitePage() {
               </div>
             ) : (
               <div className="mt-5">
-                <p className="text-sm text-slate-600">Skráðu þig inn til að svara boðinu.</p>
+                <p className="text-sm text-slate-600">{t("acct.partner.signinto", "Skráðu þig inn til að svara boðinu.")}</p>
                 <Link href={`/account/login?next=${encodeURIComponent(`/account/partner-invite?t=${token ?? ""}`)}`}
                   className="mt-2 inline-block rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white">
-                  Skrá mig inn
+                  {t("acct.partner.signin", "Skrá mig inn")}
                 </Link>
               </div>
             )}
@@ -122,22 +124,22 @@ export default function PartnerInvitePage() {
 
         {s.k === "done" && (
           <>
-            <h1 className="mt-4 text-xl font-bold text-slate-900">Þá eruð þið tengd</h1>
+            <h1 className="mt-4 text-xl font-bold text-slate-900">{t("acct.partner.connected", "Þá eruð þið tengd")}</h1>
             <p className="mt-1.5 text-sm text-slate-600">
-              {s.inviter ? `${s.inviter} getur nú valið þig sem félaga.` : "Boðinu er svarað."}
+              {s.inviter ? `${s.inviter} getur nú valið þig sem félaga.` : t("acct.partner.answered", "Boðinu er svarað.")}
               {" "}Þú getur gert það sama úr þínum stillingum.
             </p>
             <Link href="/app/adgangur"
               className="mt-5 inline-block rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white">
-              Í stillingar
+              {t("acct.partner.tosettings", "Í stillingar")}
             </Link>
           </>
         )}
 
         {s.k === "declined" && (
           <>
-            <h1 className="mt-4 text-xl font-bold text-slate-900">Boðinu er hafnað</h1>
-            <p className="mt-1.5 text-sm text-slate-600">Við sendum engar frekari áminningar um þetta.</p>
+            <h1 className="mt-4 text-xl font-bold text-slate-900">{t("acct.partner.declined", "Boðinu er hafnað")}</h1>
+            <p className="mt-1.5 text-sm text-slate-600">{t("acct.partner.noreminders", "Við sendum engar frekari áminningar um þetta.")}</p>
           </>
         )}
       </div>

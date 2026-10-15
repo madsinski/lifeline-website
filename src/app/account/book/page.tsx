@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { createStraumurCharge, STRAUMUR_BRAND } from "@/lib/straumur";
 import { PACKAGES, type PackageKey, type PackageDef } from "@/lib/assessment-packages";
 import { cleanKennitala, formatKennitala, isValidKennitala } from "@/lib/kennitala";
+import { useI18n } from "@/lib/i18n";
 import {
   UNION_FUNDS,
   OTHER_UNION_CODE,
@@ -27,14 +28,16 @@ async function authHeader(): Promise<Record<string, string>> {
 }
 
 export default function BookAssessmentPage() {
+  const { t } = useI18n();
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">Hleð…</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-500">{t("acct.loading", "Hleð…")}</div>}>
       <BookAssessmentContent />
     </Suspense>
   );
 }
 
 function BookAssessmentContent() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeBookingId = searchParams.get("resume");
@@ -272,9 +275,9 @@ function BookAssessmentContent() {
       return;
     }
 
-    if (!unionCode) { setGrantError("Veldu stéttarfélag eða haltu áfram án styrks."); return; }
-    if (!isValidKennitala(kennitala)) { setGrantError("Kennitalan er ekki gild. Sláðu inn tíu tölustafi."); return; }
-    if (!grantConsent) { setGrantError("Þú þarft að samþykkja að við sækjum styrkinn fyrir þig."); return; }
+    if (!unionCode) { setGrantError(t("acct.book.chooseunion", "Veldu stéttarfélag eða haltu áfram án styrks.")); return; }
+    if (!isValidKennitala(kennitala)) { setGrantError(t("acct.book.badkt", "Kennitalan er ekki gild. Sláðu inn tíu tölustafi.")); return; }
+    if (!grantConsent) { setGrantError(t("acct.book.mustagree", "Þú þarft að samþykkja að við sækjum styrkinn fyrir þig.")); return; }
 
     setGrantSaving(true);
     const id = bookingId ?? (await createBooking());
@@ -296,15 +299,15 @@ function BookAssessmentContent() {
       if (!res.ok) {
         setGrantError(
           json.error === "invalid_kennitala" ? "Kennitalan er ekki gild."
-            : json.error === "already_paid" ? "Bókunin er þegar greidd."
-            : "Ekki tókst að skrá styrkinn. Reyndu aftur eða haltu áfram án hans.",
+            : json.error === "already_paid" ? t("acct.book.alreadypaid", "Bókunin er þegar greidd.")
+            : t("acct.book.nogrant", "Ekki tókst að skrá styrkinn. Reyndu aftur eða haltu áfram án hans."),
         );
         setGrantSaving(false);
         return;
       }
       setConfirmedGrantIsk(typeof json.grantIsk === "number" ? json.grantIsk : 0);
     } catch {
-      setGrantError("Ekki náðist samband. Reyndu aftur eða haltu áfram án styrks.");
+      setGrantError(t("acct.book.nocontact", "Ekki náðist samband. Reyndu aftur eða haltu áfram án styrks."));
       setGrantSaving(false);
       return;
     }
@@ -394,7 +397,7 @@ function BookAssessmentContent() {
           return;
         }
         const ok = typeof window !== "undefined" && window.confirm(
-          "Þú átt þegar ófrágengna mælingabókun. Viltu fella hana niður og nota þennan tíma í staðinn?",
+          t("acct.book.unfinished", "Þú átt þegar ófrágengna mælingabókun. Viltu fella hana niður og nota þennan tíma í staðinn?"),
         );
         if (ok) {
           // Cancel each unpaid draft through the atomic RPC so the station
@@ -420,9 +423,9 @@ function BookAssessmentContent() {
       if (claimErr || (row && row.ok === false)) {
         const code = row?.error;
         setPaymentError(
-          code === "slot_unavailable" ? "Þessi tími var að bókast. Veldu annan."
-            : code === "already_booked" ? "Þú átt þegar mælingabókun. Afbókaðu hana á yfirlitinu og reyndu svo aftur."
-            : claimErr?.message || "Tókst ekki að taka frá tímann. Reyndu aftur."
+          code === "slot_unavailable" ? t("acct.book.justtaken", "Þessi tími var að bókast. Veldu annan.")
+            : code === "already_booked" ? t("acct.book.already", "Þú átt þegar mælingabókun. Afbókaðu hana á yfirlitinu og reyndu svo aftur.")
+            : claimErr?.message || t("acct.book.holdfailed", "Tókst ekki að taka frá tímann. Reyndu aftur.")
         );
         // Roll THIS draft back. Don't bulk-release — any slot the user still
         // holds belongs to a different (legit) booking and is protected by
@@ -546,7 +549,7 @@ function BookAssessmentContent() {
   }
 
   if (authChecking) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">Hleð…</div>;
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">{t("acct.loading", "Hleð…")}</div>;
   }
 
   return (
@@ -554,7 +557,7 @@ function BookAssessmentContent() {
       <main className="max-w-3xl mx-auto px-6 py-10 sm:py-14 space-y-8">
         <header className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">Bókaðu heilsufarsskoðun</div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-[#10B981] mb-1">{t("acct.book.title", "Bókaðu heilsufarsskoðun")}</div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#0F172A]">{pkg ? pkg.name : "Veldu pakka"}</h1>
           </div>
           <Link
@@ -564,7 +567,7 @@ function BookAssessmentContent() {
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
-            Til baka á yfirlitið
+            {t("acct.book.backoverview", "Til baka á yfirlitið")}
           </Link>
         </header>
 
@@ -574,7 +577,7 @@ function BookAssessmentContent() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
-              <div className="font-semibold mb-1">Þetta er aukatími á eigin kostnað</div>
+              <div className="font-semibold mb-1">{t("acct.book.extraown", "Þetta er aukatími á eigin kostnað")}</div>
               <p className="leading-relaxed text-amber-900/90">
                 Your employer covers your standard Lifeline rounds — we&apos;ll email you when the next one opens. Anything you book here is an <strong>extra you pay for yourself</strong>, on top of what your employer provides. You can still take the employer round when it opens.
               </p>
@@ -670,10 +673,11 @@ function BookAssessmentContent() {
 // ──────────────────────────────────────────────────────────────────────────────
 
 function StageIndicator({ stage, includeGrant }: { stage: Stage; includeGrant: boolean }) {
+  const { t } = useI18n();
   const steps: Array<{ key: Stage; label: string }> = [
     { key: "package", label: "Package" },
-    { key: "schedule", label: "Tímasetning" },
-    ...(includeGrant ? [{ key: "grant" as Stage, label: "Styrkur stéttarfélags" }] : []),
+    { key: "schedule", label: t("acct.book.timing", "Tímasetning") },
+    ...(includeGrant ? [{ key: "grant" as Stage, label: t("acct.book.uniongrant", "Styrkur stéttarfélags") }] : []),
     { key: "review", label: "Review" },
     { key: "pay", label: "Payment" },
     { key: "done", label: "Done" },
@@ -711,6 +715,7 @@ function PackageStage({
   onSelect: (k: PackageKey) => void;
   onÁfram: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-4">
       <p className="text-sm text-[#475569] leading-relaxed">
@@ -761,7 +766,7 @@ function PackageStage({
           disabled={!selected}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95"
         >
-          Áfram
+          {t("acct.continue", "Áfram")}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>
@@ -796,6 +801,7 @@ function TímasetningStage({
   onBack: () => void;
   onÁfram: () => void;
 }) {
+  const { t } = useI18n();
   const [slots, setSlots] = useState<StationSlotRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -832,18 +838,18 @@ function TímasetningStage({
       <div>
         <div className="text-xs font-semibold uppercase tracking-wide text-[#64748B]">{pkg.name}</div>
         <h2 className="text-lg font-semibold text-[#0F172A]">
-          {needsVisit ? "Veldu lausan tíma" : "Byrjaðu sjálfsmatið"}
+          {needsVisit ? t("acct.book.choosetime", "Veldu lausan tíma") : t("acct.book.startself", "Byrjaðu sjálfsmatið")}
         </h2>
         <p className="text-sm text-[#64748B] mt-1">
           {needsVisit
-            ? "Aðeins raunverulegir lausir tímar birtast. Mundu að fasta frá miðnætti kvöldið áður — aðeins vatn."
-            : "Gjaldfrjálst og fer fram í fjarþjónustu. Þú getur byrjað á spurningalistanum á staðfestingarskjánum."}
+            ? t("acct.book.onlyfree", "Aðeins raunverulegir lausir tímar birtast. Mundu að fasta frá miðnætti kvöldið áður — aðeins vatn.")
+            : t("acct.book.freeremote", "Gjaldfrjálst og fer fram í fjarþjónustu. Þú getur byrjað á spurningalistanum á staðfestingarskjánum.")}
         </p>
       </div>
 
       {needsVisit && (
         loading ? (
-          <div className="text-sm text-gray-500">Sæki tíma…</div>
+          <div className="text-sm text-gray-500">{t("acct.fetchingslots", "Sæki tíma…")}</div>
         ) : grouped.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
             No open slots right now. We&apos;ll open new times shortly — please check back, or email{" "}
@@ -889,13 +895,13 @@ function TímasetningStage({
       )}
 
       <label className="block">
-        <span className="text-xs font-medium text-gray-600">Athugasemd til okkar (valfrjálst)</span>
+        <span className="text-xs font-medium text-gray-600">{t("acct.book.note", "Athugasemd til okkar (valfrjálst)")}</span>
         <textarea
           rows={2}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
-          placeholder="Eitthvað sem við ættum að vita?"
+          placeholder={t("acct.book.anything", "Eitthvað sem við ættum að vita?")}
         />
       </label>
 
@@ -950,6 +956,7 @@ function GrantStage({
   onÁfram: () => void;
   onSkip: () => void;
 }) {
+  const { t } = useI18n();
   // A live fund is one we have a signed direct-settlement agreement with —
   // only those produce a discount. Everything else records the declaration.
   const isLive = previewGrantIsk > 0;
@@ -960,7 +967,7 @@ function GrantStage({
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-[#0F172A]">Stéttarfélagsstyrkur</h2>
+        <h2 className="text-lg font-semibold text-[#0F172A]">{t("acct.book.uniongrant2", "Stéttarfélagsstyrkur")}</h2>
         <p className="text-sm text-[#64748B] mt-1 leading-relaxed">
           Flest stéttarfélög taka þátt í kostnaði við heilsufarsmat. Veldu félagið þitt — ef við
           erum með beingreiðslusamning við sjóðinn dregst styrkurinn frá strax og þú þarft ekki
@@ -994,8 +1001,8 @@ function GrantStage({
             unionCode === OTHER_UNION_CODE ? "border-blue-500 ring-2 ring-blue-100 bg-blue-50/40" : "border-gray-200 bg-white hover:border-gray-300"
           }`}
         >
-          <div className="text-sm font-semibold text-[#0F172A]">Annað stéttarfélag</div>
-          <div className="text-[11px] text-[#64748B] mt-0.5">Við skráum félagið og semjum næst</div>
+          <div className="text-sm font-semibold text-[#0F172A]">{t("acct.book.otherunion", "Annað stéttarfélag")}</div>
+          <div className="text-[11px] text-[#64748B] mt-0.5">{t("acct.book.willregister", "Við skráum félagið og semjum næst")}</div>
         </button>
       </div>
 
@@ -1012,7 +1019,7 @@ function GrantStage({
             </div>
             <div className="h-px bg-emerald-200 my-1" />
             <div className="flex items-center justify-between font-bold text-[#0F172A] text-base">
-              <span>Þú greiðir</span>
+              <span>{t("acct.book.youpay", "Þú greiðir")}</span>
               <span>{net.toLocaleString("is-IS")} kr.</span>
             </div>
             <p className="text-[11px] text-emerald-900/80 pt-1">
@@ -1038,7 +1045,7 @@ function GrantStage({
               }`}
             />
             <p className="text-[11px] text-[#64748B] mt-1.5">
-              Sjóðurinn þarf kennitöluna til að staðfesta aðild þína. Hún er dulkóðuð hjá okkur.
+              {t("acct.book.ktwhy", "Sjóðurinn þarf kennitöluna til að staðfesta aðild þína. Hún er dulkóðuð hjá okkur.")}
             </p>
             {kennitala.length === 10 && !ktValid && (
               <p className="text-[11px] text-red-600 mt-1">Kennitalan stenst ekki gilt form.</p>
@@ -1059,7 +1066,7 @@ function GrantStage({
 
       {picked && !isLive && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 leading-relaxed">
-          {pendingFundNote(fund?.name ?? "þínu félagi")}
+          {pendingFundNote(fund?.name ?? t("acct.book.yourunionword", "þínu félagi"))}
         </div>
       )}
 
@@ -1084,7 +1091,7 @@ function GrantStage({
             disabled={saving}
             className="text-sm font-semibold text-[#64748B] hover:text-[#0F172A] underline underline-offset-2 disabled:opacity-50"
           >
-            Ég er ekki í stéttarfélagi
+            {t("acct.book.nounion", "Ég er ekki í stéttarfélagi")}
           </button>
           <button
             type="button"
@@ -1127,9 +1134,10 @@ function ReviewStage({
   onÁfram: () => void;
   error: string | null;
 }) {
+  const { t } = useI18n();
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
-      <h2 className="text-lg font-semibold text-[#0F172A]">Farðu yfir bókunina</h2>
+      <h2 className="text-lg font-semibold text-[#0F172A]">{t("acct.book.review", "Farðu yfir bókunina")}</h2>
 
       <div className="rounded-xl border border-gray-100 bg-[#f8fafc] p-4 space-y-2 text-sm">
         <Row label="Package" value={pkg.name} />
@@ -1156,23 +1164,23 @@ function ReviewStage({
               {/* The member should see that their union paid — that visibility
                   is part of what the fund is buying from us. */}
               <div className="flex items-center justify-between text-emerald-700 font-medium">
-                <span>Styrkur frá {grantFundName ?? "stéttarfélagi"}</span>
+                <span>Styrkur frá {grantFundName ?? t("acct.book.unionword", "stéttarfélagi")}</span>
                 <span>−{grantIsk.toLocaleString("is-IS")} ISK</span>
               </div>
               <div className="h-px bg-blue-100 my-1" />
             </>
           )}
           <div className="flex items-center justify-between font-semibold text-[#0F172A]">
-            <span>{grantIsk > 0 ? "Þú greiðir" : "Total"}</span>
+            <span>{grantIsk > 0 ? t("acct.book.youpay", "Þú greiðir") : "Total"}</span>
             <span>{payableIsk.toLocaleString("is-IS")} ISK</span>
           </div>
           <p className="text-xs text-[#64748B] mt-1">
-            Heilbrigðisþjónusta er undanþegin virðisaukaskatti á Íslandi (lög nr. 50/1988).
+            {t("acct.book.vat", "Heilbrigðisþjónusta er undanþegin virðisaukaskatti á Íslandi (lög nr. 50/1988).")}
           </p>
         </div>
       ) : (
         <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900">
-          Gjaldfrjálst — engin greiðsla.
+          {t("acct.book.free", "Gjaldfrjálst — engin greiðsla.")}
         </div>
       )}
 
@@ -1194,7 +1202,7 @@ function ReviewStage({
           onClick={onÁfram}
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95"
         >
-          {pkg.priceIsk > 0 ? "Áfram í greiðslu" : "Confirm"}
+          {pkg.priceIsk > 0 ? t("acct.book.topayment", "Áfram í greiðslu") : "Confirm"}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>
@@ -1226,10 +1234,11 @@ function PayStage({
   onBack: () => void;
   onPay: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-8 space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-[#0F172A]">Örugg greiðsla</h2>
+        <h2 className="text-lg font-semibold text-[#0F172A]">{t("acct.book.secure", "Örugg greiðsla")}</h2>
         <p className="text-sm text-[#64748B] mt-1">
           Powered by {STRAUMUR_BRAND.name}. Supports {STRAUMUR_BRAND.cardsSupported.join(", ")}.
         </p>
@@ -1240,22 +1249,22 @@ function PayStage({
           <svg className="w-4 h-4 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z" />
           </svg>
-          Greiðsla með Straumi
+          {t("acct.book.straumur", "Greiðsla með Straumi")}
         </div>
         <p className="text-sm text-[#475569]">
           The Straumur checkout will open here once the API is connected. For now, click the button below to simulate payment and continue.
         </p>
         <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] text-amber-900">
-          <strong>Prófunarhamur:</strong> no real charge is made. Your booking will be marked paid for internal testing.
+          <strong>{t("acct.book.testmode", "Prófunarhamur:")}</strong> no real charge is made. Your booking will be marked paid for internal testing.
         </div>
         {grantIsk > 0 && (
           <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 text-[11px] text-emerald-900">
-            {grantFundName ?? "Stéttarfélagið þitt"} greiðir {grantIsk.toLocaleString("is-IS")} kr. beint til okkar.
+            {grantFundName ?? t("acct.book.yourunion", "Stéttarfélagið þitt")} greiðir {grantIsk.toLocaleString("is-IS")} kr. beint til okkar.
             Þú greiðir aðeins mismuninn og þarft ekki að sækja um neitt.
           </div>
         )}
         <div className="mt-4 flex items-center justify-between text-sm">
-          <span className="text-[#64748B]">Upphæð</span>
+          <span className="text-[#64748B]">{t("acct.book.amount", "Upphæð")}</span>
           <span className="font-semibold text-[#0F172A]">{payableIsk.toLocaleString("is-IS")} ISK</span>
         </div>
       </div>
@@ -1281,7 +1290,7 @@ function PayStage({
           className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60"
         >
           {paying && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-          {paying ? "Vinn úr…" : `Pay ${payableIsk.toLocaleString("is-IS")} ISK`}
+          {paying ? t("acct.book.processing", "Vinn úr…") : `Pay ${payableIsk.toLocaleString("is-IS")} ISK`}
         </button>
       </div>
     </div>
@@ -1298,6 +1307,7 @@ function DoneStage({
   selectedSlotAt: string | null;
   selectedLocation: string | null;
 }) {
+  const { t } = useI18n();
   const when = selectedSlotAt
     ? new Date(selectedSlotAt).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false })
     : "";
@@ -1309,7 +1319,7 @@ function DoneStage({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <h2 className="text-2xl font-bold text-[#0F172A]">Bókunin er frágengin.</h2>
+      <h2 className="text-2xl font-bold text-[#0F172A]">{t("acct.book.done", "Bókunin er frágengin.")}</h2>
       <p className="text-sm text-[#475569] mt-2 max-w-md mx-auto leading-relaxed">
         {needsVisit
           ? `See you at ${selectedLocation || "the Lifeline station"} on ${when}. We'll email you a reminder the day before.`
@@ -1320,7 +1330,7 @@ function DoneStage({
           href="/account"
           className="inline-flex items-center gap-2 px-7 py-3 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 shadow-sm"
         >
-          Fara á yfirlitið
+          {t("acct.book.tooverview", "Fara á yfirlitið")}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
           </svg>

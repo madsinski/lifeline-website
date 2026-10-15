@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 
 interface AcceptanceRow {
   id: string;
@@ -22,16 +23,19 @@ interface AcceptanceRow {
   text_hash: string | null;
 }
 
-const DOC_TITLE_IS: Record<string, string> = {
-  "terms-of-service": "Notkunarskilmálar (TOS)",
+const DOC_TITLE_IS = (t: (k: string, f?: string) => string): Record<string, string> => (
+  {
+  "terms-of-service": t("acct.docs.tos", "Notkunarskilmálar (TOS)"),
   "data-processing-agreement": "Vinnslusamningur (DPA)",
-  "employee-terms-of-service": "Notkunarskilmálar fyrir starfsmenn",
-  "health-assessment-consent": "Upplýst samþykki fyrir heilsumat",
-  "biody-import-v1": "Samþykki fyrir Biody-innflutning í app",
-  "privacy-policy": "Persónuverndarstefna",
-};
+  "employee-terms-of-service": t("acct.docs.stafftos", "Notkunarskilmálar fyrir starfsmenn"),
+  "health-assessment-consent": t("acct.doc.consent", "Upplýst samþykki fyrir heilsumat"),
+  "biody-import-v1": t("acct.docs.biody", "Samþykki fyrir Biody-innflutning í app"),
+  "privacy-policy": t("acct.docs.privacy", "Persónuverndarstefna"),
+}
+);
 
 export default function SignedDocumentsList() {
+  const { t } = useI18n();
   const [rows, setRows] = useState<AcceptanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +46,7 @@ export default function SignedDocumentsList() {
     setError(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setError("Ekki innskráð/-ur."); return; }
+      if (!user) { setError(t("acct.docs.notsignedin", "Ekki innskráð/-ur.")); return; }
       const { data, error: qErr } = await supabase
         .from("platform_agreement_acceptances")
         .select("id, document_key, document_version, accepted_at, pdf_storage_path, text_hash")
@@ -68,7 +72,7 @@ export default function SignedDocumentsList() {
         .from("platform-acceptance-pdfs")
         .createSignedUrl(row.pdf_storage_path, 300);
       if (signErr || !data?.signedUrl) {
-        alert(`Tókst ekki að sækja PDF: ${signErr?.message || "engin slóð"}`);
+        alert(`Tókst ekki að sækja PDF: ${signErr?.message || t("acct.docs.nourl", "engin slóð")}`);
         return;
       }
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
@@ -79,7 +83,7 @@ export default function SignedDocumentsList() {
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-2" aria-busy="true" aria-label="Hleð skjölum">
+      <div className="animate-pulse space-y-2" aria-busy="true" aria-label={t("acct.docs.loading", "Hleð skjölum")}>
         <div className="h-10 rounded-xl bg-gray-200/70" />
         <div className="h-10 rounded-xl bg-gray-200/50" />
       </div>
@@ -91,7 +95,7 @@ export default function SignedDocumentsList() {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-gray-500">
-        Engin undirrituð skjöl. Þú hefur ekki samþykkt nein skjöl á þessum aðgangi enn þá.
+        {t("acct.docs.empty", "Engin undirrituð skjöl. Þú hefur ekki samþykkt nein skjöl á þessum aðgangi enn þá.")}
       </p>
     );
   }
@@ -99,7 +103,7 @@ export default function SignedDocumentsList() {
   return (
     <div className="space-y-2">
       {rows.map((r) => {
-        const title = DOC_TITLE_IS[r.document_key] || r.document_key;
+        const title = DOC_TITLE_IS(t)[r.document_key] || r.document_key;
         return (
           <div
             key={r.id}
@@ -108,7 +112,7 @@ export default function SignedDocumentsList() {
             <div className="min-w-0">
               <p className="text-sm font-medium text-[#1F2937] truncate">{title}</p>
               <p className="text-[11px] text-gray-500 mt-0.5">
-                Útgáfa <span className="font-mono">{r.document_version}</span>
+                {t("acct.docs.version", "Útgáfa")} <span className="font-mono">{r.document_version}</span>
                 {" · "}
                 Samþykkt {new Date(r.accepted_at).toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" })}
               </p>
@@ -117,10 +121,10 @@ export default function SignedDocumentsList() {
               type="button"
               onClick={() => downloadPdf(r)}
               disabled={!r.pdf_storage_path || downloadingId === r.id}
-              title={!r.pdf_storage_path ? "PDF ekki tilbúið" : "Sækja PDF"}
+              title={!r.pdf_storage_path ? t("acct.docs.nopdf", "PDF ekki tilbúið") : t("acct.docs.getpdf", "Sækja PDF")}
               className="text-xs font-medium px-3 py-1.5 rounded-md bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
             >
-              {downloadingId === r.id ? "Sæki…" : r.pdf_storage_path ? "Sækja PDF" : "PDF vantar"}
+              {downloadingId === r.id ? t("acct.docs.fetching", "Sæki…") : r.pdf_storage_path ? t("acct.docs.getpdf", "Sækja PDF") : "PDF vantar"}
             </button>
           </div>
         );

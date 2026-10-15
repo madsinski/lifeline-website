@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 
 type Props = {
   companyId: string | null;
@@ -10,13 +11,16 @@ type Props = {
   onSubmitted: () => void;
 };
 
-const TITLES: Record<Props["context"], string> = {
-  body_comp: "Hvernig var líkamssamsetningarmælingin?",
-  doctor: "Hvernig var viðtalið við lækninn?",
-  overall: "Hvernig var upplifunin hjá Lifeline?",
-};
+const TITLES = (t: (k: string, f?: string) => string) => (
+  {
+  body_comp: t("acct.survey.bodycomp", "Hvernig var líkamssamsetningarmælingin?"),
+  doctor: t("acct.survey.doctor", "Hvernig var viðtalið við lækninn?"),
+  overall: t("acct.survey.howwas", "Hvernig var upplifunin hjá Lifeline?"),
+}
+);
 
 export default function SatisfactionSurveyModal({ companyId, context, onClose, onSubmitted }: Props) {
+  const { t } = useI18n();
   const [nps, setNps] = useState<number | null>(null);
   const [helpful, setHelpful] = useState<number | null>(null);
   const [comment, setComment] = useState("");
@@ -24,11 +28,11 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
   const [error, setError] = useState("");
 
   async function submit() {
-    if (nps == null) { setError("Veldu einkunn frá 0 til 10."); return; }
+    if (nps == null) { setError(t("acct.survey.pick010", "Veldu einkunn frá 0 til 10.")); return; }
     setSaving(true);
     setError("");
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); setError("Þú þarft að skrá þig inn."); return; }
+    if (!user) { setSaving(false); setError(t("acct.mustsignin", "Þú þarft að skrá þig inn.")); return; }
     const { error: upErr } = await supabase.from("client_satisfaction_surveys").upsert({
       client_id: user.id,
       company_id: companyId,
@@ -47,7 +51,7 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">{TITLES[context]}</h2>
+          <h2 className="text-xl font-semibold">{TITLES(t)[context]}</h2>
           <p className="text-sm text-gray-600 mt-1">
             Takes 30 seconds. Individual answers stay private
             {companyId ? "; your company sees only aggregated trends." : " — we use the signal to keep improving the service."}
@@ -55,7 +59,7 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
         </div>
         <div className="p-6 space-y-5">
           <div>
-            <div className="text-sm font-medium text-gray-900 mb-2">Hversu líklegt er að þú mælir með Lifeline við samstarfsfólk eða vini?</div>
+            <div className="text-sm font-medium text-gray-900 mb-2">{t("acct.survey.nps", "Hversu líklegt er að þú mælir með Lifeline við samstarfsfólk eða vini?")}</div>
             <div className="grid grid-cols-11 gap-1">
               {Array.from({ length: 11 }, (_, i) => i).map((n) => {
                 const selected = nps === n;
@@ -76,12 +80,12 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
               })}
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Ólíklegt</span>
-              <span>Mjög líklegt</span>
+              <span>{t("acct.survey.unlikely", "Ólíklegt")}</span>
+              <span>{t("acct.survey.verylikely", "Mjög líklegt")}</span>
             </div>
           </div>
           <div>
-            <div className="text-sm font-medium text-gray-900 mb-2">Hversu gagnlegt var þetta fyrir þig?</div>
+            <div className="text-sm font-medium text-gray-900 mb-2">{t("acct.survey.howuseful", "Hversu gagnlegt var þetta fyrir þig?")}</div>
             <div className="grid grid-cols-5 gap-1.5">
               {[1, 2, 3, 4, 5].map((n) => {
                 const selected = helpful === n;
@@ -96,11 +100,11 @@ export default function SatisfactionSurveyModal({ companyId, context, onClose, o
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>Ekki gagnlegt</span>
-              <span>Mjög gagnlegt</span>
+              <span>{t("acct.survey.veryuseful", "Mjög gagnlegt")}</span>
             </div>
           </div>
           <label className="block">
-            <span className="text-sm font-medium text-gray-700">Eitthvað sem við gætum gert betur? (valfrjálst)</span>
+            <span className="text-sm font-medium text-gray-700">{t("acct.survey.better", "Eitthvað sem við gætum gert betur? (valfrjálst)")}</span>
             <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-400" />
           </label>
           {error && <div className="text-red-600 text-sm">{error}</div>}

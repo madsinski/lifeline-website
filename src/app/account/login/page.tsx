@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
 import PinPad from "@/app/components/hc/PinPad";
+import { useI18n } from "@/lib/i18n";
 import {
   PUBLIC_PRIVACY_VERSION,
   PUBLIC_TERMS_VERSION,
@@ -31,6 +32,7 @@ function LoginOrReset() {
  * with a recovery session from the link; they choose a new password here.
  */
 function NewPassword() {
+  const { t } = useI18n();
   const router = useRouter();
   const [ready, setReady] = useState<boolean | null>(null);
   const [pw, setPw] = useState("");
@@ -47,8 +49,8 @@ function NewPassword() {
   }, []);
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw.length < 12) { setErr("Lykilorðið þarf að vera minnst 12 stafir."); return; }
-    if (pw !== pw2) { setErr("Lykilorðin eru ekki eins."); return; }
+    if (pw.length < 12) { setErr(t("acct.login.min12", "Lykilorðið þarf að vera minnst 12 stafir.")); return; }
+    if (pw !== pw2) { setErr(t("acct.login.nomatch", "Lykilorðin eru ekki eins.")); return; }
     setBusy(true); setErr("");
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);
@@ -59,15 +61,15 @@ function NewPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-[#eff4fa] to-[#e2ebf5] px-4 py-16">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
-        <h1 className="text-xl font-bold text-gray-900">Veldu nýtt lykilorð</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t("acct.login.choosenewpw", "Veldu nýtt lykilorð")}</h1>
         {ready === false ? (
-          <p className="mt-3 text-sm text-gray-600">Hlekkurinn er útrunninn eða hefur verið notaður. <Link href="/account/login" className="font-semibold text-[#10B981]">Biddu um nýjan</Link>.</p>
+          <p className="mt-3 text-sm text-gray-600">{t("acct.login.linkexpired", "Hlekkurinn er útrunninn eða hefur verið notaður.")} <Link href="/account/login" className="font-semibold text-[#10B981]">{t("acct.login.requestnew", "Biddu um nýjan")}</Link>.</p>
         ) : (
           <form onSubmit={save} className="mt-4 space-y-3">
-            <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Nýtt lykilorð (minnst 12 stafir)" autoComplete="new-password" className={input} />
-            <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="Nýtt lykilorð aftur" autoComplete="new-password" className={input} />
+            <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={t("acct.login.newpw", "Nýtt lykilorð (minnst 12 stafir)")} autoComplete="new-password" className={input} />
+            <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder={t("acct.login.newpwagain", "Nýtt lykilorð aftur")} autoComplete="new-password" className={input} />
             {err && <p className="text-sm text-red-600">{err}</p>}
-            <button type="submit" disabled={busy || !ready} className="w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">{busy ? "Vista…" : "Vista nýtt lykilorð"}</button>
+            <button type="submit" disabled={busy || !ready} className="w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">{busy ? "Vista…" : t("acct.login.savenewpw", "Vista nýtt lykilorð")}</button>
           </form>
         )}
       </div>
@@ -76,6 +78,7 @@ function NewPassword() {
 }
 
 function AccountLoginContent() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref") || "";
@@ -147,7 +150,7 @@ function AccountLoginContent() {
     if (!r.ok) {
       setLoading(false);
       setPin("");
-      setPinError(j.error || "Innskráning mistókst.");
+      setPinError(j.error || t("acct.login.failed", "Innskráning mistókst."));
       if (j.locked || j.error === "no_device") { setPinAvailable(null); setUsePin(false); }
       return;
     }
@@ -209,19 +212,19 @@ function AccountLoginContent() {
       // user reads + accepts the legal documents on stage 2.
       if (signupStage === "form") {
         if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
-          setError("Fylltu inn nafn, netfang og lykilorð.");
+          setError(t("acct.login.fillall", "Fylltu inn nafn, netfang og lykilorð."));
           showMessage();
           setLoading(false);
           return;
         }
         if (password.length < 12) {
-          setError("Lykilorðið þarf að vera minnst 12 stafir.");
+          setError(t("acct.login.min12", "Lykilorðið þarf að vera minnst 12 stafir."));
           showMessage();
           setLoading(false);
           return;
         }
         if (password !== confirmPassword) {
-          setError("Lykilorðin eru ekki eins.");
+          setError(t("acct.login.nomatch", "Lykilorðin eru ekki eins."));
           showMessage();
           setLoading(false);
           return;
@@ -241,7 +244,7 @@ function AccountLoginContent() {
       }
       // Stage 2 (terms) — actually create the account.
       if (!acceptTerms) {
-        setError("Samþykktu skilmálana og persónuverndarstefnuna til að halda áfram.");
+        setError(t("acct.login.acceptboth", "Samþykktu skilmálana og persónuverndarstefnuna til að halda áfram."));
         setLoading(false);
         return;
       }
@@ -319,7 +322,7 @@ function AccountLoginContent() {
         } catch {}
       }
       setInfo(
-        "Aðgangurinn er stofnaður. Staðfestu netfangið með hlekknum sem við sendum þér og skráðu þig svo inn."
+        t("acct.login.created", "Aðgangurinn er stofnaður. Staðfestu netfangið með hlekknum sem við sendum þér og skráðu þig svo inn.")
       );
       showMessage();
       setMode("login");
@@ -336,7 +339,7 @@ function AccountLoginContent() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError("Sláðu fyrst inn netfangið þitt.");
+      setError(t("acct.login.emailfirst", "Sláðu fyrst inn netfangið þitt."));
       return;
     }
     setError("");
@@ -348,7 +351,7 @@ function AccountLoginContent() {
     if (resetError) {
       setError(resetError.message);
     } else {
-      setInfo("Við sendum þér hlekk til að velja nýtt lykilorð.");
+      setInfo(t("acct.login.resetsent", "Við sendum þér hlekk til að velja nýtt lykilorð."));
     }
   };
 
@@ -364,11 +367,11 @@ function AccountLoginContent() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <span className="text-xs font-semibold uppercase tracking-wide">Aðgangurinn minn</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">{t("acct.login.myaccount", "Aðgangurinn minn")}</span>
           </div>
           <p className="mt-3 text-[#6B7280] text-sm max-w-sm mx-auto">
             {mode === "login"
-              ? "Skráðu þig inn til að sjá áætlunina þína, næsta tíma og hvernig gengur."
+              ? t("acct.login.lede", "Skráðu þig inn til að sjá áætlunina þína, næsta tíma og hvernig gengur.")
               : "Stofnaðu aðgang til að hefja heilsufarsskoðunina og fá þína eigin áætlun."}
           </p>
         </div>
@@ -385,8 +388,8 @@ function AccountLoginContent() {
           {/* Inner tabs — match /business/login styling */}
           <div className="flex border-b border-gray-100 pt-2" role="tablist">
             {([
-              { key: "login", label: "Innskráning" },
-              { key: "signup", label: "Nýr aðgangur" },
+              { key: "login", label: t("acct.login.title", "Innskráning") },
+              { key: "signup", label: t("acct.login.newaccount", "Nýr aðgangur") },
             ] as const).map((tab) => {
               const active = mode === tab.key;
               return (
@@ -424,7 +427,7 @@ function AccountLoginContent() {
                 onClick={() => { setUsePin(false); setPinError(""); }}
                 className="mt-5 block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981]"
               >
-                Nota lykilorð í staðinn
+                {t("acct.login.usepassword", "Nota lykilorð í staðinn")}
               </button>
             </div>
           ) : mode === "signup" && signupStage === "terms" ? (
@@ -533,7 +536,7 @@ function AccountLoginContent() {
                   htmlFor="phone"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Farsími
+                  {t("acct.login.mobile", "Farsími")}
                 </label>
                 <input
                   id="phone"
@@ -541,7 +544,7 @@ function AccountLoginContent() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                  placeholder="Símanúmer"
+                  placeholder={t("acct.phone", "Símanúmer")}
                 />
               </div>
             )}
@@ -551,7 +554,7 @@ function AccountLoginContent() {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Lykilorð
+                {t("acct.password", "Lykilorð")}
               </label>
               <input
                 id="password"
@@ -562,12 +565,12 @@ function AccountLoginContent() {
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
                 placeholder={
                   mode === "signup"
-                    ? "Veldu lykilorð (minnst 12 stafir)"
-                    : "Lykilorðið þitt"
+                    ? t("acct.login.choosepw", "Veldu lykilorð (minnst 12 stafir)")
+                    : t("acct.login.yourpassword", "Lykilorðið þitt")
                 }
                 minLength={mode === "signup" ? 12 : undefined}
                 onInvalid={(e) => e.currentTarget.setCustomValidity(
-                  mode === "signup" ? "Lykilorðið þarf að vera minnst 12 stafir." : "")}
+                  mode === "signup" ? t("acct.login.min12", "Lykilorðið þarf að vera minnst 12 stafir.") : "")}
                 onInput={(e) => e.currentTarget.setCustomValidity("")}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
               />
@@ -579,7 +582,7 @@ function AccountLoginContent() {
                   htmlFor="confirmPassword"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Lykilorð aftur
+                  {t("acct.login.passwordagain", "Lykilorð aftur")}
                 </label>
                 <input
                   id="confirmPassword"
@@ -588,9 +591,9 @@ function AccountLoginContent() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                  placeholder="Sláðu lykilorðið inn aftur"
+                  placeholder={t("acct.login.repeatpw", "Sláðu lykilorðið inn aftur")}
                   minLength={12}
-                  onInvalid={(e) => e.currentTarget.setCustomValidity("Lykilorðið þarf að vera minnst 12 stafir.")}
+                  onInvalid={(e) => e.currentTarget.setCustomValidity(t("acct.login.min12", "Lykilorðið þarf að vera minnst 12 stafir."))}
                   onInput={(e) => e.currentTarget.setCustomValidity("")}
                   autoComplete="new-password"
                 />
@@ -615,11 +618,11 @@ function AccountLoginContent() {
             >
               {loading
                 ? mode === "login"
-                  ? "Skrái inn…"
-                  : "Stofna aðgang…"
+                  ? t("acct.login.signingin", "Skrái inn…")
+                  : t("acct.login.creating", "Stofna aðgang…")
                 : mode === "login"
-                  ? "Skrá inn"
-                  : "Áfram"}
+                  ? t("acct.signin", "Skrá inn")
+                  : t("acct.continue", "Áfram")}
             </button>
           </form>
           )}
@@ -630,7 +633,7 @@ function AccountLoginContent() {
               onClick={() => setUsePin(true)}
               className="block w-full text-center text-sm font-medium text-[#10B981] hover:text-[#047857] mt-4 transition-colors"
             >
-              Skrá inn með PIN
+              {t("acct.login.pin", "Skrá inn með PIN")}
             </button>
           )}
           {mode === "login" && !usePin && (
@@ -639,7 +642,7 @@ function AccountLoginContent() {
               onClick={handleForgotPassword}
               className="block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981] mt-4 transition-colors"
             >
-              Gleymt lykilorð?
+              {t("acct.login.forgot", "Gleymt lykilorð?")}
             </button>
           )}
           </div>
@@ -647,7 +650,7 @@ function AccountLoginContent() {
 
         <p className="text-center text-[#6B7280] text-xs mt-6">
           <Link href="/" className="hover:text-[#10B981] transition-colors">
-            Til baka á forsíðu Lifeline Health
+            {t("acct.login.backhome", "Til baka á forsíðu Lifeline Health")}
           </Link>
         </p>
       </div>
@@ -680,11 +683,12 @@ function TermsConsentStage({
   onBack: () => void;
   onConfirm: (e: React.FormEvent) => void;
 }) {
+  const { t } = useI18n();
   return (
     <form onSubmit={onConfirm} className="space-y-5">
       <div id="signup-terms-top" className="scroll-mt-4">
         <h2 className="text-lg font-semibold text-[#0F172A]">
-          {firstName ? `Næstum þar, ${firstName}` : "Næstum þar"}
+          {firstName ? `Næstum þar, ${firstName}` : t("acct.login.almost", "Næstum þar")}
         </h2>
         <p className="text-sm text-gray-500 mt-1 leading-relaxed">
           Áður en aðgangurinn er stofnaður þarftu að lesa og samþykkja
@@ -692,7 +696,7 @@ function TermsConsentStage({
         </p>
         {email && (
           <p className="text-xs text-gray-400 mt-1">
-            Aðgangurinn verður stofnaður á <span className="font-medium text-gray-600">{email}</span>.
+            {t("acct.login.willbecreated", "Aðgangurinn verður stofnaður á")} <span className="font-medium text-gray-600">{email}</span>.
           </p>
         )}
       </div>
@@ -725,8 +729,8 @@ function TermsConsentStage({
             className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
           />
           <span className="text-xs text-gray-700 leading-snug">
-            Ég hef lesið og samþykki <strong>notkunarskilmála</strong> Lifeline Health (v{PUBLIC_TERMS_VERSION})
-            og <strong>persónuverndarstefnu</strong> (v{PUBLIC_PRIVACY_VERSION}).
+            {t("acct.login.ihaveread", "Ég hef lesið og samþykki")} <strong>{t("acct.login.termslink", "notkunarskilmála")}</strong> Lifeline Health (v{PUBLIC_TERMS_VERSION})
+            og <strong>{t("acct.login.privacylink", "persónuverndarstefnu")}</strong> (v{PUBLIC_PRIVACY_VERSION}).
             <span className="text-red-500 ml-0.5">*</span>
           </span>
         </label>
@@ -738,7 +742,7 @@ function TermsConsentStage({
             className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
           />
           <span className="text-xs text-gray-700 leading-snug">
-            <strong>Afþakka rannsóknanotkun.</strong>{" "}
+            <strong>{t("acct.login.noresearch", "Afþakka rannsóknanotkun.")}</strong>{" "}
             Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.
           </span>
         </label>
@@ -750,7 +754,7 @@ function TermsConsentStage({
             className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
           />
           <span className="text-xs text-gray-700 leading-snug">
-            <strong>Afþakka markaðspóst.</strong>{" "}
+            <strong>{t("acct.login.nomarketing", "Afþakka markaðspóst.")}</strong>{" "}
             Ekki senda mér vörufréttir eða kynningar frá Lifeline.
           </span>
         </label>
@@ -782,7 +786,7 @@ function TermsConsentStage({
           aria-describedby={!acceptTerms ? "signup-blocked" : undefined}
           className="flex-1 bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Stofnar aðgang..." : "Samþykkja og stofna aðgang"}
+          {loading ? t("acct.login.creating2", "Stofnar aðgang...") : t("acct.login.acceptcreate", "Samþykkja og stofna aðgang")}
         </button>
       </div>
       {/* Why the button does nothing.
@@ -792,7 +796,7 @@ function TermsConsentStage({
           which is exactly how it was reported. */}
       {!acceptTerms && (
         <p id="signup-blocked" className="text-center text-sm text-amber-700">
-          Hakaðu við að þú samþykkir skilmálana hér fyrir ofan til að halda áfram.
+          {t("acct.login.ticktermslong", "Hakaðu við að þú samþykkir skilmálana hér fyrir ofan til að halda áfram.")}
         </p>
       )}
     </form>
