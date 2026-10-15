@@ -47,8 +47,8 @@ export function HowItWorksSteps({ c, onStep, doneStep }: {
               <div className="hidden sm:block absolute top-12 left-[58%] w-[12%] h-0.5 bg-gradient-to-r from-[#84CC16]/40 to-[#767194]/40" />
               {[1, 2, 3].map((n, i) => (
                 <Tag key={n} {...(onStep ? { type: "button" as const, onClick: () => onStep(n as 1 | 2 | 3) } : {})}
-                  className={`flex flex-col items-center text-center relative${onStep ? " rounded-2xl p-2 transition hover:bg-black/[0.02]" : ""}`}>
-                  <div className="relative mb-6">
+                  className={`group flex flex-col items-center text-center relative${onStep ? " cursor-pointer" : ""}`}>
+                  <div className={`relative mb-6${onStep ? " transition-transform duration-200 ease-out group-hover:-translate-y-1 group-hover:scale-[1.04] group-focus-visible:-translate-y-1" : ""}`}>
                     <div className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-lg" style={{ backgroundColor: `${STEP_STYLES[i].color}10`, border: `2px solid ${STEP_STYLES[i].color}25` }}>
                       <div style={{ color: STEP_STYLES[i].color }}>{STEP_STYLES[i].icon}</div>
                     </div>
