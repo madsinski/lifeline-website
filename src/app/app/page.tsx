@@ -813,7 +813,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
               </p>
 
               <TestTask n={1} title="Virkjaðu í sjúklingagáttinni" done={!!j.protocol_activated_at}>
-                {healthOrder.activation_code && <CodeBox code={healthOrder.activation_code} />}
+                {healthOrder.activation_code ? <CodeBox code={healthOrder.activation_code} /> : healthOrder.status === "paid" && <p className="rounded-xl bg-hc-info-surface px-3 py-2 text-sm text-hc-info-ink">Virkjunarkóðinn er á leiðinni. Hann berst þér í tölvupósti innan eins virks dags og birtist hér.</p>}
                 <p className="mt-1">
                   Skráðu þig inn með rafrænum skilríkjum, sláðu inn kóðann og svaraðu
                   spurningalistanum. Hann er í gáttinni, ekki hér.
@@ -1362,7 +1362,7 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
     return (
       <div className="space-y-2 text-sm text-hc-ink-2">
         <p>Greitt. Virkjaðu eftirfylgdina í sjúklingagáttinni með kóðanum og bókaðu tíma:</p>
-        {order.activation_code && <CodeBox code={order.activation_code} />}
+        {order.activation_code ? <CodeBox code={order.activation_code} /> : order.status === "paid" && <p className="rounded-xl bg-hc-info-surface px-3 py-2 text-sm text-hc-info-ink">Virkjunarkóðinn er á leiðinni. Hann berst þér í tölvupósti innan eins virks dags og birtist hér.</p>}
         {j.followup_booked_for && <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">Bókað: <strong>{fmtDateTime(j.followup_booked_for)}</strong></p>}
       </div>
     );

@@ -15,7 +15,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createStraumurCharge } from "@/lib/straumur";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
-import { newActivationCode, normalizeCode } from "@/lib/hc/codes";
+import { normalizeCode } from "@/lib/hc/codes";
+import { claimActivationCode, codeEmail } from "@/lib/hc/code-pool";
 import { quote as buildQuote, computeReimbursement, type UnionRules } from "@/lib/hc/reimbursement";
 import {
   approvedUnions, currentJourney, getClientProfile, hcAudit, isProfileComplete, patchJourney,
@@ -233,10 +234,12 @@ export async function POST(req: NextRequest) {
     providerReference = charge.providerReference;
   }
 
-  // Order + activation code (retry on the unlikely code collision)
+  // The order first; its Medalia activation code is drawn from the pool
+  // right after (src/lib/hc/code-pool.ts). The loop is a single pass now —
+  // there is no generated code left to collide.
   const now = new Date().toISOString();
   let order: Record<string, unknown> | null = null;
-  for (let attempt = 0; attempt < 4 && !order; attempt++) {
+  for (let attempt = 0; attempt < 1 && !order; attempt++) {
     const { data, error } = await supabaseAdmin
       .from("hc_orders")
       .insert({
@@ -257,7 +260,7 @@ export async function POST(req: NextRequest) {
         provider_reference: providerReference,
         status: "paid",
         paid_at: now,
-        activation_code: newActivationCode(),
+        activation_code: null,
         consent_text: unionRow?.settlement === "direct" ? `Beingreiðsla: ${unionRow.name}` : null,
       })
       .select("*")
@@ -266,6 +269,15 @@ export async function POST(req: NextRequest) {
     else if (error?.code !== "23505") return NextResponse.json({ error: error?.message || "order_failed" }, { status: 500 });
   }
   if (!order) return NextResponse.json({ error: "order_failed" }, { status: 500 });
+
+  /* One Medalia code for this order. An empty pool leaves the order paid
+     without a code: the customer is told it is on its way, staff are
+     alerted, and the next import assigns it. Never an invented code. */
+  const claimed = await claimActivationCode(order.id as string, user.id, pkg.kind);
+  if (claimed.code) {
+    await supabaseAdmin.from("hc_orders").update({ activation_code: claimed.code }).eq("id", order.id as string);
+    order = { ...order, activation_code: claimed.code };
+  }
   if (waiverAt) await recordWaiver("hc_orders", order.id as string, waiverAt);
 
   if (unionRow && q.reimbursementIsk > 0) {
@@ -289,24 +301,25 @@ export async function POST(req: NextRequest) {
     journey = await refreshStage(journey);
   }
 
-  // Confirmation email with the activation code
+  // Confirmation email: the code, or word that it is on its way.
   const origin = siteOrigin(req);
-  const code = order.activation_code as string;
-  await sendEmail({
-    to: user.email!,
-    subject: `Virkjunarkóðinn þinn: ${code}`,
-    html: renderBrandedEmail({
-      title: `${pkg.name} er greidd`,
-      accentLabel: "Næsta skref",
-      preheader: `Virkjunarkóði: ${code}`,
-      bodyHtml: `<p style="margin:0 0 12px;">Takk fyrir. Næsta skref er að virkja ${pkg.kind === "health_check" || pkg.kind === "reevaluation" ? "heilsufarsskoðunina" : "eftirfylgdina"} í sjúklingagáttinni með þessum kóða:</p>
-        <div style="font-family:ui-monospace,monospace;font-size:26px;letter-spacing:.12em;text-align:center;background:#ECFDF5;border-radius:10px;padding:16px;margin:16px 0;color:#065F46;font-weight:700;">${code}</div>
-        <p style="margin:0;">Þú finnur kóðann líka alltaf á aðganginum þínum.</p>`,
-      ctaLabel: "Opna heilsuferðina",
-      ctaUrl: `${origin}/app`,
-    }),
-    text: `${pkg.name} er greidd. Virkjunarkóðinn þinn er ${code}. Opnaðu heilsuferðina: ${origin}/app`,
-  });
+  const code = order.activation_code as string | null;
+  if (code) {
+    await sendEmail({ to: user.email!, ...codeEmail({ pkgName: pkg.name, kind: pkg.kind, code, origin }) });
+  } else {
+    await sendEmail({
+      to: user.email!,
+      subject: `${pkg.name} er greidd`,
+      html: renderBrandedEmail({
+        title: `${pkg.name} er greidd`,
+        accentLabel: "Næsta skref",
+        bodyHtml: `<p style="margin:0 0 12px;">Takk fyrir. Virkjunarkóðinn fyrir sjúklingagáttina (Medalia) berst þér í tölvupósti innan eins virks dags. Þú sérð hann líka í heilsuferðinni í appinu um leið og hann er tilbúinn.</p>`,
+        ctaLabel: "Opna heilsuferðina",
+        ctaUrl: `${origin}/app`,
+      }),
+      text: `${pkg.name} er greidd. Virkjunarkóðinn berst þér í tölvupósti innan eins virks dags. ${origin}/app`,
+    });
+  }
 
   return NextResponse.json({ ok: true, order, journey, quote: q });
 }
