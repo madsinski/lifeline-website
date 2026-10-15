@@ -25,6 +25,9 @@ import { nextTask, taskTarget, type Detail, type Me, type PatientNav, type WsTab
 import { Shimmer, TestBadge } from "../ui";
 import { NotesPeek } from "./Interview";
 import { PatientSheet } from "./Sheets";
+import { ClientRequests, type BookStart } from "./Requests";
+import type { WsRequest } from "@/app/components/hc/WsRequests";
+import type { RequestAction } from "@/lib/hc/requests";
 import { Adherence, ResultsStep, resultsStatus, seedFromNotes } from "./steps";
 
 /* The journey route answers some failures in Icelandic and some with a bare
@@ -103,6 +106,46 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
    * thread into view and put the cursor in it. Once, then forget it, so
    * a reload does not keep yanking the page down.
    */
+  /*
+   * A request's ready-made pathway. "Bóka mælingu/viðtal" opens the booking
+   * form here, pre-filled; the booking it produces writes the reply on that
+   * request ("Tíminn er bókaður …") for the coach to read and send. Referral
+   * and plan changes open where that work is done; the request stays at the
+   * top of Staða until it is answered.
+   */
+  const [bookStart, setBookStart] = useState<BookStart | null>(null);
+  const [pendingReq, setPendingReq] = useState<string | null>(null);
+  const [reqPrefill, setReqPrefill] = useState<{ id: string; text: string; key: number } | null>(null);
+  const onRequestAction = useCallback((r: WsRequest, action: RequestAction) => {
+    if (action === "referral") { onNav({ sheet: "referral" }); return; }
+    if (action === "plan") { onNav({ tab: "plan" }); return; }
+    const items = Array.isArray(r.detail?.measurements) ? (r.detail.measurements as string[]) : [];
+    setPendingReq(r.id);
+    setBookStart({ kind: action === "book-video" ? "video" : "measurement", items, key: Date.now() });
+    setTimeout(() => document.getElementById("ws-bookings")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }, [onNav]);
+  const onBooked = useCallback((b: { label: string; starts_at: string }) => {
+    if (!pendingReq) return;
+    setReqPrefill({
+      id: pendingReq,
+      text: `Tíminn er bókaður: ${b.label}, ${dayTime(b.starts_at)}. Þú sérð hann í heilsuferðinni og færð áminningu.`,
+      key: Date.now(),
+    });
+    setPendingReq(null);
+    setTimeout(() => document.getElementById("ws-requests")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }, [pendingReq]);
+
+  /* "Svara"/the name on a request in Í dag lands here with focus=requests. */
+  const focusReq = nav.focus === "requests" && !!d;
+  useEffect(() => {
+    if (!focusReq) return;
+    const t = setTimeout(() => {
+      document.getElementById("ws-requests")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      onNav({ focus: null });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [focusReq, onNav]);
+
   const focusChat = nav.focus === "chat" && !!d;
   useEffect(() => {
     if (!focusChat) return;
@@ -246,6 +289,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
            sized to its own content. */
         <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
           <div className="min-w-0 space-y-4">
+            <ClientRequests journeyId={j.id} onAction={onRequestAction} prefill={reqPrefill} onChanged={onChanged} />
             {tests.every((c) => c.done) ? (
               <section className="flex items-center gap-2 rounded-2xl border border-hc-hairline bg-hc-surface px-4 py-3">
                 <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-hc-brand-dark text-white">
@@ -277,7 +321,9 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
               </section>
             )}
             {j.plan_published_at && <Adherence d={d} />}
-            <CoachBookings api={api} journeyId={j.id} />
+            <div id="ws-bookings" className="scroll-mt-24">
+              <CoachBookings api={api} journeyId={j.id} start={bookStart} onBooked={onBooked} />
+            </div>
             {/* What has moved in the plan since last time: the question
                 before an encounter, not while editing. */}
             {j.plan_published_at && <PlanChanges api={api} journeyId={j.id} />}

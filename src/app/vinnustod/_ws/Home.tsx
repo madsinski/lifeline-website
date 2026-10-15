@@ -139,7 +139,12 @@ export function TodayView({ rows, me, isDoctor, onOpen, inbox }: {
                 unanswered for a day is worse than a step that waited one. */}
             {requests.map((q) => (
               <RequestRow key={`q-${q.id}`} api={api} r={q} onDone={() => void inbox.reload()}
-                onOpen={(id) => onOpen(id)} dot={<Dot className="bg-hc-signal-red" />} />
+                onOpen={(id) => onOpen(id, { tab: "status", focus: "requests" })}
+                onAction={(r, action) => onOpen(r.journey_id,
+                  action === "referral" ? { sheet: "referral" }
+                  : action === "plan" ? { tab: "plan" }
+                  : { tab: "status", focus: "requests" })}
+                dot={<Dot className="bg-hc-signal-red" />} />
             ))}
             {chats.map((t) => (
               <li key={`c-${t.journeyId}`} className="flex flex-wrap items-center gap-3 px-4 py-3">

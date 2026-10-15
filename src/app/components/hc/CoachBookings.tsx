@@ -59,7 +59,16 @@ function whenLabel(iso: string, asOf: number): { lead: string; rest: string } {
   return { lead: date, rest: `${weekday} · kl. ${time}` };
 }
 
-export default function CoachBookings({ api, journeyId }: { api: Api; journeyId: string }) {
+export default function CoachBookings({ api, journeyId, start, onBooked }: {
+  api: Api;
+  journeyId: string;
+  /** Open the booking form already filled in — from a participant's request
+      ("Bóka mælingu"). A new key re-opens it. */
+  start?: { kind: "video" | "measurement"; items?: string[]; key: number } | null;
+  /** After a booking is made: what and when, so the request it answered can
+      be replied to. */
+  onBooked?: (b: { kind: "video" | "measurement"; label: string; starts_at: string }) => void;
+}) {
   const [rows, setRows] = useState<Booking[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [adding, setAdding] = useState<"video" | "measurement" | null>(null);
@@ -76,6 +85,17 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
   const [loadErr, setLoadErr] = useState(false);
   const dialog = useDialog();
   const toast = useToast();
+
+  /* A request's "Bóka …" lands here with the form open and the requested
+     measurements ticked (only ones that can be booked here — a blood test
+     is taken at Sameind). Adjusting state from a changed prop in render. */
+  const [startSeen, setStartSeen] = useState<number | null>(null);
+  if (start && start.key !== startSeen) {
+    setStartSeen(start.key);
+    setAdding(start.kind);
+    setItems((start.items ?? []).filter((k) => k in MEASURE_IS));
+    setErr(null);
+  }
 
   const path = `/api/vinnustod/journeys/${journeyId}/bookings`;
 
@@ -110,9 +130,11 @@ export default function CoachBookings({ api, journeyId }: { api: Api; journeyId:
       return;
     }
     const label = bookingLabel(adding, adding === "measurement" ? items : null);
+    const kind = adding;
     setAdding(null); setDay(""); setItems([]);
     await load();
     toast.show(`Bókað: ${label}.`);
+    onBooked?.({ kind, label, starts_at });
   };
 
   /* Cancelling tells the client's calendar too (syncBoth on the server), so

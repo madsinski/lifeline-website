@@ -126,7 +126,7 @@ function readView(): View {
       tab: pick(WS_TABS, q.get("tab")),
       // ?m=1 predates the sheet: it meant "open the message composer".
       sheet: pick(SHEETS, q.get("sheet")) ?? (q.get("m") === "1" ? "messages" : undefined),
-      focus: q.get("focus") === "chat" ? "chat" : undefined,
+      focus: q.get("focus") === "chat" ? "chat" : q.get("focus") === "requests" ? "requests" : undefined,
     };
   }
   const t = q.get("t");
