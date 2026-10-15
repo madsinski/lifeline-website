@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { saveStraumurPaymentMethod, STRAUMUR_BRAND } from "@/lib/straumur";
+import { useI18n } from "@/lib/i18n";
 
 type OwnerType = "client" | "company";
 
@@ -39,6 +40,7 @@ export default function BillingPanel({
   ownerType: OwnerType;
   ownerId: string;
 }) {
+  const { t } = useI18n();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +113,7 @@ export default function BillingPanel({
   }
 
   async function removeMethod(id: string) {
-    if (!confirm("Fjarlægja þetta greiðslukort?")) return;
+    if (!confirm(t("comp.bill.removeq", "Fjarlægja þetta greiðslukort?"))) return;
     setActionId(id);
     const { error: delErr } = await supabase.from("payment_methods").delete().eq("id", id);
     setActionId(null);
@@ -128,7 +130,7 @@ export default function BillingPanel({
     };
     return (
       <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${map[status]}`}>
-        {({ pending: "Í bið", succeeded: "Greitt", refunded: "Endurgreitt", failed: "Mistókst" } as Record<string, string>)[status] ?? status}
+        {({ pending: t("comp.bill.pending", "Í bið"), succeeded: "Greitt", refunded: "Endurgreitt", failed: t("comp.bill.failed", "Mistókst") } as Record<string, string>)[status] ?? status}
       </span>
     );
   }
@@ -139,7 +141,7 @@ export default function BillingPanel({
       <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
           <div>
-            <h2 className="text-lg font-semibold text-[#1F2937]">Greiðslukort</h2>
+            <h2 className="text-lg font-semibold text-[#1F2937]">{t("comp.bill.cards", "Greiðslukort")}</h2>
             <p className="text-sm text-[#6B7280] mt-1">
               {(() => {
                 const providers = Array.from(new Set(methods.map((m) => m.provider).filter(Boolean)));
@@ -156,7 +158,7 @@ export default function BillingPanel({
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60 shadow-sm"
           >
             {adding && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {adding ? "Vista…" : "+ Bæta við korti"}
+            {adding ? "Vista…" : t("comp.bill.addcard", "+ Bæta við korti")}
           </button>
         </div>
         {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
@@ -164,7 +166,7 @@ export default function BillingPanel({
           <div className="animate-pulse space-y-2" aria-busy="true"><div className="h-12 rounded-xl bg-gray-200/70" /><div className="h-12 rounded-xl bg-gray-200/50" /></div>
         ) : methods.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
-            Ekkert greiðslukort skráð.
+            {t("comp.bill.nocard", "Ekkert greiðslukort skráð.")}
           </div>
         ) : (
           <div className="space-y-2">
@@ -176,7 +178,7 @@ export default function BillingPanel({
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-gray-900">
                     {m.brand || "Kort"} •••• {m.last4 || "0000"}
-                    {m.is_default && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">Aðalkort</span>}
+                    {m.is_default && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">{t("comp.bill.primary", "Aðalkort")}</span>}
                   </div>
                   {m.exp_month && m.exp_year && (
                     <div className="text-xs text-gray-500">Expires {String(m.exp_month).padStart(2, "0")}/{m.exp_year}</div>
@@ -185,11 +187,11 @@ export default function BillingPanel({
                 <div className="flex items-center gap-2">
                   {!m.is_default && (
                     <button onClick={() => setDefault(m.id)} disabled={actionId === m.id} className="text-xs font-medium text-[#10B981] hover:underline disabled:opacity-50">
-                      Gera að aðalkorti
+                      {t("comp.bill.makeprimary", "Gera að aðalkorti")}
                     </button>
                   )}
                   <button onClick={() => removeMethod(m.id)} disabled={actionId === m.id} className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50">
-                    Fjarlægja
+                    {t("comp.bill.remove", "Fjarlægja")}
                   </button>
                 </div>
               </div>
@@ -201,10 +203,10 @@ export default function BillingPanel({
       {/* Payment history */}
       <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[#1F2937]">Greiðslusaga</h2>
+          <h2 className="text-lg font-semibold text-[#1F2937]">{t("comp.bill.history", "Greiðslusaga")}</h2>
           {!showAllPayments && payments.length > 5 && (
             <button onClick={() => setShowAllPayments(true)} className="text-sm font-medium text-[#10B981] hover:underline">
-              Sjá allt
+              {t("comp.bill.seeall", "Sjá allt")}
             </button>
           )}
         </div>
@@ -212,7 +214,7 @@ export default function BillingPanel({
           <div className="animate-pulse space-y-2" aria-busy="true"><div className="h-12 rounded-xl bg-gray-200/70" /><div className="h-12 rounded-xl bg-gray-200/50" /></div>
         ) : payments.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
-            Greiðslur birtast hér eftir fyrstu færslu.
+            {t("comp.bill.empty", "Greiðslur birtast hér eftir fyrstu færslu.")}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -220,9 +222,9 @@ export default function BillingPanel({
               <thead>
                 <tr className="text-left text-[#6B7280] border-b border-gray-100">
                   <th className="pb-3 font-medium">Dagsetning</th>
-                  <th className="pb-3 font-medium">Lýsing</th>
-                  <th className="pb-3 font-medium text-right">Upphæð</th>
-                  <th className="pb-3 font-medium text-right">Staða</th>
+                  <th className="pb-3 font-medium">{t("comp.bill.description", "Lýsing")}</th>
+                  <th className="pb-3 font-medium text-right">{t("comp.bill.amount", "Upphæð")}</th>
+                  <th className="pb-3 font-medium text-right">{t("comp.bill.status", "Staða")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -254,7 +256,7 @@ export default function BillingPanel({
                                 body: JSON.stringify({ bookingId: p.related_id }),
                               });
                               const body = await res.json().catch(() => ({}));
-                              if (!res.ok || !body?.url) { setError(body?.error || "Ekki tókst að sækja kvittun"); return; }
+                              if (!res.ok || !body?.url) { setError(body?.error || t("comp.bill.noreceipt", "Ekki tókst að sækja kvittun")); return; }
                               window.open(body.url, "_blank", "noopener,noreferrer");
                               load();
                             } finally {

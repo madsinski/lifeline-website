@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import DoctorsTeam from "./DoctorsTeam";
+import { useI18n } from "@/lib/i18n";
 
 export type SlideshowVariant = "b2b" | "b2c" | "public";
 
@@ -44,6 +45,7 @@ export default function WelcomeSlideshow({
   ctaLabel,
   onComplete,
 }: Props) {
+  const { t } = useI18n();
   const [active, setActive] = useState(1);
   const completedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,7 +88,7 @@ export default function WelcomeSlideshow({
     "/assessment"
   );
   const finalLabel = ctaLabel || (
-    variant === "public" ? "Skoða leiðir til þátttöku" : "Halda áfram"
+    variant === "public" ? t("comp.ws.seeways", "Skoða leiðir til þátttöku") : t("comp.ws.continue", "Halda áfram")
   );
 
   return (
@@ -128,15 +130,14 @@ export default function WelcomeSlideshow({
         <Slide n={1}>
           <div className="text-center">
             <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-emerald-700 mb-3">
-              Velkomin/n í Lifeline Health
+              {t("comp.ws.welcome", "Velkomin/n í Lifeline Health")}
             </p>
             <h1 className="text-4xl md:text-6xl font-bold text-[#0F172A] leading-tight">
-              {firstName ? `Hæ ${firstName} — ` : "Hæ — "}
-              <span className="bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">heilsuferðin þín byrjar hér.</span>
+              {firstName ? `Hæ ${firstName} — ` : t("comp.ws.hi", "Hæ — ")}
+              <span className="bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">{t("comp.ws.journeystarts", "heilsuferðin þín byrjar hér.")}</span>
             </h1>
             <p className="text-lg text-gray-600 mt-5 max-w-xl mx-auto leading-relaxed">
-              Þessi stutta kynning útskýrir hvernig Lifeline virkar — það tekur um 3 mínútur.
-              Skrunaðu niður þegar þú ert tilbúin/n.
+              {t("comp.ws.intro", "Þessi stutta kynning útskýrir hvernig Lifeline virkar — það tekur um 3 mínútur. Skrunaðu niður þegar þú ert tilbúin/n.")}
             </p>
             <button
               type="button"
@@ -151,24 +152,22 @@ export default function WelcomeSlideshow({
           </div>
         </Slide>
 
-        <Slide n={2} kicker="Hvað er Lifeline?">
+        <Slide n={2} kicker={t("comp.ws.whatis", "Hvað er Lifeline?")}>
           <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
-            Heilbrigðisþjónusta — ekki bara app eða ráðgjöf.
+            {t("comp.ws.healthcare", "Heilbrigðisþjónusta — ekki bara app eða ráðgjöf.")}
           </h2>
           <p className="text-lg text-gray-700 mt-5 leading-relaxed">
-            Lifeline Health rekur löggilta heilbrigðisþjónustu samkvæmt
-            <strong> lögum nr. 40/2007</strong>, með starfsleyfi frá Embætti landlæknis.
+            {t("comp.ws.licensed", "Lifeline Health rekur löggilta heilbrigðisþjónustu samkvæmt")}
+            <strong> {t("comp.ws.act40", "lögum nr. 40/2007")}</strong>{t("comp.ws.withlicence", ", með starfsleyfi frá Embætti landlæknis.")}
           </p>
           <p className="text-lg text-gray-700 mt-3 leading-relaxed">
-            Á bak við þjónustuna eru læknar, hjúkrunarfræðingar og þjálfarar — allir með tilskilin
-            starfsleyfi. Það þýðir að mat, túlkun og ráðgjöf sem þú færð er klínísk —
-            ekki almennar lífsstílsráðleggingar.
+            {t("comp.ws.behind", "Á bak við þjónustuna eru læknar, hjúkrunarfræðingar og þjálfarar — allir með tilskilin starfsleyfi. Það þýðir að mat, túlkun og ráðgjöf sem þú færð er klínísk — ekki almennar lífsstílsráðleggingar.")}
           </p>
           <div className="mt-6 grid grid-cols-3 gap-3 text-center">
             {[
-              { label: "Læknisleyfi", value: "✓" },
-              { label: "Sjúkraskrá (Medalia)", value: "55/2009" },
-              { label: "Persónuvernd", value: "GDPR" },
+              { label: t("comp.ws.medlicence", "Læknisleyfi"), value: "✓" },
+              { label: t("comp.ws.record", "Sjúkraskrá (Medalia)"), value: "55/2009" },
+              { label: t("comp.ws.privacy", "Persónuvernd"), value: "GDPR" },
             ].map((b) => (
               <div key={b.label} className="bg-white border border-gray-100 rounded-xl p-3">
                 <p className="text-emerald-600 font-bold text-base">{b.value}</p>
@@ -178,13 +177,12 @@ export default function WelcomeSlideshow({
           </div>
         </Slide>
 
-        <Slide n={3} kicker="Heildræn nálgun">
+        <Slide n={3} kicker={t("comp.ws.holistic", "Heildræn nálgun")}>
           <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
-            Fjórar grunnstoðir — vegna þess að heilsa er meira en mataræði og hreyfing.
+            {t("comp.ws.fourpillars", "Fjórar grunnstoðir — vegna þess að heilsa er meira en mataræði og hreyfing.")}
           </h2>
           <p className="text-base text-gray-600 mt-5 max-w-2xl">
-            Heilsumat Lifeline byggir á því að líta heildrænt á alla fjóra þætti.
-            Þeir hafa allir áhrif hver á annan, og engin einföld ráðlegging dugar fyrir alla.
+            {t("comp.ws.holisticbody", "Heilsumat Lifeline byggir á því að líta heildrænt á alla fjóra þætti. Þeir hafa allir áhrif hver á annan, og engin einföld ráðlegging dugar fyrir alla.")}
           </p>
           <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
             <Pillar emoji="🏃" name="Hreyfing" tone="bg-orange-50 text-orange-700" />
@@ -194,16 +192,16 @@ export default function WelcomeSlideshow({
           </div>
         </Slide>
 
-        <Slide n={4} kicker="Heilsumatið þitt">
+        <Slide n={4} kicker={t("comp.ws.yourassessment", "Heilsumatið þitt")}>
           <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
-            Fjögur skref — frá fyrstu mælingu að einstaklingsbundnu heilsuplani.
+            {t("comp.ws.foursteps", "Fjögur skref — frá fyrstu mælingu að einstaklingsbundnu heilsuplani.")}
           </h2>
           <ol className="mt-8 space-y-5">
             {[
-              { n: 1, t: "Líkamssamsetningarmæling", d: "5 mín á Sameind. Biody mælir fitu, vöðva, BMR og fleira.", time: "5 mín" },
-              { n: 2, t: "Blóðprufa", d: "Þú gengur inn á Sameind á tilteknum dögum — föstudagar oftast. Fasta frá miðnætti.", time: "10 mín" },
-              { n: 3, t: "Læknir túlkar niðurstöður", d: "Læknir Lifeline fer yfir niðurstöðurnar og útbýr persónulegt heilsuplan.", time: "Skrifað" },
-              { n: 4, t: "Heilsuplanið þitt + eftirfylgd", d: "Þú færð skýrslu og plan í þjónustusíðunni; þjálfari heldur áfram með þér.", time: "Áfram" },
+              { n: 1, t: t("comp.ws.bcmeasure", "Líkamssamsetningarmæling"), d: t("comp.ws.bcdesc", "5 mín á Sameind. Biody mælir fitu, vöðva, BMR og fleira."), time: t("comp.ws.5min", "5 mín") },
+              { n: 2, t: t("comp.ws.bloodtest", "Blóðprufa"), d: t("comp.ws.blooddesc", "Þú gengur inn á Sameind á tilteknum dögum — föstudagar oftast. Fasta frá miðnætti."), time: t("comp.ws.10min", "10 mín") },
+              { n: 3, t: t("comp.ws.docreads", "Læknir túlkar niðurstöður"), d: t("comp.ws.docdesc", "Læknir Lifeline fer yfir niðurstöðurnar og útbýr persónulegt heilsuplan."), time: t("comp.ws.written", "Skrifað") },
+              { n: 4, t: t("comp.ws.planfollow", "Heilsuplanið þitt + eftirfylgd"), d: t("comp.ws.plandesc", "Þú færð skýrslu og plan í þjónustusíðunni; þjálfari heldur áfram með þér."), time: t("comp.ws.next", "Áfram") },
             ].map((s) => (
               <li key={s.n} className="flex gap-4 items-start">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-white font-bold flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -221,48 +219,45 @@ export default function WelcomeSlideshow({
           </ol>
         </Slide>
 
-        <Slide n={5} kicker="Hvað við mælum">
+        <Slide n={5} kicker={t("comp.ws.whatwemeasure", "Hvað við mælum")}>
           <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
-            Aðeins það sem hreyfir nálina.
+            {t("comp.ws.onlymoves", "Aðeins það sem hreyfir nálina.")}
           </h2>
           <p className="text-base text-gray-600 mt-5 max-w-2xl">
-            Við mælum ekki allt sem hægt er að mæla — bara þá þætti sem segja
-            okkur eitthvað sem getur breytt heilsu þinni.
+            {t("comp.ws.notall", "Við mælum ekki allt sem hægt er að mæla — bara þá þætti sem segja okkur eitthvað sem getur breytt heilsu þinni.")}
           </p>
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             <MeasureGroup
-              title="Líkamssamsetning"
-              items={["Fituhlutfall", "Vöðvamassi", "Fasahorn", "Líkamsvökvi", "Grunnefnaskipti (BMR)"]}
+              title={t("comp.ws.bodycomp", "Líkamssamsetning")}
+              items={["Fituhlutfall", t("comp.ws.muscle", "Vöðvamassi"), "Fasahorn", t("comp.ws.water", "Líkamsvökvi"), "Grunnefnaskipti (BMR)"]}
               tone="from-orange-50 to-orange-100/40"
             />
             <MeasureGroup
-              title="Blóðmælingar"
-              items={["Blóðsykur (HbA1c)", "Lípíð (kólesteról, þríglýseríð)", "Lifrar- og nýrnastarfsemi", "Vítamín D, B12", "Bólgumarkar (CRP)"]}
+              title={t("comp.ws.bloods", "Blóðmælingar")}
+              items={[t("comp.ws.hba1c", "Blóðsykur (HbA1c)"), t("comp.ws.lipids", "Lípíð (kólesteról, þríglýseríð)"), t("comp.ws.liverkidney", "Lifrar- og nýrnastarfsemi"), t("comp.ws.vitamins", "Vítamín D, B12"), t("comp.ws.crp", "Bólgumarkar (CRP)")]}
               tone="from-rose-50 to-rose-100/40"
             />
             <MeasureGroup
-              title="Líkamleg lífsmörk"
-              items={["Blóðþrýstingur", "Hæð, þyngd, BMI", "Ummál, mittismál"]}
+              title={t("comp.ws.vitals", "Líkamleg lífsmörk")}
+              items={[t("comp.ws.bp", "Blóðþrýstingur"), t("comp.ws.hwbmi", "Hæð, þyngd, BMI"), t("comp.ws.circ", "Ummál, mittismál")]}
               tone="from-blue-50 to-blue-100/40"
             />
             <MeasureGroup
-              title="Lífsstíll og líðan"
-              items={["Hreyfing", "Næringarvenjur", "Svefn", "Streita og andleg líðan", "Fjölskyldusaga"]}
+              title={t("comp.ws.lifestyle", "Lífsstíll og líðan")}
+              items={["Hreyfing", t("comp.ws.nutritionhabits", "Næringarvenjur"), "Svefn", t("comp.ws.stress", "Streita og andleg líðan"), t("comp.ws.family", "Fjölskyldusaga")]}
               tone="from-emerald-50 to-emerald-100/40"
             />
           </div>
         </Slide>
 
-        <Slide n={6} kicker="Þín gögn">
+        <Slide n={6} kicker={t("comp.ws.yourdata", "Þín gögn")}>
           {variant === "b2b" ? (
             <>
               <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
-                {companyName ? `${companyName} sér aldrei niðurstöðurnar þínar.` : "Vinnuveitandinn sér aldrei niðurstöðurnar þínar."}
+                {companyName ? `${companyName} sér aldrei niðurstöðurnar þínar.` : t("comp.ws.employer", "Vinnuveitandinn sér aldrei niðurstöðurnar þínar.")}
               </h2>
               <p className="text-lg text-gray-700 mt-5 leading-relaxed">
-                Heilsugögnin þín lifa í <strong>Medalia sjúkraskrárkerfinu</strong> samkvæmt lögum
-                nr. 55/2009. Lifeline-starfsfólkið er bundið ævilangri þagnarskyldu samkvæmt
-                lögum nr. 34/2012 — eins og hver annar læknir.
+                {t("comp.ws.datalivein", "Heilsugögnin þín lifa í")} <strong>{t("comp.ws.medalia", "Medalia sjúkraskrárkerfinu")}</strong> {t("comp.ws.act55b", "samkvæmt lögum nr. 55/2009. Lifeline-starfsfólkið er bundið ævilangri þagnarskyldu samkvæmt lögum nr. 34/2012 — eins og hver annar læknir.")}
               </p>
               <p className="text-lg text-gray-700 mt-3 leading-relaxed">
                 {companyName || "Vinnuveitandinn"} fær aðeins staðfestingu á þátttöku — nöfn og fjölda — aldrei klínísk gögn um þig persónulega.
@@ -271,21 +266,19 @@ export default function WelcomeSlideshow({
           ) : (
             <>
               <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
-                Gögnin þín — geymd örugg, varin af læknislögum.
+                {t("comp.ws.datasafe", "Gögnin þín — geymd örugg, varin af læknislögum.")}
               </h2>
               <p className="text-lg text-gray-700 mt-5 leading-relaxed">
-                Heilsugögnin þín lifa í <strong>Medalia sjúkraskrárkerfinu</strong> samkvæmt lögum
-                nr. 55/2009 um sjúkraskrár — sama lagaverk og á við hjá heilsugæslu og spítölum.
+                {t("comp.ws.datalivein", "Heilsugögnin þín lifa í")} <strong>{t("comp.ws.medalia", "Medalia sjúkraskrárkerfinu")}</strong> {t("comp.ws.act55", "samkvæmt lögum nr. 55/2009 um sjúkraskrár — sama lagaverk og á við hjá heilsugæslu og spítölum.")}
               </p>
               <p className="text-lg text-gray-700 mt-3 leading-relaxed">
-                Lifeline-starfsfólkið er bundið ævilangri þagnarskyldu samkvæmt lögum nr. 34/2012.
-                Þú getur hvenær sem er beðið um afrit, leiðréttingu eða eyðingu — sjá persónuverndaryfirlýsingu.
+                {t("comp.ws.act34", "Lifeline-starfsfólkið er bundið ævilangri þagnarskyldu samkvæmt lögum nr. 34/2012. Þú getur hvenær sem er beðið um afrit, leiðréttingu eða eyðingu — sjá persónuverndaryfirlýsingu.")}
               </p>
             </>
           )}
           <div className="mt-6 grid grid-cols-3 gap-3">
             {[
-              { i: "🇮🇸", t: "Geymt á Íslandi" },
+              { i: "🇮🇸", t: t("comp.ws.iniceland", "Geymt á Íslandi") },
               { i: "🔒", t: "TLS + dulkóðun" },
               { i: "📋", t: "Skráður aðgangur" },
             ].map((b) => (
@@ -297,39 +290,39 @@ export default function WelcomeSlideshow({
           </div>
         </Slide>
 
-        <Slide n={7} kicker="Læknarnir okkar">
+        <Slide n={7} kicker={t("comp.ws.ourdoctors", "Læknarnir okkar")}>
           <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
-            Þú ert í læknishöndum.
+            {t("comp.ws.inmedhands", "Þú ert í læknishöndum.")}
           </h2>
           <p className="text-base text-gray-600 mt-5 max-w-2xl">
-            Allir læknar Lifeline hafa starfsleyfi frá Embætti landlæknis og koma að heilsumati þínu beint.
+            {t("comp.ws.alldoctors", "Allir læknar Lifeline hafa starfsleyfi frá Embætti landlæknis og koma að heilsumati þínu beint.")}
           </p>
           <div className="mt-8">
             <DoctorsTeam compact />
           </div>
         </Slide>
 
-        <Slide n={8} kicker="Þú ert tilbúin/n">
+        <Slide n={8} kicker={t("comp.ws.youreready", "Þú ert tilbúin/n")}>
           <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
-            Næsta skref.
+            {t("comp.ws.nextstep", "Næsta skref.")}
           </h2>
           <p className="text-base text-gray-600 mt-5 max-w-2xl leading-relaxed">
             {variant === "public"
-              ? "Þú ert búin/n með kynninguna. Skoðaðu hvernig hægt er að taka þátt — sem einstaklingur eða gegnum vinnuveitanda."
-              : "Þú ert búin/n með kynninguna. Næsta skref er að bóka líkamssamsetningarmælingu og blóðprufu — það tekur um 5 mínútur saman."}
+              ? t("comp.ws.done2", "Þú ert búin/n með kynninguna. Skoðaðu hvernig hægt er að taka þátt — sem einstaklingur eða gegnum vinnuveitanda.")
+              : t("comp.ws.done1", "Þú ert búin/n með kynninguna. Næsta skref er að bóka líkamssamsetningarmælingu og blóðprufu — það tekur um 5 mínútur saman.")}
           </p>
           <ul className="mt-6 space-y-2 text-sm text-gray-700">
             <li className="flex items-start gap-2">
               <span className="text-emerald-600 font-bold">✓</span>
-              <span>Bókaðu mælingaslot sem hentar þér.</span>
+              <span>{t("comp.ws.booksuits", "Bókaðu mælingaslot sem hentar þér.")}</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-emerald-600 font-bold">✓</span>
-              <span>Mundu að fasta frá miðnætti fyrir blóðprufuna — vatn er í lagi.</span>
+              <span>{t("comp.ws.fast", "Mundu að fasta frá miðnætti fyrir blóðprufuna — vatn er í lagi.")}</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-emerald-600 font-bold">✓</span>
-              <span>Þú færð staðfestingarpóst og áminningar áður en mælingin fer fram.</span>
+              <span>{t("comp.ws.confirmemail", "Þú færð staðfestingarpóst og áminningar áður en mælingin fer fram.")}</span>
             </li>
           </ul>
           <div className="mt-10">
@@ -343,7 +336,7 @@ export default function WelcomeSlideshow({
               </svg>
             </Link>
             <p className="text-xs text-gray-400 mt-4">
-              Spurningar? Skrifaðu okkur á <a className="underline" href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.
+              {t("comp.ws.questions", "Spurningar? Skrifaðu okkur á")} <a className="underline" href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.
             </p>
           </div>
         </Slide>

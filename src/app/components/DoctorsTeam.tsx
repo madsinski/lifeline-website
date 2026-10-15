@@ -12,6 +12,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export interface Doctor {
   slug: string;        // matches /public/team/{slug}.jpg
@@ -22,29 +23,30 @@ export interface Doctor {
 }
 
 // Edit names + titles + bios here. Photos live at /public/team/{slug}.png.
-export const LIFELINE_DOCTORS: Doctor[] = [
+export const LIFELINE_DOCTORS = (t: (k: string, f?: string) => string): Doctor[] =>
+  [
   {
     slug: "victor",
     name: "Victor Guðmundsson",
-    fullTitle: "Læknir, Stofnandi",
+    fullTitle: t("comp.team.doctorfounder", "Læknir, Stofnandi"),
     accent: "blue",
   },
   {
     slug: "mads",
     name: "Mads Christian Aanesen",
-    fullTitle: "Læknir, Stofnandi",
+    fullTitle: t("comp.team.doctorfounder", "Læknir, Stofnandi"),
     accent: "emerald",
   },
   {
     slug: "vignir",
     name: "Vignir Sigurðsson",
-    fullTitle: "Sérfræðilæknir, Ráðgjafi, Stofnandi",
+    fullTitle: t("comp.team.specialist", "Sérfræðilæknir, Ráðgjafi, Stofnandi"),
     accent: "violet",
   },
   {
     slug: "dagbjort",
     name: "Dagbjört Guðbrandsdóttir",
-    fullTitle: "Læknir",
+    fullTitle: t("comp.team.doctor", "Læknir"),
     accent: "amber",
   },
 ];
@@ -64,13 +66,14 @@ interface Props {
 }
 
 export default function DoctorsTeam({ layout = "grid", compact = false }: Props) {
+  const { t } = useI18n();
   const gridClass = layout === "row"
     ? "grid grid-cols-2 sm:grid-cols-4 gap-4"
     : "grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4";
 
   return (
     <div className={gridClass}>
-      {LIFELINE_DOCTORS.map((d) => (
+      {LIFELINE_DOCTORS(t).map((d) => (
         <DoctorCard key={d.slug} doctor={d} compact={compact} />
       ))}
     </div>

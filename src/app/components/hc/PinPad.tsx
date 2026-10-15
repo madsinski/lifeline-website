@@ -4,6 +4,7 @@
 // Fjarlækningar HSU PinPad.
 
 import { useEffect, useRef } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export default function PinPad({ value, onChange, onComplete, disabled, error, accent = "#10B981" }: {
   value: string;
@@ -13,6 +14,7 @@ export default function PinPad({ value, onChange, onComplete, disabled, error, a
   error?: boolean;
   accent?: string;
 }) {
+  const { t } = useI18n();
   // Latest values in a ref: the key listener is registered once and must not
   // call a stale onComplete.
   const latest = useRef({ value, onChange, onComplete, disabled });
@@ -62,7 +64,7 @@ export default function PinPad({ value, onChange, onComplete, disabled, error, a
               type="button"
               onClick={() => press(k)}
               disabled={disabled}
-              aria-label={k === "back" ? "Eyða" : k}
+              aria-label={k === "back" ? t("comp.pin.delete", "Eyða") : k}
               className="flex h-16 items-center justify-center rounded-2xl bg-hc-surface text-2xl font-semibold text-hc-ink-2 shadow-sm ring-1 ring-hc-hairline transition active:scale-95 active:bg-hc-sunken-2 disabled:opacity-50"
             >
               {k === "back" ? "⌫" : k}

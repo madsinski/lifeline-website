@@ -14,45 +14,48 @@
 
 import { useState } from "react";
 import { ChevronDown, Share, MonitorDown, MoreVertical, Check } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 type Platform = "ios" | "android" | "desktop";
 
-const STEPS: Record<Platform, { label: string; Icon: typeof Share; steps: string[]; note?: string }> = {
+const STEPS = (t: (k: string, f?: string) => string): Record<string, { label: string; Icon: typeof Share; steps: string[]; note?: string }> => (
+  {
   ios: {
-    label: "iPhone eða iPad",
+    label: t("comp.inst.ios", "iPhone eða iPad"),
     Icon: Share,
     steps: [
-      "Opnaðu lifelinehealth.is í Safari (ekki Chrome — á iPhone er það Safari sem setur upp appið).",
-      "Ýttu á Deila-táknið í tækjastikunni (kassi með ör upp úr).",
-      "Skrunaðu niður og veldu „Bæta á heimaskjá“.",
-      "Ýttu á „Bæta við“ og opnaðu Lifeline af heimaskjánum.",
-      "Farðu í Stillingar → Áminningar og veldu „Tilkynning í símanum“.",
+      t("comp.inst.ios1", "Opnaðu lifelinehealth.is í Safari (ekki Chrome — á iPhone er það Safari sem setur upp appið)."),
+      t("comp.inst.ios2", "Ýttu á Deila-táknið í tækjastikunni (kassi með ör upp úr)."),
+      t("comp.inst.ios3", "Skrunaðu niður og veldu „Bæta á heimaskjá“."),
+      t("comp.inst.ios4", "Ýttu á „Bæta við“ og opnaðu Lifeline af heimaskjánum."),
+      t("comp.inst.desk3", "Farðu í Stillingar → Áminningar og veldu „Tilkynning í símanum“."),
     ],
-    note: "Á iPhone leyfir Apple tilkynningar aðeins í uppsettu appi. Safari spyr ekki um leyfi fyrr en þú opnar Lifeline af heimaskjánum.",
+    note: t("comp.inst.ioswhy", "Á iPhone leyfir Apple tilkynningar aðeins í uppsettu appi. Safari spyr ekki um leyfi fyrr en þú opnar Lifeline af heimaskjánum."),
   },
   android: {
     label: "Android",
     Icon: MoreVertical,
     steps: [
-      "Opnaðu lifelinehealth.is í Chrome.",
-      "Ýttu á þrjá punkta uppi í hægra horninu.",
-      "Veldu „Setja upp app“ eða „Bæta á heimaskjá“.",
-      "Opnaðu Lifeline af heimaskjánum.",
-      "Farðu í Stillingar → Áminningar og veldu „Tilkynning í símanum“.",
+      t("comp.inst.and1", "Opnaðu lifelinehealth.is í Chrome."),
+      t("comp.inst.and2", "Ýttu á þrjá punkta uppi í hægra horninu."),
+      t("comp.inst.and3", "Veldu „Setja upp app“ eða „Bæta á heimaskjá“."),
+      t("comp.inst.and4", "Opnaðu Lifeline af heimaskjánum."),
+      t("comp.inst.desk3", "Farðu í Stillingar → Áminningar og veldu „Tilkynning í símanum“."),
     ],
   },
   desktop: {
-    label: "Tölva (Chrome eða Edge)",
+    label: t("comp.inst.desktop", "Tölva (Chrome eða Edge)"),
     Icon: MonitorDown,
     steps: [
-      "Ýttu á uppsetningartáknið hægra megin í veffangastikunni — skjár með ör niður.",
-      "Sést það ekki? Þrír punktar → „Varpa, vista og deila“ → „Setja upp síðu sem app“.",
-      "Veldu „Setja upp“. Lifeline opnast í sínum eigin glugga.",
-      "Farðu í Stillingar → Áminningar og veldu „Tilkynning í símanum“.",
+      t("comp.inst.desk1", "Ýttu á uppsetningartáknið hægra megin í veffangastikunni — skjár með ör niður."),
+      t("comp.inst.andalt", "Sést það ekki? Þrír punktar → „Varpa, vista og deila“ → „Setja upp síðu sem app“."),
+      t("comp.inst.desk2", "Veldu „Setja upp“. Lifeline opnast í sínum eigin glugga."),
+      t("comp.inst.desk3", "Farðu í Stillingar → Áminningar og veldu „Tilkynning í símanum“."),
     ],
-    note: "Uppsett app fær tilkynningar þótt vafrinn sé lokaður.",
+    note: t("comp.inst.why", "Uppsett app fær tilkynningar þótt vafrinn sé lokaður."),
   },
-};
+}
+);
 
 
 /**
@@ -70,17 +73,18 @@ const STEPS: Record<Platform, { label: string; Icon: typeof Share; steps: string
  * still called "Bæta á heimaskjá", and it says plainly that it is a sketch.
  */
 function Sketch({ platform }: { platform: Platform }) {
+  const { t } = useI18n();
   const rows: Record<Platform, { before: string[]; target: string; icon: string; after: string[]; chrome: "share" | "menu" | "bar" }> = {
     ios: {
       chrome: "share",
-      before: ["Afrita", "Bæta í leslista", "Bæta við bókamerki"],
-      target: "Bæta á heimaskjá",
+      before: ["Afrita", t("comp.inst.addreading", "Bæta í leslista"), t("comp.inst.addbookmark", "Bæta við bókamerki")],
+      target: t("comp.inst.addhome", "Bæta á heimaskjá"),
       icon: "＋",
-      after: ["Afrita slóð"],
+      after: [t("comp.inst.copylink", "Afrita slóð")],
     },
     android: {
       chrome: "menu",
-      before: ["Ný flipi", "Bókamerki", "Niðurhal"],
+      before: [t("comp.inst.newtab", "Ný flipi"), t("comp.inst.bookmarks", "Bókamerki"), t("comp.inst.downloads", "Niðurhal")],
       target: "Setja upp app",
       icon: "⤓",
       after: ["Stillingar"],
@@ -132,7 +136,7 @@ function Sketch({ platform }: { platform: Platform }) {
         )}
       </div>
       <figcaption className="mt-1.5 text-[11px] text-hc-ink-3">
-        Einfölduð mynd — hnappurinn getur heitið örlítið annað eftir útgáfu.
+        {t("comp.inst.simplified", "Einfölduð mynd — hnappurinn getur heitið örlítið annað eftir útgáfu.")}
       </figcaption>
     </figure>
   );
@@ -153,13 +157,14 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
   /** Start expanded, where this is the point of the step rather than an aside. */
   defaultOpen?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(defaultOpen);
   const [pick, setPick] = useState<Platform>(guess);
   const installed = typeof window !== "undefined"
     && (window.matchMedia?.("(display-mode: standalone)").matches
       || (navigator as unknown as { standalone?: boolean }).standalone === true);
 
-  const cur = STEPS[pick];
+  const cur = STEPS(t)[pick];
 
   return (
     <section className={bare
@@ -174,8 +179,8 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
           <span className="block font-semibold text-hc-ink">Lifeline sem app</span>
           <span className="block text-sm text-hc-ink-2">
             {installed
-              ? "Uppsett á þessu tæki — tilkynningar virka."
-              : "Settu Lifeline á heimaskjáinn til að fá tilkynningar"}
+              ? t("comp.inst.installed", "Uppsett á þessu tæki — tilkynningar virka.")
+              : t("comp.inst.title", "Settu Lifeline á heimaskjáinn til að fá tilkynningar")}
           </span>
         </span>
         <ChevronDown className={`h-5 w-5 shrink-0 text-hc-ink-3 transition ${open ? "rotate-180" : ""}`} aria-hidden />
@@ -185,17 +190,17 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
         <div className="space-y-3 border-t border-hc-hairline p-4">
           {installed && (
             <p className="rounded-hc-element bg-hc-brand-surface px-3 py-2 text-sm font-medium text-hc-brand-text">
-              Þetta tæki er þegar með Lifeline uppsett. Leiðbeiningarnar hér fyrir neðan eru fyrir næsta tæki.
+              {t("comp.inst.already", "Þetta tæki er þegar með Lifeline uppsett. Leiðbeiningarnar hér fyrir neðan eru fyrir næsta tæki.")}
             </p>
           )}
 
           {/* The guess is only a guess, so all three are selectable. */}
           <div className="flex flex-wrap gap-1.5">
-            {(Object.keys(STEPS) as Platform[]).map((k) => (
+            {(Object.keys(STEPS(t)) as Platform[]).map((k) => (
               <button key={k} type="button" onClick={() => setPick(k)} aria-pressed={pick === k}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
                   pick === k ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-hc-surface text-hc-ink-2 ring-hc-hairline hover:bg-hc-sunken"}`}>
-                {STEPS[k].label}
+                {STEPS(t)[k].label}
               </button>
             ))}
           </div>
