@@ -18,6 +18,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, hcAudit, patchJourney, requireUser } from "@/lib/hc/server";
 import { loadReport } from "@/lib/hc/report-store";
 import { pillarPriorities, selfServiceModule, suggestModules } from "@/lib/hc/self-plan";
+import { startPlanTrial } from "@/lib/hc/subscription";
 import { PILLARS, type Pillar, type PlanGoal, type PlanItem, type PlanModule } from "@/lib/hc/types";
 
 export const runtime = "nodejs";
@@ -238,6 +239,10 @@ export async function POST(req: NextRequest) {
       plan_published_at: journey.plan_published_at ?? now.toISOString(),
       reevaluation_due_at: journey.reevaluation_due_at ?? new Date(now.getTime() + 365 * 86400_000).toISOString().slice(0, 10),
     }, label, "plan_self_created");
+    /* Their own plan unlocks the whole app for 14 days from now (Mads,
+       2026-10-15). This does not count as a health check for access — see
+       healthAccess() in src/lib/hc/subscription.ts. */
+    await startPlanTrial(user.id).catch((e) => console.error("[hc] startPlanTrial", e));
   }
   await supabaseAdmin.from("hc_plan_versions").insert({ plan_id: planId, journey_id: journey.id, version, by_kind: "self", by_label: label, goals, modules: items, lecture_slugs });
   const added = items.filter((i) => !before.has(i.uid)).length;

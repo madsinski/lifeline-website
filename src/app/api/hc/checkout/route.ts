@@ -22,6 +22,7 @@ import {
   refreshStage, requireUser, siteOrigin, type ClientProfile,
 } from "@/lib/hc/server";
 import type { HcJourney, HcPackage, PaymentRoute } from "@/lib/hc/types";
+import { recordWaiver, requireWaiver } from "@/lib/hc/waiver";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -133,13 +134,17 @@ export async function POST(req: NextRequest) {
   /*
    * The withdrawal-right waiver (söluskilmálar gr. 8, d-liður 1. mgr. 18. gr.
    * laga nr. 16/2016): the consumer asks for the service to start at once
-   * and acknowledges the right lapses once it is fully performed. Recorded
-   * with the payment in hc_audit.detail (jsonb) — hc_orders has no metadata
-   * column, and this needed no migration. The checkout UI will not submit
-   * without it; the server records what it was sent.
+   * and acknowledges the right lapses once it is fully performed. Required
+   * from the website (src/lib/hc/waiver.ts — the RN app is exempt until it
+   * sends the flag). Recorded with server time on the order
+   * (hc_orders.withdrawal_waiver_at, supabase/migration-withdrawal-waiver.sql)
+   * and in hc_audit.detail, which works whether or not that column exists.
    */
-  const waiver = b.withdrawal_waiver === true
-    ? { withdrawal_waiver: true, withdrawal_waiver_recorded_at: new Date().toISOString() }
+  const noWaiver = requireWaiver(req, b);
+  if (noWaiver) return noWaiver;
+  const waiverAt = b.withdrawal_waiver === true ? new Date().toISOString() : null;
+  const waiver = waiverAt
+    ? { withdrawal_waiver: true, withdrawal_waiver_recorded_at: waiverAt }
     : { withdrawal_waiver: false };
 
   const pkg = await loadPackage(String(b.package_key || ""));
@@ -259,6 +264,7 @@ export async function POST(req: NextRequest) {
     else if (error?.code !== "23505") return NextResponse.json({ error: error?.message || "order_failed" }, { status: 500 });
   }
   if (!order) return NextResponse.json({ error: "order_failed" }, { status: 500 });
+  if (waiverAt) await recordWaiver("hc_orders", order.id as string, waiverAt);
 
   if (unionRow && q.reimbursementIsk > 0) {
     await supabaseAdmin.from("hc_union_claims").insert({
