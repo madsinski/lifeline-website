@@ -60,29 +60,44 @@ export async function POST(req: NextRequest) {
   const town = String(b.town || "").trim();
   const ktRaw = b.kennitala ? cleanKennitala(String(b.kennitala)) : "";
 
+  /*
+   * Validated against this journey's own requirements.
+   *
+   * The coaching track asks for a name and nothing else (ProfileForm
+   * track="app"), so demanding a phone, an address and a kennitala here made
+   * that form impossible to save. Whatever is sent is still checked, so a
+   * coaching participant who does give a phone number gives a valid one.
+   */
+  const journeyBefore = await currentJourney(user.id);
+  const appOnly = profileTrackOf(journeyBefore?.entry) === "app";
+  const sentAddress = !!(street || postcode || town);
+
   const errors: Record<string, string> = {};
   if (fullName.length < 3) errors.full_name = "Sláðu inn fullt nafn.";
-  if (!isValidIcelandicPhone(phone) && !/^\+\d{8,15}$/.test(phone.replace(/\s/g, ""))) errors.phone = "Sláðu inn gilt símanúmer.";
-  if (street.length < 3) errors.address = "Sláðu inn heimilisfang.";
-  if (!/^\d{3}$/.test(postcode)) errors.postcode = "Póstnúmer er þrír tölustafir.";
-  if (town.length < 2) errors.town = "Sláðu inn bæjarfélag.";
+  if ((!appOnly || phone) && !isValidIcelandicPhone(phone) && !/^\+\d{8,15}$/.test(phone.replace(/\s/g, ""))) errors.phone = "Sláðu inn gilt símanúmer.";
+  if (!appOnly || sentAddress) {
+    if (street.length < 3) errors.address = "Sláðu inn heimilisfang.";
+    if (!/^\d{3}$/.test(postcode)) errors.postcode = "Póstnúmer er þrír tölustafir.";
+    if (town.length < 2) errors.town = "Sláðu inn bæjarfélag.";
+  }
 
   const existing = await getClientProfile(user.id);
-  if (!ktRaw && !existing?.kennitala_encrypted) errors.kennitala = "Kennitala er nauðsynleg.";
+  if (!appOnly && !ktRaw && !existing?.kennitala_encrypted) errors.kennitala = "Kennitala er nauðsynleg.";
   // Informed consent (GDPR 9. gr.) is part of the health check, once per
   // version — not needed just to correct a name or phone number.
   const consented = await hasHealthConsent(user.id);
-  const inJourney = !!(await currentJourney(user.id));
+  const inJourney = !!journeyBefore;
   if (inJourney && !consented && b.accept_health_consent !== true) errors.consent = "Samþykkið þarf til að halda áfram.";
   if (ktRaw && !isValidKennitala(ktRaw)) errors.kennitala = "Kennitalan er ekki gild.";
   if (Object.keys(errors).length) return NextResponse.json({ error: "validation", errors }, { status: 400 });
 
   const update: Record<string, unknown> = {
     full_name: fullName,
-    phone,
-    address: `${street}, ${postcode} ${town}`,
     updated_at: new Date().toISOString(),
   };
+  // Not overwritten with blanks by a form that never showed the fields.
+  if (!appOnly || phone) update.phone = phone;
+  if (!appOnly || sentAddress) update.address = `${street}, ${postcode} ${town}`;
   if (ktRaw) {
     const { data: enc, error: encErr } = await supabaseAdmin.rpc("enc_kennitala", { p_text: ktRaw });
     if (encErr || !enc) return NextResponse.json({ error: "encrypt_failed" }, { status: 500 });

@@ -146,11 +146,11 @@ export const HOME_FIELDS: SiteField[] = [
 // default maps so they resolve the same in every language and are never sent to
 // the translator.
 const HOME_HREFS: LocaleContent = {
-  hero_cta_signup_href: "/account/login?mode=signup",
+  hero_cta_signup_href: "/byrja",
   hero_cta_app_href: "/coaching#download",
   app_cta_app_href: "/coaching#download",
   app_cta_coaching_href: "/coaching",
-  cta_signup_href: "/account/login?mode=signup",
+  cta_signup_href: "/byrja",
   cta_app_href: "/coaching#download",
   ind_cta_href: "/assessment",
   biz_cta_href: "/business",

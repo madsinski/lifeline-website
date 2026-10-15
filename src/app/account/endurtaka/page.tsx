@@ -20,13 +20,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { RotateCcw, Check, Loader2 } from "lucide-react";
+import { RotateCcw, Check } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { getMyStaffRole } from "@/lib/staff-role";
+import { Alert, Button, accountCard, accountInset } from "@/app/components/account/ui";
 
 export default function ReplayOnboardingPage() {
   const { t, tv } = useI18n();
   const router = useRouter();
   const [who, setWho] = useState<string | null | undefined>(undefined);
+  /* Who may use it. The API refuses everyone but active staff and
+     plus-alias test addresses (it deletes consent rows); the page says so
+     up front rather than offering a button that a real client could press
+     and only then be told no. */
+  const [allowed, setAllowed] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ consents: number } | null>(null);
   const [err, setErr] = useState("");
@@ -34,7 +41,11 @@ export default function ReplayOnboardingPage() {
   useEffect(() => {
     const timer = setTimeout(async () => {
       const { data } = await supabase.auth.getSession();
-      setWho(data.session?.user?.email ?? null);
+      const email = data.session?.user?.email ?? null;
+      setWho(email);
+      if (!email) { setAllowed(false); return; }
+      const role = await getMyStaffRole(email).catch(() => null);
+      setAllowed(!!role || email.includes("+"));
     }, 0);
     return () => clearTimeout(timer);
   }, []);
@@ -54,56 +65,52 @@ export default function ReplayOnboardingPage() {
   }, [t]);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
-      <div className="rounded-2xl bg-white p-6 shadow-lg">
-        <h1 className="text-lg font-bold text-[#0F172A]">{t("acct.replay.start", "Byrja upp á nýtt")}</h1>
-        <p className="mt-1 text-sm leading-relaxed text-gray-600">
-          {t("acct.replay.what", t("acct.replay.what", "Setur aðganginn aftur í sama horf og rétt eftir nýskráningu, svo hægt sé að fara aftur í gegnum kynninguna og skilmálana. Aðgangurinn, lykilorðið og netfangið haldast óbreytt."))}
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center bg-white px-5 py-10">
+      <div className={`${accountCard} p-6`}>
+        <h1 className="text-lg font-bold text-hc-ink">{t("acct.replay.start", "Byrja upp á nýtt")}</h1>
+        <p className="mt-1 text-sm leading-relaxed text-hc-ink-2">
+          {t("acct.replay.what", "Setur aðganginn aftur í sama horf og rétt eftir nýskráningu, svo hægt sé að fara aftur í gegnum kynninguna og skilmálana. Aðgangurinn, lykilorðið og netfangið haldast óbreytt.")}
         </p>
 
-        {who === undefined && <p className="mt-4 text-sm text-gray-500">{t("acct.loading", "Hleð…")}</p>}
+        {(who === undefined || (who && allowed === null)) && <p className="mt-4 text-sm text-hc-ink-3">{t("acct.loading", "Hleð…")}</p>}
         {who === null && (
-          <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <Alert tone="warn" compact className="mt-4">
             {t("acct.replay.signin", "Þú þarft að vera skráð/ur inn.")} <a href="/account/login" className="font-semibold underline">{t("acct.signin", "Skrá inn")}</a>
-          </p>
+          </Alert>
+        )}
+        {who && allowed === false && (
+          <Alert tone="info" compact className="mt-4">
+            {t("acct.replay.staffonly", "Þessi síða er aðeins fyrir starfsfólk og prófunaraðganga (netfang með +).")}{" "}
+            <a href="/account" className="font-semibold underline">{t("acct.replay.back", "Aftur á Mínar síður")}</a>
+          </Alert>
         )}
 
-        {who && !done && (
+        {who && allowed && !done && (
           <>
-            <p className="mt-4 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">{who}</p>
+            <p className={`${accountInset} mt-4 px-3 py-2 text-sm text-hc-ink-2`}>{who}</p>
             {/* What it clears, before it clears it — a reset that lists its
                 own scope afterwards is a reset you have to undo to read. */}
-            <ul className="mt-3 space-y-1 text-sm text-gray-600">
+            <ul className="mt-3 space-y-1 text-sm text-hc-ink-2">
               <li>{t("acct.q.introagain", "· Kynningin birtist aftur")}</li>
-              <li>{t("acct.replay.b1", t("acct.replay.b1", "· Skilmálar þarf að samþykkja á ný"))}</li>
-              <li>{t("acct.replay.b2", t("acct.replay.b2", "· Samþykki fyrir heilsufarsupplýsingum núllstillist"))}</li>
+              <li>{t("acct.replay.b1", "· Skilmálar þarf að samþykkja á ný")}</li>
+              <li>{t("acct.replay.b2", "· Samþykki fyrir heilsufarsupplýsingum núllstillist")}</li>
             </ul>
-            <button
-              type="button"
-              onClick={() => void reset()}
-              disabled={busy}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#10B981] py-2.5 font-semibold text-white transition-colors hover:bg-[#047857] disabled:opacity-50"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RotateCcw className="h-4 w-4" aria-hidden />}
-              Núllstilla og byrja aftur
-            </button>
-            {err && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">{err}</p>}
+            <Button variant="danger" className="mt-5 w-full" onClick={() => void reset()} busy={busy} icon={<RotateCcw className="h-4 w-4" aria-hidden />}>
+              {t("acct.replay.button", "Núllstilla og byrja aftur")}
+            </Button>
+            {err && <Alert tone="bad" compact className="mt-3">{err}</Alert>}
           </>
         )}
 
         {done && (
           <>
-            <p className="mt-4 flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-              <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-              {done.consents ? tv("acct.replay.resetn", "Núllstillt · {{n}} samþykki fjarlægð.", { n: done.consents }) : t("acct.replay.reset", "Núllstillt.")}
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/account/welcome")}
-              className="mt-4 w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white hover:bg-[#047857]"
-            >
+            <Alert tone="ok" compact className="mt-4">
+              <span className="inline-flex items-center gap-2"><Check className="h-4 w-4 shrink-0" aria-hidden />
+              {done.consents ? tv("acct.replay.resetn", "Núllstillt · {{n}} samþykki fjarlægð.", { n: done.consents }) : t("acct.replay.reset", "Núllstillt.")}</span>
+            </Alert>
+            <Button className="mt-4 w-full" onClick={() => router.push("/account/welcome")}>
               {t("acct.replay.gotointro", "Fara í kynninguna")}
-            </button>
+            </Button>
           </>
         )}
       </div>

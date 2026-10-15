@@ -8,8 +8,9 @@
 // stopped, holding an app whose surfaces all wanted a report they were
 // never going to have.
 //
-// Three honest answers, and they map onto things that already exist rather
-// than onto things we wish existed:
+// Two routes — the same two /byrja and the first-run chooser offer (the
+// app-alone option was dropped so every surface names the same choices) —
+// plus the report upload for somebody who already has one:
 //
 //   • a report already in hand  → upload it, skip the tests (own_report_at)
 //   • the full health check     → the journey as it has always been
@@ -24,7 +25,7 @@
 // survive it, and the card says so.
 
 import { useState } from "react";
-import { ClipboardCheck, FileHeart, Lightbulb, UserRound } from "lucide-react";
+import { ClipboardCheck, FileHeart, UserRound } from "lucide-react";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -55,14 +56,22 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
 }) {
   const [busy, setBusy] = useState<string | null>(null);
 
-  const choose = async (track: "coach" | "app" | "check") => {
+  const [err, setErr] = useState("");
+  const choose = async (track: "coach" | "check") => {
     if (preview) return;
-    setBusy(track);
-    await api("/api/hc/journey", {
+    setBusy(track); setErr("");
+    const r = await api("/api/hc/journey", {
       method: "POST",
       body: JSON.stringify({ action: "choose_track", track }),
     }).catch(() => null);
     setBusy(null);
+    if (!r?.ok) {
+      const j = await r?.json().catch(() => null);
+      setErr(j?.error === "already_paid" ? "Heilsufarsskoðunin er þegar greidd, svo leiðinni verður ekki breytt héðan."
+        : j?.error === "b2b" ? "Vinnuveitandinn þinn greiðir heilsufarsskoðunina og hún er því leiðin þín."
+        : "Tókst ekki að breyta leiðinni. Reyndu aftur.");
+      return;
+    }
     await onDone();
   };
 
@@ -98,13 +107,6 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
             title: "Ég er með heilsufarsskýrslu frá Lifeline",
             body: "Ég vil setja hana inn hér og byggja áætlunina á henni.",
             foot: "Mælingar og blóðprufa eru þá þegar frágengnar.",
-          },
-          {
-            key: "app" as const,
-            icon: Lightbulb,
-            title: "Ég vil nota appið sjálf(ur)",
-            body: "Æfingar, næring, svefn og daglegar venjur — ég set prógrammið upp og stilli það sjálf(ur).",
-            foot: "Engin kennitala, engar mælingar og enginn þjálfari.",
           },
           {
             key: "coach" as const,
@@ -148,7 +150,7 @@ export default function TrackChoice({ api, onDone, onUpload, preview = false, ba
           );
         })}
       </div>
-
+      {err && <p role="alert" className="mt-3 text-sm text-red-600">{err}</p>}
     </section>
   );
 }

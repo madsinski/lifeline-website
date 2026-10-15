@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import WelcomeSlideshow from "../../components/WelcomeSlideshow";
 import { useI18n } from "@/lib/i18n";
+import { AccountLoading } from "@/app/components/account/ui";
 
 function AccountWelcomePageInner() {
   const { t } = useI18n();
@@ -79,9 +80,7 @@ function AccountWelcomePageInner() {
     } catch { /* best-effort, don't block UX */ }
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">{t("acct.welcome.loading", "Hleð kynningu…")}</div>;
-  }
+  if (loading) return <AccountLoading label={t("acct.welcome.loading", "Hleð kynningu…")} />;
 
   return (
     <WelcomeSlideshow
@@ -96,9 +95,8 @@ function AccountWelcomePageInner() {
 }
 
 export default function AccountWelcomePage() {
-  const { t } = useI18n();
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-gray-500">{t("acct.welcome.loading", "Hleð kynningu…")}</div>}>
+    <Suspense fallback={<AccountLoading />}>
       <AccountWelcomePageInner />
     </Suspense>
   );

@@ -9,7 +9,7 @@ export async function POST(
   const body = await req.json().catch(() => ({}));
   const password: string | undefined = body?.password;
   if (!token || !password) {
-    return NextResponse.json({ error: "token and password required" }, { status: 400 });
+    return NextResponse.json({ error: "Sláðu inn kóðann úr boðspóstinum." }, { status: 400 });
   }
 
   // M5: per-IP rate limit before hitting the verify function itself.
@@ -24,7 +24,7 @@ export async function POST(
   });
   if (allowed === false) {
     return NextResponse.json(
-      { error: "Too many requests. Try again later." },
+      { error: "Of margar tilraunir. Reyndu aftur síðar." },
       { status: 429 },
     );
   }
@@ -39,17 +39,17 @@ export async function POST(
     .eq("invite_token", token)
     .maybeSingle();
   if (!tokenRow) {
-    return NextResponse.json({ error: "Invalid password" }, { status: 401 });
+    return NextResponse.json({ error: "Rangur kóði." }, { status: 401 });
   }
   if (tokenRow.completed_at) {
     return NextResponse.json(
-      { error: "This invite has already been used. Please sign in instead." },
+      { error: "Þetta boð hefur þegar verið notað. Skráðu þig inn í staðinn." },
       { status: 410 },
     );
   }
   if (tokenRow.invite_token_expires_at && new Date(tokenRow.invite_token_expires_at).getTime() < Date.now()) {
     return NextResponse.json(
-      { error: "This invite has expired. Please ask your company admin to resend it." },
+      { error: "Boðið er útrunnið. Biddu tengilið fyrirtækisins um að senda það aftur." },
       { status: 410 },
     );
   }
@@ -61,14 +61,15 @@ export async function POST(
   if (error) {
     if (error.message?.startsWith("locked:")) {
       return NextResponse.json(
-        { error: "Too many incorrect attempts. Try again later." },
+        { error: "Of margar rangar tilraunir. Reyndu aftur síðar." },
         { status: 429 },
       );
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[onboard-verify] verify_member_invite:", error.message);
+    return NextResponse.json({ error: "Ekki tókst að staðfesta boðið. Reyndu aftur." }, { status: 500 });
   }
   const row = Array.isArray(data) ? data[0] : data;
-  if (!row) return NextResponse.json({ error: "Invalid password" }, { status: 401 });
+  if (!row) return NextResponse.json({ error: "Rangur kóði." }, { status: 401 });
 
   const ua = req.headers.get("user-agent") || "";
   await supabaseAdmin.rpc("log_kennitala_access", {

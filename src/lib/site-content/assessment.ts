@@ -123,9 +123,9 @@ export const ASSESSMENT_FIELDS: SiteField[] = [
 
 const SHARED = {
   hero_cta: "Create your Lifeline account",
-  hero_cta_href: "/account/login?mode=signup",
-  packages_cta_href: "/account/login?mode=signup",
-  cta_button_href: "/account/login?mode=signup",
+  hero_cta_href: "/byrja?leid=check",
+  packages_cta_href: "/byrja?leid=check",
+  cta_button_href: "/byrja?leid=check",
   results_device: "phone",
   results_screenshot: "/app-screenshot-health-static.png",
   track_device: "phone",

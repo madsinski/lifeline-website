@@ -115,7 +115,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
       <p className="text-sm text-hc-ink-2">
         {track === "app"
           ? "Bara nafnið, til að heilsa þér og setja á áætlunina. Kennitölu þarf ekki fyrir þjálfunina."
-          : "Við þurfum þessar upplýsingar fyrir sjúklingagáttina og til að útbúa umsókn til stéttarfélagsins þíns ef við á."}
+          : "Við þurfum þessar upplýsingar fyrir sjúklingagáttina (Medalia), þar sem skoðunin fer fram, og til að útbúa umsókn til stéttarfélagsins þíns ef við á."}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         {field("full_name", "Fullt nafn", { autoComplete: "name" })}
@@ -135,7 +135,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
       {!data.profile.health_consent && <ConsentBox checked={consent} onChange={setConsent} error={errors.consent} />}
       {errors.form && <p className="text-sm text-red-600">{errors.form}</p>}
       <div className="flex items-center gap-3">
-        <button disabled={busy} className="rounded-full bg-hc-brand px-5 py-2.5 font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-50">
+        <button disabled={busy} className="inline-flex min-h-11 items-center justify-center rounded-hc-element bg-hc-brand-dark px-5 font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
           {busy ? "Vistar…" : "Vista upplýsingar"}
         </button>
         {saved && <span className="text-sm text-hc-ok-ink">Vistað</span>}

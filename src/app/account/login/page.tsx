@@ -1,19 +1,27 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+// /account/login — sign in, and nothing else.
+//
+// New accounts are made at /byrja: ?mode=signup (still linked from CMS rows,
+// /app, /heilsuskodun and B2B hc codes) and ?ref= are forwarded there with
+// next/leid/ref preserved. The old signup here — six fields, a terms stage
+// with two scroll panes, then a browser insert into clients_decrypted that
+// silently failed without a session — is gone; consent now travels in the
+// signUp() metadata and is copied server side on the first signed-in load
+// (ensureSignupConsentRecorded, called below after sign-in).
+
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import LifelineLogo from "@/app/components/LifelineLogo";
+import AuthShell, { authInput, authLabel, authLink, authPrimary } from "@/app/components/AuthShell";
 import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
 import PinPad from "@/app/components/hc/PinPad";
 import { useI18n } from "@/lib/i18n";
-import {
-  PUBLIC_PRIVACY_VERSION,
-  PUBLIC_TERMS_VERSION,
-  renderPublicPrivacyPolicy,
-  renderPublicTermsOfService,
-} from "@/lib/public-pages-content";
+import { authErrorIs, isEmailNotConfirmed } from "@/lib/auth-errors-is";
+import { ensureSignupConsentRecorded, safeNextPath } from "@/lib/signup-consent";
+import { ResendConfirmation } from "@/app/byrja/CheckEmail";
 
 export default function AccountLoginPage() {
   return (
@@ -24,7 +32,34 @@ export default function AccountLoginPage() {
 }
 
 function LoginOrReset() {
-  return useSearchParams().get("nytt") === "1" ? <NewPassword /> : <AccountLoginContent />;
+  const params = useSearchParams();
+  if (params.get("nytt") === "1") return <NewPassword />;
+  if (params.get("mode") === "signup" || params.get("ref")) return <ToSignup />;
+  return <AccountLoginContent />;
+}
+
+/** ?mode=signup / ?ref= → /byrja, keeping where they were headed. */
+function ToSignup() {
+  const router = useRouter();
+  const params = useSearchParams();
+  useEffect(() => {
+    const q = new URLSearchParams();
+    const next = safeNextPath(params.get("next"));
+    if (next) q.set("next", next);
+    for (const k of ["leid", "ref", "email"]) {
+      const v = params.get(k);
+      if (v) q.set(k, v);
+    }
+    const qs = q.toString();
+    router.replace(`/byrja${qs ? `?${qs}` : ""}`);
+  }, [params, router]);
+  return (
+    <AuthShell>
+      <p className="flex items-center justify-center gap-2 text-sm text-hc-ink-2">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Augnablik…
+      </p>
+    </AuthShell>
+  );
 }
 
 /**
@@ -51,29 +86,40 @@ function NewPassword() {
     e.preventDefault();
     if (pw.length < 12) { setErr(t("acct.login.min12", "Lykilorðið þarf að vera minnst 12 stafir.")); return; }
     if (pw !== pw2) { setErr(t("acct.login.nomatch", "Lykilorðin eru ekki eins.")); return; }
-    setBusy(true); setErr("");
+    setBusy(true);
+    setErr("");
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);
-    if (error) { setErr(error.message); return; }
-    router.replace("/account");
+    if (error) { setErr(authErrorIs(error)); return; }
+    router.push("/app");
   };
-  const input = "w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900";
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-[#eff4fa] to-[#e2ebf5] px-4 py-16">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
-        <h1 className="text-xl font-bold text-gray-900">{t("acct.login.choosenewpw", "Veldu nýtt lykilorð")}</h1>
-        {ready === false ? (
-          <p className="mt-3 text-sm text-gray-600">{t("acct.login.linkexpired", "Hlekkurinn er útrunninn eða hefur verið notaður.")} <Link href="/account/login" className="font-semibold text-[#10B981]">{t("acct.login.requestnew", "Biddu um nýjan")}</Link>.</p>
-        ) : (
-          <form onSubmit={save} className="mt-4 space-y-3">
-            <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={t("acct.login.newpw", "Nýtt lykilorð (minnst 12 stafir)")} autoComplete="new-password" className={input} />
-            <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder={t("acct.login.newpwagain", "Nýtt lykilorð aftur")} autoComplete="new-password" className={input} />
-            {err && <p className="text-sm text-red-600">{err}</p>}
-            <button type="submit" disabled={busy || !ready} className="w-full rounded-lg bg-[#10B981] py-2.5 font-semibold text-white hover:bg-[#047857] disabled:opacity-50">{busy ? "Vista…" : t("acct.login.savenewpw", "Vista nýtt lykilorð")}</button>
-          </form>
-        )}
-      </div>
-    </div>
+    <AuthShell>
+      <h1 className="text-2xl font-bold text-hc-ink">{t("acct.login.choosenewpw", "Veldu nýtt lykilorð")}</h1>
+      {ready === false ? (
+        <p className="mt-3 text-sm text-hc-ink-2">
+          {t("acct.login.linkexpired", "Hlekkurinn er útrunninn eða hefur verið notaður.")}{" "}
+          <Link href="/account/login" className={authLink}>{t("acct.login.requestnew", "Biddu um nýjan")}</Link>.
+        </p>
+      ) : (
+        <form onSubmit={save} className="mt-5 space-y-4">
+          <label className="block">
+            <span className={authLabel}>Nýtt lykilorð</span>
+            <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" className={authInput} />
+            <span className="mt-1 block text-xs text-hc-ink-3">Minnst 12 stafir</span>
+          </label>
+          <label className="block">
+            <span className={authLabel}>{t("acct.login.newpwagain", "Nýtt lykilorð aftur")}</span>
+            <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" className={authInput} />
+          </label>
+          {err && <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">{err}</p>}
+          <button type="submit" disabled={busy || !ready} className={authPrimary}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+            {t("acct.login.savenewpw", "Vista nýtt lykilorð")}
+          </button>
+        </form>
+      )}
+    </AuthShell>
   );
 }
 
@@ -81,53 +127,22 @@ function AccountLoginContent() {
   const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const refCode = searchParams.get("ref") || "";
-  const nextPath = searchParams.get("next") || "";
-  const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
-  const [mode, setMode] = useState<"login" | "signup">(refCode ? "signup" : initialMode);
-  // Two-stage signup: collect name/email/password first, then take the
-  // user to a dedicated review page where they read + accept the TOS
-  // and Privacy Policy before the account is actually created.
-  const [signupStage, setSignupStage] = useState<"form" | "terms" | "done">("form");
-  /* The address the account was just created for — shown back to them, so
-     they know which inbox to open. */
-  const [signedUpEmail, setSignedUpEmail] = useState("");
-  const [email, setEmail] = useState("");
+  const nextPath = safeNextPath(searchParams.get("next"));
+  const verifyFirst = searchParams.get("verify") === "1";
+
+  const [email, setEmail] = useState(() => searchParams.get("email") || "");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [acceptTerms, setAcceptTerms] = useState(false);
-
-  /** Put the message where the person is looking.
-   *
-   * Both steps of signup swap a tall block for a shorter one and the
-   * browser keeps the scroll offset, which lands past the end of the new
-   * content — at the footer. The error and the confirmation both render at
-   * the top of the card, so whatever just happened was announced off
-   * screen. A failed signup then looks identical to a silent one, which is
-   * exactly how this was reported: "no email", with no account created and
-   * an error nobody saw. */
-  const showMessage = useCallback(() => {
-    setTimeout(() => {
-      const el = document.getElementById("account-card") ?? document.querySelector("form");
-      el?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 60);
-  }, []);
-
-  const [researchOptOut, setResearchOptOut] = useState(false);
-  const [marketingOptOut, setMarketingOptOut] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
+  /* Set when the address exists but was never confirmed: the error alone
+     is a dead end, so the resend button appears with it. */
+  const [unconfirmed, setUnconfirmed] = useState(verifyFirst);
   const [info, setInfo] = useState(
-    searchParams.get("verify") === "1"
+    verifyFirst
       ? t("acct.login.verifyfirst", "Staðfestu netfangið þitt áður en þú heldur áfram. Hlekkurinn frá Lifeline Health er í pósthólfinu (athugaðu líka ruslpóst).")
       : "",
   );
   const [loading, setLoading] = useState(false);
-  // The health-check journey has its own onboarding (welcome lecture), so
-  // people arriving for it skip the generic welcome slideshow.
-  const journeyNext = nextPath.startsWith("/app");
 
   // PIN sign-in on a trusted device (set up from the journey settings).
   const [pinAvailable, setPinAvailable] = useState<{ email_hint: string | null } | null>(null);
@@ -141,6 +156,14 @@ function AccountLoginContent() {
       .catch(() => {});
   }, []);
 
+  /* Where to go once signed in: a validated same-origin next, else the app.
+     The consent copy runs first so the opt-outs are on the row before any
+     page reads them. */
+  const proceed = async () => {
+    await ensureSignupConsentRecorded();
+    router.push(nextPath || "/app");
+  };
+
   const handlePin = async (value: string) => {
     setPinError("");
     setLoading(true);
@@ -153,694 +176,148 @@ function AccountLoginContent() {
     if (!r.ok) {
       setLoading(false);
       setPin("");
-      setPinError(j.error || t("acct.login.failed", "Innskráning mistókst."));
-      if (j.locked || j.error === "no_device") { setPinAvailable(null); setUsePin(false); }
+      if (j.locked || j.error === "no_device") {
+        setPinError("Of margar rangar tilraunir. Skráðu þig inn með lykilorði.");
+        setPinAvailable(null);
+        setUsePin(false);
+      } else {
+        setPinError("Rangt PIN. Reyndu aftur.");
+      }
       return;
     }
     const { error: otpErr } = await supabase.auth.verifyOtp({ token_hash: j.token_hash, type: "magiclink" });
     if (otpErr) {
       setLoading(false);
       setPin("");
-      setPinError(otpErr.message);
+      setPinError(authErrorIs(otpErr));
       return;
     }
-    router.push(nextPath && nextPath.startsWith("/") ? nextPath : "/account");
+    await proceed();
   };
-
-  // Versioned together — when either text changes bump both. The
-  // public renderers (renderPublicTermsOfService /
-  // renderPublicPrivacyPolicy) are the legally binding text the user
-  // accepts here; we record the TOS version on the clients row.
-  const TERMS_VERSION = `tos-${PUBLIC_TERMS_VERSION}+priv-${PUBLIC_PRIVACY_VERSION}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setInfo("");
     setLoading(true);
-
-    if (mode === "login") {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInError) {
-        setError(signInError.message);
-        setLoading(false);
-        return;
-      }
-      // First-time login — route based on B2B vs B2C and onboarding state:
-      //   • Anyone (B2B or B2C) without welcome_seen_at → /account/welcome
-      //     (the slideshow). Body composition + health consent are
-      //     collected later when the user activates Biody, not as a
-      //     gate to the dashboard.
-      //   • Everyone else → /account or the next path.
-      if (signInData?.user?.id) {
-        const { data: profile } = await supabase
-          .from("clients_decrypted")
-          .select("welcome_seen_at")
-          .eq("id", signInData.user.id)
-          .maybeSingle();
-        // Health-check participants go to their heilsuferð (/account sends
-        // them there); only others without the slideshow get it.
-        if (profile && !profile.welcome_seen_at && !journeyNext) {
-          router.push("/account");
-          return;
-        }
-      }
-      router.push(nextPath && nextPath.startsWith("/") ? nextPath : "/account");
-    } else {
-      // Stage 1 (form) → just validate + advance to the TOS+Privacy
-      // review page. The actual account creation happens after the
-      // user reads + accepts the legal documents on stage 2.
-      if (signupStage === "form") {
-        if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
-          setError(t("acct.login.fillall", "Fylltu inn nafn, netfang og lykilorð."));
-          showMessage();
-          setLoading(false);
-          return;
-        }
-        if (password.length < 12) {
-          setError(t("acct.login.min12", "Lykilorðið þarf að vera minnst 12 stafir."));
-          showMessage();
-          setLoading(false);
-          return;
-        }
-        if (password !== confirmPassword) {
-          setError(t("acct.login.nomatch", "Lykilorðin eru ekki eins."));
-          showMessage();
-          setLoading(false);
-          return;
-        }
-        setSignupStage("terms");
-        setError("");
-        setLoading(false);
-        /* Advancing a step used to leave the scroll position where the
-           button was, so the page swapped its content ABOVE the viewport
-           and the person was left looking at the middle of a form they had
-           already filled in. On a 390x844 phone against a 2771px page that
-           reads as nothing happening. */
-        setTimeout(() => {
-          document.getElementById("signup-terms-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 50);
-        return;
-      }
-      // Stage 2 (terms) — actually create the account.
-      if (!acceptTerms) {
-        setError(t("acct.login.acceptboth", "Samþykktu skilmálana og persónuverndarstefnuna til að halda áfram."));
-        setLoading(false);
-        return;
-      }
-      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-      const now = new Date().toISOString();
-      const clientFields = {
-        email,
-        full_name: fullName || email.split('@')[0],
-        phone: phone.trim() || null,
-        terms_accepted_at: now,
-        terms_version: TERMS_VERSION,
-        research_opt_out: researchOptOut,
-        marketing_opt_out: marketingOptOut,
-        created_at: now,
-      };
-      // Redirect confirmed users into the welcome slideshow. The slideshow
-      // is the new "intro presentation" — it replaces the in-person/online
-      // PPT walkthrough. Body composition + health consent are collected
-      // later when the user actually activates Biody, not as a gate to
-      // the dashboard. /account and /account/welcome are whitelisted in
-      // middleware.ts so they bypass the coming-soon gate.
-      const origin = typeof window !== "undefined" ? window.location.origin : "https://www.lifelinehealth.is";
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: journeyNext ? `${origin}${nextPath}` : `${origin}/account/welcome`,
-          data: {
-            full_name: fullName,
-            ...(refCode ? { referred_by: refCode } : {}),
-          },
-        },
-      });
-      if (signUpError) {
-        setError(signUpError.message);
-        showMessage();
-        setLoading(false);
-        return;
-      }
-      // Create client profile and free subscription
-      if (signUpData?.user) {
-        try {
-          const { error: insertErr } = await supabase.from("clients_decrypted").insert({
-            id: signUpData.user.id,
-            ...clientFields,
-          });
-          // Handle re-created account (same email, new auth ID)
-          if (insertErr?.code === '23505') {
-            const { data: old } = await supabase.from("clients_decrypted").select('id').eq('email', email).single();
-            if (old && old.id !== signUpData.user.id) {
-              // No need to clear subscriptions: the FK is
-              // ON DELETE CASCADE, so removing the old client row takes
-              // them with it. This line could not work anyway now that the
-              // table has no client write policy.
-              await supabase.from("clients_decrypted").delete().eq('id', old.id);
-              await supabase.from("clients_decrypted").insert({
-                id: signUpData.user.id,
-                ...clientFields,
-              });
-            }
-          }
-          /*
-           * The trial is created server side now.
-           *
-           * This inserted a free-trial row from the browser with the anon
-           * key — which is also how anyone could have inserted themselves a
-           * premium one, so the table's write policies are gone
-           * (supabase/migration-subscriptions-rls.sql) and this would now
-           * fail silently inside the catch below.
-           *
-           * ensureTrial() in src/lib/hc/subscription.ts does it on first
-           * sight of the journey instead: 14 days, server side, and it
-           * covers everybody who signed up before any of this.
-           */
-        } catch {}
-      }
-      /*
-       * Land on a confirmation screen, not on the login form.
-       *
-       * This used to setMode("login"), which is how somebody who had just
-       * created an account for one address was shown the PIN pad for a
-       * different one: /api/account/pin answers for the DEVICE, so a PIN
-       * set up by a previous user of this browser was still on offer, and
-       * the login view prefers it. Staying in the signup flow means that
-       * branch cannot render, and the screen says the one thing that is
-       * actually true at this point — go and open your email.
-       */
-      setSignedUpEmail(email);
-      setSignupStage("done");
-      setError("");
-      setInfo("");
-      setPassword("");
-      setConfirmPassword("");
-      setAcceptTerms(false);
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (signInError) {
+      setUnconfirmed(isEmailNotConfirmed(signInError));
+      setError(authErrorIs(signInError));
       setLoading(false);
-      if (typeof window !== "undefined") window.scrollTo({ top: 0 });
       return;
     }
-
-    setLoading(false);
+    await proceed();
   };
 
   const handleForgotPassword = async () => {
-    if (!email) {
+    if (!email.trim()) {
       setError(t("acct.login.emailfirst", "Sláðu fyrst inn netfangið þitt."));
       return;
     }
     setError("");
     setInfo("");
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-      email,
-      { redirectTo: `${window.location.origin}/account/login?nytt=1` }
+      email.trim(),
+      { redirectTo: `${window.location.origin}/account/login?nytt=1` },
     );
-    if (resetError) {
-      setError(resetError.message);
-    } else {
-      setInfo(t("acct.login.resetsent", "Við sendum þér hlekk til að velja nýtt lykilorð."));
-    }
+    if (resetError) setError(authErrorIs(resetError));
+    else setInfo(t("acct.login.resetsent", "Við sendum þér hlekk til að velja nýtt lykilorð."));
   };
 
+  const signupHref = `/byrja${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""}`;
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-[#eff4fa] to-[#e2ebf5] px-4 py-16">
-      <div className="w-full max-w-md">
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
-            <LifelineLogo size="lg" />
-          </Link>
-          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-100 bg-emerald-50 text-emerald-700">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="text-xs font-semibold uppercase tracking-wide">{t("acct.login.myaccount", "Aðgangurinn minn")}</span>
-          </div>
-          <p className="mt-3 text-[#6B7280] text-sm max-w-sm mx-auto">
-            {mode === "login"
-              ? t("acct.login.lede", "Skráðu þig inn til að sjá áætlunina þína, næsta tíma og hvernig gengur.")
-              : t("acct.login.signuplede", "Stofnaðu aðgang til að hefja heilsufarsskoðunina og fá þína eigin áætlun.")}
+    <AuthShell
+      above={<LoginAudienceTabs active="personal" />}
+      footer={
+        <>
+          Ekki með aðgang? <Link href={signupHref} className={authLink}>Stofna aðgang</Link>
+        </>
+      }
+    >
+      <h1 className="text-2xl font-bold text-hc-ink">{t("acct.login.title", "Innskráning")}</h1>
+      <p className="mt-1 text-sm text-hc-ink-2">
+        {t("acct.login.lede", "Skráðu þig inn til að sjá áætlunina þína, næsta tíma og hvernig gengur.")}
+      </p>
+
+      {usePin && pinAvailable ? (
+        <div className="mt-6">
+          <p className="text-center text-sm text-hc-ink-2">
+            Sláðu inn PIN{pinAvailable.email_hint ? <> {t("acct.q.for", "fyrir")} <span className="font-medium text-hc-ink">{pinAvailable.email_hint}</span></> : null}
           </p>
-        </div>
-
-        {/* Audience switch */}
-        <LoginAudienceTabs active="personal" />
-
-        {/* Card */}
-        {/* The scroll target for showMessage(): the top of the card, where
-            both the error and the confirmation render. */}
-        <div id="account-card" className="relative scroll-mt-4 overflow-hidden bg-white rounded-2xl shadow-lg">
-          <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
-
-          {/* Inner tabs — match /business/login styling */}
-          <div className="flex border-b border-gray-100 pt-2" role="tablist">
-            {([
-              { key: "login", label: t("acct.login.title", "Innskráning") },
-              { key: "signup", label: t("acct.login.newaccount", "Nýr aðgangur") },
-            ] as const).map((tab) => {
-              const active = mode === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => { setMode(tab.key); setSignupStage("form"); setError(""); setInfo(""); }}
-                  className={`flex-1 py-4 text-sm font-semibold transition-colors relative ${
-                    active ? "text-[#1F2937]" : "text-gray-400 hover:text-gray-600"
-                  }`}
-                >
-                  {tab.label}
-                  {active && (
-                    <span className="absolute left-1/2 -translate-x-1/2 bottom-0 w-12 h-0.5 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
-                  )}
-                </button>
-              );
-            })}
+          <div className="mt-5">
+            <PinPad value={pin} onChange={setPin} onComplete={handlePin} disabled={loading} error={!!pinError} accent="#047857" />
           </div>
-
-          <div className="p-8">
-          {mode === "login" && usePin && pinAvailable ? (
-            <div>
-              <p className="text-center text-sm text-gray-600">
-                Sláðu inn PIN{pinAvailable.email_hint ? <> {t("acct.q.for", "fyrir")} <span className="font-medium text-gray-800">{pinAvailable.email_hint}</span></> : null}
-              </p>
-              <div className="mt-5">
-                <PinPad value={pin} onChange={setPin} onComplete={handlePin} disabled={loading} error={!!pinError} />
-              </div>
-              {pinError && <p role="alert" className="mt-4 text-center text-sm text-red-600">{pinError}</p>}
-              <button
-                type="button"
-                onClick={() => { setUsePin(false); setPinError(""); }}
-                className="mt-5 block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981]"
-              >
-                {t("acct.login.usepassword", "Nota lykilorð í staðinn")}
-              </button>
-            </div>
-          ) : mode === "signup" && signupStage === "done" ? (
-            <div className="text-center">
-              <span aria-hidden className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-[#047857]">
-                <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </span>
-              <h2 className="mt-4 text-xl font-bold text-[#0F172A]">
-                {t("acct.login.checkemail.title", "Opnaðu póstinn þinn")}
-              </h2>
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[#6B7280]">
-                {t("acct.login.checkemail.body", "Aðgangurinn er stofnaður. Við sendum staðfestingarhlekk á netfangið hér fyrir neðan — smelltu á hann til að ljúka skráningunni.")}
-              </p>
-              <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-semibold text-[#0F172A]">
-                {signedUpEmail}
-              </p>
-              <p className="mt-4 text-xs leading-relaxed text-[#9CA3AF]">
-                {t("acct.login.checkemail.spam", "Finnurðu hann ekki? Athugaðu ruslpóstinn. Hlekkurinn gildir í eina klukkustund.")}
-              </p>
-              {/* Only once the email is confirmed does signing in work, so
-                  this is a way back rather than the next step. */}
-              <button
-                type="button"
-                onClick={() => { setMode("login"); setSignupStage("form"); setSignedUpEmail(""); setError(""); setInfo(""); }}
-                className="mt-6 text-sm font-semibold text-[#047857] hover:underline"
-              >
-                {t("acct.login.checkemail.back", "Til baka á innskráningu")}
-              </button>
-            </div>
-          ) : mode === "signup" && signupStage === "terms" ? (
-            <TermsConsentStage
-              firstName={firstName}
-              email={email}
-              acceptTerms={acceptTerms}
-              setAcceptTerms={setAcceptTerms}
-              researchOptOut={researchOptOut}
-              setResearchOptOut={setResearchOptOut}
-              marketingOptOut={marketingOptOut}
-              setMarketingOptOut={setMarketingOptOut}
-              loading={loading}
-              error={error}
-              info={info}
-              onBack={() => { setSignupStage("form"); setError(""); }}
-              onConfirm={handleSubmit}
-            />
-          ) : (
-          <form
-            onSubmit={handleSubmit}
-            /* Take the person to the field the browser is complaining about.
-             *
-             * The password inputs carry minLength={12}, so a short password
-             * makes the form invalid and the browser refuses to submit —
-             * handleSubmit never runs, which is why every message this page
-             * can show was irrelevant. The browser does say something, in a
-             * bubble pinned to the FIELD, which on a phone is several
-             * screens above the button that was just pressed. From there it
-             * looks like the button does nothing.
-             *
-             * onInvalid fires once per invalid field; only the first one
-             * matters, and bringing it into view is what the browser cannot
-             * do for us. */
-            onInvalid={(e) => {
-              const el = e.target as HTMLInputElement;
-              if (el.dataset.scrolled) return;
-              el.dataset.scrolled = "1";
-              el.scrollIntoView({ behavior: "smooth", block: "center" });
-              setTimeout(() => { el.focus({ preventScroll: true }); delete el.dataset.scrolled; }, 400);
-            }}
-            className="space-y-5"
+          {pinError && <p role="alert" className="mt-4 text-center text-sm text-hc-bad-ink">{pinError}</p>}
+          <button
+            type="button"
+            onClick={() => { setUsePin(false); setPinError(""); }}
+            className="mt-5 block w-full text-center text-sm font-medium text-hc-ink-2 hover:text-hc-ink"
           >
-            {mode === "signup" && (
-              <>
-                <div className="flex gap-3">
-                  <div className="flex-1">
-                    <label
-                      htmlFor="firstName"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      {t("acct.q.firstname", "Fornafn")}
-                    </label>
-                    <input
-                      id="firstName"
-                      type="text"
-                      required
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                      placeholder={t("acct.q.firstname", "Fornafn")}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label
-                      htmlFor="lastName"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      {t("acct.q.lastname", "Eftirnafn")}
-                    </label>
-                    <input
-                      id="lastName"
-                      type="text"
-                      required
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                      placeholder={t("acct.q.lastname", "Eftirnafn")}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                {t("acct.q.email", "Netfang")}
-              </label>
+            {t("acct.login.usepassword", "Nota lykilorð í staðinn")}
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <label className="block">
+            <span className={authLabel}>{t("acct.q.email", "Netfang")}</span>
+            <input
+              type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email" placeholder="nafn@netfang.is"
+              onInvalid={(e) => e.currentTarget.setCustomValidity("Sláðu inn gilt netfang.")}
+              onInput={(e) => e.currentTarget.setCustomValidity("")}
+              className={authInput}
+            />
+          </label>
+          <label className="block">
+            <span className={authLabel}>{t("acct.password", "Lykilorð")}</span>
+            <span className="relative block">
               <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                placeholder="nafn@netfang.is"
-              />
-            </div>
-
-            {mode === "signup" && (
-              <div>
-                <label
-                  htmlFor="phone"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  {t("acct.login.mobile", "Farsími")}
-                </label>
-                <input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                  placeholder={t("acct.phone", "Símanúmer")}
-                />
-              </div>
-            )}
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                {t("acct.password", "Lykilorð")}
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                placeholder={
-                  mode === "signup"
-                    ? t("acct.login.choosepw", "Veldu lykilorð (minnst 12 stafir)")
-                    : t("acct.login.yourpassword", "Lykilorðið þitt")
-                }
-                minLength={mode === "signup" ? 12 : undefined}
-                onInvalid={(e) => e.currentTarget.setCustomValidity(
-                  mode === "signup" ? t("acct.login.min12", "Lykilorðið þarf að vera minnst 12 stafir.") : "")}
+                type={showPw ? "text" : "password"} required value={password}
+                onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
+                onInvalid={(e) => e.currentTarget.setCustomValidity("Sláðu inn lykilorðið.")}
                 onInput={(e) => e.currentTarget.setCustomValidity("")}
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                className={`${authInput} pr-12`}
               />
-            </div>
+              <button type="button" onClick={() => setShowPw((v) => !v)}
+                aria-label={showPw ? "Fela lykilorð" : "Sýna lykilorð"} aria-pressed={showPw}
+                className="absolute right-1 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken-2">
+                {showPw ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
+              </button>
+            </span>
+          </label>
 
-            {mode === "signup" && (
-              <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  {t("acct.login.passwordagain", "Lykilorð aftur")}
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
-                  placeholder={t("acct.login.repeatpw", "Sláðu lykilorðið inn aftur")}
-                  minLength={12}
-                  onInvalid={(e) => e.currentTarget.setCustomValidity(t("acct.login.min12", "Lykilorðið þarf að vera minnst 12 stafir."))}
-                  onInput={(e) => e.currentTarget.setCustomValidity("")}
-                  autoComplete="new-password"
-                />
-              </div>
-            )}
+          {error && <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">{error}</p>}
+          {info && <p role="status" className="rounded-hc-element bg-hc-ok-surface px-3 py-2 text-sm text-hc-ok-ink">{info}</p>}
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
-            {info && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-                {info}
-              </div>
-            )}
+          <button type="submit" disabled={loading} className={authPrimary}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+            {loading ? t("acct.login.signingin", "Skrái inn…") : t("acct.signin", "Skrá inn")}
+          </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading
-                ? mode === "login"
-                  ? t("acct.login.signingin", "Skrái inn…")
-                  : t("acct.login.creating", "Stofna aðgang…")
-                : mode === "login"
-                  ? t("acct.signin", "Skrá inn")
-                  : t("acct.continue", "Áfram")}
-            </button>
-          </form>
+          {unconfirmed && (
+            <ResendConfirmation
+              email={email}
+              redirectTo={typeof window !== "undefined" ? `${window.location.origin}${nextPath || "/app"}` : ""}
+            />
           )}
+        </form>
+      )}
 
-          {mode === "login" && !usePin && pinAvailable && (
-            <button
-              type="button"
-              onClick={() => setUsePin(true)}
-              className="block w-full text-center text-sm font-medium text-[#10B981] hover:text-[#047857] mt-4 transition-colors"
-            >
+      {!usePin && (
+        <div className="mt-5 space-y-3 text-center">
+          {pinAvailable && (
+            <button type="button" onClick={() => setUsePin(true)} className={`block w-full text-sm ${authLink}`}>
               {t("acct.login.pin", "Skrá inn með PIN")}
             </button>
           )}
-          {mode === "login" && !usePin && (
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              className="block w-full text-center text-sm text-[#6B7280] hover:text-[#10B981] mt-4 transition-colors"
-            >
-              {t("acct.login.forgot", "Gleymt lykilorð?")}
-            </button>
-          )}
-          </div>
-        </div>
-
-        <p className="text-center text-[#6B7280] text-xs mt-6">
-          <Link href="/" className="hover:text-[#10B981] transition-colors">
-            {t("acct.login.backhome", "Til baka á forsíðu Lifeline Health")}
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────
-// Stage 2 of signup: dedicated TOS + Privacy review page. The user
-// arrives here after entering name/email/password on stage 1.
-// They must read + accept before the account is created.
-
-function TermsConsentStage({
-  firstName, email, acceptTerms, setAcceptTerms,
-  researchOptOut, setResearchOptOut,
-  marketingOptOut, setMarketingOptOut,
-  loading, error, info, onBack, onConfirm,
-}: {
-  firstName: string;
-  email: string;
-  acceptTerms: boolean;
-  setAcceptTerms: (v: boolean) => void;
-  researchOptOut: boolean;
-  setResearchOptOut: (v: boolean) => void;
-  marketingOptOut: boolean;
-  setMarketingOptOut: (v: boolean) => void;
-  loading: boolean;
-  error: string;
-  info: string;
-  onBack: () => void;
-  onConfirm: (e: React.FormEvent) => void;
-}) {
-  const { t, tv } = useI18n();
-  return (
-    <form onSubmit={onConfirm} className="space-y-5">
-      <div id="signup-terms-top" className="scroll-mt-4">
-        <h2 className="text-lg font-semibold text-[#0F172A]">
-          {firstName ? tv("acct.login.almostname", "Næstum þar, {{name}}", { name: firstName }) : t("acct.login.almost", "Næstum þar")}
-        </h2>
-        <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-          {t("acct.login.beforecreate", t("acct.login.beforecreate", "Áður en aðgangurinn er stofnaður þarftu að lesa og samþykkja notkunarskilmála og persónuverndarstefnu Lifeline Health."))}
-        </p>
-        {email && (
-          <p className="text-xs text-gray-400 mt-1">
-            {t("acct.login.willbecreated", "Aðgangurinn verður stofnaður á")} <span className="font-medium text-gray-600">{email}</span>.
-          </p>
-        )}
-      </div>
-
-      <div>
-        <p className="text-xs font-semibold text-[#0F172A] uppercase tracking-wide mb-2">
-          {tv("acct.login.termsv", "Notkunarskilmálar ({{v}})", { v: PUBLIC_TERMS_VERSION })}
-        </p>
-        <pre className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50/60 whitespace-pre-wrap font-sans">
-{renderPublicTermsOfService("is")}
-        </pre>
-      </div>
-
-      <div>
-        <p className="text-xs font-semibold text-[#0F172A] uppercase tracking-wide mb-2">
-          {tv("acct.login.privacyv", "Persónuverndarstefna ({{v}})", { v: PUBLIC_PRIVACY_VERSION })}
-        </p>
-        <pre className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg p-3 text-[11px] leading-relaxed text-gray-800 bg-gray-50/60 whitespace-pre-wrap font-sans">
-{renderPublicPrivacyPolicy("is")}
-        </pre>
-      </div>
-
-      <div className="border-t border-gray-100 pt-4 space-y-3">
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={acceptTerms}
-            onChange={(e) => setAcceptTerms(e.target.checked)}
-            required
-            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
-          />
-          <span className="text-xs text-gray-700 leading-snug">
-            {t("acct.login.ihaveread", "Ég hef lesið og samþykki")} <strong>{t("acct.login.termslink", "notkunarskilmála")}</strong> Lifeline Health (v{PUBLIC_TERMS_VERSION})
-            og <strong>{t("acct.login.privacylink", "persónuverndarstefnu")}</strong> (v{PUBLIC_PRIVACY_VERSION}).
-            <span className="text-red-500 ml-0.5">*</span>
-          </span>
-        </label>
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={researchOptOut}
-            onChange={(e) => setResearchOptOut(e.target.checked)}
-            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
-          />
-          <span className="text-xs text-gray-700 leading-snug">
-            <strong>{t("acct.login.noresearch", "Afþakka rannsóknanotkun.")}</strong>{" "}
-            {t("acct.login.optout-research", "Ekki nota nafnlaus gögn mín til að bæta Lifeline eða í klíníska rannsókn.")}
-          </span>
-        </label>
-        <label className="flex items-start gap-2.5 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={marketingOptOut}
-            onChange={(e) => setMarketingOptOut(e.target.checked)}
-            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#10B981] focus:ring-[#10B981]"
-          />
-          <span className="text-xs text-gray-700 leading-snug">
-            <strong>{t("acct.login.nomarketing", "Afþakka markaðspóst.")}</strong>{" "}
-            {t("acct.login.optout-marketing", "Ekki senda mér vörufréttir eða kynningar frá Lifeline.")}
-          </span>
-        </label>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-          {error}
+          <button type="button" onClick={() => void handleForgotPassword()}
+            className="block w-full text-sm font-medium text-hc-ink-2 hover:text-hc-ink">
+            {t("acct.login.forgot", "Gleymt lykilorð?")}
+          </button>
         </div>
       )}
-      {info && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-          {info}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-        >
-          {t("acct.q.backarrow", "← Til baka")}
-        </button>
-        <button
-          type="submit"
-          disabled={loading || !acceptTerms}
-          title={!acceptTerms ? t("acct.login.tickterms", "Hakaðu við að þú samþykkir skilmálana") : undefined}
-          aria-describedby={!acceptTerms ? "signup-blocked" : undefined}
-          className="flex-1 bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? t("acct.login.creating2", "Stofnar aðgang...") : t("acct.login.acceptcreate", "Samþykkja og stofna aðgang")}
-        </button>
-      </div>
-      {/* Why the button does nothing.
-          It is disabled until the required box is ticked, and that box sits
-          about 300px further up — off screen on a phone. A greyed button
-          with no reason beside it is indistinguishable from a broken one,
-          which is exactly how it was reported. */}
-      {!acceptTerms && (
-        <p id="signup-blocked" className="text-center text-sm text-amber-700">
-          {t("acct.login.ticktermslong", "Hakaðu við að þú samþykkir skilmálana hér fyrir ofan til að halda áfram.")}
-        </p>
-      )}
-    </form>
+    </AuthShell>
   );
 }

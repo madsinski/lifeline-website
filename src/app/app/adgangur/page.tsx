@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import SettingsCard from "@/app/components/hc/SettingsCard";
 import SetupFlow from "@/app/components/hc/SetupFlow";
+import TrackChoice from "@/app/components/hc/TrackChoice";
 import InstallGuide from "@/app/components/hc/InstallGuide";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import BillingPanel from "@/app/components/BillingPanel";
@@ -35,6 +36,9 @@ function Adgangur() {
   // participant has come from the plan — the other pages prefetch this.
   const [hasPlan, setHasPlan] = useState(
     () => !!cache.peek<{ has_plan?: boolean }>("/api/hc/journey/exists")?.body?.has_plan);
+  /* Which route this journey is on, for "Skipta um leið" — offered only
+     while it can still change (not paid, not an employer-paid check). */
+  const [route, setRoute] = useState<{ entry: string | null; paid: boolean } | null>(null);
 
   const api = useCallback(async (url: string, init: RequestInit = {}) => {
     const { data } = await supabase.auth.getSession();
@@ -51,7 +55,9 @@ function Adgangur() {
       if (!data.session) { router.replace(`/account/login?next=${encodeURIComponent("/app/adgangur")}`); return; }
       setUserId(data.session.user.id);
       const e = await cache.load(api, "/api/hc/journey/exists");
-      setHasPlan(!!(e.body as { has_plan?: boolean }).has_plan);
+      const eb = e.body as { exists?: boolean; has_plan?: boolean; entry?: string | null; paid?: boolean };
+      setHasPlan(!!eb.has_plan);
+      setRoute(eb.exists ? { entry: eb.entry ?? null, paid: !!eb.paid } : null);
       // Going back to the plan should be instant, so warm what it reads.
       cache.prefetch(api, ["/api/hc/actions", "/api/hc/plan"]);
     })();
@@ -96,6 +102,21 @@ function Adgangur() {
             on it twice, which also takes three full-width cards off a page
             that was the longest in the app. */}
         <SetupFlow api={api} place="settings" />
+
+        {route && !route.paid && route.entry !== "b2b" && (
+          <section className={card} aria-labelledby="acc-route">
+            <h2 id="acc-route" className="text-lg font-bold text-hc-ink">Skipta um leið</h2>
+            <p className="mt-1 text-sm text-hc-ink-2">
+              Þú ert núna í {route.entry === "coach" || route.entry === "app" ? "þjálfun í appinu" : "heilsufarsskoðun"}.
+            </p>
+            <div className="mt-3">
+              <TrackChoice api={api} bare onDone={async () => {
+                cache.invalidate("/api/hc/journey");
+                router.push("/app?ferd=1");
+              }} />
+            </div>
+          </section>
+        )}
 
         <SettingsCard />
         <InstallGuide />

@@ -21,18 +21,18 @@ export default function LoginAudienceTabs({ active }: { active: "personal" | "bu
   if (!avail) return null;
 
   const tabs = [
-    { key: "personal" as const, href: "/account/login", label: "Personal" },
-    { key: "business" as const, href: "/business/login", label: "Business" },
+    { key: "personal" as const, href: "/account/login", label: "Einstaklingar" },
+    { key: "business" as const, href: "/business/login", label: "Fyrirtæki" },
   ].filter((t) => avail[t.key]);
 
   if (tabs.length < 2) return null;
 
-  const base = "flex-1 py-2 px-4 text-sm font-medium rounded-full text-center transition-all duration-200";
-  const activeCls = "bg-white text-[#1F2937] shadow-sm";
-  const inactiveCls = "text-[#6B7280] hover:text-[#1F2937]";
+  const base = "flex min-h-10 flex-1 items-center justify-center rounded-hc-element px-4 text-sm font-semibold text-center transition-all duration-200";
+  const activeCls = "bg-hc-surface text-hc-ink shadow-hc-card";
+  const inactiveCls = "text-hc-ink-2 hover:text-hc-ink";
 
   return (
-    <div className="flex mb-5 bg-[#E2E8F0]/70 rounded-full p-1" role="tablist" aria-label="Account type">
+    <div className="flex rounded-hc-element bg-hc-sunken-2 p-1 ring-1 ring-hc-hairline" role="tablist" aria-label="Tegund aðgangs">
       {tabs.map((t) => (
         <Link
           key={t.key}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
+import { Alert, Button, Modal, accountInput, accountLabel } from "@/app/components/account/ui";
 
 type Props = {
   companyId: string | null;
@@ -77,52 +78,45 @@ export default function WellbeingSurveyModal({ companyId, onClose, onSubmitted }
     onClose();
   }
 
+  const pick = (on: boolean) =>
+    `rounded-hc-element px-2 py-2 text-center text-xs font-medium leading-tight ring-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand ${
+      on ? "bg-hc-brand-surface text-hc-brand-text ring-2 ring-hc-brand-dark" : "bg-hc-surface text-hc-ink-2 ring-slate-200 hover:ring-hc-control"}`;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold">{t("acct.who5.title", "Líðanmat")}</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Over the last two weeks — choose the answer that best fits.{" "}
-            {companyId
-              ? t("acct.who5.aggregate", "Svörin þín eru trúnaðarmál. Aðeins samanteknar niðurstöður (minnst 5 manns) fara til fyrirtækisins.")
-              : t("acct.who5.confidential", "Svörin þín eru trúnaðarmál — notuð til að sníða ráðleggingar að þér og fylgjast með líðan yfir tíma.")}
-          </p>
-        </div>
-        <div className="p-6 space-y-5">
-          {WHO5_QUESTIONS(t).map((q, idx) => (
-            <div key={q.key}>
-              <div className="text-sm font-medium text-gray-900 mb-2">{idx + 1}. {q.label}</div>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                {SCALE(t).map((s) => {
-                  const selected = answers[q.key] === s.value;
-                  return (
-                    <button
-                      key={s.value}
-                      onClick={() => setAnswers((a) => ({ ...a, [q.key]: s.value }))}
-                      className={`rounded-lg border px-2 py-2 text-xs font-medium text-center leading-tight transition-colors ${selected ? "border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-200" : "border-gray-200 bg-white text-gray-600 hover:border-emerald-300"}`}
-                    >
-                      <div className="text-base font-bold mb-0.5">{s.value}</div>
-                      <div className="text-[10px] text-gray-500">{s.label}</div>
-                    </button>
-                  );
-                })}
-              </div>
+    <Modal title={t("acct.who5.title", "Líðanmat")} onClose={onClose} dismissable={!saving}
+      description={<>
+        {t("acct.who5.lead", "Síðustu tvær vikur: veldu svarið sem á best við.")}{" "}
+        {companyId
+          ? t("acct.who5.aggregate", "Svörin þín eru trúnaðarmál. Aðeins samanteknar niðurstöður (minnst 5 manns) fara til fyrirtækisins.")
+          : t("acct.who5.confidential", "Svörin þín eru trúnaðarmál — notuð til að sníða ráðleggingar að þér og fylgjast með líðan yfir tíma.")}
+      </>}
+      footer={<>
+        <Button variant="secondary" onClick={onClose}>{t("acct.q.later", "Síðar")}</Button>
+        <Button onClick={submit} busy={saving} disabled={!allAnswered}>{t("acct.who5.submit", "Senda")}</Button>
+      </>}>
+      <div className="space-y-5">
+        {WHO5_QUESTIONS(t).map((q, idx) => (
+          <fieldset key={q.key}>
+            <legend className="mb-2 text-sm font-medium text-hc-ink">{idx + 1}. {q.label}</legend>
+            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+              {SCALE(t).map((sc) => {
+                const selected = answers[q.key] === sc.value;
+                return (
+                  <button key={sc.value} type="button" aria-pressed={selected} onClick={() => setAnswers((a) => ({ ...a, [q.key]: sc.value }))} className={pick(selected)}>
+                    <span className="mb-0.5 block text-base font-bold">{sc.value}</span>
+                    <span className="block text-[11px] text-hc-ink-3">{sc.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          ))}
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">{t("acct.who5.addanything", "Viltu bæta einhverju við? (valfrjálst, fer aldrei til vinnuveitanda)")}</span>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-emerald-400" />
-          </label>
-          {error && <div className="text-red-600 text-sm">{error}</div>}
-        </div>
-        <div className="p-4 border-t border-gray-100 flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100">{t("acct.q.later", "Síðar")}</button>
-          <button onClick={submit} disabled={saving || !allAnswered} className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 disabled:opacity-50">
-            {saving ? "Saving…" : "Submit"}
-          </button>
-        </div>
+          </fieldset>
+        ))}
+        <label className="block">
+          <span className={accountLabel}>{t("acct.who5.addanything", "Viltu bæta einhverju við? (valfrjálst, fer aldrei til vinnuveitanda)")}</span>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className={`${accountInput} mt-1`} />
+        </label>
+        {error && <Alert tone="bad" compact>{error}</Alert>}
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
 
 export type AccountContext = "personal" | "business";
 
@@ -14,9 +15,9 @@ const ICONS: Record<AccountContext, string> = {
     "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
 };
 
-const META: Record<AccountContext, { label: string; href: string }> = {
-  personal: { label: "My account", href: "/account" },
-  business: { label: "Company admin", href: "/business/account" },
+const META: Record<AccountContext, { key: string; label: string; href: string }> = {
+  personal: { key: "comp.ctx.personal", label: "Mínar síður", href: "/account" },
+  business: { key: "comp.ctx.business", label: "Fyrirtækjastjórnun", href: "/business/account" },
 };
 
 function Icon({ ctx }: { ctx: AccountContext }) {
@@ -38,6 +39,7 @@ function Icon({ ctx }: { ctx: AccountContext }) {
  * dropped into either surface with just `current`.
  */
 export default function ContextSwitcher({ current }: { current: AccountContext }) {
+  const { t } = useI18n();
   const [hasBusiness, setHasBusiness] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -68,17 +70,17 @@ export default function ContextSwitcher({ current }: { current: AccountContext }
   return (
     <div
       role="group"
-      aria-label="Switch account"
-      className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white p-1 shadow-sm"
+      aria-label={t("comp.ctx.switch", "Skipta á milli aðganga")}
+      className="inline-flex items-center gap-1 rounded-hc-element bg-hc-surface p-1 shadow-hc-card ring-1 ring-slate-200"
     >
       {available.map((ctx) => {
         const active = ctx === current;
-        const base = "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors";
+        const base = "inline-flex min-h-8 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand";
         if (active) {
           return (
-            <span key={ctx} aria-current="page" className={`${base} bg-[#10B981] text-white`}>
+            <span key={ctx} aria-current="page" className={`${base} bg-hc-brand-dark text-white`}>
               <Icon ctx={ctx} />
-              {META[ctx].label}
+              {t(META[ctx].key, META[ctx].label)}
             </span>
           );
         }
@@ -86,10 +88,10 @@ export default function ContextSwitcher({ current }: { current: AccountContext }
           <Link
             key={ctx}
             href={META[ctx].href}
-            className={`${base} text-[#6B7280] hover:bg-gray-100 hover:text-[#1F2937]`}
+            className={`${base} text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-text`}
           >
             <Icon ctx={ctx} />
-            {META[ctx].label}
+            {t(META[ctx].key, META[ctx].label)}
           </Link>
         );
       })}

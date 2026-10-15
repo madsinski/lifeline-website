@@ -30,7 +30,6 @@ export async function POST(
     return NextResponse.json({
       error: "onboard_complete_crashed",
       detail: (e as Error)?.message || String(e),
-      stack: (e as Error)?.stack,
     }, { status: 500 });
   }
 }
@@ -49,16 +48,33 @@ async function handle(
     height_cm,
     weight_kg,
     activity_level,
-    terms_version,
     research_opt_out,
     marketing_opt_out,
+    accept_tos,
+    accept_health,
   } = body || {};
 
   if (!token || !password || !account_password) {
-    return NextResponse.json({ error: "token, password, and account_password required" }, { status: 400 });
+    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
-  if (!sex || !height_cm || !weight_kg || !activity_level) {
-    return NextResponse.json({ error: "sex, height_cm, weight_kg, activity_level required" }, { status: 400 });
+  // Same floor as B2C signup (/byrja) and password reset.
+  if (typeof account_password !== "string" || account_password.length < 12) {
+    return NextResponse.json({ error: "password_too_short" }, { status: 400 });
+  }
+  // Both documents are accepted separately on the consent screen; the
+  // Art. 9 health consent is never implied by the ToS.
+  if (accept_tos !== true || accept_health !== true) {
+    return NextResponse.json({ error: "consent_required" }, { status: 400 });
+  }
+  // The body-composition profile is optional now: it can be skipped and is
+  // taken at the measurement day instead. All four or none.
+  const VALID_SEX = ["male", "female"];
+  const VALID_ACTIVITY = ["sedentary", "light", "moderate", "very_active", "extra_active"];
+  const anyProfile = !!(sex || height_cm || weight_kg || activity_level);
+  const hasProfile = !!(VALID_SEX.includes(sex) && Number(height_cm) > 0 && Number(weight_kg) > 0
+    && VALID_ACTIVITY.includes(activity_level));
+  if (anyProfile && !hasProfile) {
+    return NextResponse.json({ error: "profile_incomplete" }, { status: 400 });
   }
 
   // Verify invite
@@ -68,9 +84,9 @@ async function handle(
   });
   if (verifyErr) return NextResponse.json({ error: "verification_failed" }, { status: 500 });
   const member = Array.isArray(verifyData) ? verifyData[0] : verifyData;
-  if (!member) return NextResponse.json({ error: "Invalid password" }, { status: 401 });
+  if (!member) return NextResponse.json({ error: "invalid_code" }, { status: 401 });
   if (member.completed_at) {
-    return NextResponse.json({ error: "already completed" }, { status: 409 });
+    return NextResponse.json({ error: "already_completed" }, { status: 409 });
   }
 
   // M2: log the decrypt that happened inside verify_member_invite
@@ -114,7 +130,7 @@ async function handle(
   if (existing) {
     return NextResponse.json({
       error: "email_already_registered",
-      detail: "This email already has a Lifeline account. Please sign in with your existing password at /account/login, then contact support to link your account to this company.",
+      detail: "Þetta netfang er þegar með Lifeline-aðgang. Skráðu þig inn með lykilorðinu þínu og hafðu samband við okkur til að tengja aðganginn við fyrirtækið.",
     }, { status: 409 });
   }
 
@@ -129,7 +145,7 @@ async function handle(
     for (const row of staleClients || []) {
       const { data: authCheck } = await supabaseAdmin.auth.admin.getUserById(row.id);
       if (!authCheck?.user) {
-        console.warn("[onboard-complete] removing orphan clients row", row.id, email);
+        console.warn("[onboard-complete] removing orphan clients row", row.id);
         await supabaseAdmin.from("clients_decrypted").delete().eq("id", row.id);
       }
     }
@@ -160,15 +176,15 @@ async function handle(
     email,
     full_name: memberRow.full_name,
     phone: memberRow.phone || null,
-    sex,
-    height_cm,
-    weight_kg,
-    activity_level,
+    ...(hasProfile ? { sex, height_cm: Number(height_cm), weight_kg: Number(weight_kg), activity_level } : {}),
     kennitala_encrypted: memberRow.kennitala_encrypted,
     research_opt_out: !!research_opt_out,
     marketing_opt_out: !!marketing_opt_out,
     company_id: memberRow.company_id,
-    terms_version,
+    // Server-authoritative: the version of the Employee ToS this route
+    // serves and records in platform_agreement_acceptances below (the
+    // client used to send a hardcoded "1.2" that matched nothing).
+    terms_version: EMPLOYEE_TOS_VERSION,
     terms_accepted_at: now,
     // Web onboarding is the employee's full account setup (consent, profile,
     // password). Mark it complete so the mobile app doesn't drop them back
@@ -282,9 +298,10 @@ async function handle(
     console.error("[onboard-complete] acceptance block failed:", (e as Error).message);
   }
 
-  // Kick off Biody patient creation
+  // Kick off Biody patient creation — only with a profile; a skipped profile
+  // is filled in at the measurement day and Biody is activated then.
   let biodyResult: unknown = null;
-  if (SERVICE_ROLE_KEY) {
+  if (SERVICE_ROLE_KEY && hasProfile) {
     try {
       const bodyText = JSON.stringify({
         client_id: userId,
@@ -302,7 +319,7 @@ async function handle(
       });
       biodyResult = await bRes.json().catch(() => null);
       // Log activation status on the member record
-      const biodyOk = bRes.ok && (biodyResult as any)?.ok;
+      const biodyOk = bRes.ok && (biodyResult as { ok?: boolean } | null)?.ok;
       try { await supabaseAdmin.from("company_members").update({
         biody_activation_error: biodyOk ? null : JSON.stringify(biodyResult || "unknown"),
       }).eq("id", memberRow.id); } catch {}
@@ -356,7 +373,7 @@ async function handle(
     const { text, html } = renderWelcomeEmail({
       companyName: companyRow?.name || null,
       recipientName: (memberRow.full_name || "").split(" ")[0] || "there",
-      welcomeUrl: `${origin.replace(/\/$/, "")}/account/login?next=${encodeURIComponent("/account/welcome")}`,
+      welcomeUrl: `${origin.replace(/\/$/, "")}/account/login?next=${encodeURIComponent("/app")}`,
       loginUrl: `${origin.replace(/\/$/, "")}/account/login`,
       appAccess,
     });
@@ -370,7 +387,23 @@ async function handle(
     console.error("[onboard-complete] welcome email failed:", (e as Error).message);
   }
 
-  return NextResponse.json({ ok: true, biody: biodyResult, app_access: appAccess, app_tier: appTier });
+  // Sign the new employee straight in: createUser() gives no session, and
+  // "go to your dashboard" used to land on a login form. A one-time
+  // magic-link token (nothing is emailed) is exchanged by the browser with
+  // verifyOtp — the same mechanism as /api/account/pin/login. Best effort:
+  // without it the done screen links to the login page with the email filled.
+  let tokenHash: string | null = null;
+  try {
+    const { data: link } = await supabaseAdmin.auth.admin.generateLink({ type: "magiclink", email });
+    tokenHash = link?.properties?.hashed_token ?? null;
+  } catch (e) {
+    console.error("[onboard-complete] magic link failed:", (e as Error).message);
+  }
+
+  return NextResponse.json({
+    ok: true, biody: biodyResult, app_access: appAccess, app_tier: appTier,
+    email, token_hash: tokenHash, profile_skipped: !hasProfile,
+  });
 }
 
 function parseKennitalaToDob(kt: string | null | undefined): string | null {

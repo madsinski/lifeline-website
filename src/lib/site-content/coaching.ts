@@ -109,7 +109,7 @@ export const COACHING_FIELDS: SiteField[] = [
 
 // Button links (locale-independent) — spread into both default maps.
 const COACHING_HREFS: LocaleContent = {
-  pricing_cta_href: "/account/login",
+  pricing_cta_href: "/byrja?leid=coach",
   download_ios_href: "#",
   download_android_href: "#",
   al_cta_href: "/assessment",

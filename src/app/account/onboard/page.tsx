@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
+import { ArrowRight, Check, ClipboardCheck, ShieldCheck, Zap } from "lucide-react";
+import { AccountLoading, Alert, Button, PageHero, SectionCard, accountInput, accountInset, accountLabel, useDialog, DialogProvider } from "@/app/components/account/ui";
+import { DobFields } from "../_components/BiodyProfileModal";
 import {
   HEALTH_CONSENT_VERSION,
   renderHealthAssessmentConsent,
@@ -25,7 +28,12 @@ type Stage = "welcome" | "consent" | "profile" | "saving";
 type ActivityLevel = "sedentary" | "light" | "moderate" | "very_active" | "extra_active" | "";
 
 export default function AccountOnboardPage() {
+  return <DialogProvider><Onboard /></DialogProvider>;
+}
+
+function Onboard() {
   const { t } = useI18n();
+  const { confirm } = useDialog();
   const router = useRouter();
   const [stage, setStage] = useState<Stage>("welcome");
   const [loading, setLoading] = useState(true);
@@ -64,7 +72,7 @@ export default function AccountOnboardPage() {
         .eq("id", user.id)
         .maybeSingle();
       const fn = ((data?.full_name as string | null) || user.email?.split("@")[0] || "").split(" ")[0];
-      setFirstName(fn || "there");
+      setFirstName(fn || "");
       // B2B user should not land here — send them to the B2B welcome page
       if (data?.company_id) {
         router.replace("/account/welcome");
@@ -133,67 +141,51 @@ export default function AccountOnboardPage() {
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">{t("acct.ob.loading", "Hleð…")}</div>;
-  }
+  if (loading) return <AccountLoading label={t("acct.ob.loading", "Hleð…")} />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] via-white to-[#ecfdf5]">
-      <main className="max-w-2xl mx-auto px-6 py-10 sm:py-14 space-y-8">
-        {/* Signed-in-as confirmation. No "expected" email to compare
-            against here (unlike the B2B/claim flows with an invite
-            token), so we just show the current identity prominently
-            with an easy 'Wrong account? Sign out' escape hatch — that
-            prevents the cross-tab session bleed where someone clicks
-            a confirmation link with another Lifeline session open. */}
+    <div className="min-h-screen bg-gradient-to-b from-hc-brand-surface via-white to-white">
+      <main className="mx-auto max-w-2xl space-y-6 px-4 py-10 sm:px-6 sm:py-14">
+        {/* Signed-in-as, with a "wrong account?" escape hatch: prevents the
+            cross-tab session bleed where a confirmation link is opened with
+            another Lifeline session in the same browser. */}
         {email && (
-          <div className="flex items-center justify-between gap-3 flex-wrap rounded-xl border border-gray-200 bg-white/60 px-4 py-2.5 text-xs">
-            <span className="text-gray-600">
-              {t("acct.ob.signedinas", "Skráð(ur) inn sem")} <strong className="text-gray-900 font-mono">{email}</strong>
+          <div className={`${accountInset} flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-xs`}>
+            <span className="text-hc-ink-2">
+              {t("acct.ob.signedinas", "Skráð(ur) inn sem")} <strong className="font-mono text-hc-ink">{email}</strong>
             </span>
-            <button
-              type="button"
-              onClick={async () => {
-                if (!confirm(t("acct.ob.signoutq", "Skrá út og opna skráninguna aftur með öðrum aðgangi?"))) return;
-                await supabase.auth.signOut();
-                router.replace("/account/login?next=/account/onboard");
-              }}
-              className="text-gray-500 hover:text-gray-800 underline underline-offset-2"
-            >
+            <Button variant="link" onClick={async () => {
+              const ok = await confirm({
+                title: t("acct.ob.signoutq", "Skrá út og opna skráninguna aftur með öðrum aðgangi?"),
+                confirmLabel: t("acct.ob.signout", "Skrá út"), cancelLabel: t("acct.cancel", "Hætta við"),
+              });
+              if (!ok) return;
+              await supabase.auth.signOut();
+              router.replace("/account/login?next=/account/onboard");
+            }}>
               {t("acct.ob.wrongaccount", "Rangur aðgangur? Skrá út")}
-            </button>
+            </Button>
           </div>
         )}
         <StageIndicator stage={stage} />
 
-        {stage === "welcome" && (
-          <WelcomeStage firstName={firstName} onContinue={() => setStage("consent")} />
-        )}
+        {stage === "welcome" && <WelcomeStage firstName={firstName} onContinue={() => setStage("consent")} />}
         {stage === "consent" && (
-          <ConsentStage
-            acceptHealth={acceptHealth} setAcceptHealth={setAcceptHealth}
-            onBack={() => setStage("welcome")}
-            onContinue={() => { setError(""); setStage("profile"); }}
-          />
+          <ConsentStage acceptHealth={acceptHealth} setAcceptHealth={setAcceptHealth}
+            onBack={() => setStage("welcome")} onContinue={() => { setError(""); setStage("profile"); }} />
         )}
         {stage === "profile" && (
-          <ProfileStage
-            email={email}
-            sex={sex} setSex={setSex}
-            dob={dob} setDob={setDob}
-            heightCm={heightCm} setHeightCm={setHeightCm}
-            weightKg={weightKg} setWeightKg={setWeightKg}
+          <ProfileStage email={email}
+            sex={sex} setSex={setSex} dob={dob} setDob={setDob}
+            heightCm={heightCm} setHeightCm={setHeightCm} weightKg={weightKg} setWeightKg={setWeightKg}
             activityLevel={activityLevel} setActivityLevel={setActivityLevel}
-            error={error}
-            onBack={() => setStage("consent")}
-            onContinue={submit}
-          />
+            error={error} onBack={() => setStage("consent")} onContinue={submit} />
         )}
         {stage === "saving" && (
-          <div className="bg-white rounded-2xl shadow-sm p-10 text-center">
-            <div className="inline-block w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-sm text-[#475569]">{t("acct.ob.saving", "Set upp sniðið þitt…")}</p>
-          </div>
+          <SectionCard className="text-center">
+            <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-2 border-hc-brand-dark border-t-transparent" />
+            <p className="text-sm text-hc-ink-2">{t("acct.ob.saving", "Set upp sniðið þitt…")}</p>
+          </SectionCard>
         )}
       </main>
     </div>
@@ -206,26 +198,24 @@ function StageIndicator({ stage }: { stage: Stage }) {
   const { t } = useI18n();
   const order: Stage[] = ["welcome", "consent", "profile"];
   const idx = order.indexOf(stage);
+  const steps = [
+    { key: "welcome", label: t("acct.ob.st-intro", "Kynning") },
+    { key: "consent", label: t("acct.ob.st-consent", "Samþykki") },
+    { key: "profile", label: t("acct.ob.st-profile", "Upplýsingar") },
+  ];
   return (
-    <ol className="flex items-center gap-2 text-xs">
-      {[
-        { key: "welcome", label: "Welcome" },
-        { key: "consent", label: "Consent" },
-        { key: "profile", label: "Profile" },
-      ].map((s, i) => {
+    <ol className="flex flex-wrap items-center gap-2 text-xs">
+      {steps.map((s, i) => {
         const done = i < idx;
         const active = i === idx;
         return (
-          <li key={s.key} className="flex items-center gap-2">
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold ${
-              done ? "bg-emerald-500 text-white"
-              : active ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-400"
-            }`}>
-              {done ? "✓" : i + 1}
+          <li key={s.key} className="flex items-center gap-2" aria-current={active ? "step" : undefined}>
+            <span className={`flex h-6 w-6 items-center justify-center rounded-full font-bold ${
+              done ? "bg-hc-brand-dark text-white" : active ? "bg-hc-focus text-white" : "bg-slate-200 text-hc-ink-3"}`}>
+              {done ? <Check className="h-3.5 w-3.5" aria-hidden /> : i + 1}
             </span>
-            <span className={`font-medium ${active ? "text-[#0F172A]" : "text-[#64748B]"}`}>{s.label}</span>
-            {i < 2 && <span className="text-gray-300">›</span>}
+            <span className={`font-medium ${active ? "text-hc-ink" : "text-hc-ink-3"}`}>{s.label}</span>
+            {i < steps.length - 1 && <span aria-hidden className="text-slate-300">›</span>}
           </li>
         );
       })}
@@ -234,123 +224,74 @@ function StageIndicator({ stage }: { stage: Stage }) {
 }
 
 function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue: () => void }) {
-  const { t } = useI18n();
+  const { t, tv } = useI18n();
+  const after = [
+    { icon: ShieldCheck, title: t("account.steps.1.title", "Farðu í heilsumat"), body: t("acct.ob.s1desc", "Bókaðu grunnheilsufarsskoðunina þína á mælingastöð Lifeline í Reykjavík.") },
+    { icon: ClipboardCheck, title: t("account.steps.2.title", "Fáðu skýrsluna þína"), body: t("acct.ob.s2desc", "Lifeline-læknir fer yfir niðurstöðurnar þínar og setur saman persónulega áætlun.") },
+    { icon: Zap, title: t("account.steps.3.title", "Byrjaðu þjálfun"), body: t("acct.ob.s3desc", "Daglegar aðgerðir í hreyfingu, næringu, svefni og andlegri líðan — í appinu.") },
+  ];
   return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-2xl text-white p-8 shadow-sm"
-        style={{ background: "linear-gradient(135deg, #10B981, #3B82F6)" }}>
-        <div className="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-        <div className="relative">
-          <div className="text-xs font-semibold uppercase tracking-wide opacity-90 mb-2">{t("acct.ob.welcome", "Velkomin(n) til Lifeline Health")}</div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Hi {firstName}, take control of your health.</h1>
-          <p className="mt-3 text-base opacity-95 max-w-lg leading-relaxed">
-            {t("acct.ob.lede", "Lifeline Health sameinar markvissa heilsufarsskoðun og persónulega daglega þjálfun. Þekktu tölurnar þínar, byggðu upp betri venjur og fylgstu með framförum — með leiðsögn íslenskra lækna og þjálfara.")}
-          </p>
-        </div>
-      </section>
+    <div className="space-y-5">
+      <PageHero kicker={t("acct.ob.welcome", "Velkomin(n) til Lifeline Health")}
+        title={firstName ? tv("acct.ob.hi", "Hæ, {{name}}", { name: firstName }) : t("acct.ob.welcome", "Velkomin(n) til Lifeline Health")}
+        body={t("acct.ob.lede", "Lifeline Health sameinar markvissa heilsufarsskoðun og persónulega daglega þjálfun. Þekktu tölurnar þínar, byggðu upp betri venjur og fylgstu með framförum — með leiðsögn íslenskra lækna og þjálfara.")} />
 
-      <section className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold mb-1 text-[#0F172A]">{t("acct.ob.next", "Hvað gerist næst")}</h2>
-          <p className="text-sm text-[#64748B]">{t("acct.ob.twosteps", "Tvö stutt skref svo við getum sett upp Lifeline-aðganginn þinn og líkamssamsetningarsniðið.")}</p>
-        </div>
+      <SectionCard title={t("acct.ob.next", "Hvað gerist næst")} description={t("acct.ob.twosteps", "Tvö stutt skref svo við getum sett upp Lifeline-aðganginn þinn og líkamssamsetningarsniðið.")}>
         <ol className="space-y-4">
           <Step n={1} title={t("acct.ob.acceptconsent", "Samþykktu meðferð heilsufarsupplýsinga")}>{t("acct.ob.consentwhy", "Hefðbundið samþykki svo við megum vinna með heilsufarsupplýsingarnar þínar með lögmætum hætti.")}</Step>
           <Step n={2} title={t("acct.ob.confirm", "Staðfestu upplýsingarnar þínar")}>{t("acct.ob.confirmwhy", "Kyn, fæðingardagur, hæð, þyngd og hreyfing — fyrir líkamssamsetningarsniðið þitt.")}</Step>
         </ol>
-        <div className="border-t border-gray-100 pt-6">
-          <h3 className="text-sm font-semibold text-[#0F172A] mb-3">{t("acct.ob.after", "Eftir skráningu")}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <MiniCard
-              color="#3B82F6"
-              title={t("account.steps.1.title", "Farðu í heilsumat")}
-              body={t("acct.ob.s1desc", "Bókaðu grunnheilsufarsskoðunina þína á mælingastöð Lifeline í Reykjavík.")}
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              }
-            />
-            <MiniCard
-              color="#10B981"
-              title={t("account.steps.2.title", "Fáðu skýrsluna þína")}
-              body={t("acct.ob.s2desc", "Lifeline-læknir fer yfir niðurstöðurnar þínar og setur saman persónulega áætlun.")}
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              }
-            />
-            <MiniCard
-              color="#8B5CF6"
-              title={t("account.steps.3.title", "Byrjaðu þjálfun")}
-              body={t("acct.ob.s3desc", "Daglegar aðgerðir í hreyfingu, næringu, svefni og andlegri líðan — í appinu.")}
-              icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              }
-            />
-          </div>
+        <div className="mt-6 border-t border-hc-hairline pt-6">
+          <h3 className="mb-3 text-sm font-semibold text-hc-ink">{t("acct.ob.after", "Eftir skráningu")}</h3>
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {after.map((a) => {
+              const Icon = a.icon;
+              return (
+                <li key={a.title} className={`${accountInset} p-4`}>
+                  <span aria-hidden className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-hc-brand-surface text-hc-brand-text"><Icon className="h-5 w-5" /></span>
+                  <p className="text-sm font-semibold text-hc-ink">{a.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-hc-ink-2">{a.body}</p>
+                </li>
+              );
+            })}
+          </ul>
         </div>
-        <div className="flex justify-end pt-2">
-          <button onClick={onContinue} className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95">
-            {t("acct.ob.start", "Byrjum")}
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+        <div className="mt-6 flex justify-end">
+          <Button onClick={onContinue}>{t("acct.ob.start", "Byrjum")}<ArrowRight className="h-4 w-4" aria-hidden /></Button>
         </div>
-      </section>
+      </SectionCard>
     </div>
   );
 }
 
-function ConsentStage({
-  acceptHealth, setAcceptHealth,
-  onBack, onContinue,
-}: {
+function ConsentStage({ acceptHealth, setAcceptHealth, onBack, onContinue }: {
   acceptHealth: boolean; setAcceptHealth: (v: boolean) => void;
   onBack: () => void; onContinue: () => void;
 }) {
   const { t, tv } = useI18n();
   return (
-    <section className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-[#0F172A]">{t("acct.doc.consent", "Upplýst samþykki fyrir heilsumat")}</h1>
-        <p className="text-sm text-[#64748B] mt-2 leading-relaxed">
-          {t("acct.ob.gdpr", "Áður en þú getur hafið heilsumat þarftu að veita upplýst samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga. Samþykkið er skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni. Þú færð staðfestingarskjal með tölvupósti.")}
-        </p>
-      </header>
-
-      <div>
-        <h2 className="text-sm font-semibold text-[#0F172A] mb-2">
-          {tv("acct.p.consent-version", "Upplýst samþykki fyrir heilsumat ({{v}})", { v: HEALTH_CONSENT_VERSION })}
-        </h2>
-        <pre className="max-h-72 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
+    <SectionCard title={t("acct.doc.consent", "Upplýst samþykki fyrir heilsumat")}
+      description={t("acct.ob.gdpr", "Áður en þú getur hafið heilsumat þarftu að veita upplýst samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga. Samþykkið er skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni. Þú færð staðfestingarskjal með tölvupósti.")}>
+      <h3 className="mb-2 text-sm font-semibold text-hc-ink">
+        {tv("acct.p.consent-version", "Upplýst samþykki fyrir heilsumat ({{v}})", { v: HEALTH_CONSENT_VERSION })}
+      </h3>
+      <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-hc-element bg-hc-sunken p-4 font-sans text-[12px] leading-relaxed text-hc-ink-2 ring-1 ring-hc-hairline">
 {renderHealthAssessmentConsent()}
-        </pre>
-        <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
-          <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1" />
-          <span className="text-sm text-[#334155]">
-            Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({HEALTH_CONSENT_VERSION}).
-          </span>
-        </label>
+      </pre>
+      <label className="mt-3 flex cursor-pointer select-none items-start gap-2">
+        <input type="checkbox" checked={acceptHealth} onChange={(e) => setAcceptHealth(e.target.checked)} className="mt-1 h-4 w-4 accent-[#047857]" />
+        <span className="text-sm text-hc-ink-2">
+          {tv("acc.biody.consent", "Ég veiti upplýst og beint samþykki fyrir vinnslu heilsufarsupplýsinga minna í tengslum við heilsumat Lifeline Health ({{v}}).", { v: HEALTH_CONSENT_VERSION })}
+        </span>
+      </label>
+      <div className="mt-6 flex items-center justify-between border-t border-hc-hairline pt-4">
+        <Button variant="secondary" onClick={onBack}>{t("acct.ob.back", "Til baka")}</Button>
+        <Button onClick={onContinue} disabled={!acceptHealth}>
+          {acceptHealth ? t("acct.ob.continue2", "Halda áfram") : t("acct.ob.acceptdoc", "Samþykktu skjalið")}
+          {acceptHealth && <ArrowRight className="h-4 w-4" aria-hidden />}
+        </Button>
       </div>
-
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <button onClick={onBack} className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm">
-          {t("acct.ob.back", "Til baka")}
-        </button>
-        <button
-          onClick={onContinue}
-          disabled={!acceptHealth}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-95"
-        >
-          {acceptHealth ? t("acct.ob.continue", "Halda áfram →") : t("acct.ob.acceptdoc", "Samþykktu skjalið")}
-        </button>
-      </div>
-    </section>
+    </SectionCard>
   );
 }
 
@@ -368,55 +309,26 @@ function ProfileStage({
   error: string; onBack: () => void; onContinue: () => void;
 }) {
   const { t } = useI18n();
-  // Keep per-field local state so in-progress typing is visible even
-  // when the combined ISO dob isn't complete yet. Seed from the parent
-  // once (prefilled values from /account/clients row), then sync OUT
-  // to the parent whenever all three fields become well-formed.
-  const digits = (s: string, max: number) => s.replace(/[^0-9]/g, "").slice(0, max);
-  const [initialY = "", initialM = "", initialD = ""] = (dob || "").split("-");
-  const [dd, setDd] = useState(initialD);
-  const [mm, setMm] = useState(initialM);
-  const [yyyy, setYyyy] = useState(initialY);
-
-  // Propagate a complete date (or clear) to the parent form.
-  useEffect(() => {
-    if (dd.length === 2 && mm.length === 2 && yyyy.length === 4) {
-      const day = Math.min(31, Math.max(1, parseInt(dd, 10) || 0));
-      const mon = Math.min(12, Math.max(1, parseInt(mm, 10) || 0));
-      setDob(`${yyyy}-${String(mon).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
-    } else if (dob) {
-      // One of the three got cleared or shortened → invalidate the parent
-      setDob("");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dd, mm, yyyy]);
-
+  const control = `${accountInput} mt-1`;
   return (
-    <section className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold text-[#0F172A]">{t("acct.ob.confirm", "Staðfestu upplýsingarnar þínar")}</h1>
-        <p className="text-sm text-[#64748B] mt-1">{t("acct.ob.bcwhy", "Þetta setur upp líkamssamsetningarsniðið þitt hjá mælingaaðilanum okkar.")}</p>
-      </div>
+    <SectionCard title={t("acct.ob.confirm", "Staðfestu upplýsingarnar þínar")} description={t("acct.ob.bcwhy", "Þetta setur upp líkamssamsetningarsniðið þitt hjá mælingaaðilanum okkar.")}>
+      <label className="block">
+        <span className={accountLabel}>{t("acct.ob.email", "Netfang")}</span>
+        <input type="email" value={email} disabled className={control} />
+      </label>
 
-      <div>
-        <div className="text-xs font-medium text-[#475569] mb-1">{t("acct.ob.email", "Netfang")}</div>
-        <input type="email" value={email} disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-[#64748B]" />
-      </div>
-
-      <div className="border-t border-gray-100 pt-5 space-y-4">
-        <h2 className="text-sm font-semibold text-[#0F172A]">{t("acct.ob.bcprofile", "Líkamssamsetningarsnið")}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label={t("acct.q.sexlabel", "Kyn")}>
-            <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+      <div className="mt-5 space-y-4 border-t border-hc-hairline pt-5">
+        <h3 className="text-sm font-semibold text-hc-ink">{t("acct.ob.bcprofile", "Líkamssamsetningarsnið")}</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField label={t("acct.q.sexlabel", "Kyn")}>
+            <select value={sex} onChange={(e) => setSex(e.target.value as "male" | "female" | "")} required className={control}>
               <option value="">{t("acct.ob.select", "Veldu…")}</option>
               <option value="female">{t("acct.ob.female", "Kona")}</option>
               <option value="male">{t("acct.ob.male", "Karl")}</option>
             </select>
-          </Field>
-          <Field label={t("acct.ob.activity", "Hreyfing")}>
-            <select value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)} required
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+          </FormField>
+          <FormField label={t("acct.ob.activity", "Hreyfing")}>
+            <select value={activityLevel} onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)} required className={control}>
               <option value="">{t("acct.ob.select", "Veldu…")}</option>
               <option value="sedentary">{t("acct.ob.act0", "Kyrrseta — lítil sem engin hreyfing")}</option>
               <option value="light">{t("acct.ob.act1", "Létt — hreyfing 1–3 daga í viku")}</option>
@@ -424,103 +336,49 @@ function ProfileStage({
               <option value="very_active">{t("acct.ob.act3", "Mjög virk/virkur — hreyfing 6–7 daga í viku")}</option>
               <option value="extra_active">{t("acct.ob.act4", "Mjög mikil — hörð þjálfun daglega")}</option>
             </select>
-          </Field>
-          <Field label={t("acct.ob.height", "Hæð (cm)")}>
-            <input type="number" min={100} max={230} step={1} value={heightCm}
-              onChange={(e) => setHeightCm(e.target.value)} required
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-          </Field>
-          <Field label={t("acct.ob.weight", "Þyngd (kg)")}>
-            <input type="number" min={30} max={300} step={0.1} value={weightKg}
-              onChange={(e) => setWeightKg(e.target.value)} required
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-          </Field>
+          </FormField>
+          <FormField label={t("acct.ob.height", "Hæð (cm)")}>
+            <input type="number" min={100} max={230} step={1} value={heightCm} onChange={(e) => setHeightCm(e.target.value)} required className={control} />
+          </FormField>
+          <FormField label={t("acct.ob.weight", "Þyngd (kg)")}>
+            <input type="number" min={30} max={300} step={0.1} value={weightKg} onChange={(e) => setWeightKg(e.target.value)} required className={control} />
+          </FormField>
           <div className="sm:col-span-2">
-            <div className="text-xs font-medium text-[#475569] mb-1">{t("acct.ob.dob", "Fæðingardagur")}</div>
-            <div className="flex items-stretch gap-2">
-              <label className="flex-1">
-                <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">{t("acct.ob.day", "Dagur")}</span>
-                <input type="text" inputMode="numeric" autoComplete="bday-day" placeholder="DD" maxLength={2}
-                  value={dd}
-                  onChange={(e) => setDd(digits(e.target.value, 2))}
-                  required
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums" />
-              </label>
-              <label className="flex-1">
-                <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">{t("acct.ob.month", "Mánuður")}</span>
-                <input type="text" inputMode="numeric" autoComplete="bday-month" placeholder="MM" maxLength={2}
-                  value={mm}
-                  onChange={(e) => setMm(digits(e.target.value, 2))}
-                  required
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums" />
-              </label>
-              <label className="flex-[1.4]">
-                <span className="block text-[10px] uppercase tracking-wide text-gray-500 mb-0.5">{t("acct.ob.year", "Ár")}</span>
-                <input type="text" inputMode="numeric" autoComplete="bday-year" placeholder="YYYY" maxLength={4}
-                  value={yyyy}
-                  onChange={(e) => setYyyy(digits(e.target.value, 4))}
-                  required
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-center tabular-nums" />
-              </label>
-            </div>
+            <span className={`${accountLabel} mb-1`}>{t("acct.ob.dob", "Fæðingardagur")}</span>
+            <DobFields value={dob} onChange={setDob} idPrefix="onboard-dob" />
           </div>
         </div>
       </div>
 
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+      {error && <Alert tone="bad" compact className="mt-4">{error}</Alert>}
 
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <button onClick={onBack} className="px-4 py-2 rounded-full border border-gray-200 bg-white text-sm font-semibold text-[#1F2937] hover:bg-gray-50 shadow-sm">
-          {t("acct.ob.back", "Til baka")}
-        </button>
-        <button onClick={onContinue}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-white text-sm font-semibold bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95">
-          {t("acct.ob.save", "Vista og ljúka uppsetningu")}
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-          </svg>
-        </button>
+      <div className="mt-6 flex items-center justify-between border-t border-hc-hairline pt-4">
+        <Button variant="secondary" onClick={onBack}>{t("acct.ob.back", "Til baka")}</Button>
+        <Button onClick={onContinue}>{t("acct.ob.save", "Vista og ljúka uppsetningu")}<Check className="h-4 w-4" aria-hidden /></Button>
       </div>
-    </section>
+    </SectionCard>
   );
 }
 
 // ──────────────────────────────────────────────────────────────────────────
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
     <li className="flex items-start gap-3">
-      <span className="shrink-0 w-7 h-7 rounded-full text-white text-xs font-bold flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg,#3B82F6,#10B981)" }}>{n}</span>
+      <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-hc-brand-dark text-xs font-bold text-white">{n}</span>
       <div>
-        <div className="font-semibold text-[#0F172A] text-sm">{title}</div>
-        <div className="text-sm text-[#64748B] leading-relaxed">{children}</div>
+        <p className="text-sm font-semibold text-hc-ink">{title}</p>
+        <p className="text-sm leading-relaxed text-hc-ink-2">{children}</p>
       </div>
     </li>
   );
 }
 
-function MiniCard({ color, title, body, icon }: { color: string; title: string; body: string; icon?: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-gray-100 p-4 bg-gradient-to-br from-white to-gray-50/50">
-      <div
-        className="w-9 h-9 rounded-full mb-3 flex items-center justify-center"
-        style={{ background: `${color}1A`, color }}
-      >
-        {icon}
-      </div>
-      <div className="font-semibold text-[#0F172A] text-sm">{title}</div>
-      <div className="text-xs text-[#64748B] mt-1 leading-relaxed">{body}</div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function FormField({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-xs font-medium text-[#475569] mb-1">{label}</span>
+      <span className={accountLabel}>{label}</span>
       {children}
     </label>
   );
 }
-

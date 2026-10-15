@@ -14,5 +14,11 @@ export async function GET(req: NextRequest) {
   const j = await currentJourney(user.id);
   // With a published plan, "Í dag" is home: saves the hop through the hub.
   const { data: plan } = j ? await supabaseAdmin.from("hc_action_plans_decrypted").select("id").eq("journey_id", j.id).eq("status", "published").maybeSingle() : { data: null };
-  return NextResponse.json({ exists: !!j, has_plan: !!plan });
+  /* entry and paid let Stillingar offer "Skipta um leið" only where a
+     change is still possible: before the check is paid for, and never for
+     a B2B employee, whose employer bought the check. */
+  return NextResponse.json({
+    exists: !!j, has_plan: !!plan,
+    entry: j?.entry ?? null, paid: !!j?.paid_at,
+  });
 }

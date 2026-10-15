@@ -1,73 +1,57 @@
 "use client";
 
 /*
- * Plays whatever the admin arranged.
+ * Plays whatever the admin arranged — minus whatever is already answered.
  *
  * The composer at /admin/onboarding produces an ordered list of modules;
- * this renders them one at a time and records where somebody has got to. The
- * point of the pair is that changing the order is a publish rather than a
- * deploy.
+ * this renders them one at a time and records where somebody has got to.
  *
- * Two things it refuses to do, both learned from the flow it replaces:
+ * Three things it refuses to do:
  *
  *   It never blocks the app. No published flow, a failed fetch, an unknown
  *   module kind — each of those falls through to the app rather than to a
- *   blank screen. Onboarding that can strand somebody is worse than no
- *   onboarding, and the old sequence could strand you behind an email
- *   confirmation with no way past.
+ *   blank screen.
  *
  *   It never silently loses an answer. Each answer is written when it is
- *   given, not batched at the end, so closing the tab halfway through costs
- *   the current screen and nothing before it.
+ *   given, not batched at the end.
  *
- * Modules with their own screens elsewhere in the product — package,
- * measurements — are links into those screens rather than copies of them. A
- * second checkout is a second place for a payment bug to live.
+ *   It never asks twice. /byrja already asked the route, the goal, the
+ *   activity and the age, and the signup form took the terms. A published
+ *   flow may predate all of that, so every step is checked against what is
+ *   known (stepApplies) and skipped when it has nothing left to ask. The
+ *   modules that only promised things nothing applied — pillars, summary,
+ *   recommend — and the ones that linked out of onboarding and back into
+ *   it — package, measurements, profile — are not shown at all any more.
+ *
+ * The coaching track's one real decision is the training screen: how much
+ * you move and what needs sparing, written straight to hc_training_settings.
+ * It is shown whether or not the published flow includes it, because without
+ * it the programme starts on defaults nobody chose.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Loader2, Stethoscope, Dumbbell, ExternalLink } from "lucide-react";
-import { AGES, GOALS, MOVES, daysPerWeek, previewLines, suggestsCheck, type StartAnswers } from "@/lib/hc/start-flow";
-import { moduleDef, type FlowStep } from "@/lib/hc/onboarding-modules";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, Check, ExternalLink, Loader2 } from "lucide-react";
+import { AGES, GOALS, MOVES, daysPerWeek, emphasis as emphasisText, type GoalKey, type MoveKey } from "@/lib/hc/start-flow";
+import {
+  isCoachingEntry, moduleDef, RETIRED_KINDS, stepApplies,
+  type FlowContext, type FlowStep,
+} from "@/lib/hc/onboarding-modules";
+import type { Region } from "@/lib/hc/adaptive-program";
 import { PUBLIC_PRIVACY_VERSION, PUBLIC_TERMS_VERSION } from "@/lib/public-pages-content";
 import { supabase } from "@/lib/supabase";
 import InstallGuide from "./InstallGuide";
-import SetupFlow from "./SetupFlow";
+import StepHeader from "./StepHeader";
+import { hcBtn } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
 interface Flow { slug: string; name: string; steps: FlowStep[] }
 interface Lecture { slug: string; title: string; subtitle: string | null; kind: string | null; article_md: string | null; video_url: string | null; duration_min: number | null }
-
-/** The four pillars, self-rated. Three bands rather than a 1-10 slider: a
- *  number somebody invents to two digits of precision is a number that
- *  misleads the programme that reads it. */
-const PILLARS = [
-  /* `dative` exists because "Byrjum á …" governs it, and the nominative
-     label cannot be bent into that sentence by a join. Carrying both beats
-     discovering at runtime that the heading and the sentence need different
-     forms of the same word. */
-  { key: "sleep", label: "Svefn", dative: "svefni", hint: "Hvernig sefur þú að jafnaði?" },
-  { key: "nutrition", label: "Næring", dative: "næringu", hint: "Hvernig borðar þú að jafnaði?" },
-  { key: "exercise", label: "Hreyfing", dative: "hreyfingu", hint: "Hvernig gengur hreyfingin?" },
-  { key: "mental", label: "Andleg líðan", dative: "andlegri líðan", hint: "Hvernig líður þér andlega?" },
-] as const;
-
-/** "a, b og c" — not "a og b og c", which is what a plain join gives. */
-function listIs(xs: string[]): string {
-  if (xs.length <= 1) return xs[0] ?? "";
-  return `${xs.slice(0, -1).join(", ")} og ${xs[xs.length - 1]}`;
-}
-const BANDS = [
-  { key: "low", label: "Illa" },
-  { key: "mid", label: "Svona la la" },
-  { key: "high", label: "Vel" },
-] as const;
+/** One screen the person will actually see: a flow step, or the training screen. */
+interface Screen { step: FlowStep; n: number }
 
 /** What changes an exercise prescription. Multi-select, and "ekkert" is an
- *  explicit answer rather than an empty one — a blank here is
- *  indistinguishable from a skipped screen otherwise. */
+ *  explicit answer rather than an empty one. */
 const LIMITS = [
   { key: "knee", label: "Hné" },
   { key: "back", label: "Bak" },
@@ -84,28 +68,61 @@ const QUESTIONS = {
   age: { title: "Á hvaða aldri ertu?", hint: "Viðmiðin okkar eru aldursbundin.", options: AGES },
 } as const;
 
+const TRAINING_STEP: FlowStep = { id: "__training", kind: "training" };
+
+/** Training days, Monday-first, spread out for the number of sessions. */
+function daysFor(move?: MoveKey): number[] {
+  const n = daysPerWeek(move);
+  if (n <= 2) return [0, 3];
+  if (n === 3) return [0, 2, 4];
+  return [0, 1, 3, 5];
+}
+
+/**
+ * The training settings the two answers produce.
+ *
+ * Only what the answers actually say: a knee, a back or a shoulder is a
+ * region the programme already knows how to spare; a heart condition keeps
+ * the hard intervals out until somebody says otherwise; a pregnancy starts
+ * gently. Everything else — where they train, which days exactly — stays
+ * on the defaults and is one tap away in the programme settings.
+ */
+function trainingFrom(move: MoveKey | undefined, limits: string[], goal?: GoalKey) {
+  const injuries: Region[] = (["knee", "back", "shoulder"] as const).filter((r) => limits.includes(r));
+  const cardio = limits.includes("heart") ? "limited" : limits.includes("pregnant") || move === "rarely" ? "easy" : "full";
+  return {
+    level: move === "often" || move === "daily" ? "active" : "beginner",
+    load: 0,
+    injuries,
+    cardio,
+    emphasis: goal === "strength" ? "strength" : "balanced",
+    training_days: daysFor(move),
+    /* Empty on purpose: sanitizeActivities is an allowlist, and an activity
+       somebody did not enter themselves has no business in their week. */
+    activities: [],
+  };
+}
+
 export default function OnboardingPlayer({ api, onFinished, preview }: {
   api: Api;
   /** Called when the flow completes, so the app can reload and show itself. */
   onFinished: () => void;
   /**
-   * Render an unsaved arrangement instead of the published one.
-   *
-   * The composer had no way to show its own work: you arranged a flow, you
-   * published it, and the only way to see it was to be a client walking it.
-   * With this it renders the draft as it stands — including steps that have
-   * not been saved — so the thing being edited and the thing being looked at
-   * are the same thing.
-   *
-   * Everything that writes is a no-op here. A preview that recorded answers
-   * would mark the admin as having started the flow, and "started: 1" in
-   * their own funnel is a number that means nothing.
+   * Render an unsaved arrangement instead of the published one (the
+   * composer's preview). Everything that writes is a no-op here, and
+   * nothing is skipped — the admin is looking at what they built.
    */
   preview?: { steps: FlowStep[]; index: number };
 }) {
   const [flow, setFlow] = useState<Flow | null | undefined>(undefined);
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  /* The answers as they stood on arrival. Skipping is decided from these,
+     not from the live ones — otherwise answering a question would remove it
+     from the list while you stand on it, and "back" could never reach it. */
+  const [known, setKnown] = useState<Record<string, string>>({});
+  const finished = useRef(false);
+  const [ctx, setCtx] = useState<Omit<FlowContext, "answers"> | null>(null);
   const [busy, setBusy] = useState(false);
   const [accept, setAccept] = useState(false);
   const [lecture, setLecture] = useState<Lecture | null>(null);
@@ -121,27 +138,105 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
     const t = setTimeout(async () => {
       const r = await api("/api/hc/onboarding").catch(() => null);
       const j = r?.ok ? await r.json().catch(() => null) : null;
-      /* Anything other than a published flow means "not my problem" — and
-         it has to SAY so, not merely render nothing. A player that returns
-         null while its parent waits for it leaves an empty screen, which is
-         the exact failure this is meant to prevent. */
-      if (!j?.flow || j.done || !j.flow.steps?.length) { setFlow(null); onFinished(); return; }
-      setFlow(j.flow);
-      setI(j.stepIndex ?? 0);
+      /* Anything unexpected means "not my problem" — and it has to SAY so,
+         not merely render nothing, or the parent waits on an empty screen. */
+      if (!j || j.done) { setFlow(null); onFinished(); return; }
+      const c = j.context ?? {};
+      setCtx({
+        entry: c.entry ?? null,
+        termsAccepted: !!c.terms_accepted,
+        trainingSaved: !!c.training_saved,
+      });
       setAnswers(j.answers ?? {});
+      setKnown(j.answers ?? {});
+      /* No published flow is an empty one: the training screen does not
+         wait for an admin to have published something. */
+      setFlow(j.flow ?? { slug: "", name: "", steps: [] });
+      setI(j.stepIndex ?? 0);
     }, 0);
     return () => clearTimeout(t);
   }, [api, onFinished, preview]);
 
-  const step: FlowStep | undefined = flow?.steps[i];
+  /* What will actually be shown, in order. */
+  const screens: Screen[] = useMemo(() => {
+    if (!flow) return [];
+    if (preview) return flow.steps.map((step, n) => ({ step, n }));
+    if (!ctx) return [];
+    const full: FlowContext = { ...ctx, answers: known };
+    const fromFlow = flow.steps.map((step, n) => ({ step, n })).filter((x) => stepApplies(x.step, full));
+    const needsTraining = isCoachingEntry(ctx.entry) && !ctx.trainingSaved
+      && !flow.steps.some((s) => s.kind === "training");
+    /* First, because it is the decision the rest of the app is built on. */
+    return needsTraining ? [{ step: TRAINING_STEP, n: -1 }, ...fromFlow] : fromFlow;
+  }, [flow, ctx, known, preview]);
 
-  /* A lecture step needs its lecture. Fetched per step rather than up front:
-     a flow with six lectures should not cost six requests to show the first
-     screen. */
+  /* Where we are: the synthetic training screen while it is unanswered,
+     else the first remaining step at or after the saved position. */
+  const at = useMemo(() => {
+    if (preview) return screens.findIndex((x) => x.n === i);
+    if (screens[0]?.n === -1) return 0;
+    return screens.findIndex((x) => x.n >= i);
+  }, [screens, i, preview]);
+  const screen = at >= 0 ? screens[at] : undefined;
+
+  const post = useCallback(async (payload: Record<string, unknown>) => {
+    if (preview) return null;
+    const r = await api("/api/hc/onboarding", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => null);
+    return r?.ok ? await r.json().catch(() => null) : null;
+  }, [api, preview]);
+
+  const finish = useCallback(async () => {
+    if (preview || finished.current) return;
+    finished.current = true;
+    if (flow?.slug) await post({ action: "done" });
+    onFinished();
+  }, [flow, post, onFinished, preview]);
+
+  /* Nothing left to ask: say so to the server, and move on. */
+  useEffect(() => {
+    if (preview || flow === undefined || flow === null || !ctx) return;
+    if (screen) return;
+    const t = setTimeout(() => { void finish(); }, 0);
+    return () => clearTimeout(t);
+  }, [screen, flow, ctx, preview, finish]);
+
+  /** Move to the screen after this one, by its position in the flow. */
+  const next = useCallback(async () => {
+    if (!flow || !screen) return;
+    const after = screens.slice(at + 1).find((x) => x.n >= 0);
+    if (preview) {
+      if (after) setI(after.n);
+      return;
+    }
+    if (!after) { setBusy(true); await finish(); setBusy(false); return; }
+    setBusy(true);
+    await post({ action: "goto", index: after.n });
+    setBusy(false);
+    setI(after.n);
+  }, [flow, screen, screens, at, post, finish, preview]);
+
+  const back = useCallback(async () => {
+    const before = screens.slice(0, Math.max(at, 0)).reverse().find((x) => x.n >= 0);
+    if (!before) return;
+    setBusy(true);
+    await post({ action: "goto", index: before.n });
+    setBusy(false);
+    setI(before.n);
+  }, [screens, at, post]);
+
+  /* Written as it is given. */
+  const answer = useCallback(async (key: string, value: string) => {
+    setAnswers((a) => ({ ...a, [key]: value }));
+    await post({ action: "answer", key, value });
+  }, [post]);
+
+  /* A lecture step needs its lecture, fetched when it is reached. */
+  const step = screen?.step;
   useEffect(() => {
     if (step?.kind !== "lecture" || !step.lectureSlug) {
-      /* Deferred like every other set in this file: the compiler rejects a
-         synchronous set inside an effect. */
       const c = setTimeout(() => setLecture(null), 0);
       return () => clearTimeout(c);
     }
@@ -154,127 +249,44 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
     return () => clearTimeout(t);
   }, [api, step?.kind, step?.lectureSlug]);
 
-  const post = useCallback(async (payload: Record<string, unknown>) => {
-    /* The preview answers locally and tells the server nothing — but it has
-       to answer the way the server would. Returning the CURRENT index for an
-       advance put the player straight back on the step it had just left, so
-       the preview could be opened at any step and walked through none of
-       them. */
-    if (preview) {
-      const total = preview.steps.length;
-      const next = payload.action === "advance" ? Math.min(i + 1, total - 1)
-        : payload.action === "back" ? Math.max(i - 1, 0)
-        : i;
-      return { ok: true, stepIndex: next, done: false };
-    }
-    const r = await api("/api/hc/onboarding", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch(() => null);
-    return r?.ok ? await r.json().catch(() => null) : null;
-  }, [api, preview, i]);
-
-  const advance = useCallback(async () => {
-    if (!flow) return;
-    setBusy(true);
-    const j = await post({ action: "advance" });
-    setBusy(false);
-    if (!preview && (j?.done || i + 1 >= flow.steps.length)) { onFinished(); return; }
-    /* The last step of a preview stays on the last step: calling onFinished
-       here would blank the frame the admin is looking at. */
-    if (preview && i + 1 >= flow.steps.length) return;
-    setI(typeof j?.stepIndex === "number" ? j.stepIndex : i + 1);
-  }, [flow, i, post, onFinished, preview]);
-
-  const back = useCallback(async () => {
-    setBusy(true);
-    const j = await post({ action: "back" });
-    setBusy(false);
-    setI(typeof j?.stepIndex === "number" ? j.stepIndex : Math.max(0, i - 1));
-  }, [i, post]);
-
-  /* Written as it is given. Batching to the end means a closed tab costs
-     everything rather than the current screen. */
-  const answer = useCallback(async (key: string, value: string) => {
-    setAnswers((a) => ({ ...a, [key]: value }));
-    await post({ action: "answer", key, value });
-    await advance();
-  }, [post, advance]);
-
-  const asStart: StartAnswers = useMemo(() => ({
-    goal: answers.goal as StartAnswers["goal"],
-    move: answers.move as StartAnswers["move"],
-    age: answers.age as StartAnswers["age"],
-  }), [answers]);
-
-  if (flow === undefined) {
-    return <div className="grid min-h-[50vh] place-items-center text-sm text-hc-ink-2">Hleð…</div>;
+  if (flow === undefined || (!preview && flow && !ctx)) {
+    return (
+      <div className="mx-auto max-w-xl space-y-3 pt-2" aria-busy="true" aria-label="Hleð">
+        <div className="h-8 w-2/3 rounded-hc-element hc-shimmer" />
+        <div className="h-14 rounded-hc-element hc-shimmer" />
+        <div className="h-14 rounded-hc-element hc-shimmer" />
+        <div className="h-14 rounded-hc-element hc-shimmer" />
+      </div>
+    );
   }
-  if (flow === null || !step) return null;
+  if (flow === null || !step) {
+    return <div className="grid min-h-[50vh] place-items-center text-sm text-hc-ink-2">Augnablik…</div>;
+  }
 
   const def = moduleDef(step.kind);
-  const total = flow.steps.length;
 
-  /* One layout, two shapes.
-     A 512px column is right on a phone and forlorn on a 1440px monitor. But
-     the answer is not a wider column: a question whose options stretch
-     1200px is harder to read, not easier. So the content keeps a readable
-     measure and the space beside it earns its place — the whole journey,
-     visible, with where you are in it. Below lg the rail is gone and the
-     progress bar in the header does that job in the room a phone has. */
   return (
-    <div className="mx-auto grid max-w-5xl gap-8 px-5 pb-16 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12 lg:px-8 lg:pt-8">
-      <nav aria-label="Skref" className="hidden lg:block">
-        <div className="sticky top-8">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-hc-ink-3">Yfirlit</p>
-          <ol className="mt-3 space-y-0.5">
-            {flow.steps.map((s, n) => {
-              const d = moduleDef(s.kind);
-              const done = n < i;
-              const now = n === i;
-              return (
-                <li key={s.id}>
-                  <div className={`flex items-start gap-2.5 rounded-lg px-2 py-1.5 text-sm ${
-                    now ? "bg-hc-surface font-semibold text-hc-ink shadow-sm" : "text-hc-ink-3"}`}>
-                    <span aria-hidden className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full text-[9px] font-bold ${
-                      done ? "bg-hc-brand-dark text-white"
-                        : now ? "border-2 border-hc-brand-dark text-hc-brand-text"
-                        : "border border-hc-control text-hc-ink-3"}`}>
-                      {done ? "✓" : n + 1}
-                    </span>
-                    <span className="min-w-0">
-                      {s.title
-                        || (s.kind === "question" && s.questionKey ? QUESTIONS[s.questionKey].title : null)
-                        || d?.label || s.kind}
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </nav>
+    <div className="mx-auto max-w-xl pb-16">
+      <StepHeader n={at + 1} total={screens.length} busy={busy}
+        onBack={screens.slice(0, at).some((x) => x.n >= 0) ? () => void back() : undefined} />
 
-      <div className="min-w-0 max-w-xl">
-      <header className="sticky top-0 z-10 -mx-5 mb-5 bg-hc-page/95 px-5 py-3 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => void back()} disabled={i === 0 || busy}
-            aria-label="Til baka" className="rounded-lg p-1.5 text-hc-ink-2 hover:bg-hc-sunken disabled:opacity-30">
-            <ArrowLeft className="h-5 w-5" aria-hidden />
-          </button>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-hc-sunken-2 lg:hidden">
-            <div className="h-full rounded-full bg-hc-brand-dark transition-all duration-300"
-              style={{ width: `${((i + 1) / total) * 100}%` }} />
-          </div>
-          <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-hc-ink-3 lg:hidden">
-            {i + 1}/{total}
-          </span>
-        </div>
-      </header>
+      {step.kind === "training" && (
+        <TrainingStart api={api} preview={!!preview} answers={answers}
+          onSaved={async (move, limits) => {
+            await answer("move", move);
+            await answer("limits", limits.join(","));
+            if (step.id === TRAINING_STEP.id) {
+              setCtx((c) => (c ? { ...c, trainingSaved: true } : c));
+            } else {
+              await next();
+            }
+          }} />
+      )}
 
       {step.kind === "question" && step.questionKey && (() => {
-        const q = QUESTIONS[step.questionKey];
-        const chosen = answers[step.questionKey];
+        const key = step.questionKey;
+        const q = QUESTIONS[key];
+        const chosen = answers[key];
         return (
           <section>
             <h1 className="text-2xl font-bold leading-tight text-hc-ink">{step.title || q.title}</h1>
@@ -282,9 +294,10 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
             <div className="mt-5 space-y-2.5">
               {q.options.map((o: { key: string; label: string; hint?: string }) => (
                 <button key={o.key} type="button" disabled={busy}
-                  onClick={() => void answer(step.questionKey!, o.key)} aria-pressed={chosen === o.key}
-                  className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border-2 bg-hc-surface px-4 py-3 text-left transition ${
-                    chosen === o.key ? "border-hc-brand-dark" : "border-transparent hover:border-hc-control"}`}>
+                  onClick={() => void (async () => { await answer(key, o.key); await next(); })()}
+                  aria-pressed={chosen === o.key}
+                  className={`flex min-h-14 w-full items-center gap-3 rounded-hc-element border-2 px-4 py-3 text-left transition ${
+                    chosen === o.key ? "border-hc-brand-dark bg-hc-brand-surface" : "border-hc-border bg-hc-surface hover:border-hc-control"}`}>
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-hc-ink">{o.label}</span>
                     {o.hint && <span className="mt-0.5 block text-xs text-hc-ink-3">{o.hint}</span>}
@@ -297,212 +310,13 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
         );
       })()}
 
-      {step.kind === "pillars" && (() => {
-        /* All four on one screen, not four screens. They are the same
-           question asked four times and splitting them would quadruple the
-           length of the flow for no extra information. */
-        const got = PILLARS.filter((x) => answers[`pillar_${x.key}`]).length;
-        return (
-          <section>
-            <h1 className="text-2xl font-bold leading-tight text-hc-ink">{step.title || "Hverju viltu breyta?"}</h1>
-            <p className="mt-1.5 text-sm leading-relaxed text-hc-ink-2">
-              Þitt eigið mat á því hvar skórinn kreppir. Við notum það til að velja hvar við byrjum —
-              þetta er ekki heilsufarsmat og ekki einkunn.
-            </p>
-            <div className="mt-5 space-y-4">
-              {PILLARS.map((pl) => (
-                <div key={pl.key}>
-                  <p className="text-sm font-semibold text-hc-ink">{pl.label}</p>
-                  <p className="text-xs text-hc-ink-3">{pl.hint}</p>
-                  <div className="mt-1.5 flex gap-1.5">
-                    {BANDS.map((bd) => {
-                      const on = answers[`pillar_${pl.key}`] === bd.key;
-                      return (
-                        <button key={bd.key} type="button" disabled={busy}
-                          onClick={() => void post({ action: "answer", key: `pillar_${pl.key}`, value: bd.key })
-                            .then(() => setAnswers((a) => ({ ...a, [`pillar_${pl.key}`]: bd.key })))}
-                          aria-pressed={on}
-                          className={`min-h-11 flex-1 rounded-xl border-2 px-2 text-sm font-semibold transition ${
-                            on ? "border-hc-brand-dark bg-hc-ok-surface text-hc-ok-ink" : "border-transparent bg-hc-surface text-hc-ink-2"}`}>
-                          {bd.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button type="button" onClick={() => void advance()} disabled={busy || got < PILLARS.length}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-hc-brand-dark py-3 font-bold text-white disabled:opacity-50">
-              Áfram <ArrowRight className="h-4 w-4" aria-hidden />
-            </button>
-            {got < PILLARS.length && (
-              <p className="mt-2 text-center text-xs text-hc-ink-3">
-                {PILLARS.length - got} eftir af fjórum.
-              </p>
-            )}
-          </section>
-        );
-      })()}
-
-      {step.kind === "limits" && (() => {
-        const chosen = (answers.limits ?? "").split(",").filter(Boolean);
-        const toggle = async (k: string) => {
-          const next = k === "none" ? ["none"]
-            : chosen.filter((x) => x !== "none").includes(k)
-              ? chosen.filter((x) => x !== k && x !== "none")
-              : [...chosen.filter((x) => x !== "none"), k];
-          const v = next.join(",");
-          setAnswers((a) => ({ ...a, limits: v }));
-          await post({ action: "answer", key: "limits", value: v });
-        };
-        return (
-          <section>
-            <h1 className="text-2xl font-bold leading-tight text-hc-ink">{step.title || "Er eitthvað sem þarf að taka tillit til?"}</h1>
-            <p className="mt-1.5 text-sm leading-relaxed text-hc-ink-2">
-              Verkir, meiðsli eða annað sem breytir æfingum. Við sníðum prógrammið að þessu — og þjálfarinn sér það.
-            </p>
-            <div className="mt-5 space-y-2">
-              {LIMITS.map((l) => {
-                const on = chosen.includes(l.key);
-                return (
-                  <button key={l.key} type="button" disabled={busy} onClick={() => void toggle(l.key)} aria-pressed={on}
-                    className={`flex min-h-12 w-full items-center gap-3 rounded-xl border-2 bg-hc-surface px-4 text-left font-semibold transition ${
-                      on ? "border-hc-brand-dark" : "border-transparent"}`}>
-                    <span className={`grid h-5 w-5 shrink-0 place-items-center rounded border-2 ${
-                      on ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-hc-control"}`}>
-                      {on && <Check className="h-3 w-3" aria-hidden />}
-                    </span>
-                    <span className="text-hc-ink">{l.label}</span>
-                  </button>
-                );
-              })}
-              {/* An explicit no. A blank answer here is indistinguishable
-                  from a screen somebody skipped. */}
-              <button type="button" disabled={busy} onClick={() => void toggle("none")} aria-pressed={chosen.includes("none")}
-                className={`flex min-h-12 w-full items-center gap-3 rounded-xl border-2 bg-hc-surface px-4 text-left font-semibold transition ${
-                  chosen.includes("none") ? "border-hc-brand-dark" : "border-transparent"}`}>
-                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 ${
-                  chosen.includes("none") ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-hc-control"}`}>
-                  {chosen.includes("none") && <Check className="h-3 w-3" aria-hidden />}
-                </span>
-                <span className="text-hc-ink">Nei, ekkert af þessu</span>
-              </button>
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-hc-ink-3">
-              Þetta er ekki sjúkraskrá. Ef eitthvað er bráðatilfelli, hringdu í 112.
-            </p>
-            <button type="button" onClick={() => void advance()} disabled={busy || chosen.length === 0}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-hc-brand-dark py-3 font-bold text-white disabled:opacity-50">
-              Áfram <ArrowRight className="h-4 w-4" aria-hidden />
-            </button>
-          </section>
-        );
-      })()}
-
-      {step.kind === "recommend" && (() => {
-        const weak = PILLARS.filter((x) => answers[`pillar_${x.key}`] === "low").map((x) => x.dative);
-        const lim = (answers.limits ?? "").split(",").filter((x) => x && x !== "none");
-        return (
-          <section>
-            <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Svona leggjum við upp"}</h1>
-            <p className="mt-1 text-sm leading-relaxed text-hc-ink-2">
-            Gróft snið til að byrja með. Þú stillir það sjálf/ur í appinu og þjálfarinn fer yfir það með þér.
-          </p>
-            <ul className="mt-5 space-y-2">
-              {previewLines(asStart).map((l) => (
-                <li key={l} className="flex items-start gap-2.5 rounded-xl bg-hc-surface p-3.5 shadow-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-dark" aria-hidden />
-                  <span className="text-sm text-hc-ink">{l}</span>
-                </li>
-              ))}
-              {weak.length > 0 && (
-                <li className="flex items-start gap-2.5 rounded-xl bg-hc-surface p-3.5 shadow-sm">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-dark" aria-hidden />
-                  <span className="text-sm text-hc-ink">Byrjum á {listIs(weak)}</span>
-                </li>
-              )}
-              {lim.length > 0 && (
-                <li className="flex items-start gap-2.5 rounded-xl bg-hc-warn-surface p-3.5">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-warn-ink" aria-hidden />
-                  <span className="text-sm text-hc-ink">Æfingar aðlagaðar — þjálfarinn fær upplýsingarnar þínar</span>
-                </li>
-              )}
-            </ul>
-            <p className="mt-4 text-xs leading-relaxed text-hc-ink-3">
-              Lifeline mælir og fylgist með — við greinum ekki sjúkdóma og komum ekki í stað læknis.
-            </p>
-          </section>
-        );
-      })()}
-
-      {step.kind === "summary" && (
-        <section>
-          <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Þetta leggjum við til"}</h1>
-          <p className="mt-1 text-sm text-hc-ink-2">Byggt á svörunum þínum. Þjálfarinn fínstillir þetta með þér.</p>
-          <ul className="mt-5 space-y-2">
-            {previewLines(asStart).map((l) => (
-              <li key={l} className="flex items-start gap-2.5 rounded-xl bg-hc-surface p-3.5 shadow-sm">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-dark" aria-hidden />
-                <span className="text-sm text-hc-ink">{l}</span>
-              </li>
-            ))}
-          </ul>
-          {/* Said wherever a plan is shown, not only at the end. */}
-          <p className="mt-4 text-xs leading-relaxed text-hc-ink-3">
-            Lifeline mælir og fylgist með — við greinum ekki sjúkdóma og komum ekki í stað læknis.
-          </p>
-        </section>
-      )}
-
-      {step.kind === "track" && (
-        <section>
-          <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Hvernig viltu byrja?"}</h1>
-          <p className="mt-1 text-sm text-hc-ink-2">
-            {suggestsCheck(asStart)
-              ? "Miðað við svörin þín mælum við með að byrja á mælingum."
-              : "Miðað við svörin þín kemstu beint af stað í þjálfun."}
-          </p>
-          <div className="mt-5 space-y-3">
-            {([
-              { k: "check", icon: <Stethoscope className="h-5 w-5" aria-hidden />, t: "Heilsufarsskoðun",
-                b: "Mælingar og blóðprufa, skýrsla sem læknir fer yfir, og áætlun út frá þínum tölum." },
-              { k: "coach", icon: <Dumbbell className="h-5 w-5" aria-hidden />, t: "Þjálfun í appinu",
-                b: `${daysPerWeek(asStart.move)} æfingar á viku, næring og svefn — án mælinga til að byrja með.` },
-            ] as const).map((r) => (
-              <button key={r.k} type="button" disabled={busy}
-                onClick={() => void (async () => {
-                  /* The track is a property of the journey, not of this
-                     flow, so it is set where every other screen reads it. */
-                  await api("/api/hc/journey", {
-                    method: "POST", body: JSON.stringify({ action: "choose_track", track: r.k }),
-                  }).catch(() => null);
-                  await answer("track", r.k);
-                })()}
-                aria-pressed={answers.track === r.k}
-                className={`w-full rounded-2xl border-2 bg-hc-surface p-4 text-left transition ${
-                  answers.track === r.k ? "border-hc-brand-dark" : "border-transparent hover:border-hc-control"}`}>
-                <span className="flex items-center gap-2">
-                  <span className="text-hc-brand-text">{r.icon}</span>
-                  <span className="font-bold text-hc-ink">{r.t}</span>
-                  {suggestsCheck(asStart) === (r.k === "check") && (
-                    <span className="rounded-full bg-hc-ok-surface px-2 py-0.5 text-[11px] font-bold text-hc-ok-ink">Mælt með</span>
-                  )}
-                </span>
-                <span className="mt-1.5 block text-sm leading-relaxed text-hc-ink-2">{r.b}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
       {step.kind === "consent" && (
         <section>
           <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Skilmálar"}</h1>
           <p className="mt-1 text-sm leading-relaxed text-hc-ink-2">
             Áður en við vistum heilsufarsupplýsingar þarftu að samþykkja skilmálana.
           </p>
-          <label className="mt-5 flex items-start gap-2.5 rounded-2xl bg-hc-surface p-4 shadow-sm">
+          <label className="mt-5 flex items-start gap-2.5 rounded-hc-element bg-hc-surface p-4 shadow-hc-card">
             <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-hc-control" />
             <span className="text-sm leading-snug text-hc-ink">
@@ -514,10 +328,11 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
           </label>
           <button type="button" disabled={!accept || busy}
             onClick={() => void (async () => {
+              if (preview) return;
               /* Written the same way the signup form writes it: the view
                  that encrypts, the person's own session, the same version
-                 string. A second path to the same column is a second thing
-                 to keep in step. */
+                 string. */
+              setBusy(true);
               const { data: s } = await supabase.auth.getSession();
               const uid = s.session?.user?.id;
               if (uid) {
@@ -527,8 +342,10 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
                 }).eq("id", uid);
               }
               await answer("consent", "yes");
+              setBusy(false);
+              await next();
             })()}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-hc-brand-dark py-3 font-bold text-white disabled:opacity-50">
+            className={`${hcBtn.cta} mt-5 w-full`}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null} Samþykkja
           </button>
         </section>
@@ -539,7 +356,7 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
           <h1 className="text-2xl font-bold text-hc-ink">{step.title || lecture?.title || "Fræðsla"}</h1>
           {lecture?.subtitle && <p className="mt-1 text-sm text-hc-ink-2">{lecture.subtitle}</p>}
           {lecture ? (
-            <div className="mt-4 rounded-2xl bg-hc-surface p-4 shadow-sm">
+            <div className="mt-4 rounded-hc-element bg-hc-surface p-4 shadow-hc-card">
               {lecture.video_url && (
                 <a href={lecture.video_url} target="_blank" rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-hc-brand-text underline">
@@ -558,16 +375,6 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
         </section>
       )}
 
-      {/* The four setup things, walked. Not a copy of them: SetupFlow in
-          onboarding mode is the same component /app/adgangur renders, which
-          is the whole reason the controls were pulled out of the sheet. */}
-      {step.kind === "setup" && (
-        <section>
-          <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Komdu þér af stað"}</h1>
-          <div className="mt-4"><SetupFlow api={api} place="onboarding" /></div>
-        </section>
-      )}
-
       {step.kind === "install" && (
         <section>
           <h1 className="text-2xl font-bold text-hc-ink">{step.title || "Settu appið á heimaskjáinn"}</h1>
@@ -575,48 +382,120 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
         </section>
       )}
 
-      {/* Screens that exist elsewhere are linked, never copied: a second
-          checkout is a second place for a payment bug to live. */}
-      {(step.kind === "package" || step.kind === "measurements" || step.kind === "profile" || step.kind === "notifications" || step.kind === "welcome") && (
+      {/* Only the composer's preview ever reaches these: the app skips them.
+          Saying so beats rendering a screen nobody will see as if it were
+          live. */}
+      {(RETIRED_KINDS.includes(step.kind) || !def) && (
         <section>
-          <h1 className="text-2xl font-bold text-hc-ink">{step.title || def?.label}</h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-hc-ink-2">{def?.blurb}</p>
-          {step.kind === "package" && (
-            <Link href="/app?start=1" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-hc-brand-dark px-5 font-semibold text-white">
-              Opna pakkana
-            </Link>
-          )}
-          {step.kind === "measurements" && (
-            <Link href="/app" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-hc-brand-dark px-5 font-semibold text-white">
-              Bóka tíma
-            </Link>
-          )}
-          {step.kind === "profile" && (
-            <Link href="/app/adgangur" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-hc-brand-dark px-5 font-semibold text-white">
-              Fylla út upplýsingar
-            </Link>
-          )}
+          <h1 className="text-2xl font-bold text-hc-ink">{step.title || def?.label || step.kind}</h1>
+          <p className="mt-2 rounded-xl bg-hc-sunken px-3 py-2 text-sm text-hc-ink-2">
+            Þessu skrefi er sleppt í appinu: um það er spurt við nýskráningu, eða það á heima annars staðar.
+          </p>
         </section>
       )}
 
-      {/* Advance is always available except on the screens that advance
-          themselves when answered. "Má sleppa" is the admin's choice and
-          shows as a quieter way past. */}
-      {step.kind !== "question" && step.kind !== "track" && step.kind !== "consent"
-        && step.kind !== "pillars" && step.kind !== "limits" && (
-        <button type="button" onClick={() => void advance()} disabled={busy}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-hc-brand-dark py-3 font-bold text-white disabled:opacity-50">
+      {/* The screens that do not move on by themselves get one button. */}
+      {(step.kind === "lecture" || step.kind === "install" || RETIRED_KINDS.includes(step.kind) || !def) && (
+        <button type="button" onClick={() => void next()} disabled={busy}
+          className={`${hcBtn.cta} mt-6 w-full`}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
           Áfram <ArrowRight className="h-4 w-4" aria-hidden />
         </button>
       )}
-      {step.skippable && (
-        <button type="button" onClick={() => void advance()} disabled={busy}
-          className="mt-2 w-full py-2 text-center text-sm font-semibold text-hc-ink-3 underline">
+      {step.skippable && step.kind !== "lecture" && step.kind !== "install" && (
+        <button type="button" onClick={() => void next()} disabled={busy}
+          className="mt-2 min-h-11 w-full rounded-hc-element py-2 text-center text-sm font-semibold text-hc-ink-3 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
           Sleppa í bili
         </button>
       )}
-      </div>
     </div>
+  );
+}
+
+/**
+ * "Hreyfing og það sem þarf að varast": the coaching track's one decision.
+ *
+ * Two answers on one screen, both of which the programme uses: how much you
+ * move now sets the number of sessions and the level, and what needs
+ * sparing swaps exercises out. Saved through POST /api/hc/training, the
+ * same path the programme settings use, so the setup wizard on the plan
+ * page does not open again asking the same thing.
+ */
+function TrainingStart({ api, preview, answers, onSaved }: {
+  api: Api;
+  preview: boolean;
+  answers: Record<string, string>;
+  onSaved: (move: MoveKey, limits: string[]) => Promise<void>;
+}) {
+  const [move, setMove] = useState<MoveKey | undefined>(answers.move as MoveKey | undefined);
+  const [limits, setLimits] = useState<string[]>(() => (answers.limits ?? "").split(",").filter(Boolean));
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const toggle = (k: string) => setLimits((cur) =>
+    k === "none" ? ["none"]
+      : cur.includes(k) ? cur.filter((x) => x !== k && x !== "none")
+      : [...cur.filter((x) => x !== "none"), k]);
+
+  const save = async () => {
+    if (!move || !limits.length || preview) return;
+    setBusy(true); setErr("");
+    const r = await api("/api/hc/training", {
+      method: "POST",
+      body: JSON.stringify(trainingFrom(move, limits, answers.goal as GoalKey | undefined)),
+    }).catch(() => null);
+    if (!r?.ok) { setBusy(false); setErr("Tókst ekki að vista. Reyndu aftur."); return; }
+    await onSaved(move, limits);
+    setBusy(false);
+  };
+
+  const chip = (on: boolean) =>
+    `min-h-11 rounded-hc-element border-2 px-3.5 text-sm font-semibold transition ${
+      on ? "border-hc-brand-dark bg-hc-brand-surface text-hc-ink" : "border-hc-border bg-hc-surface text-hc-ink-2 hover:border-hc-control"}`;
+
+  return (
+    <section>
+      <h1 className="text-2xl font-bold leading-tight text-hc-ink">Hreyfing og það sem þarf að varast</h1>
+      <p className="mt-1.5 text-sm text-hc-ink-2">Æfingarnar þínar eru byggðar á þessum tveimur svörum.</p>
+
+      <h2 className="mt-6 text-sm font-bold text-hc-ink">Hvað hreyfir þú þig mikið núna?</h2>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {MOVES.map((m) => (
+          <button key={m.key} type="button" aria-pressed={move === m.key} onClick={() => setMove(m.key)} className={chip(move === m.key)}>
+            {m.label}
+          </button>
+        ))}
+      </div>
+      {move && (
+        <p className="mt-2 text-xs text-hc-ink-3">
+          {daysPerWeek(move)} æfingar á viku til að byrja með
+          {answers.goal ? ` · áhersla á ${emphasisText(answers.goal as GoalKey)}` : ""}.
+        </p>
+      )}
+
+      <h2 className="mt-6 text-sm font-bold text-hc-ink">Þarf að hlífa einhverju?</h2>
+      <p className="text-xs text-hc-ink-3">Veldu allt sem á við. Æfingum sem reyna á það er skipt út.</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {LIMITS.map((l) => (
+          <button key={l.key} type="button" aria-pressed={limits.includes(l.key)} onClick={() => toggle(l.key)} className={chip(limits.includes(l.key))}>
+            {l.label}
+          </button>
+        ))}
+        <button type="button" aria-pressed={limits.includes("none")} onClick={() => toggle("none")} className={chip(limits.includes("none"))}>
+          Nei, ekkert
+        </button>
+      </div>
+      <p className="mt-3 text-xs leading-relaxed text-hc-ink-3">
+        Þetta er ekki sjúkraskrá. Ef eitthvað er bráðatilfelli, hringdu í 112.
+      </p>
+
+      {err && <p role="alert" className="mt-3 text-sm text-hc-bad-ink">{err}</p>}
+      <button type="button" onClick={() => void save()} disabled={busy || !move || !limits.length}
+        className={`${hcBtn.cta} mt-6 w-full`}>
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+        Áfram <ArrowRight className="h-4 w-4" aria-hidden />
+      </button>
+      <p className="mt-2 text-center text-xs text-hc-ink-3">Þú getur breytt þessu hvenær sem er í æfingastillingunum.</p>
+    </section>
   );
 }

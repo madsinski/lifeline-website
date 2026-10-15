@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { saveStraumurPaymentMethod, STRAUMUR_BRAND } from "@/lib/straumur";
 import { useI18n } from "@/lib/i18n";
+import { CreditCard, Plus, Receipt } from "lucide-react";
+import { Button, SectionCard, accountInset, fmtIsk, fmtNumericDate, useDialog } from "./account/ui";
 
 type OwnerType = "client" | "company";
 
@@ -41,6 +43,7 @@ export default function BillingPanel({
   ownerId: string;
 }) {
   const { t, tv } = useI18n();
+  const { confirm } = useDialog();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +116,11 @@ export default function BillingPanel({
   }
 
   async function removeMethod(id: string) {
-    if (!confirm(t("comp.bill.removeq", "Fjarlægja þetta greiðslukort?"))) return;
+    const ok = await confirm({
+      title: t("comp.bill.removeq", "Fjarlægja þetta greiðslukort?"),
+      confirmLabel: t("comp.bill.remove", "Fjarlægja"), cancelLabel: t("comp.bill.keep", "Hætta við"), tone: "danger",
+    });
+    if (!ok) return;
     setActionId(id);
     const { error: delErr } = await supabase.from("payment_methods").delete().eq("id", id);
     setActionId(null);
@@ -123,127 +130,96 @@ export default function BillingPanel({
 
   function statusPill(status: Payment["status"]) {
     const map = {
-      pending: "bg-amber-50 text-amber-700 border-amber-100",
-      succeeded: "bg-emerald-50 text-emerald-700 border-emerald-100",
-      refunded: "bg-gray-50 text-gray-600 border-gray-200",
-      failed: "bg-red-50 text-red-700 border-red-100",
+      pending: "bg-hc-warn-surface text-hc-warn-ink ring-amber-200",
+      succeeded: "bg-hc-ok-surface text-hc-ok-ink ring-emerald-200",
+      refunded: "bg-hc-sunken-2 text-hc-ink-2 ring-slate-200",
+      failed: "bg-hc-bad-surface text-hc-bad-ink ring-rose-200",
     };
     return (
-      <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${map[status]}`}>
+      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${map[status]}`}>
         {({ pending: t("comp.bill.pending", "Í bið"), succeeded: "Greitt", refunded: "Endurgreitt", failed: t("comp.bill.failed", "Mistókst") } as Record<string, string>)[status] ?? status}
       </span>
     );
   }
 
+  const providerName = (() => {
+    const providers = Array.from(new Set(methods.map((m) => m.provider).filter(Boolean)));
+    return providers.length === 1
+      ? (providers[0] === "straumur" ? STRAUMUR_BRAND.name : providers[0].replace(/^./, (c) => c.toUpperCase()))
+      : STRAUMUR_BRAND.name;
+  })();
+  const skeleton = (
+    <div className="animate-pulse space-y-2" aria-busy="true"><div className="h-12 rounded-hc-element bg-hc-sunken-2" /><div className="h-12 rounded-hc-element bg-hc-sunken" /></div>
+  );
+  const empty = (text: string) => <p className={`${accountInset} p-5 text-center text-sm text-hc-ink-2`}>{text}</p>;
+  const linkBtn = "text-xs font-semibold text-hc-brand-text hover:underline disabled:opacity-50";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Payment methods */}
-      <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-        <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-[#1F2937]">{t("comp.bill.cards", "Greiðslukort")}</h2>
-            <p className="text-sm text-[#6B7280] mt-1">
-              {(() => {
-                const providers = Array.from(new Set(methods.map((m) => m.provider).filter(Boolean)));
-                const name = providers.length === 1
-                  ? (providers[0] === "straumur" ? STRAUMUR_BRAND.name : providers[0].replace(/^./, (c) => c.toUpperCase()))
-                  : STRAUMUR_BRAND.name;
-                return tv("comp.bill.securewith", "Öruggt hjá {{provider}}. Við geymum aðeins tákn, aldrei kortanúmerið.", { provider: name });
-              })()}
-            </p>
-          </div>
-          <button
-            onClick={handleAddCard}
-            disabled={adding}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold text-white bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 disabled:opacity-60 shadow-sm"
-          >
-            {adding && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-            {adding ? "Vista…" : t("comp.bill.addcard", "+ Bæta við korti")}
-          </button>
-        </div>
-        {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
-        {loading ? (
-          <div className="animate-pulse space-y-2" aria-busy="true"><div className="h-12 rounded-xl bg-gray-200/70" /><div className="h-12 rounded-xl bg-gray-200/50" /></div>
-        ) : methods.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
-            {t("comp.bill.nocard", "Ekkert greiðslukort skráð.")}
-          </div>
-        ) : (
-          <div className="space-y-2">
+      <SectionCard icon={CreditCard} title={t("comp.bill.cards", "Greiðslukort")}
+        description={tv("comp.bill.securewith", "Öruggt hjá {{provider}}. Við geymum aðeins tákn, aldrei kortanúmerið.", { provider: providerName })}
+        action={<Button size="sm" onClick={handleAddCard} busy={adding} icon={<Plus className="h-4 w-4" aria-hidden />}>{t("comp.bill.addcard2", "Bæta við korti")}</Button>}>
+        {error && <p role="alert" className="mb-3 text-sm text-hc-bad-ink">{error}</p>}
+        {loading ? skeleton : methods.length === 0 ? empty(t("comp.bill.nocard", "Ekkert greiðslukort skráð.")) : (
+          <ul className="space-y-2">
             {methods.map((m) => (
-              <div key={m.id} className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-gray-100 bg-[#f8fafc]">
-                <div className="w-10 h-7 rounded-md bg-gradient-to-br from-[#0F172A] to-[#334155] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                  {m.brand || "CARD"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-gray-900">
-                    {m.brand || "Kort"} •••• {m.last4 || "0000"}
-                    {m.is_default && <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">{t("comp.bill.primary", "Aðalkort")}</span>}
-                  </div>
+              <li key={m.id} className={`${accountInset} flex flex-wrap items-center gap-3 p-3`}>
+                <span aria-hidden className="flex h-7 w-10 shrink-0 items-center justify-center rounded-md bg-hc-ink text-[10px] font-bold text-white">{m.brand || "KORT"}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-hc-ink">
+                    {m.brand || t("comp.bill.card", "Kort")} •••• {m.last4 || "0000"}
+                    {m.is_default && <span className="ml-2 rounded-full bg-hc-ok-surface px-2 py-0.5 text-[11px] font-semibold text-hc-ok-ink ring-1 ring-emerald-200">{t("comp.bill.primary", "Aðalkort")}</span>}
+                  </p>
                   {m.exp_month && m.exp_year && (
-                    <div className="text-xs text-gray-500">Expires {String(m.exp_month).padStart(2, "0")}/{m.exp_year}</div>
+                    <p className="text-xs text-hc-ink-3">{tv("comp.bill.expires", "Gildir til {{date}}", { date: `${String(m.exp_month).padStart(2, "0")}/${m.exp_year}` })}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {!m.is_default && (
-                    <button onClick={() => setDefault(m.id)} disabled={actionId === m.id} className="text-xs font-medium text-[#10B981] hover:underline disabled:opacity-50">
+                    <button type="button" onClick={() => setDefault(m.id)} disabled={actionId === m.id} className={linkBtn}>
                       {t("comp.bill.makeprimary", "Gera að aðalkorti")}
                     </button>
                   )}
-                  <button onClick={() => removeMethod(m.id)} disabled={actionId === m.id} className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50">
+                  <button type="button" onClick={() => removeMethod(m.id)} disabled={actionId === m.id} className="text-xs font-semibold text-red-700 hover:underline disabled:opacity-50">
                     {t("comp.bill.remove", "Fjarlægja")}
                   </button>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </section>
+      </SectionCard>
 
       {/* Payment history */}
-      <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[#1F2937]">{t("comp.bill.history", "Greiðslusaga")}</h2>
-          {!showAllPayments && payments.length > 5 && (
-            <button onClick={() => setShowAllPayments(true)} className="text-sm font-medium text-[#10B981] hover:underline">
-              {t("comp.bill.seeall", "Sjá allt")}
-            </button>
-          )}
-        </div>
-        {loading ? (
-          <div className="animate-pulse space-y-2" aria-busy="true"><div className="h-12 rounded-xl bg-gray-200/70" /><div className="h-12 rounded-xl bg-gray-200/50" /></div>
-        ) : payments.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-6 text-center text-sm text-gray-600">
-            {t("comp.bill.empty", "Greiðslur birtast hér eftir fyrstu færslu.")}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
+      <SectionCard icon={Receipt} title={t("comp.bill.history", "Greiðslusaga")}
+        action={!showAllPayments && payments.length > 5 ? <Button size="sm" variant="ghost" onClick={() => setShowAllPayments(true)}>{t("comp.bill.seeall", "Sjá allt")}</Button> : undefined}>
+        {loading ? skeleton : payments.length === 0 ? empty(t("comp.bill.empty", "Greiðslur birtast hér eftir fyrstu færslu.")) : (
+          <div className="-mx-1 overflow-x-auto px-1">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[#6B7280] border-b border-gray-100">
-                  <th className="pb-3 font-medium">{t("acct.q.date", "Dagsetning")}</th>
-                  <th className="pb-3 font-medium">{t("comp.bill.description", "Lýsing")}</th>
-                  <th className="pb-3 font-medium text-right">{t("comp.bill.amount", "Upphæð")}</th>
-                  <th className="pb-3 font-medium text-right">{t("comp.bill.status", "Staða")}</th>
+                <tr className="border-b border-hc-hairline text-left text-hc-ink-3">
+                  <th scope="col" className="pb-3 font-medium">{t("acct.q.date", "Dagsetning")}</th>
+                  <th scope="col" className="pb-3 font-medium">{t("comp.bill.description", "Lýsing")}</th>
+                  <th scope="col" className="pb-3 text-right font-medium">{t("comp.bill.amount", "Upphæð")}</th>
+                  <th scope="col" className="pb-3 text-right font-medium">{t("comp.bill.status", "Staða")}</th>
                 </tr>
               </thead>
               <tbody>
                 {visiblePayments.map((p) => (
-                  <tr key={p.id} className="border-b border-gray-50 last:border-0">
-                    <td className="py-3 text-[#1F2937] whitespace-nowrap">
-                      {new Date(p.paid_at || p.created_at).toLocaleDateString("is-IS")}
-                    </td>
-                    <td className="py-3 text-[#1F2937]">
+                  <tr key={p.id} className="border-b border-hc-hairline last:border-0">
+                    <td className="whitespace-nowrap py-3 text-hc-ink">{fmtNumericDate(p.paid_at || p.created_at)}</td>
+                    <td className="py-3 text-hc-ink">
                       {p.description}
-                      {p.provider_reference && <div className="text-[10px] text-gray-400 font-mono">{p.provider_reference}</div>}
+                      {p.provider_reference && <div className="font-mono text-[11px] text-hc-ink-3">{p.provider_reference}</div>}
                     </td>
-                    <td className="py-3 text-[#1F2937] font-medium text-right whitespace-nowrap">
-                      {p.amount_isk.toLocaleString("is-IS")} {p.currency}
+                    <td className="whitespace-nowrap py-3 text-right font-medium text-hc-ink">
+                      {p.currency === "ISK" ? fmtIsk(p.amount_isk) : `${p.amount_isk.toLocaleString("is-IS")} ${p.currency}`}
                     </td>
-                    <td className="py-3 text-right whitespace-nowrap">
+                    <td className="whitespace-nowrap py-3 text-right">
                       {statusPill(p.status)}
                       {p.pdf_url ? (
-                        <a href={p.pdf_url} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-[#10B981] hover:underline">PDF</a>
+                        <a href={p.pdf_url} target="_blank" rel="noopener noreferrer" className={`ml-2 ${linkBtn}`}>PDF</a>
                       ) : p.related_type === "body_comp_booking" && p.related_id && p.status !== "pending" && p.amount_isk > 0 ? (
                         <button
                           type="button"
@@ -264,9 +240,9 @@ export default function BillingPanel({
                             }
                           }}
                           disabled={actionId === p.id}
-                          className="ml-2 text-xs text-[#10B981] hover:underline disabled:opacity-60"
+                          className={`ml-2 ${linkBtn}`}
                         >
-                          {actionId === p.id ? "…" : "Sækja kvittun"}
+                          {actionId === p.id ? "…" : t("comp.bill.receipt", "Sækja kvittun")}
                         </button>
                       ) : null}
                     </td>
@@ -276,7 +252,7 @@ export default function BillingPanel({
             </table>
           </div>
         )}
-      </section>
+      </SectionCard>
     </div>
   );
 }

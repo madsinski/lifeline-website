@@ -13,6 +13,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
+import { FileText } from "lucide-react";
+import { Alert, Button, accountInset, fmtDate, useDialog } from "@/app/components/account/ui";
 
 interface AcceptanceRow {
   id: string;
@@ -35,7 +37,8 @@ const DOC_TITLE_IS = (t: (k: string, f?: string) => string): Record<string, stri
 );
 
 export default function SignedDocumentsList() {
-  const { t, tv } = useI18n();
+  const { t, tv, locale } = useI18n();
+  const { alert } = useDialog();
   const [rows, setRows] = useState<AcceptanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +49,7 @@ export default function SignedDocumentsList() {
     setError(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setError(t("acct.docs.notsignedin", "Ekki innskráð/-ur.")); return; }
+      if (!user) { setError("not_signed_in"); return; }
       const { data, error: qErr } = await supabase
         .from("platform_agreement_acceptances")
         .select("id, document_key, document_version, accepted_at, pdf_storage_path, text_hash")
@@ -72,8 +75,8 @@ export default function SignedDocumentsList() {
         .from("platform-acceptance-pdfs")
         .createSignedUrl(row.pdf_storage_path, 300);
       if (signErr || !data?.signedUrl) {
-        alert(tv("acct.docs.pdffail", "Tókst ekki að sækja PDF: {{err}}",
-          { err: signErr?.message || t("acct.docs.nourl", "engin slóð") }));
+        await alert({ title: tv("acct.docs.pdffail", "Tókst ekki að sækja PDF: {{err}}",
+          { err: signErr?.message || t("acct.docs.nourl", "engin slóð") }) });
         return;
       }
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
@@ -85,17 +88,17 @@ export default function SignedDocumentsList() {
   if (loading) {
     return (
       <div className="animate-pulse space-y-2" aria-busy="true" aria-label={t("acct.docs.loading", "Hleð skjölum")}>
-        <div className="h-10 rounded-xl bg-gray-200/70" />
-        <div className="h-10 rounded-xl bg-gray-200/50" />
+        <div className="h-12 rounded-hc-element bg-hc-sunken-2" />
+        <div className="h-12 rounded-hc-element bg-hc-sunken" />
       </div>
     );
   }
   if (error) {
-    return <p className="text-sm text-red-600">{error}</p>;
+    return <Alert tone="bad" compact>{error === "not_signed_in" ? t("acct.docs.notsignedin", "Ekki innskráð/-ur.") : error}</Alert>;
   }
   if (rows.length === 0) {
     return (
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-hc-ink-3">
         {t("acct.docs.empty", "Engin undirrituð skjöl. Þú hefur ekki samþykkt nein skjöl á þessum aðgangi enn þá.")}
       </p>
     );
@@ -106,27 +109,21 @@ export default function SignedDocumentsList() {
       {rows.map((r) => {
         const title = DOC_TITLE_IS(t)[r.document_key] || r.document_key;
         return (
-          <div
-            key={r.id}
-            className="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50/50"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-[#1F2937] truncate">{title}</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">
+          <div key={r.id} className={`${accountInset} flex items-center justify-between gap-3 p-3`}>
+            <FileText className="h-5 w-5 shrink-0 text-hc-ink-3" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-hc-ink">{title}</p>
+              <p className="mt-0.5 text-xs text-hc-ink-3">
                 {t("acct.docs.version", "Útgáfa")} <span className="font-mono">{r.document_version}</span>
                 {" · "}
-                Samþykkt {new Date(r.accepted_at).toLocaleDateString("is-IS", { day: "numeric", month: "long", year: "numeric" })}
+                {tv("acct.docs.accepted", "Samþykkt {{date}}", { date: fmtDate(r.accepted_at, {}, locale) })}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => downloadPdf(r)}
-              disabled={!r.pdf_storage_path || downloadingId === r.id}
-              title={!r.pdf_storage_path ? t("acct.docs.nopdf", "PDF ekki tilbúið") : t("acct.docs.getpdf", "Sækja PDF")}
-              className="text-xs font-medium px-3 py-1.5 rounded-md bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-            >
-              {downloadingId === r.id ? t("acct.docs.fetching", "Sæki…") : r.pdf_storage_path ? t("acct.docs.getpdf", "Sækja PDF") : "PDF vantar"}
-            </button>
+            <Button size="sm" variant="secondary" onClick={() => downloadPdf(r)}
+              disabled={!r.pdf_storage_path} busy={downloadingId === r.id}
+              title={!r.pdf_storage_path ? t("acct.docs.nopdf", "PDF ekki tilbúið") : t("acct.docs.getpdf", "Sækja PDF")}>
+              {r.pdf_storage_path ? t("acct.docs.getpdf", "Sækja PDF") : t("acct.docs.missing", "PDF vantar")}
+            </Button>
           </div>
         );
       })}
