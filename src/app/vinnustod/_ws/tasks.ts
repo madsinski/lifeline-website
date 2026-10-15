@@ -80,7 +80,7 @@ export type WsTab = (typeof WS_TABS)[number];
 export const SHEETS = ["interview", "referral", "orders", "messages", "history"] as const;
 export type SheetKey = (typeof SHEETS)[number];
 
-export type PatientNav = { tab?: WsTab; sheet?: SheetKey | null; focus?: "chat" | null };
+export type PatientNav = { tab?: WsTab; sheet?: SheetKey | null; focus?: "chat" | "requests" | null };
 export type View = { home: HomeTab } | ({ patient: string } & PatientNav);
 
 /** How a client is opened from anywhere on the home side. */

@@ -172,3 +172,60 @@ export function needsDoctor(kind: RequestKind, topic?: string | null): string | 
   }
   return null;
 }
+
+/**
+ * The ready-made way to answer each kind, in the workstation.
+ *
+ * `action` is the thing that actually resolves the request (book the
+ * measurement, send it to a doctor, change the plan); the templates are the
+ * reply the participant reads afterwards. A coach can edit any template
+ * before sending — they are a starting point, not a form letter.
+ */
+export type RequestAction = "book-measurement" | "book-video" | "referral" | "plan";
+
+export const REQUEST_RESPONSES: Record<RequestKind, {
+  action?: { key: RequestAction; label: string };
+  templates: { label: string; text: string }[];
+}> = {
+  help: {
+    templates: [
+      { label: "Svarað í samtalinu", text: "Takk fyrir spurninguna! Ég svaraði þér í samtalinu í appinu." },
+      { label: "Svar kemur", text: "Takk fyrir spurninguna. Ég skoða þetta og svara þér á næsta þjónustudegi." },
+    ],
+  },
+  medical: {
+    action: { key: "referral", label: "Senda til læknis" },
+    templates: [
+      { label: "Sent til læknis", text: "Takk. Ég hef sent þetta til læknis, sem svarar þér eins fljótt og hægt er." },
+      { label: "Bráð einkenni", text: "Ef einkennin eru bráð eða versna skaltu hringja í 112 eða hafa samband við heilsugæsluna." },
+    ],
+  },
+  appointment: {
+    action: { key: "book-video", label: "Bóka viðtal" },
+    templates: [
+      { label: "Viðtal bókað", text: "Viðtalið er bókað. Þú sérð tímann í heilsuferðinni og færð áminningu." },
+      { label: "Hvenær hentar?", text: "Takk! Hvaða dagar og tímar henta þér best?" },
+    ],
+  },
+  measurement: {
+    action: { key: "book-measurement", label: "Bóka mælingu" },
+    templates: [
+      { label: "Mæling bókuð", text: "Mælingin er bókuð. Þú sérð tímann í heilsuferðinni og færð áminningu." },
+      { label: "Hvenær hentar?", text: "Takk! Hvaða dagar henta þér best fyrir mælingu?" },
+    ],
+  },
+  program: {
+    action: { key: "plan", label: "Opna áætlunina" },
+    templates: [
+      { label: "Áætlun aðlöguð", text: "Takk fyrir að láta vita. Ég hef aðlagað áætlunina. Kíktu á hana í appinu." },
+      { label: "Nánari upplýsingar", text: "Takk fyrir að láta vita. Hvað myndi henta betur, til dæmis færri æfingar eða aðrir dagar?" },
+    ],
+  },
+  injury: {
+    action: { key: "plan", label: "Aðlaga æfingar" },
+    templates: [
+      { label: "Æfingar aðlagaðar", text: "Leitt að heyra. Ég hef aðlagað æfingarnar svo þú hlífir svæðinu. Ef verkurinn versnar eða lagast ekki á nokkrum dögum skaltu leita til heilsugæslunnar." },
+      { label: "Nánari lýsing", text: "Leitt að heyra. Geturðu lýst betur hvar verkurinn er og hvort hann versnar við hreyfingu?" },
+    ],
+  },
+};

@@ -14,7 +14,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, ChevronRight, Loader2 } from "lucide-react";
-import { REQUEST_IS, STATUS_IS, requestSummary, type RequestKind } from "@/lib/hc/requests";
+import { REQUEST_IS, REQUEST_RESPONSES, STATUS_IS, requestSummary, type RequestAction, type RequestKind } from "@/lib/hc/requests";
 import { hcBtn } from "./ui";
 import { useToast } from "./Toast";
 
@@ -49,10 +49,16 @@ const input = "w-full rounded-hc-element border border-hc-control bg-hc-surface 
  * One request, as a list row: who, what, and "Svara" — the one action,
  * which opens the reply in place. The name opens the client.
  */
-export function RequestRow({ api, r, onOpen, onDone, dot }: {
+export function RequestRow({ api, r, onOpen, onDone, dot, onAction, prefill }: {
   api: Api;
   r: WsRequest;
   onOpen?: (journeyId: string) => void;
+  /** The kind's ready-made action (book, refer, open the plan). Left out
+      where the row can't act on the client (then only templates show). */
+  onAction?: (r: WsRequest, action: RequestAction) => void;
+  /** A reply written for the coach elsewhere — e.g. after the booking the
+      action led to. Opens the row with it filled in. */
+  prefill?: { text: string; key: number } | null;
   /** After a reply is saved, so the caller can reload its list. */
   onDone: () => void;
   /** A leading dot, so the row lines up with the rows around it. */
@@ -64,6 +70,18 @@ export function RequestRow({ api, r, onOpen, onDone, dot }: {
   const [err, setErr] = useState("");
   const [sending, setSending] = useState<string | null>(null);
   const toast = useToast();
+  const spec = REQUEST_RESPONSES[r.kind];
+
+  /* A new prefill (the booking just made) opens the row with the reply in
+     it, so the coach only has to read it and press Svara og loka. Adjusting
+     state from a changed prop during render, the pattern React documents
+     for this, rather than an effect. */
+  const [seen, setSeen] = useState<number | null>(null);
+  if (prefill && prefill.key !== seen) {
+    setSeen(prefill.key);
+    setOpen(true);
+    setReply(prefill.text);
+  }
 
   const send = async (status: string) => {
     if (busy) return;
@@ -96,6 +114,11 @@ export function RequestRow({ api, r, onOpen, onDone, dot }: {
             <span>beið í {waited(r.created_at)} · {STATUS_IS[r.status]}</span>
           </span>
         </button>
+        {spec.action && onAction && (
+          <button type="button" onClick={() => onAction(r, spec.action!.key)} className={tall(hcBtn.primary)}>
+            {spec.action.label}
+          </button>
+        )}
         {!open && (
           <button type="button" onClick={() => { setOpen(true); setReply(r.reply ?? ""); }}
             className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-hc-brand/40 bg-hc-surface px-4 text-sm font-semibold text-hc-brand-text transition hover:bg-hc-brand-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
@@ -107,6 +130,14 @@ export function RequestRow({ api, r, onOpen, onDone, dot }: {
 
       {open && (
         <div className="mt-2 space-y-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Tilbúin svör">
+            {spec.templates.map((t) => (
+              <button key={t.label} type="button" onClick={() => setReply(t.text)}
+                className="inline-flex min-h-11 items-center rounded-full border border-hc-border bg-hc-surface px-3.5 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
+                {t.label}
+              </button>
+            ))}
+          </div>
           <label className="sr-only" htmlFor={`req-${r.id}`}>Svar til {r.name ?? "skjólstæðings"}</label>
           <textarea id={`req-${r.id}`} value={reply} onChange={(e) => setReply(e.target.value)} rows={3} maxLength={4000} autoFocus
             className={input} placeholder="Svar sem skjólstæðingurinn sér í heilsuferðinni sinni…" />
