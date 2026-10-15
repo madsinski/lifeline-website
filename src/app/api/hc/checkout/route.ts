@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
    * without it; the server records what it was sent.
    */
   const waiver = b.withdrawal_waiver === true
-    ? { withdrawal_waiver: true, withdrawal_waiver_at: typeof b.withdrawal_waiver_at === "string" ? b.withdrawal_waiver_at : null, withdrawal_waiver_recorded_at: new Date().toISOString() }
+    ? { withdrawal_waiver: true, withdrawal_waiver_recorded_at: new Date().toISOString() }
     : { withdrawal_waiver: false };
 
   const pkg = await loadPackage(String(b.package_key || ""));

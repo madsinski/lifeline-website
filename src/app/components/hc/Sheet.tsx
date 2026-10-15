@@ -75,6 +75,10 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
    * æfingunni?" instead of closing on a stray tap. It has to be asked here
    * rather than in onClose, because by the time onClose runs the sheet has
    * already slid away.
+   *
+   * It must be synchronous and return a plain boolean. A Promise is truthy,
+   * so an async confirm would always close; to ask, return false and open
+   * your own confirm (as the workout runner does), then call onClose from it.
    */
   confirmClose?: () => boolean;
 }) {

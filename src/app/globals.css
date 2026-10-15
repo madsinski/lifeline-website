@@ -84,6 +84,11 @@ body.hc-scroll-lock {
      top bar, so it is just the notch inset (needs viewport-fit=cover); the
      workstation sets it below its own sticky WsHeader (.hc-ws-scope rule). */
   --hc-sticky-top: env(safe-area-inset-top, 0px);
+  /* The marketing/account site header (Navbar): its h-[4.5rem] row plus the
+     notch inset it pads itself by. Anything that pins or scrolls to just
+     below it (AccountShell's section strip, the mobile menu, scroll-mt on
+     anchored sections) reads this rather than repeating 4.5rem. */
+  --hc-site-nav-h: calc(4.5rem + env(safe-area-inset-top, 0px));
 
   --background: #ecf0f3;
   --foreground: #1F2937;

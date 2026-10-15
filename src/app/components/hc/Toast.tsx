@@ -39,8 +39,8 @@ interface ToastItem extends ToastOptions {
 const ToastContext = createContext<ToastApi | null>(null);
 
 const FALLBACK: ToastApi = {
-  show: (msg) => {
-    console.warn("[toast] no ToastProvider mounted:", msg);
+  show: () => {
+    console.warn("[toast] no ToastProvider mounted");
   },
 };
 
@@ -78,40 +78,50 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      {/* The live region is always mounted so screen readers announce the
-          first toast too; only its content changes. */}
+      {/* Both live regions are always mounted so screen readers announce the
+          first toast too; only their content changes. A failure goes to the
+          assertive alert region, everything else to the polite status one. */}
       <div
-        aria-live="polite"
-        role="status"
-        className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4"
+        className="pointer-events-none fixed inset-x-0 z-[60] flex flex-col items-center px-4"
         style={{
           bottom: keyboard.open
             ? `calc(${keyboard.inset}px + 12px)`
             : "calc(var(--hc-dock-offset) + 12px)",
         }}>
-        {item && (
-          <div
-            key={item.id}
-            className={`pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-hc-element px-4 py-2 text-sm font-medium text-white shadow-hc-raised ${
-              item.tone === "bad" ? "bg-hc-bad-ink" : "bg-hc-ink"
-            }`}>
-            <p className="min-w-0 flex-1 py-1.5">{item.msg}</p>
-            {item.action && (
-              <button
-                type="button"
-                onClick={() => {
-                  const a = item.action;
-                  dismiss();
-                  a?.onClick();
-                }}
-                className="min-h-11 shrink-0 rounded-hc-element px-3 font-semibold text-white underline underline-offset-2 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
-                {item.action.label}
-              </button>
-            )}
-          </div>
-        )}
+        <div role="status" aria-live="polite" className="flex w-full max-w-md justify-center">
+          {item && item.tone !== "bad" && <ToastCard key={item.id} item={item} dismiss={dismiss} />}
+        </div>
+        <div role="alert" aria-live="assertive" aria-atomic="true" className="flex w-full max-w-md justify-center">
+          {item && item.tone === "bad" && <ToastCard key={item.id} item={item} dismiss={dismiss} />}
+        </div>
       </div>
     </ToastContext.Provider>
+  );
+}
+
+function ToastCard({ item, dismiss }: { item: ToastItem; dismiss: () => void }) {
+  const bad = item.tone === "bad";
+  return (
+    <div
+      className={`pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-hc-element px-4 py-2 text-sm font-medium text-white shadow-hc-raised ${
+        bad ? "bg-hc-bad-ink" : "bg-hc-ink"
+      }`}>
+      <p className="min-w-0 flex-1 py-1.5">{item.msg}</p>
+      {item.action && (
+        <button
+          type="button"
+          onClick={() => {
+            const a = item.action;
+            dismiss();
+            a?.onClick();
+          }}
+          className={`min-h-11 shrink-0 rounded-hc-element px-3 font-semibold text-white underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+            bad ? "hover:bg-white/20" : "hover:bg-white/10"
+          }`}>
+          {item.action.label}
+        </button>
+      )}
+    </div>
   );
 }
 

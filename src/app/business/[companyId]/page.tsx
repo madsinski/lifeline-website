@@ -580,7 +580,7 @@ export default function BusinessDashboardPage() {
           </div>
         )}
 
-        <div id="setup" className="scroll-mt-24" />
+        <div id="setup" className="scroll-mt-[calc(var(--hc-site-nav-h)+1.5rem)]" />
         {/* STEP 1 — Sign service agreement + purchase order. This MUST be
             first: the invite API refuses to send until the platform
             agreement is signed, so signing before the roster step avoids
@@ -1083,7 +1083,7 @@ export default function BusinessDashboardPage() {
           </section>
         )}
 
-        <div id="billing" className="scroll-mt-24" />
+        <div id="billing" className="scroll-mt-[calc(var(--hc-site-nav-h)+1.5rem)]" />
         {/* Billing card — PayDay invoices specific to this company's programme */}
         {company.agreement_signed_at && members.length > 0 && (
           <HcCodesCard companyId={companyId!} members={members} />
@@ -1092,7 +1092,7 @@ export default function BusinessDashboardPage() {
 
         {/* Payment methods removed — companies are invoiced via PayDay, not billed via card */}
 
-        <div id="insights" className="scroll-mt-24" />
+        <div id="insights" className="scroll-mt-[calc(var(--hc-site-nav-h)+1.5rem)]" />
         <InsightsCard companyId={companyId!} />
         </div>{/* end content */}
       </main>

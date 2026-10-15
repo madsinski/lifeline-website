@@ -115,7 +115,7 @@ function useDayMealsState(enabled: boolean): DayMealsApi {
       setRows((r) => [...(r ?? []).filter((x) => x.action_key !== slot), { ...row, id: ins.id as string }]);
       return true;
     } catch (e) {
-      console.error("[meal_log]", e);
+      console.error("[meal_log] save failed", (e as { code?: string } | null)?.code ?? "");
       toast.show(SAVE_FAILED, { tone: "bad" });
       return false;
     }

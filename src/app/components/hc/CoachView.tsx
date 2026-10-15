@@ -92,8 +92,12 @@ type RoleForms = (typeof ROLE_FORMS)[string];
 const formsFor = (role: string | null | undefined, track: "care" | "app" | undefined): RoleForms =>
   ROLE_FORMS[role ?? ""] ?? (track === "care" ? ROLE_FORMS.nurse : ROLE_FORMS.coach);
 
-/** On a phone Enter is a new line; on a keyboard it sends. */
-const coarsePointer = () => typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+/**
+ * On a phone Enter is a new line; on a keyboard it sends. "No input can
+ * hover" rather than "the pointer is coarse": a touch laptop or an iPad
+ * with a trackpad reports a coarse primary pointer but has a real keyboard.
+ */
+const touchOnly = () => typeof window !== "undefined" && !!window.matchMedia?.("(any-hover: none)").matches;
 
 /**
  * The measurements, each with what it costs in minutes.
@@ -386,7 +390,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
             ? <img src={c.photo_url} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-white/40" />
             : <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-hc-surface/15 ring-2 ring-white/30"><UserRound className="h-8 w-8" aria-hidden /></span>}
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/70">{forms.nom} þinn</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/70">{!c && forms === ROLE_FORMS.nurse ? "Tengiliðurinn þinn" : `${forms.nom} þinn`}</p>
             <p className="text-lg font-bold leading-tight">{c?.name ?? "Ekki kominn enn"}</p>
             <p className="text-sm text-white/85">
               {[c?.role ? ROLE_IS[c.role] ?? c.role : null, c?.credentials].filter(Boolean).join(" · ")
@@ -550,7 +554,7 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
                  key sending half a message was the complaint. */
               onKeyDown={(e) => {
                 if (e.key !== "Enter") return;
-                if (e.metaKey || e.ctrlKey || (!e.shiftKey && !coarsePointer())) { e.preventDefault(); void onSend(); }
+                if (e.metaKey || e.ctrlKey || (!e.shiftKey && !touchOnly())) { e.preventDefault(); void onSend(); }
               }}
               placeholder="Skrifaðu skilaboð…" aria-label={`Skilaboð til ${forms.gen}`}
               className={`${hcInput} max-h-28 min-h-11 min-w-0 flex-1 resize-y py-2.5`} />

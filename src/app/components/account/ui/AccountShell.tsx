@@ -44,7 +44,7 @@ export function AccountShell<Id extends string>({ kicker, headerActions, nav, ac
 
       <div id="account-content" className="mx-auto max-w-6xl scroll-mt-4 px-4 pb-24 sm:px-6 lg:px-8">
         {/* Phone: one row of tabs, pinned under the site header. */}
-        <nav aria-label={navLabel} className="sticky top-[4.5rem] z-20 -mx-4 mb-4 border-b border-hc-hairline bg-white/95 px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:hidden">
+        <nav aria-label={navLabel} className="sticky top-[var(--hc-site-nav-h)] z-20 -mx-4 mb-4 border-b border-hc-hairline bg-white/95 px-4 py-2 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:hidden">
           <ul className="grid grid-cols-5 gap-1">
             {nav.map((item) => {
               const on = item.id === active;

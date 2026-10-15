@@ -1177,7 +1177,7 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
               {union.rules_summary && <p className="text-xs text-hc-ink-3">{union.rules_summary}</p>}
               {union.settlement === "direct" ? (
                 <label className="mt-2 flex items-start gap-2 text-xs text-hc-ink-2">
-                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5" />
+                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#047857]" />
                   Ég staðfesti aðild mína að {union.name} og heimila Lifeline Health að innheimta styrkinn beint hjá félaginu. Félagið fær nafn, kennitölu og lýsingu þjónustunnar, engar heilsufarsupplýsingar.
                 </label>
               ) : (
@@ -1205,11 +1205,11 @@ function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]
       </div>
 
       <label className="flex items-start gap-2 text-sm text-hc-ink-2">
-        <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5" />
+        <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#047857]" />
         <span>Ég samþykki <a href="/soluskilmalar" target="_blank" rel="noopener noreferrer" className="underline">söluskilmála</a> Lifeline Health.</span>
       </label>
       <label className="flex items-start gap-2 text-sm text-hc-ink-2">
-        <input type="checkbox" checked={waiver} onChange={(e) => setWaiver(e.target.checked)} className="mt-0.5" />
+        <input type="checkbox" checked={waiver} onChange={(e) => setWaiver(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#047857]" />
         <span>{WITHDRAWAL_WAIVER_LABEL}</span>
       </label>
       {info.eligibility_error && <p className="text-sm text-hc-warn-ink">{info.eligibility_error}</p>}

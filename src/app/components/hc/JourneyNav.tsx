@@ -182,7 +182,7 @@ export default function JourneyNav({ active, counts, onSelect }: {
     const badge = i.count && i.count > 0
       ? <span className={`${badgeClass("count")} absolute -right-2.5 -top-1.5 ring-2 ring-hc-surface`} aria-hidden>{i.count > 9 ? "9+" : i.count}</span>
       : i.dot ? <span className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full bg-hc-bad-ink ring-2 ring-hc-surface" aria-hidden /> : null;
-    const sr = i.count && i.count > 0 ? `, ${i.count} ólesin` : i.dot ? ", nýtt" : "";
+    const sr = i.count && i.count > 0 ? `, ${i.count} ólesin skilaboð` : i.dot ? ", nýjar tilkynningar" : "";
     return (
       <Link key={i.key} href={i.href} aria-current={current ? "page" : undefined}
         onClick={(e) => { if (onSelect?.(i.key)) e.preventDefault(); }}

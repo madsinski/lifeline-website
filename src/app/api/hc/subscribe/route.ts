@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
     tier: PAID_TIER, price: p.price_isk, charged: chargeIsk,
     code: discount?.ok ? discount.code?.code : null, months_free: monthsFree,
     withdrawal_waiver: body?.withdrawal_waiver === true,
-    withdrawal_waiver_at: body?.withdrawal_waiver === true && typeof body?.withdrawal_waiver_at === "string" ? body.withdrawal_waiver_at : null,
+    withdrawal_waiver_at: body?.withdrawal_waiver === true ? new Date().toISOString() : null,
     withdrawal_waiver_recorded_at: body?.withdrawal_waiver === true ? new Date().toISOString() : null,
   });
   return NextResponse.json({ ok: true, subscription: sub, charged_isk: chargeIsk, months_free: monthsFree });

@@ -72,12 +72,16 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
   /*
    * Sets logged in this run. A stray tap on the close button used to drop
    * the whole session without a word — the sets were stored, but the
-   * workout was never marked done. With sets on the board, closing asks.
+   * workout was never marked done. Once the workout is under way — sets on
+   * the board, moved past the first exercise, or a minute on the clock (a
+   * timed interval or HIIT round logs no sets) — closing asks.
    */
   const [logged, setLogged] = useState(0);
   const [confirmQuit, setConfirmQuit] = useState(false);
   const askBeforeClose = () => {
-    if (logged === 0) return true;
+    const ranMs = startedAt.current ? Date.now() - startedAt.current : 0;
+    const underway = logged > 0 || idx > 0 || ranMs >= 60_000;
+    if (!underway) return true;
     setConfirmQuit(true);
     return false;
   };
@@ -101,7 +105,9 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
   const quitSheet = confirmQuit && (
     <Sheet title="Hætta æfingunni?" onClose={() => setConfirmQuit(false)}>
       <div className="space-y-2 p-4">
-        <p className="text-sm text-hc-ink-2">Settin eru vistuð.</p>
+        <p className="text-sm text-hc-ink-2">
+          {logged > 0 ? "Settin eru vistuð." : "Engin sett hafa verið skráð."}
+        </p>
         <button type="button" data-autofocus
           onClick={() => {
             setConfirmQuit(false);
@@ -114,7 +120,7 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
         <button type="button" onClick={() => setConfirmQuit(false)} className={`${hcBtn.secondary} w-full`}>
           Halda áfram
         </button>
-        <button type="button" onClick={() => { setConfirmQuit(false); onClose(); }} className={`${hcBtn.ghost} w-full text-red-700`}>
+        <button type="button" onClick={() => { setConfirmQuit(false); onClose(); }} className={`${hcBtn.ghost} w-full text-hc-bad-ink`}>
           Hætta
         </button>
       </div>

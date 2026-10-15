@@ -171,7 +171,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
             </p>
             <button type="button" data-autofocus
               onClick={() => { const sl = confirmDel; setConfirmDel(null); void toggle(sl, true); }}
-              className={`${hcBtn.base} w-full bg-red-700 text-white hover:bg-red-800`}>
+              className={`${hcBtn.base} w-full bg-hc-bad-ink text-white hover:opacity-90`}>
               Eyða máltíðinni
             </button>
             <button type="button" onClick={() => setConfirmDel(null)} className={`${hcBtn.secondary} w-full`}>
@@ -270,13 +270,15 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                     <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
                       aria-pressed={done}
                       className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition ${
-                        done ? "bg-hc-ok-surface ring-2 ring-emerald-500" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`}>
+                        done ? "bg-hc-ok-surface ring-2 ring-hc-brand-dark" : "bg-hc-surface ring-hc-hairline hover:ring-hc-control"}`}>
                       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${
                         done ? "border-transparent bg-hc-brand-dark text-white" : "border-hc-hairline text-transparent"}`}>
                         {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-hc-ink-2" /> : <Check className="h-5 w-5" strokeWidth={3} />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-semibold uppercase tracking-wide text-hc-ink-2">{SLOT_IS[slot]}</span>
+                        <span className="block text-xs font-semibold uppercase tracking-wide text-hc-ink-2">
+                          {SLOT_IS[slot]}{shown.described && <span className="normal-case tracking-normal font-medium"> · skráð í staðinn</span>}
+                        </span>
                         <span className={`block truncate font-semibold ${done ? "text-hc-ok-ink" : "text-hc-ink"}`}>{shown.name}</span>
                       </span>
                       <span className="shrink-0 text-right text-xs text-hc-ink-2">
@@ -311,7 +313,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
         const done = !!logged;
         const described = !!logged && logged.source !== "planned";
         return (
-          <>
+          <div className="space-y-3">
           {/* Logged as something else: say what, so the card is not
               claiming the planned meal was eaten. */}
           {described && (
@@ -321,7 +323,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
             aria-pressed={done}
             className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold transition disabled:opacity-60 ${
               done
-                ? "bg-hc-ok-surface text-hc-ok-ink ring-2 ring-emerald-500"
+                ? "bg-hc-ok-surface text-hc-ok-ink ring-2 ring-hc-brand-dark"
                 : "bg-lime-700 text-white hover:bg-lime-800"}`}>
             {busy === slot
               ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
@@ -332,7 +334,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                 checklist rows do it. */}
             Ég borðaði þetta
           </button>
-          </>
+          </div>
         );
       })()}
     </div>

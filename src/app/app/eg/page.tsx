@@ -37,7 +37,7 @@ function Row({ href, Icon, title, body, count }: {
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2 font-semibold text-hc-ink">
             {title}
-            {!!count && <span className={badgeClass("count")}>{count > 9 ? "9+" : count}<span className="sr-only"> ný</span></span>}
+            {!!count && <span className={badgeClass("count")}>{count > 9 ? "9+" : count}<span className="sr-only"> {count === 1 ? "ný tilkynning" : "nýjar tilkynningar"}</span></span>}
           </span>
           <span className="mt-0.5 block text-sm leading-snug text-hc-ink-2">{body}</span>
         </span>
@@ -78,8 +78,8 @@ function Eg() {
         <JourneyHeader />
         <div className="sm:mb-4"><JourneyNav active="me" /></div>
 
-        <PageHero kicker="Heilsuferðin" title={name ? name.split(" ")[0] : "Ég"}
-          body="Skýrslan þín, ferðin í heild, fræðslan og stillingarnar." />
+        <PageHero kicker="Heilsuferðin" title="Ég"
+          body={`${name ? `Hæ ${name.split(" ")[0]}. ` : ""}Skýrslan þín, ferðin í heild, fræðslan og stillingarnar.`} />
 
         {!ready ? (
           <div className="h-80 rounded-hc-card hc-shimmer" aria-busy="true" aria-label="Hleð" />
