@@ -100,7 +100,9 @@ function addMonths(d: Date, n: number) { const x = new Date(d); x.setMonth(x.get
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
+  // Fail closed: this cron can charge cards, so a missing secret must not
+  // turn it into a public endpoint.
+  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

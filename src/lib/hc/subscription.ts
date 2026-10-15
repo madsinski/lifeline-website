@@ -55,7 +55,7 @@ export const TRIAL_TIER = "free-trial";
  * the day the change was written; if it ships much later, move it to the
  * deploy date so plans made in between are covered too.
  */
-const SELF_PLAN_GRACE_BEFORE = Date.parse("2026-10-16T00:00:00Z");
+const SELF_PLAN_GRACE_BEFORE = Date.parse("2026-10-20T00:00:00Z");
 
 /** Tiers that mean somebody is paying. */
 export const PAID_TIERS = new Set(["premium", "self-maintained"]);

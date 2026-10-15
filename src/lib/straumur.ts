@@ -68,8 +68,17 @@ export type SaveStraumurMethodResult =
  */
 export const STRAUMUR_CARDS_LIVE = false;
 
+/**
+ * True while saveStraumurPaymentMethod and chargeSavedStraumurMethod are the
+ * stubs below. Both refuse to run while this is true, whatever
+ * STRAUMUR_CARDS_LIVE says — flipping only the live flag would otherwise save
+ * invented cards and record "succeeded" charges with no money moved. Set to
+ * false in the same change that replaces both bodies with real Straumur calls.
+ */
+export const STRAUMUR_CARD_STUBS = true;
+
 export async function saveStraumurPaymentMethod(): Promise<SaveStraumurMethodResult> {
-  if (!STRAUMUR_CARDS_LIVE) return { ok: false, error: "Kortaskráning opnar fljótlega." };
+  if (!STRAUMUR_CARDS_LIVE || STRAUMUR_CARD_STUBS) return { ok: false, error: "Kortaskráning opnar fljótlega." };
   await new Promise((r) => setTimeout(r, 700));
   const brands = ["Visa", "Mastercard", "AMEX"];
   const brand = brands[Math.floor(Math.random() * brands.length)];
@@ -93,6 +102,7 @@ export async function chargeSavedStraumurMethod(args: {
   reference: string;
   description: string;
 }): Promise<StraumurChargeResult> {
+  if (STRAUMUR_CARD_STUBS) return { ok: false, error: "Greiðslur með vistuðu korti eru ekki komnar í gagnið." };
   await new Promise((r) => setTimeout(r, 600));
   return {
     ok: true,
