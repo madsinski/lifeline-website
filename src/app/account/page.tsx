@@ -1569,18 +1569,10 @@ function AccountPageInner() {
                 )}
 
 
-                {/* After your assessment — teaser for the coaching app */}
-                <button type="button" onClick={() => { setActiveSection("upgrade"); if (typeof window !== "undefined") { const el = document.getElementById("account-content"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); else window.scrollTo({ top: 0, behavior: "smooth" }); } }}
-                  className="group flex w-full items-center gap-4 rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-md">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white">
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-lg font-bold text-[#1F2937]">Lifeline appið</span>
-                    <span className="block text-sm text-[#6B7280]">Dagleg markþjálfun í svefni, hreyfingu, næringu og andlegri líðan. Væntanlegt.</span>
-                  </span>
-                  <span className="text-[#10B981] transition group-hover:translate-x-1" aria-hidden>→</span>
-                </button>
+                {/* The app teaser that stood here is gone. Step 3 of
+                    "Hvernig Lifeline virkar" at the top of this page says
+                    the same thing in the same words as the front page, and
+                    twice on one screen is once too many. */}
 
                 {/* The privacy nudge, the measurements and the wellness
                     framing all moved: the nudge to Stillingar where its own
@@ -2642,6 +2634,11 @@ function AccountPageInner() {
                   </p>
                   <div className="mt-4"><InstallGuide /></div>
                 </div>
+
+                {/* What is actually in it. This was on Þjálfun, which is the
+                    page about coaching — somebody wanting to know what the
+                    app does had to read about the service to find out. */}
+                <AppFeaturesBlock />
               </section>
             )}
 
@@ -2661,11 +2658,10 @@ function AccountPageInner() {
                   </p>
                 </div>
 
-                {/* Download hero — first since the app isn't live yet */}
-                <DownloadAppHero />
-
-                {/* What's inside the app — shared block (features + pillars) */}
-                <AppFeaturesBlock />
+                {/* What the app contains now lives on Appið, which is
+                    the page about the app. The waitlist card went with it:
+                    it asked for an email address to send a download link,
+                    on a page that already opens the app. */}
               </section>
             )}
 
@@ -3069,49 +3065,68 @@ function NextSteps({ assessmentDone, onGo, t }: {
   onGo: (s: Section) => void;
   t: (k: string, f?: string) => string;
 }) {
-  const steps: { n: number; title: string; desc: string; go: () => void; done?: boolean; icon: string }[] = [
+  /* The same three steps as the front page, in the same shape and the same
+     words — copy lifted verbatim from src/lib/site-content/home.ts in both
+     locales. Somebody who read the front page and then signed in should
+     recognise where they are, and a second, differently worded account of
+     how the service works is how two versions of the truth start.
+
+     One difference, and it is deliberate: here they are buttons. On the
+     front page they explain; on a page you reach by signing in, the step
+     you are on is the thing you came to do. */
+  const steps = [
     {
-      n: 1, title: t("account.steps.1.title", "Farðu í heilsumat"),
-      desc: t("account.steps.1.desc", "Mælingar, blóðprufa og lífsstílsgreining — hjá okkur eða hjá Sameind."),
+      n: 1, color: "#3B82F6",
+      title: t("account.steps.1.title", "Farðu í heilsumat"),
+      desc: t("account.steps.1.desc", "Ljúktu líkamssamsetningarmælingu, blóðprufum og lífsstílsgreiningu á stöðvum okkar eða í gegnum Sameind."),
       go: () => onGo("assessment"), done: assessmentDone,
-      icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z",
+      icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
     },
     {
-      n: 2, title: t("account.steps.2.title", "Fáðu Lifeline appið"),
-      desc: t("account.steps.2.desc", "Daglega áætlunin þín, æfingar og næring — í símanum."),
-      go: () => onGo("app"),
-      icon: "M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z",
+      n: 2, color: "#10B981",
+      title: t("account.steps.2.title", "Fáðu skýrsluna þína"),
+      desc: t("account.steps.2.desc", "Lifeline-læknir fer yfir niðurstöðurnar þínar og hittir þig til að ræða þær og næstu skref."),
+      go: () => onGo("assessment"),
+      icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
     },
     {
-      n: 3, title: t("account.steps.3.title", "Byrjaðu heilsuþjálfun"),
-      desc: t("account.steps.3.desc", "Þjálfari, eftirfylgd og áætlun sem breytist með þér."),
+      n: 3, color: "#8B5CF6",
+      title: t("account.steps.3.title", "Byrjaðu þjálfun"),
+      desc: t("account.steps.3.desc", "Sæktu appið fyrir daglegar aðgerðaáætlanir, æfingakerfi, næringarráðgjöf og eftirfylgni með framförum."),
       go: () => onGo("upgrade"),
       icon: "M13 10V3L4 14h7v7l9-11h-7z",
     },
   ];
   return (
-    <section>
-      <h2 className="mb-2 text-xs font-bold uppercase tracking-[0.08em] text-[#6B7280]">{t("account.steps.title", "Næstu skref")}</h2>
-      <div className="grid gap-3 sm:grid-cols-3">
+    <section className="pb-2">
+      <div className="mx-auto mb-10 max-w-2xl text-center">
+        <h2 className="text-2xl font-bold text-[#1F2937] sm:text-3xl">{t("account.steps.title", "Hvernig Lifeline virkar")}</h2>
+        <p className="mt-3 text-[#6B7280]">{t("account.steps.sub", "Þrjú skref til að umbreyta heilsu þinni")}</p>
+      </div>
+      <div className="relative space-y-8 sm:grid sm:grid-cols-3 sm:gap-12 sm:space-y-0">
+        {/* The connectors only make sense once the tiles sit side by side. */}
+        <div className="absolute left-[30%] top-12 hidden h-0.5 w-[12%] bg-gradient-to-r from-[#EA580C]/40 to-[#84CC16]/40 sm:block" />
+        <div className="absolute left-[58%] top-12 hidden h-0.5 w-[12%] bg-gradient-to-r from-[#84CC16]/40 to-[#767194]/40 sm:block" />
         {steps.map((st) => (
           <button key={st.n} type="button" onClick={st.go}
-            className="group flex flex-col rounded-2xl bg-white p-5 text-left shadow-sm transition hover:shadow-md">
-            <span className="flex items-center gap-2">
-              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                st.done ? "bg-emerald-50 text-[#047857]" : "bg-gray-50 text-[#6B7280]"}`}>
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d={st.icon} />
+            className="group relative flex flex-col items-center rounded-2xl p-2 text-center transition hover:bg-black/[0.02]">
+            <span className="relative mb-6">
+              <span className="flex h-24 w-24 items-center justify-center rounded-3xl shadow-lg transition group-hover:shadow-xl"
+                style={{ backgroundColor: `${st.color}10`, border: `2px solid ${st.color}20` }}>
+                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: st.color }} aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={st.icon} />
                 </svg>
               </span>
-              {st.done ? (
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-[#047857]">{t("account.steps.done", "Lokið")}</span>
-              ) : (
-                <span className="text-xs font-bold text-[#9CA3AF]">{st.n}</span>
-              )}
+              {/* Done replaces the number rather than sitting next to it —
+                  the step count stops mattering once a step is behind you. */}
+              <span className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white shadow-md"
+                style={{ backgroundColor: st.done ? "#047857" : st.color }}>
+                {st.done ? "✓" : st.n}
+              </span>
             </span>
-            <span className="mt-3 block font-bold text-[#1F2937]">{st.title}</span>
-            <span className="mt-1 block flex-1 text-sm leading-relaxed text-[#6B7280]">{st.desc}</span>
-            <span className="mt-3 text-sm font-semibold text-[#047857] transition group-hover:translate-x-0.5">
+            <span className="mb-3 block text-xl font-semibold text-[#1F2937]">{st.title}</span>
+            <span className="block max-w-[280px] text-sm leading-relaxed text-[#6B7280]">{st.desc}</span>
+            <span className="mt-3 text-sm font-semibold text-[#047857] opacity-0 transition group-hover:opacity-100">
               {st.done ? `${t("account.steps.seeresults", "Sjá niðurstöður")} →` : `${t("account.steps.go", "Áfram")} →`}
             </span>
           </button>
@@ -5029,7 +5044,7 @@ function DoctorSlotPickerModal({
 // Pillar icons and colors match the Lifeline app (Ionicons + brand.ts palette)
 const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: string; border: string; icon: React.ReactNode }> = [
     {
-      title: "Exercise",
+      title: "Hreyfing",
       desc: "Styrkur, þol og hreyfing — prógrömm sniðin að þér.",
       color: "text-[#3B82F6]",
       bg: "bg-blue-50",
@@ -5041,7 +5056,7 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
       ),
     },
     {
-      title: "Nutrition",
+      title: "Næring",
       desc: "Ráðgjöf byggð á blóðgildum, markmiðum og næringarskiptingu.",
       color: "text-[#0D9488]",
       bg: "bg-teal-50",
@@ -5054,7 +5069,7 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
       ),
     },
     {
-      title: "Sleep",
+      title: "Svefn",
       desc: "Betri hvíld með takti, venjum og umhverfi.",
       color: "text-[#8B5CF6]",
       bg: "bg-violet-50",
@@ -5066,7 +5081,7 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
       ),
     },
     {
-      title: "Mental wellness",
+      title: "Andleg líðan",
       desc: "Núvitund, öndun, álagsstjórnun og seigla.",
       color: "text-[#06B6D4]",
       bg: "bg-cyan-50",
@@ -5081,7 +5096,7 @@ const APP_PILLARS: Array<{ title: string; desc: string; color: string; bg: strin
 
 const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: string; icon: React.ReactNode }> = [
     {
-      title: "Daily actions",
+      title: "Daglegar aðgerðir",
       desc: "Lítil og áþreifanleg skref á hverjum degi — valin til að hreyfa við þínum tölum.",
       color: "text-[#10B981]",
       bg: "bg-[#10B981]/10",
@@ -5093,7 +5108,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
     },
     {
       title: "Þjálfarinn þinn",
-      desc: "A real human in your corner — plans, adjustments, regular reviews, and direct messaging whenever you need guidance.",
+      desc: "Manneskja sem fylgist með þér — áætlanir, breytingar, reglulegt yfirlit og bein skilaboð þegar þig vantar ráð.",
       color: "text-blue-600",
       bg: "bg-blue-50",
       icon: (
@@ -5103,8 +5118,8 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Accountability partner",
-      desc: "Pair up with a friend or colleague. Shared streaks and gentle nudges — because habits stick faster together.",
+      title: "Æfingafélagi",
+      desc: "Taktu höndum saman við vin eða samstarfsmann. Sameiginleg röð og mildar áminningar — venjur festast hraðar í félagsskap.",
       color: "text-amber-600",
       bg: "bg-amber-50",
       icon: (
@@ -5114,7 +5129,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Community & events",
+      title: "Samfélag og viðburðir",
       desc: "Taktu þátt í áskorunum, hóptímum og viðburðum með öðrum í prógramminu.",
       color: "text-fuchsia-600",
       bg: "bg-fuchsia-50",
@@ -5125,7 +5140,7 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Education",
+      title: "Fræðsla",
       desc: "Stutt, gagnreynd námskeið um allt frá svefni til próteinmarkmiða.",
       color: "text-indigo-600",
       bg: "bg-indigo-50",
@@ -5136,8 +5151,8 @@ const APP_FEATURES: Array<{ title: string; desc: string; color: string; bg: stri
       ),
     },
     {
-      title: "Macro tracking, made simple",
-      desc: "Seriously advanced under the hood — ridiculously easy to use. Log a meal in seconds; protein, carbs and fat counted for you based on your meal plan.",
+      title: "Einföld næringarskráning",
+      desc: "Öflugt undir húddinu — og einfalt í notkun. Skráðu máltíð á nokkrum sekúndum; prótein, kolvetni og fita reiknast sjálfkrafa út frá máltíðaráætluninni þinni.",
       color: "text-[#0D9488]",
       bg: "bg-teal-50",
       icon: (
@@ -5436,11 +5451,11 @@ function AppFeaturesBlock() {
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 sm:p-8">
       <div className="max-w-2xl">
-        <h2 className="text-lg font-semibold text-[#1F2937]">What&apos;s inside the app</h2>
+        <h2 className="text-lg font-semibold text-[#1F2937]">Hvað er í appinu</h2>
         <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
-          The app turns your report into daily actions across sleep, exercise, nutrition, and mental wellbeing — with a coach, community, and education built in.
+          Appið breytir skýrslunni þinni í daglegar aðgerðir í svefni, hreyfingu, næringu og andlegri líðan — með þjálfara, samfélagi og fræðslu innbyggðri.
         </p>
-        <p className="text-sm font-semibold text-[#1F2937] mt-2">The only health and lifestyle app you&apos;ll ever need.</p>
+        <p className="text-sm font-semibold text-[#1F2937] mt-2">Eina heilsu- og lífsstílsappið sem þú þarft.</p>
       </div>
 
       {/* Feature grid */}
@@ -5456,7 +5471,7 @@ function AppFeaturesBlock() {
         ))}
       </div>
 
-      {/* Personalised programs → four pillars */}
+      {/* Persónuleg prógrömm → four pillars */}
       <section className="relative overflow-hidden rounded-2xl border border-gray-100 bg-gradient-to-br from-[#f5f7fb] via-white to-white shadow-sm mt-6">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] via-[#8B5CF6] to-[#06B6D4]" />
         <div className="p-6 sm:p-7">
@@ -5467,10 +5482,10 @@ function AppFeaturesBlock() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Personalised programs</div>
+              <div className="text-xs font-semibold uppercase tracking-wide text-[#3B82F6] mb-1">Persónuleg prógrömm</div>
               <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] leading-tight">Framfarir á öllum fjórum stoðum</h3>
               <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-2xl">
-                Strength, cardio, mobility, and mindfulness programs built around your level and your physician&apos;s plan. Made for real life, for real people — home and gym versions of every program, so you can train wherever you are.
+                Styrkur, þol, liðleiki og núvitund — prógrömm byggð á þínu getustigi og áætlun læknisins þíns. Gerð fyrir raunverulegt líf: hver æfing er til bæði heima og í sal, svo þú getir æft hvar sem þú ert.
               </p>
             </div>
           </div>
@@ -5488,120 +5503,6 @@ function AppFeaturesBlock() {
         </div>
       </section>
 
-    </section>
-  );
-}
-
-function DownloadAppHero() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email) return;
-    setStatus("submitting");
-    setError(null);
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source: "account-coaching" }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setError(body?.error || "Could not subscribe. Try again.");
-        setStatus("error");
-        return;
-      }
-      setStatus("success");
-      setEmail("");
-    } catch {
-      setError("Could not subscribe. Try again.");
-      setStatus("error");
-    }
-  }
-
-  // Once the app is live, this card becomes a direct download CTA instead of
-  // an email-capture "coming soon" form.
-  if (APP_LIVE) {
-    return (
-      <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
-        <div className="p-6 sm:p-8">
-          <div className="flex items-start gap-4 flex-wrap">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm">
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Náðu í Lifeline appið</h2>
-              <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
-                Your personal plan, daily actions, programmes and tracking — in your pocket. Sign in with the same email and password you use here.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gray-900 text-white text-sm font-semibold shadow-sm hover:bg-gray-800">App Store</a>
-                <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-gray-900 text-white text-sm font-semibold shadow-sm hover:bg-gray-800">Google Play</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="relative overflow-hidden rounded-2xl shadow-sm bg-white">
-      <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
-      <div className="p-6 sm:p-8">
-        <div className="flex items-start gap-4 flex-wrap">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#10B981] text-white flex items-center justify-center shrink-0 shadow-sm">
-            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-[10px] font-semibold uppercase tracking-wide mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              Coming soon
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#1F2937] leading-tight">Lifeline appið er á leiðinni</h2>
-            <p className="text-sm text-[#6B7280] mt-2 leading-relaxed max-w-xl">
-              We&apos;re in final testing on iPhone and Android. Drop your email and we&apos;ll send you the download link the day it drops — along with anything worth knowing in the lead-up.
-            </p>
-            {status === "success" ? (
-              <div className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Thanks — you&apos;re on the list.
-              </div>
-            ) : (
-              <form onSubmit={submit} className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-lg">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  disabled={status === "submitting"}
-                  className="flex-1 px-4 py-3 rounded-full border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition disabled:opacity-60"
-                />
-                <button
-                  type="submit"
-                  disabled={status === "submitting"}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981] text-white text-sm font-semibold shadow-sm hover:opacity-95 disabled:opacity-60 whitespace-nowrap"
-                >
-                  {status === "submitting" ? "…" : "Notify me"}
-                </button>
-              </form>
-            )}
-            {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-            <p className="mt-4 text-xs text-[#9CA3AF]">Væntanlegt fyrir iPhone og Android — App Store og Google Play.</p>
-          </div>
-        </div>
-      </div>
     </section>
   );
 }

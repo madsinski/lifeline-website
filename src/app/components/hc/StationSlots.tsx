@@ -20,7 +20,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { CalendarPlus, Loader2, Trash2, X } from "lucide-react";
+import { CalendarPlus, Loader2, Trash2 } from "lucide-react";
 import { hcBtn } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -33,6 +33,20 @@ interface Slot {
   capacity: number;
   client_id: string | null;
   client_name: string | null;
+  measurer_id: string | null;
+  measurer_name: string | null;
+}
+interface Staff { id: string; name: string | null; role: string | null }
+
+const DAY_IS = ["mán", "þri", "mið", "fim", "fös", "lau", "sun"];
+
+/** Monday of the week containing `d`. Weeks start on Monday here, which is
+ *  what a rota means by "week" even though getDay() calls Sunday 0. */
+function mondayOf(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
 }
 
 /** "þri. 14. okt. · 09:00" — hand-formatted, as everywhere else. */
@@ -45,7 +59,10 @@ function when(iso: string) {
 
 export default function StationSlots({ api }: { api: Api }) {
   const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [staff, setStaff] = useState<Staff[]>([]);
   const [free, setFree] = useState(0);
+  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
+  const [measurerId, setMeasurerId] = useState("");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -57,10 +74,12 @@ export default function StationSlots({ api }: { api: Api }) {
   const [minutes, setMinutes] = useState(30);
 
   const load = useCallback(async () => {
-    const r = await api("/api/vinnustod/slots?days=28").catch(() => null);
+    /* 90 days so paging back and forth does not refetch; a rota is small. */
+    const r = await api("/api/vinnustod/slots?days=90").catch(() => null);
     const j = r?.ok ? await r.json().catch(() => null) : null;
     setTimeout(() => {
       setSlots(Array.isArray(j?.slots) ? j.slots : []);
+      setStaff(Array.isArray(j?.staff) ? j.staff : []);
       setFree(Number(j?.freeAhead ?? 0));
     }, 0);
   }, [api]);
@@ -70,7 +89,7 @@ export default function StationSlots({ api }: { api: Api }) {
     setBusy(true); setMsg("");
     const r = await api("/api/vinnustod/slots", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date, from, to, minutes }),
+      body: JSON.stringify({ date, from, to, minutes, measurerId: measurerId || undefined }),
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
@@ -80,6 +99,17 @@ export default function StationSlots({ api }: { api: Api }) {
       : "Þessir tímar voru þegar opnir.");
     setOpen(false);
     await load();
+  };
+
+  const assign = async (slot: Slot, id: string) => {
+    /* Optimistic: a dropdown that waits for a round trip before showing the
+       name you just picked reads as broken. */
+    setSlots((xs) => xs?.map((x) => x.id === slot.id
+      ? { ...x, measurer_id: id || null, measurer_name: staff.find((w) => w.id === id)?.name ?? null } : x) ?? xs);
+    await api("/api/vinnustod/slots", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: slot.id, measurerId: id || null }),
+    }).catch(() => null);
   };
 
   const remove = async (s: Slot) => {
@@ -131,6 +161,13 @@ export default function StationSlots({ api }: { api: Api }) {
               <input type="time" value={from} onChange={(e) => setFrom(e.target.value)}
                 className="mt-1 min-h-10 w-full rounded-lg border border-hc-control bg-hc-surface px-2 text-sm font-normal text-hc-ink" />
             </label>
+            <label className="block text-xs font-semibold text-hc-ink-2">Hver mælir
+              <select value={measurerId} onChange={(e) => setMeasurerId(e.target.value)}
+                className="mt-1 min-h-10 w-full rounded-lg border border-hc-control bg-hc-surface px-2 text-sm font-normal text-hc-ink">
+                <option value="">Ákveða síðar</option>
+                {staff.map((w) => <option key={w.id} value={w.id}>{w.name ?? w.id.slice(0, 8)}</option>)}
+              </select>
+            </label>
             <label className="block text-xs font-semibold text-hc-ink-2">Til
               <input type="time" value={to} onChange={(e) => setTo(e.target.value)}
                 className="mt-1 min-h-10 w-full rounded-lg border border-hc-control bg-hc-surface px-2 text-sm font-normal text-hc-ink" />
@@ -147,28 +184,107 @@ export default function StationSlots({ api }: { api: Api }) {
         </div>
       )}
 
-      {slots && slots.length > 0 && (
-        <ul className="mt-3 max-h-64 space-y-1 overflow-y-auto overscroll-contain">
-          {slots.map((s) => (
-            <li key={s.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-hc-sunken">
-              <span className="w-36 shrink-0 tabular-nums text-hc-ink">{when(s.slot_at)}</span>
-              <span className="min-w-0 flex-1 truncate text-hc-ink-2">
-                {s.client_name ? s.client_name : <span className="text-hc-ok-ink">laus</span>}
-              </span>
-              <span className="shrink-0 text-xs text-hc-ink-3">{s.duration_minutes} mín.</span>
-              {/* Only a free time can be withdrawn. A held one is somebody's
-                  appointment, and taking it away is a conversation. */}
-              {!s.client_id && (
-                <button type="button" onClick={() => void remove(s)} aria-label="Fjarlægja tíma"
-                  className="shrink-0 rounded p-1 text-hc-ink-3 hover:bg-hc-bad-surface hover:text-hc-bad-ink">
-                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                </button>
+      {/* ── The week ──────────────────────────────────────────────────
+          A list told you a time existed. It did not tell you that Thursday
+          is empty and Tuesday is full, which is the question somebody
+          actually has when they open a rota. Seven columns, every slot in
+          its day, and the coach covering it on the chip — so a coach sees
+          everybody's cover, not only their own, and can arrange somebody
+          else's. */}
+      <div className="mt-3 flex items-center gap-2">
+        <button type="button" onClick={() => setWeekStart((d) => { const x = new Date(d); x.setDate(x.getDate() - 7); return x; })}
+          aria-label="Fyrri vika" className="rounded-lg px-2 py-1 text-hc-ink-2 hover:bg-hc-sunken">←</button>
+        <p className="min-w-0 flex-1 text-sm font-semibold text-hc-ink">
+          {weekStart.toLocaleDateString("is-IS", { day: "numeric", month: "short" })}
+          {" – "}
+          {new Date(weekStart.getTime() + 6 * 86400_000).toLocaleDateString("is-IS", { day: "numeric", month: "short" })}
+        </p>
+        <button type="button" onClick={() => setWeekStart(mondayOf(new Date()))}
+          className="rounded-lg px-2 py-1 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">Í dag</button>
+        <button type="button" onClick={() => setWeekStart((d) => { const x = new Date(d); x.setDate(x.getDate() + 7); return x; })}
+          aria-label="Næsta vika" className="rounded-lg px-2 py-1 text-hc-ink-2 hover:bg-hc-sunken">→</button>
+      </div>
+
+      <div className="mt-2 grid grid-cols-7 gap-1">
+        {Array.from({ length: 7 }, (_, i) => {
+          const day = new Date(weekStart.getTime() + i * 86400_000);
+          const dayEnd = new Date(day.getTime() + 86400_000);
+          const mine = (slots ?? []).filter((x) => {
+            const t = new Date(x.slot_at);
+            return t >= day && t < dayEnd;
+          });
+          const freeCount = mine.filter((x) => !x.client_id).length;
+          const isToday = new Date().toDateString() === day.toDateString();
+          return (
+            <div key={i} className={`min-h-28 rounded-lg p-1 ${isToday ? "bg-hc-ok-surface" : "bg-hc-sunken"}`}>
+              <p className={`px-0.5 text-[11px] font-bold uppercase ${isToday ? "text-hc-ok-ink" : "text-hc-ink-3"}`}>
+                {DAY_IS[i]} {day.getDate()}.
+              </p>
+              {/* Empty says so. A blank column and a column nobody has
+                  opened yet look identical otherwise. */}
+              {mine.length === 0 ? (
+                <p className="px-0.5 pt-1 text-[11px] text-hc-ink-3">—</p>
+              ) : (
+                <>
+                  <p className="px-0.5 text-[10px] text-hc-ink-3">{freeCount} laus / {mine.length}</p>
+                  <ul className="mt-0.5 space-y-0.5">
+                    {mine.slice(0, 6).map((x) => (
+                      <li key={x.id}
+                        className={`rounded px-1 py-0.5 text-[11px] leading-tight ${
+                          x.client_id ? "bg-hc-warn-surface text-hc-warn-ink" : "bg-hc-surface text-hc-ink"}`}>
+                        <span className="block font-semibold tabular-nums">
+                          {new Date(x.slot_at).toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <span className="block truncate" title={x.client_name ?? x.measurer_name ?? "laus"}>
+                          {x.client_name ?? (x.measurer_name ? x.measurer_name.split(" ")[0] : "laus")}
+                        </span>
+                      </li>
+                    ))}
+                    {mine.length > 6 && (
+                      <li className="px-1 text-[10px] text-hc-ink-3">+{mine.length - 6}</li>
+                    )}
+                  </ul>
+                </>
               )}
-              {s.client_id && <X className="h-3.5 w-3.5 shrink-0 text-transparent" aria-hidden />}
-            </li>
-          ))}
-        </ul>
-      )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* The same week as rows, where the coach can actually be changed —
+          a dropdown does not fit in a 60px column. */}
+      {(() => {
+        const weekEnd = new Date(weekStart.getTime() + 7 * 86400_000);
+        const inWeek = (slots ?? []).filter((x) => {
+          const t = new Date(x.slot_at);
+          return t >= weekStart && t < weekEnd;
+        });
+        if (!inWeek.length) return null;
+        return (
+          <ul className="mt-3 max-h-64 space-y-1 overflow-y-auto overscroll-contain border-t border-hc-hairline pt-2">
+            {inWeek.map((x) => (
+              <li key={x.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-hc-sunken">
+                <span className="w-32 shrink-0 tabular-nums text-hc-ink">{when(x.slot_at)}</span>
+                <span className="w-24 shrink-0 truncate text-hc-ink-2">
+                  {x.client_name ?? <span className="text-hc-ok-ink">laus</span>}
+                </span>
+                <select value={x.measurer_id ?? ""} onChange={(e) => void assign(x, e.target.value)}
+                  aria-label="Hver mælir" className="min-w-0 flex-1 rounded border border-hc-control bg-hc-surface px-1 py-0.5 text-xs text-hc-ink">
+                  <option value="">Enginn skráður</option>
+                  {staff.map((w) => <option key={w.id} value={w.id}>{w.name ?? w.id.slice(0, 8)}</option>)}
+                </select>
+                {!x.client_id && (
+                  <button type="button" onClick={() => void remove(x)} aria-label="Fjarlægja tíma"
+                    className="shrink-0 rounded p-1 text-hc-ink-3 hover:bg-hc-bad-surface hover:text-hc-bad-ink">
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        );
+      })()}
+
     </section>
   );
 }

@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const until = new Date(Date.now() + days * 86400_000).toISOString();
 
   const { data } = await supabaseAdmin.from("station_slots")
-    .select("id, slot_at, duration_minutes, location, capacity, client_id, booking_id, notes")
+    .select("id, slot_at, duration_minutes, location, capacity, client_id, booking_id, notes, measurer_id")
     .gte("slot_at", new Date().toISOString())
     .lte("slot_at", until)
     .order("slot_at");
@@ -49,8 +49,21 @@ export async function GET(req: NextRequest) {
     : { data: [] as { id: string; name: string | null }[] };
   const byId = new Map((people ?? []).map((p) => [p.id, p.name]));
 
+  /* Who is taking the measurement. measurer_id has existed on this table
+     all along, references staff, and nothing had ever written to it — 0 of
+     170 rows. A coach could see times but not who was covering them, which
+     is why every slot looked like somebody else's problem. */
+  const { data: staff } = await supabaseAdmin.from("staff")
+    .select("id, name, role").eq("active", true).order("name");
+  const staffById = new Map((staff ?? []).map((w) => [w.id, w.name]));
+
   return NextResponse.json({
-    slots: rows.map((r) => ({ ...r, client_name: r.client_id ? byId.get(r.client_id) ?? null : null })),
+    staff: staff ?? [],
+    slots: rows.map((r) => ({
+      ...r,
+      client_name: r.client_id ? byId.get(r.client_id) ?? null : null,
+      measurer_name: r.measurer_id ? staffById.get(r.measurer_id) ?? null : null,
+    })),
     /* Said out loud, because an empty picker on the participant's side looks
        like a broken page rather than an empty calendar. */
     freeAhead: rows.filter((r) => !r.client_id).length,
@@ -69,6 +82,8 @@ export async function POST(req: NextRequest) {
   const capacity = Math.min(Math.max(Number(b?.capacity ?? 1), 1), 20);
   const location = (typeof b?.location === "string" && b.location.trim())
     ? b.location.trim().slice(0, 120) : DEFAULT_LOCATION;
+  /* Optional: a morning can be opened before anybody is assigned to it. */
+  const measurerId = typeof b?.measurerId === "string" && b.measurerId ? b.measurerId : null;
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(from) || !/^\d{2}:\d{2}$/.test(to)) {
     return NextResponse.json({ error: "Dagsetning eða tími er ekki á réttu formi." }, { status: 400 });
@@ -101,13 +116,31 @@ export async function POST(req: NextRequest) {
   }
 
   const { error } = await supabaseAdmin.from("station_slots").insert(
-    fresh.map((slot_at) => ({ slot_at, duration_minutes: minutes, location, capacity })),
+    fresh.map((slot_at) => ({ slot_at, duration_minutes: minutes, location, capacity, measurer_id: measurerId })),
   );
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   await hcAudit(actor.label, "station_slots_opened", null,
     { date, from, to, minutes, location, created: fresh.length });
   return NextResponse.json({ ok: true, created: fresh.length, skipped: wanted.length - fresh.length });
+}
+
+/** Who is covering a time. Any coach may set it for anybody — the point of
+ *  a shared calendar is that cover can be arranged without each person
+ *  editing only their own row. */
+export async function PATCH(req: NextRequest) {
+  const actor = await getHcActor(req);
+  if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const b = await req.json().catch(() => null);
+  const id = typeof b?.id === "string" ? b.id : "";
+  if (!id) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  const measurerId = typeof b?.measurerId === "string" && b.measurerId ? b.measurerId : null;
+
+  const { error } = await supabaseAdmin.from("station_slots")
+    .update({ measurer_id: measurerId }).eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  await hcAudit(actor.label, "station_slot_assigned", null, { id, measurerId });
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: NextRequest) {

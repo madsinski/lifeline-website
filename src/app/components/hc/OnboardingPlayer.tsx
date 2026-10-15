@@ -214,19 +214,54 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
   const def = moduleDef(step.kind);
   const total = flow.steps.length;
 
+  /* One layout, two shapes.
+     A 512px column is right on a phone and forlorn on a 1440px monitor. But
+     the answer is not a wider column: a question whose options stretch
+     1200px is harder to read, not easier. So the content keeps a readable
+     measure and the space beside it earns its place — the whole journey,
+     visible, with where you are in it. Below lg the rail is gone and the
+     progress bar in the header does that job in the room a phone has. */
   return (
-    <div className="mx-auto max-w-lg px-5 pb-16">
-      <header className="sticky top-0 z-10 -mx-5 mb-5 bg-hc-page/95 px-5 py-3 backdrop-blur">
+    <div className="mx-auto grid max-w-5xl gap-8 px-5 pb-16 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12 lg:px-8 lg:pt-8">
+      <nav aria-label="Skref" className="hidden lg:block">
+        <div className="sticky top-8">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-hc-ink-3">Yfirlit</p>
+          <ol className="mt-3 space-y-0.5">
+            {flow.steps.map((s, n) => {
+              const d = moduleDef(s.kind);
+              const done = n < i;
+              const now = n === i;
+              return (
+                <li key={s.id}>
+                  <div className={`flex items-start gap-2.5 rounded-lg px-2 py-1.5 text-sm ${
+                    now ? "bg-hc-surface font-semibold text-hc-ink shadow-sm" : "text-hc-ink-3"}`}>
+                    <span aria-hidden className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full text-[9px] font-bold ${
+                      done ? "bg-hc-brand-dark text-white"
+                        : now ? "border-2 border-hc-brand-dark text-hc-brand-text"
+                        : "border border-hc-control text-hc-ink-3"}`}>
+                      {done ? "✓" : n + 1}
+                    </span>
+                    <span className="min-w-0">{s.title || d?.label || s.kind}</span>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </nav>
+
+      <div className="min-w-0 max-w-xl">
+      <header className="sticky top-0 z-10 -mx-5 mb-5 bg-hc-page/95 px-5 py-3 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => void back()} disabled={i === 0 || busy}
             aria-label="Til baka" className="rounded-lg p-1.5 text-hc-ink-2 hover:bg-hc-sunken disabled:opacity-30">
             <ArrowLeft className="h-5 w-5" aria-hidden />
           </button>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-hc-sunken-2">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-hc-sunken-2 lg:hidden">
             <div className="h-full rounded-full bg-hc-brand-dark transition-all duration-300"
               style={{ width: `${((i + 1) / total) * 100}%` }} />
           </div>
-          <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-hc-ink-3">
+          <span className="w-10 shrink-0 text-right text-xs font-semibold tabular-nums text-hc-ink-3 lg:hidden">
             {i + 1}/{total}
           </span>
         </div>
@@ -566,6 +601,7 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
           Sleppa í bili
         </button>
       )}
+      </div>
     </div>
   );
 }
