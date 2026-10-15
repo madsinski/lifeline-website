@@ -39,8 +39,8 @@ export const sha256 = (s: string) => createHash("sha256").update(s).digest("hex"
 export const newToken = (bytes = 32) => randomBytes(bytes).toString("base64url");
 
 export function pinProblem(pin: string): string | null {
-  if (!/^\d{4}$/.test(pin || "")) return "PIN þarf að vera fjórir tölustafir.";
-  if (/^(\d)\1{3}$/.test(pin) || ["1234", "4321", "0123", "9876"].includes(pin)) return "Veldu PIN sem er ekki augljós.";
+  if (!/^\d{4}$/.test(pin || "")) return "PIN-númerið þarf að vera fjórir tölustafir.";
+  if (/^(\d)\1{3}$/.test(pin) || ["1234", "4321", "0123", "9876"].includes(pin)) return "Veldu PIN-númer sem er ekki augljóst.";
   return null;
 }
 

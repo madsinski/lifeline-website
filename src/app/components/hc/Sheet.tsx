@@ -24,6 +24,10 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useScrollLock } from "@/lib/hc/use-scroll-lock";
 
+/** Open sheets, innermost last: only the top one answers Escape and Tab. */
+const sheetStack: symbol[] = [];
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export default function Sheet({ title, onClose, children, max = "max-w-lg", canvas = false, header, draggable = true, scrollResetKey }: {
   /** The dialog's accessible name. */
   title: string;
@@ -81,11 +85,46 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
     setTimeout(onClose, 180);
   }, [onClose]);
 
+  /*
+   * Keyboard: Escape closes, Tab stays inside, focus comes back.
+   *
+   * Lifted from account/ui/Modal. Without a trap, Tab walked straight out of
+   * the sheet into the page behind it — buttons nobody can see under the
+   * backdrop — and closing left focus on <body>, so a keyboard user was sent
+   * back to the top of the document. Only the innermost sheet answers, so a
+   * sheet opened from a sheet does not close both on one Escape.
+   */
+  const closeRef = useRef(close);
+  useEffect(() => { closeRef.current = close; });
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
-    window.addEventListener("keydown", esc);
-    return () => window.removeEventListener("keydown", esc);
-  }, [close]);
+    const me = Symbol("sheet");
+    sheetStack.push(me);
+    const prev = document.activeElement as HTMLElement | null;
+    // What asks for focus, otherwise the panel — not the first input, which
+    // on a phone would throw the keyboard up over the content.
+    // A child that already took focus (autoFocus) keeps it.
+    if (!panel.current?.contains(document.activeElement)) {
+      const first = panel.current?.querySelector<HTMLElement>("[data-autofocus]");
+      (first ?? panel.current)?.focus({ preventScroll: true });
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (sheetStack[sheetStack.length - 1] !== me) return;
+      if (e.key === "Escape") { closeRef.current(); return; }
+      if (e.key !== "Tab" || !panel.current) return;
+      const f = Array.from(panel.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (!f.length) { e.preventDefault(); panel.current.focus(); return; }
+      const a = f[0], z = f[f.length - 1];
+      const inside = panel.current.contains(document.activeElement);
+      if (e.shiftKey && (document.activeElement === a || !inside)) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && (document.activeElement === z || !inside)) { e.preventDefault(); a.focus(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      sheetStack.splice(sheetStack.indexOf(me), 1);
+      if (prev && document.contains(prev)) prev.focus?.({ preventScroll: true });
+    };
+  }, []);
 
 
   /*
@@ -166,19 +205,28 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
 
   const host = typeof document === "undefined" ? null : document.body;
   if (!host) return null;
+  /*
+   * Carry the workstation's theme across the portal.
+   *
+   * The dark tokens are scoped to .hc-ws-scope (globals.css), and <body> is
+   * outside it, so a sheet opened in the dark workstation came up white.
+   * Re-entering the scope on the overlay gives it the same tokens; on the
+   * participant's pages there is no scope and nothing changes.
+   */
+  const wsScope = !!host.querySelector(".hc-ws-scope");
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/60 transition-opacity duration-200 sm:items-center sm:p-4 ${
+      className={`${wsScope ? "hc-ws-scope " : ""}fixed inset-0 z-50 flex items-end justify-center overscroll-contain bg-black/60 transition-opacity duration-200 sm:items-center sm:p-4 ${
         shown && !closing ? "opacity-100" : "opacity-0"}`}
       onClick={close}>
-      <div ref={panel} role="dialog" aria-modal="true" aria-label={title}
+      <div ref={panel} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           transform: `translateY(${closing ? 100 : shown ? dy : 100}${closing || !shown ? "%" : "px"})`,
           transition: dy > 0 && !closing ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
-        className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl ${max} ${
+        className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-hc-hero shadow-hc-overlay outline-none sm:rounded-hc-hero ${max} ${
           canvas ? "bg-hc-sunken" : "bg-hc-surface"}`}>
 
         {/* The grab area, not the grab bar.
@@ -190,15 +238,16 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
         {draggable && (
           <div onPointerDown={(e) => onDown(e, true)}
             className="flex h-10 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing">
-            <span className="block h-1.5 w-10 rounded-full bg-slate-300" aria-hidden />
+            <span className="block h-1.5 w-10 rounded-full bg-hc-border" aria-hidden />
           </div>
         )}
 
         {header ?? (
-          <div className="flex shrink-0 items-center gap-3 bg-inherit px-4 py-3">
+          <div className="flex shrink-0 items-center gap-3 bg-inherit px-4 py-2">
             <p className="min-w-0 flex-1 truncate text-lg font-bold text-hc-ink">{title}</p>
-            <button type="button" onClick={close} aria-label="Loka"
-              className="rounded-lg p-1.5 text-hc-ink-3 transition hover:bg-hc-sunken-2 hover:text-hc-ink-2">
+            {/* 44px: the one way out for anyone not dragging. */}
+            <button type="button" onClick={close} aria-label="Loka" title="Loka"
+              className="-mr-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-hc-element text-hc-ink-3 transition hover:bg-hc-sunken-2 hover:text-hc-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
               <X className="h-5 w-5" aria-hidden />
             </button>
           </div>

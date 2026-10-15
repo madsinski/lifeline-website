@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { hcBtn } from "./ui";
+import { fmtTime } from "@/app/components/account/ui/dates";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -52,15 +53,19 @@ function monday(d: Date): Date {
 
 const DAY_IS = ["mán", "þri", "mið", "fim", "fös", "lau", "sun"];
 
+const MONTHS_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
+
 export default function WeekAhead({ api, onOpenClient }: {
   api: Api;
-  onOpenClient: (journeyId: string) => void;
+  /** kind lets the page open the interview sheet for a viðtal/eftirfylgd. */
+  onOpenClient: (journeyId: string, kind?: string) => void;
 }) {
   /** Monday of the shown week, and a fixed "now" for marking today. */
   const [start, setStart] = useState<Date | null>(null);
   const [now, setNow] = useState(0);
   const [events, setEvents] = useState<Ev[] | null>(null);
   const [mine, setMine] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   /* The clock is read once, in an effect, not during render: a render-time
      Date.now() is impure and gives a different answer every pass. */
@@ -74,7 +79,9 @@ export default function WeekAhead({ api, onOpenClient }: {
     const to = new Date(start); to.setDate(to.getDate() + 7);
     const r = await api(`/api/vinnustod/calendar/events?from=${start.toISOString()}&to=${to.toISOString()}&scope=${mine ? "mine" : "all"}`).catch(() => null);
     const j = r?.ok ? await r.json().catch(() => null) : null;
-    setTimeout(() => setEvents(j?.events ?? []), 0);
+    // A failed load is said, not drawn as an empty week: "nothing booked"
+    // and "could not ask" must not look the same.
+    setTimeout(() => { setFailed(!j); setEvents(j ? j.events ?? [] : null); }, 0);
   }, [api, start, mine]);
 
   useEffect(() => { void load(); }, [load]);
@@ -99,7 +106,8 @@ export default function WeekAhead({ api, onOpenClient }: {
     const d = new Date(start); d.setDate(d.getDate() + weeks * 7); setStart(d);
     setEvents(null);
   };
-  const range = `${start.getDate()}.–${days[6].date.getDate()}. ${days[6].date.toLocaleDateString("is-IS", { month: "long" })}`;
+  const range = `${start.getDate()}.–${days[6].date.getDate()}. ${MONTHS_IS[days[6].date.getMonth()]}`;
+  const chip = "inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand";
 
   return (
     <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-hc-card">
@@ -111,18 +119,17 @@ export default function WeekAhead({ api, onOpenClient }: {
             a question the coach actually has. */}
         <button type="button" onClick={() => { setMine((v) => !v); setEvents(null); }}
           aria-pressed={mine}
-          className={`rounded-full px-3 py-1 text-xs font-bold transition ${
-            mine ? "bg-hc-brand-surface text-hc-brand-text" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
+          className={`${chip} ${mine ? "bg-hc-brand-surface text-hc-brand-text" : "text-hc-ink-2 hover:bg-hc-sunken"}`}>
           {mine ? "Mínar" : "Allar"}
         </button>
-        <button type="button" onClick={() => shift(-1)} aria-label="Fyrri vika" className={`${hcBtn.ghost} h-8 w-8 p-0`}>
+        <button type="button" onClick={() => shift(-1)} aria-label="Fyrri vika" className={`${hcBtn.ghost} h-11 w-11 p-0`}>
           <ChevronLeft className="h-4 w-4" aria-hidden />
         </button>
         <button type="button" onClick={() => { const d = new Date(); setStart(monday(d)); setEvents(null); }}
-          className="rounded-full px-3 py-1 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+          className={`${chip} text-hc-ink-2 hover:bg-hc-sunken`}>
           Í dag
         </button>
-        <button type="button" onClick={() => shift(1)} aria-label="Næsta vika" className={`${hcBtn.ghost} h-8 w-8 p-0`}>
+        <button type="button" onClick={() => shift(1)} aria-label="Næsta vika" className={`${hcBtn.ghost} h-11 w-11 p-0`}>
           <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
       </div>
@@ -142,7 +149,7 @@ export default function WeekAhead({ api, onOpenClient }: {
       <div className="space-y-3">
         {days.filter((d) => d.items.length > 0).map((d) => (
           <div key={d.date.toISOString()}>
-            <p className={`mb-1 text-[11px] font-bold uppercase tracking-wide ${
+            <p className={`mb-1 text-xs font-bold uppercase tracking-wide ${
               d.isToday ? "text-hc-brand-text" : "text-hc-ink-2"}`}>
               {DAY_IS[(d.date.getDay() + 6) % 7]} {d.date.getDate()}.
               {d.isToday && " · í dag"}
@@ -151,9 +158,9 @@ export default function WeekAhead({ api, onOpenClient }: {
               {d.items.map((e, i) => (
                 <li key={`${e.at}-${i}`} className="border-b border-hc-hairline last:border-b-0">
                   <button type="button"
-                    onClick={() => e.journey_id && onOpenClient(e.journey_id)}
+                    onClick={() => e.journey_id && onOpenClient(e.journey_id, e.source === "journey" ? e.kind : undefined)}
                     disabled={!e.journey_id}
-                    className={`flex w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-hc-sunken ${
+                    className={`flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left transition hover:bg-hc-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-hc-brand ${
                       /* 80, not 55. Opacity multiplies contrast down
                          invisibly — a contrast check that reads the
                          computed colour sees slate-600 passing at 7.58
@@ -164,11 +171,11 @@ export default function WeekAhead({ api, onOpenClient }: {
                     {/* The time first and in tabular figures, so a column of
                         them lines up and can be scanned down. */}
                     <span className="w-12 shrink-0 text-sm font-bold tabular-nums text-hc-ink">
-                      {new Date(e.at).toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit" })}
+                      {fmtTime(e.at)}
                     </span>
                     <span className={`h-6 w-0.5 shrink-0 rounded-full ${
                       e.kind === "video" || e.kind === "interview" || e.kind === "followup"
-                        ? "bg-hc-brand" : "bg-slate-300"}`} aria-hidden />
+                        ? "bg-hc-brand" : "bg-hc-control"}`} aria-hidden />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-hc-ink">
                         {e.client ?? "—"}
@@ -179,7 +186,7 @@ export default function WeekAhead({ api, onOpenClient }: {
                       </span>
                     </span>
                     {e.meeting_url && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-hc-brand-surface px-2 py-1 text-[11px] font-bold text-hc-brand-text">
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-hc-brand-surface px-2 py-1 text-xs font-bold text-hc-brand-text">
                         <Video className="h-3 w-3" aria-hidden /> Fundur
                       </span>
                     )}
@@ -191,6 +198,13 @@ export default function WeekAhead({ api, onOpenClient }: {
         ))}
       </div>
 
+      {failed && (
+        <p role="alert" className="flex flex-wrap items-center gap-2 rounded-xl bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">
+          Náði ekki í dagatalið.
+          <button type="button" onClick={() => void load()} className={hcBtn.secondary.replace("min-h-10", "min-h-11")}>Reyna aftur</button>
+        </p>
+      )}
+      {events === null && !failed && <div className="h-24 rounded-xl hc-shimmer" aria-busy="true" aria-label="Hleð vikunni" />}
       {events !== null && events.length === 0 && (
         <p className="mt-3 text-sm text-hc-ink-2">Ekkert bókað þessa viku.</p>
       )}

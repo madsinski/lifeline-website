@@ -5,11 +5,12 @@
 
 import Link from "next/link";
 import { CheckCircle2, Clock, Inbox, type LucideIcon } from "lucide-react";
+import { hcBtn } from "./ui";
 
 type Variant = "waiting" | "empty" | "done";
 
 const LOOK: Record<Variant, { Icon: LucideIcon; disc: string; icon: string }> = {
-  waiting: { Icon: Clock, disc: "bg-hc-warn-surface", icon: "text-amber-600" },
+  waiting: { Icon: Clock, disc: "bg-hc-warn-surface", icon: "text-hc-warn-ink" },
   empty: { Icon: Inbox, disc: "bg-hc-sunken-2", icon: "text-hc-ink-2" },
   done: { Icon: CheckCircle2, disc: "bg-hc-brand-surface", icon: "text-hc-brand-text" },
 };
@@ -34,7 +35,7 @@ export default function EmptyState({ variant = "empty", title, body, action, com
   quiet?: boolean;
 }) {
   const { Icon, disc, icon } = LOOK[variant];
-  const btn = "mt-4 inline-flex min-h-10 items-center rounded-hc-element bg-hc-brand-dark px-4 text-sm font-semibold text-white hover:bg-emerald-800";
+  const btn = `mt-4 ${hcBtn.primary}`;
 
   if (quiet) {
     return (
@@ -43,14 +44,14 @@ export default function EmptyState({ variant = "empty", title, body, action, com
         <span className="font-semibold text-hc-ink">{title}</span>
         {body && <span className="min-w-0 truncate">{body}</span>}
         {action && (action.href
-          ? <Link href={action.href} className="ml-auto shrink-0 font-semibold text-hc-brand-text hover:underline">{action.label}</Link>
-          : <button type="button" onClick={action.onClick} className="ml-auto shrink-0 font-semibold text-hc-brand-text hover:underline">{action.label}</button>)}
+          ? <Link href={action.href} className="-my-2.5 ml-auto inline-flex min-h-11 shrink-0 items-center font-semibold text-hc-brand-text hover:underline">{action.label}</Link>
+          : <button type="button" onClick={action.onClick} className="-my-2.5 ml-auto inline-flex min-h-11 shrink-0 items-center font-semibold text-hc-brand-text hover:underline">{action.label}</button>)}
       </p>
     );
   }
 
   return (
-    <div className={`flex flex-col items-center text-center ${compact ? "rounded-hc-card border border-dashed border-slate-300 bg-hc-surface p-6" : "rounded-hc-hero bg-hc-surface p-8 shadow-hc-card ring-1 ring-hc-hairline"}`}>
+    <div className={`flex flex-col items-center text-center ${compact ? "rounded-hc-card border border-dashed border-hc-control bg-hc-surface p-6" : "rounded-hc-hero bg-hc-surface p-8 shadow-hc-card ring-1 ring-hc-hairline"}`}>
       <span className={`flex items-center justify-center rounded-full ${disc} ${compact ? "h-11 w-11" : "h-14 w-14"}`} aria-hidden>
         <Icon className={`${compact ? "h-5 w-5" : "h-7 w-7"} ${icon}`} strokeWidth={2} />
       </span>

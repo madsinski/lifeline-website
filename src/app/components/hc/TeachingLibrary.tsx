@@ -7,6 +7,8 @@
 // stays in /admin/lectures (staff).
 
 import EmptyState from "./EmptyState";
+import { ArrowLeft } from "lucide-react";
+import { hcBtn, hcCard } from "./ui";
 import { useEffect, useRef, useState } from "react";
 import { SlideDeck } from "./LectureContent";
 import { ProgramPreview } from "./PlanView";
@@ -44,19 +46,19 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
     return (
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setOpen(null)} className="rounded-full bg-hc-surface px-4 py-1.5 text-sm font-semibold ring-1 ring-hc-hairline">← Til baka</button>
+          <button type="button" onClick={() => setOpen(null)} className={hcBtn.secondary}><ArrowLeft className="h-4 w-4" aria-hidden />Til baka</button>
           <span className="flex-1" />
           {lecture.kind === "slides" && (
-            <button type="button" onClick={() => void stage.current?.requestFullscreen?.()} className="rounded-full bg-hc-brand-dark px-4 py-1.5 text-sm font-semibold text-white">Kynna á skjá</button>
+            <button type="button" onClick={() => void stage.current?.requestFullscreen?.()} className={hcBtn.primary}>Kynna á skjá</button>
           )}
-          {canEdit && <a href="/admin/lectures" className="rounded-full bg-hc-surface px-4 py-1.5 text-sm font-semibold ring-1 ring-hc-hairline">Breyta í stjórnborði</a>}
+          {canEdit && <a href="/admin/lectures" className={hcBtn.secondary}>Breyta í stjórnborði</a>}
         </div>
         <div>
           <h2 className="text-xl font-bold text-hc-ink">{lecture.title}</h2>
           {lecture.subtitle && <p className="text-sm text-hc-ink-2">{lecture.subtitle}</p>}
         </div>
         {lecture.kind === "slides" && lecture.slides.length > 0 && (
-          <div ref={stage} className="rounded-3xl bg-hc-surface p-2 [&:fullscreen]:flex [&:fullscreen]:items-center [&:fullscreen]:justify-center [&:fullscreen]:bg-hc-surface [&:fullscreen]:p-10">
+          <div ref={stage} className="rounded-hc-hero bg-hc-surface p-2 [&:fullscreen]:flex [&:fullscreen]:items-center [&:fullscreen]:justify-center [&:fullscreen]:bg-hc-surface [&:fullscreen]:p-10">
             <div className="w-full max-w-5xl"><SlideDeck slides={lecture.slides} pillar={lecture.pillar} /></div>
           </div>
         )}
@@ -68,9 +70,9 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
   if (program) {
     return (
       <div className="space-y-3">
-        <button type="button" onClick={() => setOpen(null)} className="rounded-full bg-hc-surface px-4 py-1.5 text-sm font-semibold ring-1 ring-hc-hairline">← Til baka</button>
+        <button type="button" onClick={() => setOpen(null)} className={hcBtn.secondary}><ArrowLeft className="h-4 w-4" aria-hidden />Til baka</button>
         {isAdaptive(program.key) && (
-          <p className="rounded-2xl bg-hc-warn-surface px-4 py-3 text-sm text-hc-warn-ink">
+          <p className="rounded-hc-card bg-hc-warn-surface px-4 py-3 text-sm text-hc-warn-ink">
             Prufustillingar: breytingar hér vistast ekki. Stillingar skjólstæðings eru í áætlun hans, skrefinu Hreyfing.
           </p>
         )}
@@ -87,7 +89,7 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {lectures.map((l) => (
             <button key={l.slug} type="button" onClick={() => setOpen({ kind: "lecture", slug: l.slug })}
-              className="rounded-2xl bg-hc-surface p-4 text-left shadow-sm ring-1 ring-hc-hairline transition hover:ring-emerald-300">
+              className={`${hcCard.base} p-4 text-left transition hover:ring-hc-brand`}>
               <p className="text-xs font-bold uppercase tracking-wide text-hc-ok-ink">
                 {KIND_IS[l.kind] ?? "Fræðsla"}{l.kind === "slides" ? ` · ${l.slides.length} glærur` : ""}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}
               </p>
@@ -105,8 +107,8 @@ export default function TeachingLibrary({ api }: { api: WsApi }) {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {programs.map((p) => (
             <button key={p.key} type="button" onClick={() => setOpen({ kind: "program", key: p.key })}
-              className="rounded-2xl bg-hc-surface p-4 text-left shadow-sm ring-1 ring-hc-hairline transition hover:ring-orange-300">
-              <p className="text-xs font-bold uppercase tracking-wide text-orange-700">
+              className={`${hcCard.base} p-4 text-left transition hover:ring-hc-exercise`}>
+              <p className="text-xs font-bold uppercase tracking-wide text-hc-exercise-ink">
                 {p.days_per_week} dagar í viku{p.session_minutes ? ` · um ${p.session_minutes} mín.` : ""}{isAdaptive(p.key) ? " · aðlagast" : ""}
               </p>
               <p className="mt-1 font-bold text-hc-ink">{p.name}</p>

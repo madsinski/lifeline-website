@@ -18,6 +18,7 @@ import {
   COMMON_REASONS, REFERRAL_TARGETS, STATUS_IS, TARGET_IS, isInHouse,
   type Referral, type ReferralTarget,
 } from "@/lib/hc/referrals";
+import { hcBtn, hcInput } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -103,7 +104,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
       {open.length > 0 && (
         <ul className="space-y-1.5">
           {open.map((r) => (
-            <li key={r.id} className="rounded-xl bg-hc-warn-surface p-2.5 ring-1 ring-hc-warn-ink/30">
+            <li key={r.id} className="rounded-hc-element bg-hc-warn-surface p-2.5 ring-1 ring-hc-warn-ink/30">
               <p className="text-sm font-semibold text-hc-warn-ink">
                 {TARGET_IS[r.target].label}
                 <span className="ml-1.5 font-normal">· {r.reason}</span>
@@ -113,23 +114,23 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
                 {r.doctor_notified_at ? " · skeyti sent" : " · skeyti ekki sent"}
                 {r.suggested_by === "ai" ? " · tillaga AI" : ""}
               </p>
-              {r.note && <p className="mt-1 text-xs text-amber-900/80">{r.note}</p>}
+              {r.note && <p className="mt-1 text-xs text-hc-warn-ink">{r.note}</p>}
               {isDoctor && isInHouse(r.target) && (
                 <div className="mt-2">
                   <button type="button" disabled={busy} onClick={() => decide(r.id, "done")}
-                    className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-hc-brand-dark px-2.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
-                    <Check className="h-3.5 w-3.5" /> Metið
+                    className={hcBtn.primary}>
+                    <Check className="h-4 w-4" aria-hidden /> Metið
                   </button>
                 </div>
               )}
               {isDoctor && !isInHouse(r.target) && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <button type="button" disabled={busy} onClick={() => decide(r.id, "approved")}
-                    className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
-                    <Check className="h-3.5 w-3.5" /> Samþykkja
+                    className={hcBtn.primary}>
+                    <Check className="h-4 w-4" aria-hidden /> Samþykkja
                   </button>
                   <button type="button" disabled={busy} onClick={() => decide(r.id, "declined")}
-                    className="inline-flex min-h-8 items-center rounded-lg border border-slate-300 bg-hc-surface px-2.5 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken disabled:opacity-50">
+                    className={hcBtn.secondary}>
                     Ekki þörf
                   </button>
                 </div>
@@ -144,7 +145,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={() => setOver(false)}
         onDrop={onDrop}
-        className={`rounded-xl border-2 border-dashed p-3 transition ${over ? "border-emerald-500 bg-hc-ok-surface" : "border-slate-300 bg-hc-sunken/60"}`}
+        className={`rounded-hc-element border-2 border-dashed p-3 transition ${over ? "border-hc-brand-dark bg-hc-ok-surface" : "border-hc-control bg-hc-sunken"}`}
       >
         <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Tilvísun</p>
         {staged.length === 0 ? (
@@ -161,8 +162,8 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
                   <span className="block text-xs text-hc-ink-2">{x.reason}</span>
                 </span>
                 <button type="button" aria-label="Fjarlægja" onClick={() => setStaged(staged.filter((_, k) => k !== i))}
-                  className="shrink-0 rounded p-0.5 text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
-                  <X className="h-3.5 w-3.5" />
+                  className="-m-2 grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
+                  <X className="h-4 w-4" aria-hidden />
                 </button>
               </li>
             ))}
@@ -172,10 +173,10 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
           <>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
               placeholder="Til læknisins — fer ekki til skjólstæðings"
-              className="mt-2 w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm" />
+              className={`mt-2 ${hcInput}`} />
             <button type="button" disabled={busy} onClick={send}
-              className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-hc-brand-dark px-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              className={`${hcBtn.primary} mt-2 w-full`}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
               {isDoctor ? "Skrá tilvísun" : "Senda til læknis"}
             </button>
           </>
@@ -193,7 +194,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
           <ul className="space-y-1">
             {fresh.map((s) => (
               <li key={`${s.target}-${s.reason}`} {...dragProps(s.target, s.reason, "ai")}
-                className="cursor-grab rounded-lg bg-hc-surface p-2 text-sm ring-1 ring-hc-hairline hover:ring-slate-300">
+                className="cursor-grab rounded-lg bg-hc-surface p-2 text-sm ring-1 ring-hc-hairline hover:ring-hc-control">
                 <div className="flex items-start gap-2">
                   <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: TARGET_IS[s.target].color }} aria-hidden />
                   <span className="min-w-0 flex-1">
@@ -202,8 +203,8 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
                     {s.why && <span className="mt-0.5 block text-[11px] text-hc-ink-2">{s.why}</span>}
                   </span>
                   <button type="button" aria-label="Bæta við" onClick={() => add(s.target, s.reason, "ai")}
-                    className="shrink-0 rounded p-1 text-hc-ink-3 hover:bg-hc-ok-surface hover:text-hc-ok-ink">
-                    <Plus className="h-3.5 w-3.5" />
+                    className="-m-2 grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-3 hover:bg-hc-ok-surface hover:text-hc-ok-ink">
+                    <Plus className="h-4 w-4" aria-hidden />
                   </button>
                 </div>
               </li>
@@ -217,9 +218,12 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         <p className="mb-1 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Algengar ástæður</p>
         <div className="flex flex-wrap gap-1">
           {REFERRAL_TARGETS.map((t) => (
-            <button key={t} type="button" onClick={() => setPick(t)}
-              className={`rounded-lg px-2 py-1 text-[11px] font-semibold transition ${pick === t ? "text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"}`}
-              style={pick === t ? { backgroundColor: TARGET_IS[t].color } : undefined}>
+            /* Selected is brand-dark for every target: white on the
+               targets' own colours (amber, emerald, sky) failed AA, and the
+               navy one vanished in the dark theme. The colour stays as a dot. */
+            <button key={t} type="button" onClick={() => setPick(t)} aria-pressed={pick === t}
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition ${pick === t ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-text"}`}>
+              <span className="h-2 w-2 shrink-0 rounded-full ring-1 ring-white/60" style={{ backgroundColor: TARGET_IS[t].color }} aria-hidden />
               {TARGET_IS[t].label}
             </button>
           ))}
@@ -229,7 +233,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
           {COMMON_REASONS[pick].map((reason) => (
             <li key={reason}>
               <button type="button" {...dragProps(pick, reason, "nurse")} onClick={() => add(pick, reason)}
-                className="cursor-grab rounded-lg border border-hc-hairline bg-hc-surface px-2 py-1 text-left text-xs text-hc-ink-2 hover:border-slate-400 hover:bg-hc-sunken">
+                className="min-h-11 cursor-grab rounded-lg border border-hc-border bg-hc-surface px-2.5 py-1.5 text-left text-xs text-hc-ink-2 hover:border-hc-control hover:bg-hc-sunken">
                 {reason}
               </button>
             </li>

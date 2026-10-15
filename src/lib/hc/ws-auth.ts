@@ -214,3 +214,17 @@ export async function calendarWorker(req: Request): Promise<{ id: string; email:
   if (a?.kind === "staff" && a.workerId) return { id: a.workerId, email: a.email, cookie: false };
   return null;
 }
+
+/** Whole minutes until `iso`, at least 1. */
+export const minutesUntil = (iso: string) => Math.max(1, Math.ceil((new Date(iso).getTime() - Date.now()) / 60_000));
+
+/** "1 mínútu", "21 mínútu", "5 mínútur" — Icelandic takes the singular after numbers ending in 1 (not 11). */
+export const minutesIs = (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "mínútu" : "mínútur"}`;
+
+export const lockedMessage = (minutes: number) => `Aðgangi læst tímabundið. Reyndu aftur eftir ${minutesIs(minutes)}.`;
+
+/** Signs a worker out everywhere: every session and every trusted device. */
+export async function revokeWorkerAccess(workerId: string) {
+  await supabaseAdmin.from("hc_ws_sessions").delete().eq("worker_id", workerId);
+  await supabaseAdmin.from("hc_ws_devices").delete().eq("worker_id", workerId);
+}

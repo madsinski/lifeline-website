@@ -3,7 +3,9 @@
 // style, so the participant's pages and the nurse's workstation look like
 // the same product. Client-safe, no React.
 
-const base = "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-hc-element px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:cursor-not-allowed disabled:opacity-40";
+/* min-h-11: 44px, the touch-target floor (WCAG 2.5.5 / Apple HIG). It was
+   min-h-10, which left every shared button 4px short on a phone. */
+const base = "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-hc-element px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:cursor-not-allowed disabled:opacity-40";
 
 export const hcBtn = {
   base,
@@ -116,3 +118,16 @@ export const hcTabs = {
  * space to the right of a letter that has nothing after it.
  */
 export const hcKicker = "text-xs font-bold uppercase tracking-[0.08em]";
+
+/**
+ * Form control. The same recipe as the account pages' accountInput, so a
+ * field looks the same on /account, /app and the workstation: an hc-control
+ * edge that passes 3:1 (1.4.11); focus shows as the global 2px outline.
+ */
+export const hcInput = "w-full rounded-hc-element border border-hc-control bg-hc-surface px-3 py-2 text-sm text-hc-ink placeholder:text-hc-ink-3 focus:border-hc-brand-dark disabled:bg-hc-sunken disabled:text-hc-ink-3";
+// No outline-none: the focus indicator is the base-layer outline in
+// globals.css (2px hc-brand-dark, hc-brand-text in the dark workstation).
+
+/** A small pill-shaped action (filters, chips, "Til baka") that still has a
+ *  44px hit area. Visual size is set by the caller's padding/text. */
+export const hcPill = "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:cursor-not-allowed disabled:opacity-40";

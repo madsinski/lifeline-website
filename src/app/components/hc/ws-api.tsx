@@ -9,15 +9,26 @@
 // the only thing that differs is how the request is signed. That is this
 // context's whole job.
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 
 export type WsApi = (url: string, init?: RequestInit) => Promise<Response>;
 
+/** Window event fired when a signed-in workstation session stops being
+ *  accepted (expired, revoked, logged out elsewhere). The shell listens and
+ *  shows "Lotan rann út — skráðu þig inn aftur". */
+export const WS_SESSION_EXPIRED = "ws-session-expired";
+
+// Only a session we have seen working can "expire": a 401 before sign-in
+// (the first /me, a wrong password or PIN) is not news to anyone.
+let hadSession = false;
+const isAuthRoute = (url: string) => url.includes("/api/vinnustod/auth/");
+
 /** Cookie-signed, for the standalone workstation. A FormData body must keep
  *  the browser's own multipart content-type. */
-export const cookieApi: WsApi = (url, init = {}) => {
+export const cookieApi: WsApi = async (url, init = {}) => {
   const isForm = typeof FormData !== "undefined" && init.body instanceof FormData;
-  return fetch(url, {
+  if (url.includes("/api/vinnustod/auth/logout")) hadSession = false;
+  const r = await fetch(url, {
     ...init,
     credentials: "same-origin",
     headers: {
@@ -25,7 +36,26 @@ export const cookieApi: WsApi = (url, init = {}) => {
       ...(init.headers as Record<string, string> | undefined),
     },
   });
+  if (!isAuthRoute(url)) {
+    if (r.ok) hadSession = true;
+    else if (r.status === 401 && hadSession) {
+      hadSession = false;
+      if (typeof window !== "undefined") window.dispatchEvent(new Event(WS_SESSION_EXPIRED));
+    }
+  }
+  return r;
 };
+
+/** Calls `onExpired` when the workstation session runs out mid-use. */
+export function useWsSessionExpired(onExpired: () => void) {
+  const ref = useRef(onExpired);
+  useEffect(() => { ref.current = onExpired; });
+  useEffect(() => {
+    const h = () => ref.current();
+    window.addEventListener(WS_SESSION_EXPIRED, h);
+    return () => window.removeEventListener(WS_SESSION_EXPIRED, h);
+  }, []);
+}
 
 const WsApiContext = createContext<WsApi>(cookieApi);
 

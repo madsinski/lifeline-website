@@ -12,7 +12,9 @@
 // clickable when there is something behind it.
 
 import { useState } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import StepDot, { type StepState } from "./StepDot";
+import { hcCard } from "./ui";
 
 export interface Checkpoint {
   key: string;
@@ -23,17 +25,19 @@ export interface Checkpoint {
   detail?: string | null;
 }
 
-const DOT: Record<Checkpoint["state"], string> = {
-  done: "bg-emerald-500 text-white",
-  current: "bg-hc-brand-dark text-white ring-4 ring-slate-900/10",
-  waiting: "bg-amber-100 text-hc-warn-ink",
-  upcoming: "bg-hc-sunken-2 text-hc-ink-3",
+/* One step marker for the journey (StepDot): done is brand-dark with a
+   white tick, not emerald-500 (2.5:1). */
+const DOT: Record<Checkpoint["state"], StepState> = {
+  done: "done",
+  current: "current",
+  waiting: "waiting",
+  upcoming: "todo",
 };
 const LINE: Record<Checkpoint["state"], string> = {
-  done: "bg-emerald-300",
-  current: "bg-slate-300",
-  waiting: "bg-slate-200",
-  upcoming: "bg-slate-200",
+  done: "bg-hc-brand-dark",
+  current: "bg-hc-border",
+  waiting: "bg-hc-border",
+  upcoming: "bg-hc-border",
 };
 const TEXT: Record<Checkpoint["state"], string> = {
   done: "text-hc-ink-2",
@@ -58,7 +62,7 @@ export default function StatusStrip({ steps, onOpen, mobile = "scroll" }: {
     );
   }
   return (
-    <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-3 sm:p-4">
+    <section className={`${hcCard.base} p-3 sm:p-4`}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         {/* The line itself. Scrolls sideways on a phone rather than wrapping
             into something that no longer reads as a sequence. */}
@@ -70,14 +74,12 @@ export default function StatusStrip({ steps, onOpen, mobile = "scroll" }: {
                   were both flex-1, which gave the button a basis of 0 — and a
                   truncating label inside a zero-width box shows nothing. */}
               <button type="button" onClick={() => onOpen?.(s.key)} disabled={!onOpen}
-                className="group flex w-[5.5rem] min-w-0 shrink-0 flex-col items-center gap-1 text-center lg:w-auto lg:flex-1"
+                className="group flex min-h-11 w-[5.5rem] min-w-0 shrink-0 flex-col items-center gap-1 rounded-lg py-0.5 text-center lg:w-auto lg:flex-1"
                 title={s.detail ?? undefined}>
-                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition ${DOT[s.state]} ${onOpen ? "group-hover:scale-105" : ""}`}>
-                  {s.state === "done" ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                </span>
+                <StepDot state={DOT[s.state]} n={i + 1} className={`transition ${onOpen ? "group-hover:scale-105" : ""}`} />
                 <span className={`w-full truncate text-[11px] leading-tight ${TEXT[s.state]}`}>{s.label}</span>
                 {/* One line only: a wrapped status turns the strip into a wall. */}
-                {s.detail && <span className="hidden w-full truncate text-[10px] leading-tight text-hc-ink-3 lg:block">{s.detail}</span>}
+                {s.detail && <span className="hidden w-full truncate text-[11px] leading-tight text-hc-ink-3 lg:block">{s.detail}</span>}
               </button>
               {i < steps.length - 1 && (
                 <span className={`mt-3.5 h-0.5 w-4 shrink-0 rounded lg:w-6 ${LINE[steps[i + 1].state === "done" ? "done" : s.state]}`} aria-hidden />
@@ -101,10 +103,10 @@ function VerticalSteps({ steps, onOpen }: { steps: Checkpoint[]; onOpen?: (key: 
   const shown = all ? steps : steps.slice(done, done + 2);
   const hidden = steps.length - done - shown.length;
   return (
-    <section className="rounded-hc-card bg-hc-surface p-3 shadow-hc-card ring-1 ring-hc-hairline" aria-label="Skref heilsuferðarinnar">
+    <section className={`${hcCard.base} p-3`} aria-label="Skref heilsuferðarinnar">
       {done > 0 && !all && (
-        <button type="button" onClick={() => setAll(true)} className="flex w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left text-sm text-hc-ink-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-white"><Check className="h-3.5 w-3.5" /></span>
+        <button type="button" onClick={() => setAll(true)} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left text-sm text-hc-ink-2">
+          <StepDot state="done" />
           <span className="flex-1">{done} {done === 1 ? "skrefi lokið" : "skrefum lokið"}</span>
           <ChevronDown className="h-4 w-4 text-hc-ink-3" aria-hidden />
         </button>
@@ -114,12 +116,10 @@ function VerticalSteps({ steps, onOpen }: { steps: Checkpoint[]; onOpen?: (key: 
           const n = steps.indexOf(s);
           return (
             <li key={`${s.key}-${n}`} className="relative">
-              {i < shown.length - 1 && <span className="absolute left-[1.05rem] top-9 h-[calc(100%-1.75rem)] w-0.5 bg-slate-200" aria-hidden />}
+              {i < shown.length - 1 && <span className="absolute left-[1.05rem] top-9 h-[calc(100%-1.75rem)] w-0.5 bg-hc-border" aria-hidden />}
               <button type="button" onClick={() => onOpen?.(s.key)} disabled={!onOpen}
-                className="flex w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left">
-                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${DOT[s.state]}`}>
-                  {s.state === "done" ? <Check className="h-3.5 w-3.5" /> : n + 1}
-                </span>
+                className="flex min-h-11 w-full items-center gap-3 rounded-lg px-1 py-1.5 text-left">
+                <StepDot state={DOT[s.state]} n={n + 1} />
                 <span className="min-w-0 flex-1">
                   <span className={`block truncate text-sm ${TEXT[s.state]}`}>{s.label}</span>
                   {s.detail && <span className="block truncate text-xs text-hc-ink-3">{s.detail}</span>}
@@ -130,10 +130,10 @@ function VerticalSteps({ steps, onOpen }: { steps: Checkpoint[]; onOpen?: (key: 
         })}
       </ol>
       {!all && hidden > 0 && (
-        <button type="button" onClick={() => setAll(true)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-hc-brand-text">Sýna öll skref ({steps.length})</button>
+        <button type="button" onClick={() => setAll(true)} className="mt-1 min-h-11 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-hc-brand-text">Sýna öll skref ({steps.length})</button>
       )}
       {all && (
-        <button type="button" onClick={() => setAll(false)} className="mt-1 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-hc-ink-2">Fela</button>
+        <button type="button" onClick={() => setAll(false)} className="mt-1 min-h-11 w-full rounded-lg py-1.5 text-center text-xs font-semibold text-hc-ink-2">Fela</button>
       )}
     </section>
   );

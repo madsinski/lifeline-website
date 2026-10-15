@@ -13,6 +13,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Send } from "lucide-react";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { hcCard, hcInput } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -25,8 +27,8 @@ interface Msg {
   created_at: string;
 }
 
-const when = (iso: string) =>
-  new Date(iso).toLocaleString("is-IS", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+/* "15. okt. kl. 14:30", by hand — the browser's "is" locale data is patchy. */
+const when = (iso: string) => fmtDateTime(iso, { month: "short" });
 
 export default function ClientThread({ api, journeyId, onRead }: {
   api: Api;
@@ -70,17 +72,17 @@ export default function ClientThread({ api, journeyId, onRead }: {
   };
 
   if (msgs === null) {
-    return <div className="h-24 rounded-2xl hc-shimmer" aria-busy="true" aria-label="Hleð samtali" />;
+    return <div className="h-24 rounded-hc-card hc-shimmer" aria-busy="true" aria-label="Hleð samtali" />;
   }
 
   return (
     <div className="space-y-2">
       {msgs.length === 0 ? (
-        <p className="rounded-2xl bg-hc-surface p-3 text-sm text-hc-ink-2 ring-1 ring-hc-hairline">
+        <p className={`${hcCard.base} p-3 text-sm text-hc-ink-2`}>
           Ekkert samtal enn. Það sem þú skrifar hér birtist í appinu hjá skjólstæðingnum.
         </p>
       ) : (
-        <div className="max-h-80 space-y-2 overflow-y-auto rounded-2xl bg-hc-surface p-3 ring-1 ring-hc-hairline">
+        <div className={`max-h-80 space-y-2 overflow-y-auto p-3 ${hcCard.base}`}>
           {msgs.map((m) => {
             const mine = m.author_kind === "coach";
             return (
@@ -92,7 +94,7 @@ export default function ClientThread({ api, journeyId, onRead }: {
                   m.kind === "nudge" ? "bg-hc-warn-surface text-hc-warn-ink ring-1 ring-hc-warn-ink/30"
                     : mine ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink"}`}>
                   {m.body}
-                  <span className={`mt-1 block text-[10px] ${mine && m.kind !== "nudge" ? "text-white/60" : "text-hc-ink-2"}`}>
+                  <span className={`mt-1 block text-[11px] ${mine && m.kind !== "nudge" ? "text-white/85" : "text-hc-ink-2"}`}>
                     {m.kind === "nudge" ? "Hvatning · " : ""}{when(m.created_at)}
                   </span>
                 </div>
@@ -106,10 +108,10 @@ export default function ClientThread({ api, journeyId, onRead }: {
       <div className="flex items-end gap-2">
         <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={2}
           placeholder="Skrifaðu til skjólstæðingsins…"
-          className="min-w-0 flex-1 rounded-2xl border border-slate-300 p-2 text-sm outline-none focus:ring-2 focus:ring-hc-brand" />
+          className={`${hcInput} min-w-0 flex-1`} />
         <button type="button" onClick={() => void send()} disabled={!draft.trim() || busy}
           aria-label="Senda skilaboð"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-brand-dark text-white disabled:opacity-50">
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-hc-brand-dark text-white hover:bg-emerald-800 disabled:opacity-50">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
         </button>
       </div>

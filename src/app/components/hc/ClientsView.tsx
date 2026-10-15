@@ -3,7 +3,8 @@
 // Everyone, and the groups they belong to.
 //
 // Two lists behind one search box. "Allir" is every client on the
-// workstation's queue; "Hópar" is the companies, because a health check sold
+// workstation's queue — handed in by the page, which already polls it, so
+// this list and the Í dag queue can never disagree about who is there; "Hópar" is the companies, because a health check sold
 // to a workplace arrives as twenty people at once and the nurse thinks in
 // workplaces, not rows.
 //
@@ -17,7 +18,7 @@ import { Building2, ChevronDown, Loader2, Plus, Search, Users } from "lucide-rea
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-interface Row { id: string; client_id: string; client_name: string; client_phone: string | null; stage: string | null }
+export interface ClientRow { id: string; client_id: string; client_name: string; client_phone: string | null; stage: string | null }
 interface Group {
   id: string; name: string; status: string | null;
   contact: string | null; email: string | null; phone: string | null;
@@ -29,25 +30,28 @@ const STAGE_IS: Record<string, string> = {
   interview: "Viðtal", plan: "Áætlun", action: "Í gangi", done: "Lokið",
 };
 
-export default function ClientsView({ api, onOpenClient, capped = false }: {
+export default function ClientsView({ api, rows, onOpenClient, onReload, capped = false }: {
   api: Api;
+  /** The workstation queue's rows; null while it is loading. */
+  rows: ClientRow[] | null;
   onOpenClient: (journeyId: string) => void;
+  /** Ask the page to fetch the queue again. */
+  onReload?: () => void;
   /** Cap the people list and scroll it, leaving the controls fixed. */
   capped?: boolean;
 }) {
   const [tab, setTab] = useState<"all" | "groups">("all");
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<Row[] | null>(null);
+  const [stage, setStage] = useState<string>("");
   const [groups, setGroups] = useState<Group[] | null>(null);
+  const [groupsFailed, setGroupsFailed] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
-    const [a, b] = await Promise.all([api("/api/vinnustod/queue"), api("/api/vinnustod/groups")]);
-    const aj = await a.json().catch(() => ({}));
-    const bj = await b.json().catch(() => ({}));
-    setRows(a.ok ? (aj.journeys ?? []) : []);
-    setGroups(b.ok ? (bj.groups ?? []) : []);
+    const b = await api("/api/vinnustod/groups").catch(() => null);
+    const bj = b?.ok ? await b.json().catch(() => null) : null;
+    setTimeout(() => { setGroupsFailed(!bj); setGroups(bj?.groups ?? []); }, 0);
   }, [api]);
 
   useEffect(() => {
@@ -56,8 +60,12 @@ export default function ClientsView({ api, onOpenClient, capped = false }: {
   }, [load]);
 
   const needle = q.trim().toLowerCase();
+  /* The stages that actually occur, in journey order, so the filter never
+     offers a stage nobody is in. */
+  const stages = Object.keys(STAGE_IS).filter((s) => (rows ?? []).some((r) => r.stage === s));
   const people = (rows ?? []).filter((r) =>
-    !needle || (r.client_name ?? "").toLowerCase().includes(needle) || (r.client_phone ?? "").includes(needle));
+    (!stage || r.stage === stage) &&
+    (!needle || (r.client_name ?? "").toLowerCase().includes(needle) || (r.client_phone ?? "").includes(needle)));
   const shownGroups = (groups ?? []).filter((g) =>
     !needle || g.name.toLowerCase().includes(needle) ||
     g.members.some((m) => (m.full_name ?? "").toLowerCase().includes(needle)));
@@ -70,7 +78,8 @@ export default function ClientsView({ api, onOpenClient, capped = false }: {
         <div className="flex rounded-lg bg-hc-sunken-2 p-0.5">
           {(["all", "groups"] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTab(t)}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${tab === t ? "bg-hc-surface text-hc-ink shadow-sm" : "text-hc-ink-2"}`}>
+              aria-pressed={tab === t}
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand ${tab === t ? "bg-hc-surface text-hc-ink shadow-sm" : "text-hc-ink-2"}`}>
               {t === "all" ? <Users className="h-3.5 w-3.5" /> : <Building2 className="h-3.5 w-3.5" />}
               {t === "all" ? `Allir${rows ? ` · ${rows.length}` : ""}` : `Hópar${groups ? ` · ${groups.length}` : ""}`}
             </button>
@@ -79,20 +88,41 @@ export default function ClientsView({ api, onOpenClient, capped = false }: {
         <span className="flex-1" />
         {tab === "groups" && (
           <button type="button" onClick={() => setAdding(true)}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-hc-brand-dark px-3 text-sm font-semibold text-white hover:bg-emerald-800">
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-hc-brand-dark px-4 text-sm font-semibold text-white hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
             <Plus className="h-4 w-4" /> Nýr hópur
           </button>
         )}
       </div>
 
-      <label className="flex items-center gap-2 rounded-2xl border border-slate-300 bg-hc-surface px-4">
-        <Search className="h-4 w-4 shrink-0 text-hc-ink-3" aria-hidden />
-        <input value={q} onChange={(e) => setQ(e.target.value)}
+      <label className="flex items-center gap-2 rounded-2xl border border-hc-control bg-hc-surface px-4 focus-within:border-hc-brand-dark focus-within:ring-2 focus-within:ring-hc-brand/25">
+        <Search className="h-4 w-4 shrink-0 text-hc-ink-2" aria-hidden />
+        <span className="sr-only">Leita</span>
+        <input value={q} onChange={(e) => setQ(e.target.value)} type="search"
           placeholder={tab === "all" ? "Leita að skjólstæðingi — nafn eða sími" : "Leita að hópi eða starfsmanni"}
-          className="min-h-11 w-full bg-transparent text-sm outline-none" />
+          className="min-h-11 w-full bg-transparent text-sm text-hc-ink outline-none placeholder:text-hc-ink-3" />
       </label>
 
-      {rows === null && <p className="flex items-center gap-2 text-sm text-hc-ink-2"><Loader2 className="h-4 w-4 animate-spin" /> Hleð…</p>}
+      {/* Stage filter: at three clients it is noise, at fifty it is how you
+          find everyone waiting on an interview. */}
+      {tab === "all" && stages.length > 1 && (
+        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Sía eftir stöðu">
+          {[["", "Allir"] as const, ...stages.map((s) => [s, STAGE_IS[s]] as const)].map(([k, l]) => (
+            <button key={k || "all"} type="button" role="radio" aria-checked={stage === k} onClick={() => setStage(k)}
+              className={`min-h-11 rounded-full px-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand ${
+                stage === k ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-text"}`}>
+              {l}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {rows === null && <div className="h-40 rounded-2xl hc-shimmer" aria-busy="true" aria-label="Hleð skjólstæðingum" />}
+      {tab === "groups" && groupsFailed && (
+        <p role="alert" className="flex flex-wrap items-center gap-2 rounded-2xl bg-hc-bad-surface px-4 py-3 text-sm text-hc-bad-ink">
+          Náði ekki í hópana.
+          <button type="button" onClick={() => void load()} className="min-h-11 rounded-xl border border-hc-control bg-hc-surface px-3 font-semibold text-hc-ink-2">Reyna aftur</button>
+        </p>
+      )}
 
       {/* Only the people scroll. Allir/Hópar, Nýr hópur and the search stay
           above it — the search is how you reach somebody in a list too long
@@ -104,20 +134,25 @@ export default function ClientsView({ api, onOpenClient, capped = false }: {
           {people.map((r) => (
             <li key={r.id}>
               <button type="button" onClick={() => onOpenClient(r.id)}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-hc-sunken">
+                className="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-hc-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-hc-brand">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-hc-ink">{r.client_name}</span>
                   <span className="block text-xs text-hc-ink-2">{r.client_phone ?? "—"}</span>
                 </span>
                 {r.stage && (
-                  <span className="shrink-0 rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] font-semibold text-hc-ink-2">
+                  <span className="shrink-0 rounded-full bg-hc-sunken-2 px-2 py-0.5 text-xs font-semibold text-hc-ink-2">
                     {STAGE_IS[r.stage] ?? r.stage}
                   </span>
                 )}
               </button>
             </li>
           ))}
-          {!people.length && <li className="px-4 py-3 text-sm text-hc-ink-2">Enginn fannst.</li>}
+          {!people.length && (
+            <li className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-hc-ink-2">
+              {rows.length ? "Enginn fannst." : "Engir skjólstæðingar enn."}
+              {!rows.length && onReload && <button type="button" onClick={onReload} className="font-semibold text-hc-brand-text hover:underline">Sækja aftur</button>}
+            </li>
+          )}
         </ul>
       )}
 
@@ -131,7 +166,7 @@ export default function ClientsView({ api, onOpenClient, capped = false }: {
             <li key={g.id} className="overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface">
               <button type="button" onClick={() => setOpen(open === g.id ? null : g.id)}
                 aria-expanded={open === g.id}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hc-sunken">
+                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hc-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-hc-brand">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-hc-sunken-2 text-hc-ink-2">
                   <Building2 className="h-4 w-4" />
                 </span>
@@ -157,16 +192,16 @@ export default function ClientsView({ api, onOpenClient, capped = false }: {
                         return (
                           <li key={m.id}>
                             <button type="button" disabled={!j} onClick={() => j && onOpenClient(j)}
-                              className="w-full truncate rounded-lg bg-hc-surface px-2.5 py-1.5 text-left text-sm text-hc-ink-2 ring-1 ring-hc-hairline enabled:hover:bg-hc-ok-surface disabled:opacity-60">
+                              className="min-h-11 w-full truncate rounded-lg bg-hc-surface px-2.5 text-left text-sm text-hc-ink-2 ring-1 ring-hc-hairline enabled:hover:bg-hc-ok-surface disabled:opacity-80">
                               {m.full_name ?? "—"}
-                              {!j && <span className="ml-1 text-xs text-hc-ink-3">(engin heilsuferð)</span>}
+                              {!j && <span className="ml-1 text-xs text-hc-ink-2">(engin heilsuferð)</span>}
                             </button>
                           </li>
                         );
                       })}
                     </ul>
                   )}
-                  <p className="mt-2 text-[11px] text-hc-ink-2">
+                  <p className="mt-2 text-xs text-hc-ink-2">
                     Samningar, verð og umferðir eru í <span className="font-semibold">/admin/business</span>.
                   </p>
                 </div>
@@ -200,7 +235,7 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
     <label className="block text-sm">
       <span className="text-hc-ink-2">{label}</span>
       <input type={type} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })}
-        className="mt-0.5 min-h-10 w-full rounded-lg border border-slate-300 px-2.5 text-sm" />
+        className="mt-0.5 min-h-11 w-full rounded-lg border border-hc-control bg-hc-surface px-2.5 text-sm text-hc-ink outline-none focus:border-hc-brand-dark focus:ring-2 focus:ring-hc-brand/25" />
     </label>
   );
 
@@ -220,13 +255,13 @@ function NewGroup({ api, onClose, onSaved }: { api: Api; onClose: () => void; on
           {field("contact_email", "Netfang tengiliðs", "email")}
           {field("address", "Heimilisfang")}
         </div>
-        {msg && <p className="mt-2 text-sm text-red-700">{msg}</p>}
+        {msg && <p role="alert" className="mt-2 text-sm text-hc-bad-ink">{msg}</p>}
         <div className="mt-3 flex gap-2">
           <button type="button" disabled={busy || !f.name.trim()} onClick={save}
-            className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-hc-brand px-3 text-sm font-semibold text-white hover:bg-hc-brand-dark disabled:opacity-40">
+            className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-hc-brand-dark px-3 text-sm font-semibold text-white hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:opacity-40">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Stofna hóp
           </button>
-          <button type="button" onClick={onClose} className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">Hætta við</button>
+          <button type="button" onClick={onClose} className="min-h-11 rounded-xl border border-hc-control px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">Hætta við</button>
         </div>
       </div>
     </Sheet>

@@ -12,6 +12,7 @@ import { useStaffGuard } from "@/lib/useStaffGuard";
 import AdminTabs from "../components/AdminTabs";
 import DiscountsTab from "./DiscountsTab";
 import { adminJson } from "../hc-api";
+import { useNow } from "@/app/components/account/ui/useNow";
 import { STAGE_LABELS } from "@/lib/hc/stages";
 import { formatIsk, type HcLocation, type HcPackage } from "@/lib/hc/types";
 
@@ -26,6 +27,8 @@ interface Worker {
   id: string; email: string; name: string; phone: string | null; organization: string;
   role: string; location_ids: string[]; receives_report_sms: boolean; active: boolean;
   activated: boolean; last_login_at: string | null;
+  /** When the current invite / reset link stops working (null when none). */
+  invite_expires_at?: string | null;
   /* What a participant sees of this person on the Þjálfari tab. */
   bio: string | null;
   photo_url: string | null;
@@ -231,11 +234,43 @@ function LocationCard({ l, onSaved }: { l: Overview["locations"][number]; onSave
 
 const ORG: Record<string, string> = { lifeline: "Lifeline", vera: "Vera", heilsugaesla: "Heilsugæsla" };
 const ROLE: Record<string, string> = { nurse: "Hjúkrunarfræðingur", doctor: "Læknir", admin: "Stjórnandi" };
+const MONTHS_IS = ["jan.", "feb.", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "sept.", "okt.", "nóv.", "des."];
+const dayIs = (iso: string) => { const d = new Date(iso); return `${d.getDate()}. ${MONTHS_IS[d.getMonth()]}`; };
+
+type InviteResult = { name: string; email: string; url: string; sent: boolean; expires_at: string | null };
+
+/** What happened to the invite: sent, or not — and the link either way. */
+function InviteNotice({ r, onClose }: { r: InviteResult; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(r.url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* clipboard blocked */ }
+  };
+  return (
+    <div role="status" className={`rounded-2xl border p-4 text-sm ${r.sent ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+      <p className="font-semibold">{r.sent ? `Boð sent til ${r.email}` : "Póstur fór ekki – afritaðu hlekkinn"}</p>
+      <p className="mt-1">
+        {r.sent
+          ? `${r.name} fær tölvupóst með hlekk til að velja lykilorð.`
+          : `Ekki tókst að senda póst til ${r.email}. Sendu ${r.name} hlekkinn eftir annarri öruggri leið.`}
+        {r.expires_at ? ` Hlekkurinn gildir til ${dayIs(r.expires_at)}.` : ""}
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <code className="min-w-0 max-w-full flex-1 truncate rounded-lg bg-white/70 px-2 py-1.5 text-xs">{r.url}</code>
+        <button type="button" onClick={() => void copy()} className="rounded-lg border border-current/30 bg-white px-3 py-1.5 text-xs font-semibold">
+          {copied ? "Afritað" : "Afrita hlekk"}
+        </button>
+        <button type="button" onClick={onClose} className="px-2 py-1.5 text-xs font-semibold opacity-80 hover:opacity-100">Loka</button>
+      </div>
+    </div>
+  );
+}
 
 function WorkersTab({ locations }: { locations: Overview["locations"] }) {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [edit, setEdit] = useState<Partial<Worker> | null>(null);
   const [msg, setMsg] = useState("");
+  const [invite, setInvite] = useState<InviteResult | null>(null);
+  const now = useNow();
   const load = useCallback(async () => {
     const r = await adminJson<{ workers: Worker[] }>("/api/admin/hc/workers");
     if (r.ok) setWorkers(r.data.workers);
@@ -244,9 +279,15 @@ function WorkersTab({ locations }: { locations: Overview["locations"] }) {
 
   const save = async (invite: boolean) => {
     if (!edit) return;
-    const r = await adminJson<{ invite_url: string | null }>("/api/admin/hc/workers", { method: "POST", body: JSON.stringify({ ...edit, send_invite: invite }) });
-    setMsg(r.ok ? (invite ? "Vistað og boð send." : "Vistað.") : r.error || "Villa");
-    if (r.ok) { setEdit(null); await load(); }
+    setInvite(null);
+    const r = await adminJson<{ worker: { name: string; email: string }; invite_url: string | null; sent: boolean; expires_at: string | null }>(
+      "/api/admin/hc/workers", { method: "POST", body: JSON.stringify({ ...edit, send_invite: invite }) });
+    if (!r.ok) { setMsg(r.error || "Villa"); return; }
+    if (invite && r.data.invite_url) {
+      setMsg("");
+      setInvite({ name: r.data.worker.name, email: r.data.worker.email, url: r.data.invite_url, sent: !!r.data.sent, expires_at: r.data.expires_at });
+    } else setMsg("Vistað.");
+    setEdit(null); await load();
   };
 
   return (
@@ -256,6 +297,7 @@ function WorkersTab({ locations }: { locations: Overview["locations"] }) {
         <button onClick={() => setEdit({ organization: "vera", role: "nurse", location_ids: [], active: true, receives_report_sms: false })} className="rounded-lg bg-[#10B981] px-4 py-2 text-sm font-semibold text-white">Nýr notandi</button>
       </div>
       {msg && <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm">{msg}</p>}
+      {invite && <InviteNotice r={invite} onClose={() => setInvite(null)} />}
       {edit && (
         <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-sm sm:grid-cols-3">
           <input value={edit.name ?? ""} onChange={(e) => setEdit({ ...edit, name: e.target.value })} placeholder="Nafn" className="rounded-lg border border-slate-300 px-3 py-2" />
@@ -303,7 +345,7 @@ function WorkersTab({ locations }: { locations: Overview["locations"] }) {
           </label>
           <div className="flex gap-2 sm:col-span-3">
             <button onClick={() => save(false)} className="rounded-lg border border-slate-300 px-4 py-2 font-semibold">Vista</button>
-            <button onClick={() => save(true)} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white">Vista og senda boð</button>
+            <button onClick={() => save(true)} className="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800">{edit.activated ? "Vista og senda nýjan hlekk" : "Vista og senda boð"}</button>
             <button onClick={() => setEdit(null)} className="px-3 text-slate-500">Hætta við</button>
           </div>
           <p className="text-xs text-slate-500 sm:col-span-3">Staðir: notandi sér aðeins skjólstæðinga á völdum stöðum. Samstarfsaðili án staðar sér engan.</p>
@@ -318,7 +360,14 @@ function WorkersTab({ locations }: { locations: Overview["locations"] }) {
                 <td className="px-4 py-2"><p className="font-medium">{w.name}</p><p className="text-xs text-slate-500">{w.email}</p></td>
                 <td className="px-4 py-2">{ROLE[w.role]} · {ORG[w.organization]}{w.receives_report_sms ? " · SMS" : ""}</td>
                 <td className="px-4 py-2 text-slate-500">{w.location_ids.map((id) => locations.find((l) => l.id === id)?.name).filter(Boolean).join(", ") || (w.organization === "lifeline" ? "Allir" : "Enginn")}</td>
-                <td className="px-4 py-2">{!w.active ? "Óvirkur" : w.activated ? "Virkur" : "Boð ósamþykkt"}</td>
+                <td className="px-4 py-2">
+                  {!w.active ? "Óvirkur" : w.activated ? "Virkur" : "Boð ósamþykkt"}
+                  {w.active && !w.activated && w.invite_expires_at && (
+                    <p className={`text-xs ${new Date(w.invite_expires_at).getTime() < now ? "text-red-700" : "text-slate-500"}`}>
+                      {new Date(w.invite_expires_at).getTime() < now ? `Hlekkur rann út ${dayIs(w.invite_expires_at)}` : `Hlekkur gildir til ${dayIs(w.invite_expires_at)}`}
+                    </p>
+                  )}
+                </td>
                 <td className="px-4 py-2 text-right"><button onClick={() => setEdit(w)} className="text-emerald-700 hover:underline">Breyta</button></td>
               </tr>
             ))}

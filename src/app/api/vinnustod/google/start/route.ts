@@ -9,7 +9,9 @@ import { calendarWorker, getWorkerSession } from "@/lib/hc/ws-auth";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  if (!googleConfigured()) return new Response("Google-dagatal er ekki komið í gagnið enn.", { status: 503 });
+  // A plain link: send the nurse back to the calendar dialog with a reason
+  // (CalendarConnect's GOOGLE_RETURN_TEXT) rather than a bare error page.
+  if (!googleConfigured()) return NextResponse.redirect(new URL("/vinnustod?cal=1&google=unavailable", req.url));
   const me = await getWorkerSession();
   if (!me) return NextResponse.redirect(new URL("/vinnustod", req.url));
   return NextResponse.redirect(consentUrl(me.id, "worker", "/vinnustod?cal=1", me.email));
