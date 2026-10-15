@@ -15,7 +15,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, BookOpen, ChevronRight, Dumbbell, LayoutGrid, Plus, Trash2, Utensils, X } from "lucide-react";
 import PillarIcon from "./PillarIcon";
-import { hcBtn, hcCard, hcKicker, hcTabs } from "./ui";
+import { hcBtn, hcCard, hcInput, hcKicker } from "./ui";
+import Segmented from "./Segmented";
+import Badge from "./Badge";
+import { useKeyboard } from "@/lib/hc/use-keyboard";
 import { GRADE_IS } from "@/lib/hc/rating";
 import { fitOf } from "@/lib/hc/fit";
 import type { Signal } from "@/lib/hc/grunnheilsa";
@@ -53,26 +56,12 @@ type Focus = Pillar | "exercise-program" | "nutrition-program" | "lectures";
 
 /** Dative of each pillar, for "… í svefni". Lowercasing the label is not enough. */
 /**
- * A tab in the category bar.
- *
- * `shrink-0` rather than `flex-1`: with eight items and `flex-1` the basis
- * collapses to 0 and the labels disappear instead of the bar scrolling.
+ * The category bar is the shared Segmented control (brand-dark active, 44px
+ * segments). It used to fill the active tab with the pillar's own colour, but
+ * white on exercise/nutrition/mental orange, lime and sky measured 2.8–3.6:1.
+ * The pillar colour survives on the inactive labels, through the --hc-*-ink
+ * tokens, which pass AA on the bar in both themes.
  */
-const tabCls = (active: boolean) =>
-  `flex shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
-    active ? "bg-hc-brand-dark text-white" : "text-hc-ink-2 hover:bg-hc-sunken"}`;
-
-/**
- * The same tab, in the category's own colour.
- *
- * The editor was emerald whatever you were editing, so choosing Næring from a
- * lime-green group on the front page landed you on a green-brand page that
- * looked like a different part of the product. A category keeps its colour
- * across the two.
- */
-const pillarTabStyle = (pl: Pillar, active: boolean): React.CSSProperties =>
-  active ? { background: PILLAR_META[pl].color, color: "#fff" } : { color: PILLAR_META[pl].ink };
-
 /** The plan-wide categories need shorter labels to sit in a tab. */
 const TAB_SHORT: Record<string, string> = {
   "exercise-program": "Æfingaáætlun",
@@ -89,7 +78,7 @@ const PILLAR_DATIVE: Record<Pillar, string> = {
 
 const tmpId = () => Math.random().toString(36).slice(2);
 const SIGNAL_IS = { red: "Þarfnast athygli", yellow: "Má bæta", green: "Í góðu lagi" } as const;
-const SIGNAL_CLS = { red: "bg-red-50 text-red-800 ring-red-200", yellow: "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30", green: "bg-hc-ok-surface text-hc-ok-ink ring-hc-ok-ink/30" } as const;
+const SIGNAL_CLS = { red: "bg-hc-bad-surface text-hc-bad-ink ring-hc-bad-ink/30", yellow: "bg-hc-warn-surface text-hc-warn-ink ring-hc-warn-ink/30", green: "bg-hc-ok-surface text-hc-ok-ink ring-hc-ok-ink/30" } as const;
 
 export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
   api: Api; onDone: () => void; onCancel: () => void;
@@ -110,6 +99,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
   const [own, setOwn] = useState<{ pillar: Pillar; title: string; frequency: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const keyboard = useKeyboard();
 
   useEffect(() => {
     (async () => {
@@ -203,13 +193,18 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
 
   /** One save writes the whole plan, so the bar is the same in both steps. */
   const saveBar = (
-    <div className="sticky bottom-20 z-10 flex flex-wrap items-center gap-3 rounded-hc-card bg-hc-surface/95 p-3 shadow-hc-overlay ring-1 ring-hc-hairline backdrop-blur sm:bottom-4">
+    /* Sticky above the participant navbar through --hc-dock-offset (0 above
+       sm, where the navbar is hidden), not a hard-coded bottom-20. With the
+       keyboard up iOS does not resize the viewport, so it lifts by the
+       keyboard's inset instead — the CoachView composer's rule. */
+    <div className="sticky z-10 flex flex-wrap items-center gap-3 rounded-hc-card bg-hc-surface/95 p-3 shadow-hc-overlay ring-1 ring-hc-hairline backdrop-blur"
+      style={{ bottom: keyboard.open ? keyboard.inset + 8 : "calc(var(--hc-dock-offset) + 0.75rem)" }}>
       <button type="button" onClick={() => void save()} disabled={busy || rows.length === 0} className={hcBtn.primary}>
         {busy ? "Vista…" : d.plan ? "Vista breytingar" : "Vista áætlunina"}
       </button>
       <button type="button" onClick={onCancel} className={hcBtn.ghost}>Hætta við</button>
       {touched.length > 0 && !busy && <p className="text-sm font-medium text-hc-warn-ink">Óvistaðar breytingar</p>}
-      {msg && <p role="alert" className="text-sm text-red-700">{msg}</p>}
+      {msg && <p role="alert" className="text-sm text-hc-bad-ink">{msg}</p>}
     </div>
   );
 
@@ -225,7 +220,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
         className={`${hcCard.base} flex items-start gap-3 p-4 text-left transition hover:ring-2 hover:ring-hc-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand`}>
         {isPillar(f)
           ? <PillarIcon pillar={f} />
-          : <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-hc-sunken-2 text-hc-ink-2">
+          : <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-hc-element bg-hc-sunken-2 text-hc-ink-2">
               {f === "lectures" ? <BookOpen className="h-5 w-5" aria-hidden />
                 : f === "exercise-program" ? <Dumbbell className="h-5 w-5" aria-hidden />
                 : <Utensils className="h-5 w-5" aria-hidden />}
@@ -304,29 +299,25 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
     <div className="space-y-6">
       {/* Every category one tap away. Switching is local state over data that
           is already loaded and already scored, so it paints in the same frame. */}
-      <div className="sticky top-20 z-20 -mx-4 bg-hc-page/90 px-4 py-2 backdrop-blur print:hidden">
-        <nav className={hcTabs.bar} aria-label="Hvað er verið að breyta">
-          <button type="button" onClick={() => setFocus(null)} className={tabCls(false)} title="Yfirlit yfir alla flokka">
-            <LayoutGrid className="h-4 w-4" aria-hidden />
-          </button>
-          <span className="mx-1 w-px shrink-0 self-stretch bg-slate-200" aria-hidden />
-          {PILLARS.map((pl) => (
-            <button key={pl} type="button" onClick={() => setFocus(pl)} aria-current={focus === pl ? "page" : undefined}
-              className={`${tabCls(focus === pl)} ${focus === pl ? "" : "hover:bg-hc-sunken"}`} style={pillarTabStyle(pl, focus === pl)}>
-              {PILLAR_META[pl].label}
-              {touched.includes(pl) && <span className="ml-1" aria-label="breytt" style={{ color: focus === pl ? "#fff" : PILLAR_META[pl].color }}>•</span>}
-            </button>
-          ))}
-          <span className="mx-1 w-px shrink-0 self-stretch bg-slate-200" aria-hidden />
-          {(["exercise-program", "nutrition-program", "lectures"] as Focus[]).map((f) => (
-            <button key={f} type="button" onClick={() => setFocus(f)} aria-current={focus === f ? "page" : undefined} className={tabCls(focus === f)}>
-              {TAB_SHORT[f as string]}{touched.includes(f) && <span className="ml-1 text-emerald-500" aria-label="breytt">•</span>}
-            </button>
-          ))}
-        </nav>
+      <div className="sticky top-[var(--hc-sticky-top)] z-20 -mx-4 bg-hc-surface/90 px-4 py-2 backdrop-blur print:hidden">
+        <Segmented<Focus | "all"> mode="tabs" label="Hvað er verið að breyta" size="sm"
+          value={focus} onChange={(v) => setFocus(v === "all" ? null : v)}
+          options={[
+            { value: "all", label: <><LayoutGrid className="h-4 w-4" aria-hidden /><span className="sr-only">Allir flokkar</span></> },
+            ...PILLARS.map((pl) => ({
+              value: pl as Focus | "all",
+              label: <span style={focus === pl ? undefined : { color: `var(--hc-${pl}-ink)` }}>{PILLAR_META[pl].label}</span>,
+              extra: touched.includes(pl) ? <Badge tone={focus === pl ? "neutral" : "warn"}>breytt</Badge> : undefined,
+            })),
+            ...(["exercise-program", "nutrition-program", "lectures"] as Focus[]).map((f) => ({
+              value: f as Focus | "all",
+              label: TAB_SHORT[f as string],
+              extra: touched.includes(f) ? <Badge tone={focus === f ? "neutral" : "warn"}>breytt</Badge> : undefined,
+            })),
+          ]} />
       </div>
 
-      <section className="overflow-hidden rounded-3xl bg-hc-surface shadow-sm ring-1 ring-hc-hairline">
+      <section className={`${hcCard.base} overflow-hidden`}>
         <div className="flex flex-wrap items-center gap-2 px-4 py-3"
           style={pillar ? { background: PILLAR_META[pillar].soft } : undefined}>
           {pillar && <PillarIcon pillar={pillar} size="sm" />}
@@ -360,12 +351,13 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                     {r.summary && <p className="mt-0.5 line-clamp-2 text-sm text-hc-ink-2">{r.summary}</p>}
                     <input value={r.note} onChange={(e) => { mark(focus); setRows((rs) => rs.map((x, k) => (k === i ? { ...x, note: e.target.value } : x))); }}
                       placeholder="Mín athugasemd (t.d. „á þriðjudögum eftir vinnu“)" maxLength={300}
-                      className="mt-2 w-full rounded-lg border border-hc-control bg-hc-sunken px-2 py-1.5 text-sm focus:border-hc-brand focus:bg-hc-surface focus:outline-none" />
+                      className={`${hcInput} mt-2`} />
                   </div>
-                  <div className="flex shrink-0 flex-col gap-1">
-                    <button type="button" aria-label="Færa upp" disabled={pos === 0} onClick={() => { mark(focus); nudge(pos, -1); }} className="rounded-lg p-1 text-hc-ink-3 hover:bg-hc-sunken-2 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
-                    <button type="button" aria-label="Færa niður" disabled={pos === mine.length - 1} onClick={() => { mark(focus); nudge(pos, 1); }} className="rounded-lg p-1 text-hc-ink-3 hover:bg-hc-sunken-2 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
-                    <button type="button" aria-label={`Taka út: ${r.title}`} onClick={() => { mark(focus); setRows((rs) => rs.filter((_, k) => k !== i)); }} className="rounded-lg p-1 text-hc-ink-3 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  {/* 44px each (2.5.5); they were p-1 around a 16px icon, 24px. */}
+                  <div className="-my-1 -mr-1 flex shrink-0 flex-col">
+                    <button type="button" aria-label="Færa upp" disabled={pos === 0} onClick={() => { mark(focus); nudge(pos, -1); }} className="grid h-11 w-11 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken-2 disabled:opacity-30"><ArrowUp className="h-4 w-4" aria-hidden /></button>
+                    <button type="button" aria-label="Færa niður" disabled={pos === mine.length - 1} onClick={() => { mark(focus); nudge(pos, 1); }} className="grid h-11 w-11 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken-2 disabled:opacity-30"><ArrowDown className="h-4 w-4" aria-hidden /></button>
+                    <button type="button" aria-label={`Taka út: ${r.title}`} onClick={() => { mark(focus); setRows((rs) => rs.filter((_, k) => k !== i)); }} className="grid h-11 w-11 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-bad-surface hover:text-hc-bad-ink"><Trash2 className="h-4 w-4" aria-hidden /></button>
                   </div>
                 </li>
               ))}
@@ -375,9 +367,9 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
               <div className={`${hcCard.base} mt-3 space-y-2 p-4`}>
                 <p className="font-semibold text-hc-ink">Mín eigin aðgerð í {PILLAR_DATIVE[pillar]}</p>
                 <input value={own.title} onChange={(e) => setOwn({ ...own, title: e.target.value })} maxLength={80} placeholder="Hvað ætlarðu að gera? (t.d. „Ganga í vinnuna“)"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  className={hcInput} />
                 <input value={own.frequency} onChange={(e) => setOwn({ ...own, frequency: e.target.value })} maxLength={40} placeholder="Hversu oft? (t.d. „3× í viku“)"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  className={hcInput} />
                 <div className="flex gap-2">
                   <button type="button" disabled={own.title.trim().length < 3} className={hcBtn.primary}
                     onClick={() => { mark(focus); setRows((rs) => [...rs, { key: null, pillar, title: own.title.trim(), summary: "", frequency: own.frequency.trim() || null, note: "", own: true, tmp: tmpId() }]); setOwn(null); }}>Bæta við</button>
@@ -394,8 +386,8 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                 {goals.map((g, i) => (g.pillar === pillar ? (
                   <div key={i} className={`${hcCard.base} flex items-center gap-2 p-2`}>
                     <input value={g.text} maxLength={160} onChange={(e) => { mark(focus); setGoals((gs) => gs.map((x, k) => (k === i ? { ...x, text: e.target.value } : x))); }}
-                      placeholder="t.d. „Sofa 7 tíma flestar nætur“" className="min-w-0 flex-1 rounded-lg border border-hc-control px-2 py-1.5 text-sm" />
-                    <button type="button" aria-label="Eyða markmiði" onClick={() => { mark(focus); setGoals((gs) => gs.filter((_, k) => k !== i)); }} className="rounded-lg p-1 text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-4 w-4" /></button>
+                      placeholder="t.d. „Sofa 7 tíma flestar nætur“" className={`${hcInput} min-w-0 flex-1`} />
+                    <button type="button" aria-label="Eyða markmiði" onClick={() => { mark(focus); setGoals((gs) => gs.filter((_, k) => k !== i)); }} className="grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken-2"><X className="h-4 w-4" aria-hidden /></button>
                   </div>
                 ) : null))}
               </div>
@@ -417,7 +409,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                   const taken = inPlan.has(m.key);
                   const top = i === 0 && d.has_report;
                   return (
-                    <li key={m.key} className={`p-3 ${top ? "bg-emerald-50/60 ring-1 ring-inset ring-hc-brand" : ""}`}>
+                    <li key={m.key} className={`p-3 ${top ? "bg-hc-brand-surface ring-1 ring-inset ring-hc-brand-dark" : ""}`}>
                       {top && (
                         <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-hc-brand-text"> Mælum helst með þessu
                         </p>
@@ -434,7 +426,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                           <FitMeter fit={f} titles={d.marker_titles ?? {}} rank={i + 1} />
                         </div>
                         <button type="button" disabled={taken} onClick={() => { mark(focus); add(m); }} aria-label={taken ? `${m.title} er í áætluninni` : `Bæta við: ${m.title}`}
-                          className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${taken ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-hc-brand text-white hover:bg-hc-brand-dark"}`}>
+                          className={`inline-flex min-h-11 shrink-0 items-center rounded-hc-element px-3 text-xs font-semibold ${taken ? "bg-hc-ok-surface text-hc-ok-ink" : "bg-hc-brand-dark text-white hover:bg-hc-brand-darker"}`}>
                           {taken ? "Í áætlun" : "+ Bæta við"}
                         </button>
                       </div>
@@ -449,9 +441,9 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
 
       {focus === "exercise-program" && programs && (
         <section>
-          <div className="mb-2 flex items-baseline justify-between">
+          <div className="mb-2 flex items-center justify-between">
             <p className={`${hcKicker} text-hc-ink-2`}>Veldu æfingaáætlun</p>
-            {exKey && <button type="button" onClick={() => { mark(focus); setExKey(null); }} className="text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">Engin</button>}
+            {exKey && <button type="button" onClick={() => { mark(focus); setExKey(null); }} className={`${hcBtn.ghost} text-xs`}>Engin</button>}
           </div>
           <ProgramList rows={programs.exercise} current={exKey} onPick={(k) => { mark("exercise-program"); setExKey(k); }} tone="exercise" />
         </section>
@@ -459,9 +451,9 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
 
       {focus === "nutrition-program" && programs && (
         <section>
-          <div className="mb-2 flex items-baseline justify-between">
+          <div className="mb-2 flex items-center justify-between">
             <p className={`${hcKicker} text-hc-ink-2`}>Veldu næringaráætlun</p>
-            {nuKey && <button type="button" onClick={() => { mark(focus); setNuKey(null); }} className="text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">Engin</button>}
+            {nuKey && <button type="button" onClick={() => { mark(focus); setNuKey(null); }} className={`${hcBtn.ghost} text-xs`}>Engin</button>}
           </div>
           <ProgramList rows={programs.nutrition} current={nuKey} onPick={(k) => { mark("nutrition-program"); setNuKey(k); }} tone="nutrition" />
         </section>
@@ -478,7 +470,7 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
                   const on = lectures.includes(l.slug);
                   return (
                     <label key={l.slug} className={`${hcCard.base} flex cursor-pointer items-start gap-2 p-3 ${on ? "ring-2 ring-hc-brand" : ""}`}>
-                      <input type="checkbox" checked={on} onChange={() => { mark("lectures"); setLectures((ls) => (on ? ls.filter((x) => x !== l.slug) : [...ls, l.slug])); }} className="mt-1 h-4 w-4 accent-emerald-600" />
+                      <input type="checkbox" checked={on} onChange={() => { mark("lectures"); setLectures((ls) => (on ? ls.filter((x) => x !== l.slug) : [...ls, l.slug])); }} className="mt-1 h-4 w-4 accent-[#047857]" />
                       <span className="min-w-0">
                         <span className="flex items-center gap-1.5 text-sm font-semibold text-hc-ink"><BookOpen className="h-3.5 w-3.5 text-hc-ink-3" aria-hidden />{l.title}</span>
                         <span className="block text-xs text-hc-ink-2">{l.pillar && l.pillar in PILLAR_META ? PILLAR_META[l.pillar as Pillar].label : "Almennt"}{l.duration_min ? ` · ${l.duration_min} mín.` : ""}</span>

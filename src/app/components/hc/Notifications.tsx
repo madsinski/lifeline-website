@@ -10,7 +10,8 @@
 import { chime } from "@/lib/hc/chime";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Zap, CalendarClock, FileCheck2, Hand, MessageCircle } from "lucide-react";
+import { Bell, CalendarClock, FileCheck2, Hand, MessageCircle } from "lucide-react";
+import { badgeClass } from "./Badge";
 import { hcCard } from "./ui";
 import { useSwipe } from "@/lib/hc/use-swipe";
 import Sheet from "./Sheet";
@@ -193,7 +194,7 @@ export function NotificationBell({ unread, onOpen }: {
       {fresh && (
         <span className="absolute inset-0 animate-hc-ping rounded-full bg-red-500/30 motion-reduce:hidden" aria-hidden />
       )}
-      <Zap className={`relative h-5 w-5 ${fresh ? "animate-hc-swing motion-reduce:animate-none" : ""}`} aria-hidden />
+      <Bell className={`relative h-5 w-5 ${fresh ? "animate-hc-swing motion-reduce:animate-none" : ""}`} aria-hidden />
       {unread > 0 && (
         <span className={`absolute right-0.5 top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white ring-2 ring-white ${
           fresh ? "animate-hc-pulse motion-reduce:animate-none" : ""}`}>
@@ -282,7 +283,7 @@ export function NotificationList({ items, onNavigate, onOpened, onDismiss }: {
   return (
     <div className="space-y-2">
       {items.map((n) => {
-        const Icon = ICON[n.kind] ?? Zap;
+        const Icon = ICON[n.kind] ?? Bell;
         const inner = (
           <>
             <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full ${n.unread ? "bg-hc-ok-surface" : "bg-hc-sunken-2"}`}>
@@ -296,7 +297,7 @@ export function NotificationList({ items, onNavigate, onOpened, onDismiss }: {
                 {n.unread && (
                   <span className="relative grid h-5 shrink-0 place-items-center" aria-label="nýtt">
                     <span className="absolute inset-0 animate-hc-ping rounded-full bg-red-500/40 motion-reduce:hidden" aria-hidden />
-                    <span className="relative rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Nýtt</span>
+                    <span className={`relative ${badgeClass("bad")} uppercase tracking-wide`}>Nýtt</span>
                   </span>
                 )}
               </span>

@@ -130,6 +130,17 @@ export async function POST(req: NextRequest) {
   const useUnion = b.use_union === true || b.route === "union";
   const route: PaymentRoute = useCompany && useUnion ? "company_union" : useCompany ? "company" : useUnion ? "union" : "self";
   if (!b.accept_terms) return NextResponse.json({ error: "Samþykkja þarf söluskilmála." }, { status: 400 });
+  /*
+   * The withdrawal-right waiver (söluskilmálar gr. 8, d-liður 1. mgr. 18. gr.
+   * laga nr. 16/2016): the consumer asks for the service to start at once
+   * and acknowledges the right lapses once it is fully performed. Recorded
+   * with the payment in hc_audit.detail (jsonb) — hc_orders has no metadata
+   * column, and this needed no migration. The checkout UI will not submit
+   * without it; the server records what it was sent.
+   */
+  const waiver = b.withdrawal_waiver === true
+    ? { withdrawal_waiver: true, withdrawal_waiver_recorded_at: new Date().toISOString() }
+    : { withdrawal_waiver: false };
 
   const pkg = await loadPackage(String(b.package_key || ""));
   if (!pkg) return NextResponse.json({ error: "package_not_found" }, { status: 404 });
@@ -264,9 +275,9 @@ export async function POST(req: NextRequest) {
     journey = (await patchJourney(journey.id, {
       paid_at: now,
       ...(companyCode ? { entry: "b2b" as const, company_id: companyCode.company_id } : {}),
-    }, actor, "paid", { order_id: order.id, route })) ?? journey;
+    }, actor, "paid", { order_id: order.id, route, ...waiver })) ?? journey;
   } else {
-    await hcAudit(actor, "paid_followup", journey.id, { order_id: order.id, kind: pkg.kind });
+    await hcAudit(actor, "paid_followup", journey.id, { order_id: order.id, kind: pkg.kind, ...waiver });
     journey = await refreshStage(journey);
   }
 

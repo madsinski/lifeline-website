@@ -14,49 +14,53 @@ export const hcBtn = {
      the workstation was failing, the most-clicked thing on the page. On
      #047857 it is 5.48:1. The hover goes darker still rather than lighter,
      so the state change never costs contrast. */
-  primary: `${base} bg-hc-brand-dark text-white hover:bg-emerald-800`,
+  primary: `${base} bg-hc-brand-dark text-white hover:bg-hc-brand-darker`,
   /* Kept as a name for a filled neutral action, but it is the brand now:
      a black button beside an emerald one reads as two systems, and the
      product has one accent. */
-  dark: `${base} bg-hc-brand-dark text-white hover:bg-emerald-800`,
+  dark: `${base} bg-hc-brand-dark text-white hover:bg-hc-brand-darker`,
   /* hc-control, not slate-300: a button's edge identifies the control,
      so 1.4.11 asks 3:1 and slate-300 gives 1.48. */
   secondary: `${base} border border-hc-control bg-hc-surface text-hc-ink-2 hover:bg-hc-sunken`,
   ghost: `${base} text-hc-ink-2 hover:bg-hc-sunken-2`,
   /* The participant's main call to action: the primary colours at a 44px
      touch target, for the one button a screen is about. */
-  cta: "inline-flex min-h-11 items-center justify-center gap-2 rounded-hc-element bg-hc-brand-dark px-5 font-semibold text-white transition hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:cursor-not-allowed disabled:opacity-40",
+  cta: "inline-flex min-h-11 items-center justify-center gap-2 rounded-hc-element bg-hc-brand-dark px-5 font-semibold text-white transition hover:bg-hc-brand-darker focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand disabled:cursor-not-allowed disabled:opacity-40",
 };
 
 /**
  * One card, three weights. Everything on these pages uses one of them.
  *
- * The page is #F8FAFC and a card is white, so the edge is doing all the
+ * The page is white-to-brand-wash and a card is white, so the edge is doing all the
  * work of separating them. It used to be ring-slate-100 (#F1F5F9), which
  * against that background is a 2% difference — effectively invisible, which
  * is why the new cards read as floating text rather than as cards.
  *
- * slate-200 with a real shadow is still quiet. The restraint is deliberate:
+ * hc-border (raised/accent) with a real shadow is still quiet. The restraint is deliberate:
  * these pages are mostly cards, and if every one of them asserts itself
  * then none of them does. Colour is reserved for the two weights below and
- * for state (a flag, a warning, a done tick) — everything else is the slate
- * scale.
+ * for state (a flag, a warning, a done tick) — everything else is the hc
+ * neutral tokens, which also flip in the workstation's dark theme.
  */
 export const hcCard = {
   /** The default. Quiet, but visibly an edge. */
   base: "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-hairline",
   /** One step up, for the card on a screen that should be read first. */
-  raised: "rounded-hc-card bg-hc-surface shadow-hc-raised ring-1 ring-slate-200",
+  raised: "rounded-hc-card bg-hc-surface shadow-hc-raised ring-1 ring-hc-border",
   /** Hero block: dark emerald gradient. The only card that shouts. */
   hero: "rounded-hc-hero bg-gradient-to-br from-hc-hero-from to-hc-hero-to text-white shadow-hc-raised",
   /** Needs an answer — a pending approval, a warning. Brand edge, no fill. */
-  accent: "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-slate-200 border-l-4 border-l-hc-brand",
+  accent: "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-border border-l-4 border-l-hc-brand-dark",
 };
 
 /** Page backgrounds: one colour for the workstation, a light wash for the participant. */
 export const hcPage = {
   staff: "min-h-screen bg-hc-page",
-  participant: "min-h-screen bg-gradient-to-b from-hc-page via-white to-hc-brand-surface",
+  /* White at the top, warming to the brand surface at the foot. It used to
+     start at --hc-page (#ECF0F3), which put the participant's first screen
+     on a grey backdrop — the one thing the design direction rules out.
+     Cards keep their edge from ring-hc-hairline + shadow-hc-card. */
+  participant: "min-h-screen bg-gradient-to-b from-hc-surface via-hc-surface to-hc-brand-surface",
 };
 
 /** Segmented tabs (workstation nav, the participant's nav, plan tabs). */

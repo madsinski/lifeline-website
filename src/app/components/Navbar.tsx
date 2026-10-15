@@ -124,7 +124,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   return (
     <>
     <nav
-      className={`sticky top-0 z-50 bg-white/95 backdrop-blur-lg border-b border-gray-200 transition-shadow duration-300 ${
+      className={`sticky top-0 z-50 pt-[env(safe-area-inset-top)] bg-white/95 backdrop-blur-lg border-b border-gray-200 transition-shadow duration-300 ${
         scrolled ? "shadow-md" : ""
       }`}
     >
@@ -249,7 +249,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
 
     {/* Mobile menu rendered OUTSIDE nav to avoid bg-white/95 inheritance */}
     {mobileOpen && (
-      <div className="lg:hidden fixed inset-0 top-[4.5rem]" style={{ zIndex: 9999 }}>
+      <div className="lg:hidden fixed inset-0 top-[var(--hc-site-nav-h)]" style={{ zIndex: 9999 }}>
         <div
           style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)' }}
           onClick={() => setMobileOpen(false)}

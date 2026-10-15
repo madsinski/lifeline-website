@@ -23,6 +23,7 @@ import {
 import type { PSession } from "@/lib/hc/personalise";
 import Wheel from "./Wheel";
 import Sheet from "./Sheet";
+import { SAVE_FAILED, useToast } from "./Toast";
 
 const MO_SHORT = ["jan", "feb", "mar", "apr", "maí", "jún", "júl", "ágú", "sep", "okt", "nóv", "des"];
 /**
@@ -68,6 +69,22 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
   const startedAt = useRef<number>(0);
   useEffect(() => { if (!startedAt.current) startedAt.current = Date.now(); }, []);
   const current = items[idx];
+  /*
+   * Sets logged in this run. A stray tap on the close button used to drop
+   * the whole session without a word — the sets were stored, but the
+   * workout was never marked done. Once the workout is under way — sets on
+   * the board, moved past the first exercise, or a minute on the clock (a
+   * timed interval or HIIT round logs no sets) — closing asks.
+   */
+  const [logged, setLogged] = useState(0);
+  const [confirmQuit, setConfirmQuit] = useState(false);
+  const askBeforeClose = () => {
+    const ranMs = startedAt.current ? Date.now() - startedAt.current : 0;
+    const underway = logged > 0 || idx > 0 || ranMs >= 60_000;
+    if (!underway) return true;
+    setConfirmQuit(true);
+    return false;
+  };
 
   // Keep the screen awake while someone is mid-set. The app cannot do this;
   // the browser can, and a phone locking between sets is the main annoyance.
@@ -85,10 +102,36 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
     setPhase("rate");
   };
 
+  const quitSheet = confirmQuit && (
+    <Sheet title="Hætta æfingunni?" onClose={() => setConfirmQuit(false)}>
+      <div className="space-y-2 p-4">
+        <p className="text-sm text-hc-ink-2">
+          {logged > 0 ? "Settin eru vistuð." : "Engin sett hafa verið skráð."}
+        </p>
+        <button type="button" data-autofocus
+          onClick={() => {
+            setConfirmQuit(false);
+            if (phase === "rate") onDone({ minutes: elapsedMin, rpe });
+            else finish();
+          }}
+          className={`${hcBtn.primary} w-full`}>
+          Vista sem lokið
+        </button>
+        <button type="button" onClick={() => setConfirmQuit(false)} className={`${hcBtn.secondary} w-full`}>
+          Halda áfram
+        </button>
+        <button type="button" onClick={() => { setConfirmQuit(false); onClose(); }} className={`${hcBtn.ghost} w-full text-hc-bad-ink`}>
+          Hætta
+        </button>
+      </div>
+    </Sheet>
+  );
+
   if (phase === "rate") {
     const minutes = elapsedMin;
     return (
-      <Shell onClose={onClose} title="Hvernig var hún?">
+      <Shell onClose={onClose} confirmClose={askBeforeClose} title="Hvernig var hún?">
+        {quitSheet}
         <div className="space-y-4 p-4">
           <p className="text-sm text-hc-ink-2">{minutes} mín. · {session.title}</p>
           <div>
@@ -112,7 +155,8 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
   }
 
   return (
-    <Shell onClose={onClose} title={session.title}>
+    <Shell onClose={onClose} confirmClose={askBeforeClose} title={session.title}>
+      {quitSheet}
       {/* Where you are */}
       <div className="border-b border-hc-hairline px-4 pb-3">
         <div className="flex gap-1" role="img" aria-label={`Æfing ${idx + 1} af ${items.length}`}>
@@ -127,13 +171,14 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
           after a long exercise you were dropped into the middle of the next
           one, past its name and its cues. */}
       <div ref={scroller} className="flex-1 overflow-y-auto overscroll-contain">
-        {current && <ExercisePanel key={`${current.name}-${idx}`} it={current} onSwap={onSwap} body={body} />}
+        {current && <ExercisePanel key={`${current.name}-${idx}`} it={current} onSwap={onSwap} body={body}
+          onLogged={(d) => setLogged((n) => Math.max(0, n + d))} />}
       </div>
 
       <div className="flex items-center gap-2 border-t border-hc-hairline p-3">
         <button type="button" onClick={() => go(Math.max(0, idx - 1))} disabled={idx === 0}
           className={`${hcBtn.ghost} disabled:opacity-30`}><ChevronLeft className="h-4 w-4" aria-hidden /> Fyrri</button>
-        <button type="button" onClick={finish} className="text-xs font-semibold text-hc-ink-2 hover:text-hc-ink-2">Ljúka hér</button>
+        <button type="button" onClick={finish} className={hcBtn.ghost}>Ljúka hér</button>
         <span className="flex-1" />
         {idx < items.length - 1
           ? <button type="button" onClick={() => go(idx + 1)} className={hcBtn.primary}>Næsta <ChevronRight className="h-4 w-4" aria-hidden /></button>
@@ -147,12 +192,18 @@ export default function WorkoutRunner({ session, onClose, onDone, onSwap, body }
    and scroll lock. It is the shared sheet now, minus the drag: you are
    mid-set with the phone propped somewhere, and losing the session to a
    downward swipe is worse than reaching for the close button. */
-function Shell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return <Sheet title={title} onClose={onClose} draggable={false}>{children}</Sheet>;
+function Shell({ title, onClose, confirmClose, children }: {
+  title: string; onClose: () => void; confirmClose?: () => boolean; children: React.ReactNode;
+}) {
+  return <Sheet title={title} onClose={onClose} confirmClose={confirmClose} draggable={false}>{children}</Sheet>;
 }
 
 /** One exercise: what to do, and the set tracker when there is load to record. */
-function ExercisePanel({ it, onSwap, body }: { it: ExerciseItem; onSwap?: (slot: string, item: ExerciseItem) => void; body?: BodyData }) {
+function ExercisePanel({ it, onSwap, body, onLogged }: {
+  it: ExerciseItem; onSwap?: (slot: string, item: ExerciseItem) => void; body?: BodyData;
+  /** +1 when a set is stored, −1 when one is removed. */
+  onLogged?: (delta: number) => void;
+}) {
   return (
     <div className="space-y-3 p-4">
       {/* object-contain on a dark panel: these are wide gym photos and
@@ -192,7 +243,7 @@ function ExercisePanel({ it, onSwap, body }: { it: ExerciseItem; onSwap?: (slot:
           {it.muscles.slice(0, 4).map((m) => <span key={m} className="rounded-full bg-hc-sunken-2 px-2 py-0.5 text-[11px] text-hc-ink-2">{muscleIs(m)}</span>)}
         </p>
       )}
-      {isLoggable(it) ? <SetTracker it={it} body={body} /> : (
+      {isLoggable(it) ? <SetTracker it={it} body={body} onLogged={onLogged} /> : (
         <p className="rounded-xl bg-hc-sunken p-3 text-sm text-hc-ink-2">
           {/^hiit/i.test(it.name) ? "Taktu lotuna eftir lýsingunni hér að ofan." : "Hér eru engin sett skráð."}
         </p>
@@ -201,7 +252,8 @@ function ExercisePanel({ it, onSwap, body }: { it: ExerciseItem; onSwap?: (slot:
   );
 }
 
-function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
+function SetTracker({ it, body, onLogged }: { it: ExerciseItem; body?: BodyData; onLogged?: (delta: number) => void }) {
+  const toast = useToast();
   const timed = isTimed(it);
   const bodyweight = isBodyweight(it);
   const target = parseSets(it.prescription);
@@ -240,7 +292,12 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
     setRemoving(id);
     const { error } = await supabase.from("set_logs").delete().eq("id", id);
     setRemoving(null);
-    if (!error) setToday((t) => t.filter((x) => x.id !== id));
+    if (error) {
+      toast.show("Ekki tókst að eyða settinu – reyndu aftur", { tone: "bad" });
+      return;
+    }
+    setToday((t) => t.filter((x) => x.id !== id));
+    onLogged?.(-1);
   };
 
   /**
@@ -379,20 +436,41 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
   const logSet = async () => {
     if (!it.exercise_id || busy) return;
     setBusy(true);
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { setBusy(false); return; }
+    /*
+     * getSession, not getUser: getUser is a network round trip to the auth
+     * server on every set, and in a basement gym that was the call that
+     * failed — silently, so the set was simply not there afterwards. The
+     * session is local; RLS checks the token on the insert anyway.
+     */
+    const { data: sess } = await supabase.auth.getSession();
+    const uid = sess.session?.user.id;
+    if (!uid) {
+      setBusy(false);
+      toast.show("Innskráningin rann út – skráðu þig aftur inn", { tone: "bad" });
+      return;
+    }
     const row = {
-      client_id: u.user.id, exercise_id: it.exercise_id, date: localDate(),
+      client_id: uid, exercise_id: it.exercise_id, date: localDate(),
       set_index: nextSetIndex(today),
       weight: timed || bodyweight || weight === 0 ? null : weight,
       reps: reps || null,
     };
     // Read the row back so the pill can be deleted straight away rather
     // than only after the next reload.
-    const { data: ins, error } = await supabase.from("set_logs").insert(row).select("id").maybeSingle();
+    let ins: { id: string } | null = null;
+    let failed = false;
+    try {
+      const res = await supabase.from("set_logs").insert(row).select("id").maybeSingle();
+      ins = res.data as { id: string } | null;
+      failed = !!res.error;
+    } catch {
+      failed = true;
+    }
     setBusy(false);
-    if (error) return;
+    // The wheels keep their numbers, so trying again is one tap.
+    if (failed) { toast.show(SAVE_FAILED, { tone: "bad" }); return; }
     setToday((t) => [...t, { ...row, id: ins?.id } as LoggedSet]);
+    onLogged?.(1);
     // Warm the voice list inside the tap: iOS Safari will not speak unless
     // the first utterance descends from a user gesture.
     warmVoices();
@@ -415,7 +493,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
               onClick={() => { const v = !voice; setVoice(v); setVoiceEnabled(v); if (!v) stopSpeaking(); }}
               aria-pressed={voice}
               title={voice ? "Raddleiðbeiningar í hvíld: á" : "Raddleiðbeiningar í hvíld: af"}
-              className={`rounded-lg p-1 ${voice ? "text-orange-700" : "text-hc-ink-3"}`}>
+              className={`-my-2 grid h-11 w-11 place-items-center rounded-lg ${voice ? "text-orange-700" : "text-hc-ink-3"}`}>
               {voice ? <Volume2 className="h-4 w-4" aria-hidden /> : <VolumeX className="h-4 w-4" aria-hidden />}
               <span className="sr-only">Raddleiðbeiningar</span>
             </button>
@@ -461,7 +539,7 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
       {timed && restLeft === null && (
         workLeft !== null ? (
           <button type="button" onClick={() => setWorkEndsAt(null)}
-            className="w-full rounded-xl bg-hc-brand px-4 py-4 text-center font-bold text-white">
+            className="w-full rounded-xl bg-hc-brand-dark px-4 py-4 text-center font-bold text-white">
             <span className="block text-3xl tabular-nums leading-none">{workLeft}</span>
             <span className="mt-1 block text-xs font-semibold text-white/80">sekúndur eftir · ýttu til að stoppa</span>
           </button>
@@ -496,15 +574,15 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
             <div className="flex items-center justify-center gap-2 text-sm text-hc-ink-2">
               <span>Hvíld</span>
               <button type="button" onClick={() => changeRest(restSec - 15)} aria-label="Stytta hvíld um 15 sekúndur"
-                className="h-7 w-7 rounded-lg font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2">−</button>
+                className="h-11 w-11 rounded-lg font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2">−</button>
               <span className="min-w-14 text-center font-bold tabular-nums text-hc-ink-2">
                 {restSec >= 60 ? `${Math.floor(restSec / 60)}:${String(restSec % 60).padStart(2, "0")}` : `${restSec} sek.`}
               </span>
               <button type="button" onClick={() => changeRest(restSec + 15)} aria-label="Lengja hvíld um 15 sekúndur"
-                className="h-7 w-7 rounded-lg font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2">+</button>
+                className="h-11 w-11 rounded-lg font-bold text-hc-ink-2 ring-1 ring-hc-hairline hover:bg-hc-sunken-2">+</button>
               {restSec !== prescribedRest && (
                 <button type="button" onClick={() => { try { window.localStorage.removeItem(restKey); } catch { /* private mode */ } setRestSec(prescribedRest); }}
-                  className="font-semibold text-hc-brand-text hover:underline">Sjálfgefið</button>
+                  className="min-h-11 font-semibold text-hc-brand-text hover:underline">Sjálfgefið</button>
               )}
             </div>
           )}
@@ -528,8 +606,8 @@ function SetTracker({ it, body }: { it: ExerciseItem; body?: BodyData }) {
               {s.id && (
                 <button type="button" onClick={() => void removeSet(s.id!)} disabled={removing === s.id}
                   aria-label={`Eyða setti ${i + 1}`}
-                  className="grid h-5 w-5 place-items-center rounded text-hc-ink-3 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
-                  <X className="h-3 w-3" aria-hidden />
+                  className="relative -my-1 grid h-8 w-8 place-items-center rounded-md text-hc-ink-3 transition after:absolute after:-inset-1.5 after:content-[''] hover:bg-red-50 hover:text-red-600 disabled:opacity-40">
+                  <X className="h-4 w-4" aria-hidden />
                 </button>
               )}
             </li>

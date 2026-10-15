@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Inter, Caveat, Nunito_Sans, Schibsted_Grotesk, Newsreader, Public_Sans, Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
@@ -77,6 +77,16 @@ const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   display: "swap",
 });
+
+// viewport-fit=cover lets the page run under the notch / home indicator so
+// env(safe-area-inset-*) reports real values — without it every inset is 0
+// and JourneyNav's bottom padding and --hc-dock-offset never clear the home
+// bar. width/initialScale restate Next's defaults, which this object replaces.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 // Title/description follow the serving host (Lifeline vs Fjarlækningar).
 export async function generateMetadata(): Promise<Metadata> {

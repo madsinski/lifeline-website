@@ -10,7 +10,8 @@ import PillarIcon from "./PillarIcon";
 import type { TrainingSettings } from "@/lib/hc/adaptive-program";
 import ActivityIcon from "./ActivityIcon";
 import { WEEKDAYS, weekdayOf, type PersonalExercise } from "@/lib/hc/personalise";
-import { PILLAR_META, type ActionPlan } from "@/lib/hc/types";
+import type { ActionPlan } from "@/lib/hc/types";
+import { hcCard } from "./ui";
 
 
 const MO = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
@@ -119,7 +120,9 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
           card, so the ring is inside the hero rather than on top of it. */}
       <div>
         {exercise && (
-          <div className="flex flex-col rounded-3xl bg-gradient-to-br from-orange-500 to-amber-400 p-4 text-left text-white shadow-sm sm:p-5">
+          /* Exercise hero tokens: white on orange-500 → amber-400 measured
+             1.7–2.8:1; on orange-800 → orange-700 it is ≥5.2:1. */
+          <div className="flex flex-col rounded-hc-hero bg-gradient-to-br from-hc-exercise-hero-from to-hc-exercise-hero-to p-4 text-left text-white shadow-hc-card sm:p-5">
             <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-white/85"><Dumbbell className="h-4 w-4" aria-hidden />{todayItems.length ? "Æfing dagsins" : "Hvíldardagur"}</span>
             {/* Today's session is the thing you press.
                 It was a heading with a separate "Opna æfinguna →" link
@@ -137,13 +140,13 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
                 white, opaque, pressable, opening Æfingar. */}
             {todayItems.length ? todayItems.map((x) => (
               <button key={x.key} type="button" onClick={() => onOpenExercise(x.sessionId)}
-                className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-hc-surface px-3.5 py-3 text-left text-orange-950 shadow-md transition active:scale-[0.99] hover:bg-orange-50">
-                <ActivityIcon name={x.title} className="h-5 w-5 shrink-0 text-orange-700" />
+                className="mt-2 flex min-h-11 w-full items-center gap-3 rounded-hc-card bg-hc-surface px-3.5 py-3 text-left text-hc-ink shadow-hc-raised transition active:scale-[0.99] hover:bg-hc-exercise-soft">
+                <ActivityIcon name={x.title} className="h-5 w-5 shrink-0 text-hc-exercise-ink" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold leading-tight">{x.title}</span>
-                  {x.sub && <span className="block truncate text-sm text-orange-900/70">{x.sub}</span>}
+                  {x.sub && <span className="block truncate text-sm text-hc-ink-2">{x.sub}</span>}
                 </span>
-                <ChevronRight className="h-5 w-5 shrink-0 text-orange-700" aria-hidden />
+                <ChevronRight className="h-5 w-5 shrink-0 text-hc-exercise-ink" aria-hidden />
               </button>
             )) : (
               <span className="mt-1 block text-sm text-white/95">
@@ -154,7 +157,7 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
                 so the two pages read alike. */}
             {/* Tomorrow is context, not an instruction: no ring, no
                 background, just a quiet line under today's. */}
-            <span className="mt-2 flex items-center gap-1.5 text-xs font-medium text-white/70">
+            <span className="mt-2 flex items-center gap-1.5 text-xs font-medium text-white/90">
               <span className="uppercase tracking-wide">Á morgun</span>
               <span className="truncate">{tomorrow.length ? tomorrow.join(" + ") : "hvíld"}</span>
             </span>
@@ -172,7 +175,7 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
                   row is just the ring. */}
               {!todayItems.length && (
                 <button type="button" onClick={() => onOpenExercise(undefined)}
-                  className="min-w-0 flex-1 text-left text-sm font-semibold underline-offset-4 hover:underline">
+                  className="inline-flex min-h-11 min-w-0 flex-1 items-center text-left text-sm font-semibold underline-offset-4 hover:underline">
                   Opna æfingaáætlunina →
                 </button>
               )}
@@ -183,15 +186,15 @@ export default function TodayOverview({ plan, exercise, training, onOpenExercise
       </div>
 
       {(plan.goals?.length ?? 0) > 0 && (
-        <section className="rounded-3xl bg-hc-surface p-4 shadow-sm ring-1 ring-hc-hairline sm:p-5">
+        <section className={`${hcCard.base} p-4 sm:p-5`}>
           <div className="flex items-center gap-2">
             <Target className="h-4 w-4 text-hc-brand-text" aria-hidden />
             <p className="flex-1 font-semibold text-hc-ink">Markmiðin mín</p>
-            <button type="button" onClick={onEdit} className="text-sm font-semibold text-hc-brand-text hover:underline">Breyta</button>
+            <button type="button" onClick={onEdit} className="-my-2 -mr-2 inline-flex min-h-11 items-center rounded-hc-element px-2 text-sm font-semibold text-hc-brand-text hover:underline">Breyta</button>
           </div>
           <ul className="mt-2 grid gap-2 sm:grid-cols-2">
             {plan.goals.map((g, i) => (
-              <li key={i} className="flex items-start gap-2 rounded-2xl px-3 py-2 text-sm" style={{ background: PILLAR_META[g.pillar].soft }}>
+              <li key={i} className="flex items-start gap-2 rounded-hc-card px-3 py-2 text-sm" style={{ background: `var(--hc-${g.pillar}-soft)` }}>
                 <PillarIcon pillar={g.pillar} size="sm" />
                 <span className="text-hc-ink-2">{g.text}</span>
               </li>

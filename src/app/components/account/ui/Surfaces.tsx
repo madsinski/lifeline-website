@@ -59,7 +59,7 @@ export function SectionCard({ title, description, action, icon: Icon, children, 
   const H = headingLevel === 3 ? "h3" : "h2";
   const headingId = id ? `${id}-title` : undefined;
   return (
-    <section id={id} aria-labelledby={title ? headingId : undefined} className={`${accountCard} scroll-mt-40 p-5 sm:p-6 lg:scroll-mt-24 ${className}`}>
+    <section id={id} aria-labelledby={title ? headingId : undefined} className={`${accountCard} scroll-mt-[calc(var(--hc-site-nav-h)+5.5rem)] p-5 sm:p-6 lg:scroll-mt-[calc(var(--hc-site-nav-h)+1.5rem)] ${className}`}>
       {(title || action) && (
         <div className="mb-4 flex flex-wrap items-start gap-3">
           {Icon && (

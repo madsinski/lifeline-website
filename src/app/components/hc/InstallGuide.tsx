@@ -15,6 +15,7 @@
 import { useState } from "react";
 import { ChevronDown, Share, MonitorDown, MoreVertical, Check } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import Segmented from "./Segmented";
 
 type Platform = "ios" | "android" | "desktop";
 
@@ -101,38 +102,38 @@ function Sketch({ platform }: { platform: Platform }) {
 
   return (
     <figure className="m-0">
-      <div className="overflow-hidden rounded-2xl border border-hc-hairline bg-hc-sunken-2 p-3">
+      <div className="overflow-hidden rounded-hc-card border border-hc-hairline bg-hc-sunken-2 p-3">
         {/* The bit of browser chrome you press first. */}
-        <div className="mb-2 flex items-center gap-2 rounded-xl bg-hc-surface px-2.5 py-2 shadow-sm">
+        <div className="mb-2 flex items-center gap-2 rounded-hc-element bg-hc-surface px-2.5 py-2 shadow-hc-card">
           <span className="truncate text-[11px] text-hc-ink-3">lifelinehealth.is</span>
           <span className="flex-1" />
           <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-bold ${
-            r.chrome === "bar" ? "bg-hc-brand text-white ring-2 ring-hc-brand/30" : "bg-hc-sunken-2 text-hc-ink-2"}`} aria-hidden>
+            r.chrome === "bar" ? "bg-hc-brand-dark text-white ring-2 ring-hc-brand-dark/30" : "bg-hc-sunken-2 text-hc-ink-2"}`} aria-hidden>
             {r.chrome === "share" ? "⇪" : r.chrome === "menu" ? "⋮" : "⤓"}
           </span>
         </div>
 
         {/* The sheet or menu it opens, with the row to tap. */}
         {r.chrome !== "bar" && (
-          <div className="rounded-xl bg-hc-surface p-1.5 shadow-sm">
+          <div className="rounded-hc-element bg-hc-surface p-1.5 shadow-hc-card">
             {r.before.map((x) => (
-              <div key={x} className="flex items-center justify-between px-2 py-1.5 text-[11px] text-slate-300">
+              <div key={x} className="flex items-center justify-between px-2 py-1.5 text-[11px] text-hc-ink-3">
                 <span>{x}</span><span aria-hidden>▢</span>
               </div>
             ))}
-            <div className="flex items-center justify-between rounded-lg bg-hc-brand/10 px-2 py-2 ring-1 ring-hc-brand/40">
+            <div className="flex items-center justify-between rounded-lg bg-hc-brand-surface px-2 py-2 ring-1 ring-hc-brand-dark/40">
               <span className="text-[11px] font-bold text-hc-brand-text">{r.target}</span>
-              <span className="grid h-5 w-5 place-items-center rounded bg-hc-brand text-[11px] font-bold text-white" aria-hidden>{r.icon}</span>
+              <span className="grid h-5 w-5 place-items-center rounded bg-hc-brand-dark text-[11px] font-bold text-white" aria-hidden>{r.icon}</span>
             </div>
             {r.after.map((x) => (
-              <div key={x} className="flex items-center justify-between px-2 py-1.5 text-[11px] text-slate-300">
+              <div key={x} className="flex items-center justify-between px-2 py-1.5 text-[11px] text-hc-ink-3">
                 <span>{x}</span><span aria-hidden>▢</span>
               </div>
             ))}
           </div>
         )}
         {r.chrome === "bar" && (
-          <p className="rounded-xl bg-hc-surface px-2.5 py-2 text-[11px] font-bold text-hc-brand-text shadow-sm">{r.target}</p>
+          <p className="rounded-hc-element bg-hc-surface px-2.5 py-2 text-[11px] font-bold text-hc-brand-text shadow-hc-card">{r.target}</p>
         )}
       </div>
       <figcaption className="mt-1.5 text-[11px] text-hc-ink-3">
@@ -168,11 +169,11 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
 
   return (
     <section className={bare
-      ? "overflow-hidden rounded-2xl ring-1 ring-hc-hairline print:hidden"
+      ? "overflow-hidden rounded-hc-card ring-1 ring-hc-hairline print:hidden"
       : "rounded-hc-card bg-hc-surface shadow-hc-card ring-1 ring-hc-hairline print:hidden"}>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
         className="flex w-full items-center gap-3 p-4 text-left">
-        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${installed ? "bg-hc-brand-surface text-hc-brand-text" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
+        <span className={`flex h-10 w-10 items-center justify-center rounded-hc-element ${installed ? "bg-hc-brand-surface text-hc-brand-text" : "bg-hc-sunken-2 text-hc-ink-2"}`}>
           {installed ? <Check className="h-5 w-5" aria-hidden /> : <MonitorDown className="h-5 w-5" aria-hidden />}
         </span>
         <span className="min-w-0 flex-1">
@@ -195,15 +196,9 @@ export default function InstallGuide({ bare = false, defaultOpen = false }: {
           )}
 
           {/* The guess is only a guess, so all three are selectable. */}
-          <div className="flex flex-wrap gap-1.5">
-            {(Object.keys(STEPS(t)) as Platform[]).map((k) => (
-              <button key={k} type="button" onClick={() => setPick(k)} aria-pressed={pick === k}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition ${
-                  pick === k ? "bg-hc-brand-dark text-white ring-hc-ink" : "bg-hc-surface text-hc-ink-2 ring-hc-hairline hover:bg-hc-sunken"}`}>
-                {STEPS(t)[k].label}
-              </button>
-            ))}
-          </div>
+          <Segmented<Platform> label={t("comp.inst.device", "Tækið þitt")} size="sm"
+            value={pick} onChange={setPick}
+            options={(Object.keys(STEPS(t)) as Platform[]).map((k) => ({ value: k, label: STEPS(t)[k].label }))} />
 
           {/* The picture before the words: the one place people get stuck
               is recognising the row to tap. */}

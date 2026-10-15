@@ -7,9 +7,8 @@
 import { useSyncExternalStore } from "react";
 import { CalendarClock, MapPin, Video } from "lucide-react";
 import type { Upcoming } from "@/lib/hc/upcoming";
+import { fmtDateTime } from "@/app/components/account/ui";
 
-const WD = ["sun.", "mán.", "þri.", "mið.", "fim.", "fös.", "lau."];
-const MO = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"];
 const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
 // Re-render once a minute so "Eftir 10 mín." and the join button stay current.
@@ -43,10 +42,10 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
               <p className="mt-1 text-lg font-bold text-hc-ink">{a.title}</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-hc-ink-2">
                 <CalendarClock className="h-4 w-4 text-hc-ink-3" aria-hidden />
-                {WD[at.getDay()]} {at.getDate()}. {MO[at.getMonth()]} kl. {hhmm(at)}
+                {fmtDateTime(a.at, { weekday: "short" })}
               </p>
             </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-bold ${soon ? "bg-emerald-500 text-white" : "bg-hc-ok-surface text-hc-ok-ink"}`}>{relative(at, now)}</span>
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${soon ? "bg-hc-brand-dark text-white" : "bg-hc-ok-surface text-hc-ok-ink"}`}>{relative(at, now)}</span>
           </div>
           <p className="mt-2 flex items-center gap-1.5 text-sm text-hc-ink-2">
             {a.video ? <Video className="h-4 w-4 text-hc-ink-3" aria-hidden /> : <MapPin className="h-4 w-4 text-hc-ink-3" aria-hidden />}
@@ -56,7 +55,7 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
           {a.video && (a.link ? (
             <a href={a.link} target="_blank" rel="noreferrer"
               className={`mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-base font-bold transition ${
-                soon ? "bg-hc-brand text-white shadow-lg shadow-emerald-500/25 hover:bg-hc-brand-dark" : "bg-hc-brand-dark text-white hover:bg-emerald-800"}`}>
+                soon ? "bg-hc-brand-dark text-white shadow-lg shadow-emerald-700/25 ring-2 ring-hc-brand/40 hover:bg-emerald-800" : "bg-hc-brand-dark text-white hover:bg-emerald-800"}`}>
               <Video className="h-5 w-5" aria-hidden /> Tengjast myndsímtalinu
             </a>
           ) : (

@@ -15,12 +15,12 @@
 // kg), using the weight from the report. With no weight on file there is no
 // bar — a progress bar against a guessed target is worse than none.
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, ChevronRight, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { localDate } from "@/lib/hc/workout";
-import { type MealLogRow } from "@/lib/hc/nutrition-log";
 import { mealName, SLOT_IS, SLOTS, type Meal, type MealSlot } from "@/lib/hc/meals";
+import { useDayMeals, type DayMealRow } from "./useDayMeals";
+import Sheet from "./Sheet";
+import { hcBtn } from "./ui";
 
 export default function MealLogger({ day, compact = false, part = "list", only, flush = false, tone, onOpenMeal, onLogged, drag, lifted = false, carryY = 0, settling = false }: {
   /** The meal in each slot today, as the plan has it. */
@@ -109,55 +109,30 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
    * page described different things.
    */
 }) {
-  const [rows, setRows] = useState<MealLogRow[] | null>(null);
+  /* The day's rows are shared with every other meal row on the screen
+     (useDayMeals.tsx), so a tick here is seen by Í dag's habit links and by
+     Næring's card without a reload. */
+  const { rows, forSlot: loggedSlot, logPlanned, unlog } = useDayMeals();
   const [busy, setBusy] = useState<MealSlot | null>(null);
-  // The app computes a full macro target (Mifflin / Katch-McArdle / measured
-  // BMR → TDEE → protein split) and stores it in macro_targets. When that
+  /** A described meal waiting for "yes, delete it". */
+  const [confirmDel, setConfirmDel] = useState<MealSlot | null>(null);
 
-  const load = useCallback(async () => {
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) return;
-    const { data } = await supabase.from("meal_log")
-      .select("date, action_key, source, description, kcal, protein, carbs, fat")
-      .eq("client_id", u.user.id).eq("date", localDate());
-    setTimeout(() => {
-      setRows((data ?? []) as MealLogRow[]);
-    }, 0);
-  }, []);
-  useEffect(() => { void load(); }, [load]);
-
-  const loggedSlot = (slot: MealSlot) => (rows ?? []).find((r) => r.action_key === slot) ?? null;
-
-  const toggle = async (slot: MealSlot) => {
+  const toggle = async (slot: MealSlot, confirmed = false) => {
     const meal = day[slot];
     if (!meal || busy) return;
-    setBusy(slot);
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) { setBusy(null); return; }
     const already = loggedSlot(slot);
-    if (already) {
-      await supabase.from("meal_log").delete()
-        .eq("client_id", u.user.id).eq("date", localDate()).eq("action_key", slot);
-      setRows((r) => (r ?? []).filter((x) => x.action_key !== slot));
-    } else {
-      const row: MealLogRow = {
-        date: localDate(), action_key: slot, source: "planned",
-        description: mealName(meal),
-        kcal: Number(meal.calories) || 0, protein: Number(meal.protein) || 0,
-        carbs: Number(meal.carbs) || 0, fat: Number(meal.fat) || 0,
-      };
-      // One row per slot per day, as the app's logMeal does: delete first so
-      // a double tap cannot leave two breakfasts in the diary.
-      await supabase.from("meal_log").delete()
-        .eq("client_id", u.user.id).eq("date", localDate()).eq("action_key", slot);
-      const { error } = await supabase.from("meal_log").insert({ ...row, client_id: u.user.id });
-      if (!error) setRows((r) => [...(r ?? []), row]);
-    }
+    /* Unticking a planned meal is undoing a tick. Unticking one the person
+       described is deleting what they wrote — that asks first. */
+    if (already && already.source !== "planned" && !confirmed) { setConfirmDel(slot); return; }
+    setBusy(slot);
+    if (already) await unlog(slot);
+    else await logPlanned(slot, meal);
     setBusy(null);
   };
 
   /* Up to the caller after every change and on first load, off the render
-     tick so a parent setState never lands inside this one. */
+     tick so a parent setState never lands inside this one. Í dag no longer
+     needs this (it reads the shared rows itself); kept for other callers. */
   useEffect(() => {
     if (!onLogged || rows === null) return;
     const slots = rows.map((r) => r.action_key as MealSlot);
@@ -167,8 +142,44 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
 
 
 
+  /** What to show for a slot: the planned meal, or what was actually logged. */
+  const shownFor = (slot: MealSlot, meal: Meal): { name: string; protein: number | null; kcal: number | null; described: boolean } => {
+    const r: DayMealRow | null = loggedSlot(slot);
+    if (r && r.source !== "planned") {
+      return { name: r.description, protein: Number(r.protein) || 0, kcal: Number(r.kcal) || 0, described: true };
+    }
+    return {
+      name: mealName(meal),
+      protein: meal.protein != null ? Number(meal.protein) : null,
+      kcal: meal.calories != null ? Number(meal.calories) : null,
+      described: false,
+    };
+  };
+  const metaLine = (slot: MealSlot, x: ReturnType<typeof shownFor>) =>
+    [x.described ? `${SLOT_IS[slot]} · skráð í staðinn` : SLOT_IS[slot],
+      x.protein != null ? `${Math.round(x.protein)} g prótein` : null,
+      x.kcal != null ? `${Math.round(x.kcal)} kkal` : null]
+      .filter(Boolean).join(" · ");
+
   return (
     <div className="space-y-3">
+      {confirmDel && (
+        <Sheet title="Eyða skráðri máltíð?" onClose={() => setConfirmDel(null)}>
+          <div className="space-y-2 p-4">
+            <p className="text-sm text-hc-ink-2">
+              „{loggedSlot(confirmDel)?.description ?? SLOT_IS[confirmDel]}“ verður tekin úr dagbókinni.
+            </p>
+            <button type="button" data-autofocus
+              onClick={() => { const sl = confirmDel; setConfirmDel(null); void toggle(sl, true); }}
+              className={`${hcBtn.base} w-full bg-hc-bad-ink text-white hover:opacity-90`}>
+              Eyða máltíðinni
+            </button>
+            <button type="button" onClick={() => setConfirmDel(null)} className={`${hcBtn.secondary} w-full`}>
+              Hætta við
+            </button>
+          </div>
+        </Sheet>
+      )}
       {/* The day so far */}
       {/* Flush rows are <li>s for somebody else's list.
           Wrapping them in a <ul> of their own made a list inside a list:
@@ -182,6 +193,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
               {SLOTS.filter((s) => day[s]).filter((s) => !only || s === only).map((slot) => {
                 const meal = day[slot]!;
                 const done = !!loggedSlot(slot);
+                const shown = shownFor(slot, meal);
 
                 /* Flush: the row Í dag's checklist uses for everything else. */
                 if (flush) {
@@ -211,7 +223,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                       <div className="flex items-start gap-3">
                         <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
                           aria-pressed={done}
-                          aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${SLOT_IS[slot]} — ${mealName(meal)}`}
+                          aria-label={`${done ? "Afmerkja" : "Merkja sem búið"}: ${SLOT_IS[slot]} — ${shown.name}`}
                           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 bg-hc-surface transition active:scale-90 ${
                             done ? "border-transparent text-white" : "text-transparent"}`}
                           style={done
@@ -229,13 +241,10 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                               className="flex w-full items-start gap-2 text-left">
                               <span className="min-w-0 flex-1">
                                 <span className={`block font-semibold ${done ? "text-hc-ink-2 line-through" : "text-hc-ink"}`}>
-                                  {mealName(meal)}
+                                  {shown.name}
                                 </span>
                                 <span className="mt-0.5 block text-sm text-hc-ink-2">
-                                  {[SLOT_IS[slot],
-                                    meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
-                                    meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
-                                    .filter(Boolean).join(" · ")}
+                                  {metaLine(slot, shown)}
                                 </span>
                               </span>
                               <ChevronRight className="mt-0.5 h-5 w-5 shrink-0 text-hc-ink-3" aria-hidden />
@@ -243,13 +252,10 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                           ) : (
                             <>
                               <p className={`font-semibold ${done ? "text-hc-ink-2 line-through" : "text-hc-ink"}`}>
-                                {mealName(meal)}
+                                {shown.name}
                               </p>
                               <p className="mt-0.5 text-sm text-hc-ink-2">
-                                {[SLOT_IS[slot],
-                                  meal.protein != null ? `${Math.round(Number(meal.protein))} g prótein` : null,
-                                  meal.calories != null ? `${Math.round(Number(meal.calories))} kkal` : null]
-                                  .filter(Boolean).join(" · ")}
+                                {metaLine(slot, shown)}
                               </p>
                             </>
                           )}
@@ -264,18 +270,20 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                     <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
                       aria-pressed={done}
                       className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition ${
-                        done ? "bg-hc-ok-surface ring-2 ring-emerald-500" : "bg-hc-surface ring-hc-hairline hover:ring-slate-300"}`}>
+                        done ? "bg-hc-ok-surface ring-2 ring-hc-brand-dark" : "bg-hc-surface ring-hc-hairline hover:ring-hc-control"}`}>
                       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition ${
-                        done ? "border-transparent bg-emerald-600 text-white" : "border-hc-hairline text-transparent"}`}>
+                        done ? "border-transparent bg-hc-brand-dark text-white" : "border-hc-hairline text-transparent"}`}>
                         {busy === slot ? <Loader2 className="h-4 w-4 animate-spin text-hc-ink-2" /> : <Check className="h-5 w-5" strokeWidth={3} />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-semibold uppercase tracking-wide text-hc-ink-2">{SLOT_IS[slot]}</span>
-                        <span className={`block truncate font-semibold ${done ? "text-hc-ok-ink" : "text-hc-ink"}`}>{mealName(meal)}</span>
+                        <span className="block text-xs font-semibold uppercase tracking-wide text-hc-ink-2">
+                          {SLOT_IS[slot]}{shown.described && <span className="normal-case tracking-normal font-medium"> · skráð í staðinn</span>}
+                        </span>
+                        <span className={`block truncate font-semibold ${done ? "text-hc-ok-ink" : "text-hc-ink"}`}>{shown.name}</span>
                       </span>
                       <span className="shrink-0 text-right text-xs text-hc-ink-2">
-                        {meal.protein != null && <span className="block font-semibold text-hc-ink-2">{Math.round(Number(meal.protein))} g</span>}
-                        {meal.calories != null && <span className="block">{Math.round(Number(meal.calories))} kkal</span>}
+                        {shown.protein != null && <span className="block font-semibold text-hc-ink-2">{Math.round(shown.protein)} g</span>}
+                        {shown.kcal != null && <span className="block">{Math.round(shown.kcal)} kkal</span>}
                       </span>
                     </button>
                   </li>
@@ -301,13 +309,21 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
       {part === "button" && (() => {
         const slot = only ?? SLOTS.find((x) => day[x]);
         if (!slot || !day[slot]) return null;
-        const done = !!loggedSlot(slot);
+        const logged = loggedSlot(slot);
+        const done = !!logged;
+        const described = !!logged && logged.source !== "planned";
         return (
+          <div className="space-y-3">
+          {/* Logged as something else: say what, so the card is not
+              claiming the planned meal was eaten. */}
+          {described && (
+            <p className="text-center text-sm text-hc-ink-2">Skráð í staðinn: <span className="font-semibold text-hc-ink">{logged!.description}</span></p>
+          )}
           <button type="button" onClick={() => void toggle(slot)} disabled={busy !== null}
             aria-pressed={done}
             className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 font-bold transition disabled:opacity-60 ${
               done
-                ? "bg-hc-ok-surface text-hc-ok-ink ring-2 ring-emerald-500"
+                ? "bg-hc-ok-surface text-hc-ok-ink ring-2 ring-hc-brand-dark"
                 : "bg-lime-700 text-white hover:bg-lime-800"}`}>
             {busy === slot
               ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
@@ -318,6 +334,7 @@ export default function MealLogger({ day, compact = false, part = "list", only, 
                 checklist rows do it. */}
             Ég borðaði þetta
           </button>
+          </div>
         );
       })()}
     </div>

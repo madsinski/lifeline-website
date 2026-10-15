@@ -23,12 +23,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import { useKeyboard } from "@/lib/hc/use-keyboard";
 
 /** Open sheets, innermost last: only the top one answers Escape and Tab. */
 const sheetStack: symbol[] = [];
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export default function Sheet({ title, onClose, children, max = "max-w-lg", canvas = false, header, draggable = true, scrollResetKey }: {
+export default function Sheet({ title, onClose, children, max = "max-w-lg", canvas = false, header, draggable = true, scrollResetKey, confirmClose }: {
   /** The dialog's accessible name. */
   title: string;
   /**
@@ -68,8 +69,21 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
    * and still locks the page.
    */
   draggable?: boolean;
+  /**
+   * Asked before every close (button, Escape, backdrop, drag). Return false
+   * to keep the sheet open — the workout runner uses it to ask "Hætta
+   * æfingunni?" instead of closing on a stray tap. It has to be asked here
+   * rather than in onClose, because by the time onClose runs the sheet has
+   * already slid away.
+   *
+   * It must be synchronous and return a plain boolean. A Promise is truthy,
+   * so an async confirm would always close; to ask, return false and open
+   * your own confirm (as the workout runner does), then call onClose from it.
+   */
+  confirmClose?: () => boolean;
 }) {
   useScrollLock();
+  const keyboard = useKeyboard();
   const [dy, setDy] = useState(0);
   const [closing, setClosing] = useState(false);
   const [shown, setShown] = useState(false);
@@ -79,7 +93,10 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
   // One frame late, so the browser has a "from" state to animate out of.
   useEffect(() => { const r = requestAnimationFrame(() => setShown(true)); return () => cancelAnimationFrame(r); }, []);
 
+  const confirmRef = useRef(confirmClose);
+  useEffect(() => { confirmRef.current = confirmClose; });
   const close = useCallback(() => {
+    if (confirmRef.current && !confirmRef.current()) { setDy(0); return; }
     setClosing(true);
     // Let it slide out before it leaves the tree.
     setTimeout(onClose, 180);
@@ -225,8 +242,12 @@ export default function Sheet({ title, onClose, children, max = "max-w-lg", canv
         style={{
           transform: `translateY(${closing ? 100 : shown ? dy : 100}${closing || !shown ? "%" : "px"})`,
           transition: dy > 0 && !closing ? "none" : "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)",
+          /* iOS does not resize the viewport for the keyboard, so a sheet
+             with an input would sit behind it. Lift it by what the keyboard
+             covers and shrink it by the same, so the top stays on screen. */
+          ...(keyboard.open ? { marginBottom: keyboard.inset, maxHeight: `calc(92dvh - ${keyboard.inset}px)` } : null),
         }}
-        className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-hc-hero shadow-hc-overlay outline-none sm:rounded-hc-hero ${max} ${
+        className={`flex max-h-[92dvh] w-full pb-[env(safe-area-inset-bottom)] flex-col overflow-hidden rounded-t-hc-hero shadow-hc-overlay outline-none sm:rounded-hc-hero ${max} ${
           canvas ? "bg-hc-sunken" : "bg-hc-surface"}`}>
 
         {/* The grab area, not the grab bar.

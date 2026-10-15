@@ -11,6 +11,9 @@ import { PILLARS, PILLAR_META, type ActionPlan, type ExerciseBlock, type Exercis
 import { BLOCK_IS, EQUIPMENT_IS, muscleIs } from "@/lib/hc/exercise-labels";
 import { DEFAULT_TRAINING, adaptExercise, isAdaptive, stageAt, type TrainingSettings } from "@/lib/hc/adaptive-program";
 import TrainingControls from "./TrainingControls";
+import { ChevronDown, Printer } from "lucide-react";
+import Segmented from "./Segmented";
+import { hcBtn, hcCard } from "./ui";
 
 type Tab = "overview" | "detail" | "exercise" | "nutrition" | "lectures";
 
@@ -63,30 +66,20 @@ export default function PlanView({ plan: given, clientName, author, training, le
       {/* ── Screen ─────────────────────────────────────────────── */}
       {!printOnly && <div className="print:hidden">
         <Header plan={plan} clientName={clientName} />
-        <div className="sticky top-0 z-10 -mx-4 mb-6 bg-hc-surface/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:px-2">
-          <div className="flex items-center gap-2 overflow-x-auto" role="tablist" aria-label="Hlutar áætlunar">
-            {tabs.filter((t) => t.show).map((t) => (
-              <button
-                key={t.key}
-                role="tab"
-                aria-selected={tab === t.key}
-                onClick={() => setTab(t.key)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  tab === t.key ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-slate-200"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-            <span className="flex-1" />
-            <button
-              onClick={() => window.print()}
-              className="whitespace-nowrap rounded-full border border-hc-hairline px-4 py-2 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken"
-            >
-              Prenta / PDF
-            </button>
-          </div>
+        {/* Sticky under whatever header the host pins (--hc-sticky-top: the
+            safe-area inset on the participant's pages, the WsHeader in the
+            workstation). It only started sticking once globals.css stopped
+            making <body> a scroll container. */}
+        <div className="sticky top-[var(--hc-sticky-top)] z-10 -mx-4 mb-6 flex flex-wrap items-start gap-2 bg-hc-surface/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-hc-card sm:px-2">
+          <Segmented mode="tabs" label="Hlutar áætlunar" className="min-w-0 flex-1"
+            options={tabs.filter((t) => t.show).map((t) => ({ value: t.key, label: t.label }))}
+            value={tab} onChange={setTab} panelId={(k) => `plan-panel-${k}`} />
+          <button type="button" onClick={() => window.print()} className={`${hcBtn.secondary} shrink-0`}>
+            <Printer className="h-4 w-4" aria-hidden />Prenta / PDF
+          </button>
         </div>
+
+        <div id={`plan-panel-${tab}`} role="tabpanel" aria-label={tabs.find((t) => t.key === tab)?.label}>
 
         {tab === "overview" && <Overview plan={plan} byPillar={byPillar} />}
         {tab === "detail" && (
@@ -109,6 +102,7 @@ export default function PlanView({ plan: given, clientName, author, training, le
         )}
         {tab === "lectures" && !!lectures?.length && <Lectures lectures={lectures} href={lectureHref} />}
         {tab === "nutrition" && plan.nutrition && <Nutrition plan={plan} />}
+        </div>
       </div>}
 
       {/* ── Print: one A4 page, portalled to <body> so nothing else on the
@@ -135,7 +129,7 @@ function Header({ plan, clientName, print }: { plan: ActionPlan; clientName?: st
   const start = fmtDate(plan.start_date);
   const review = fmtDate(plan.review_date);
   return (
-    <div className={print ? "mb-6 border-b pb-4" : "mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-6 text-white sm:p-8"}>
+    <div className={print ? "mb-6 border-b pb-4" : `${hcCard.hero} mb-6 overflow-hidden p-6 sm:p-8`}>
       <p className={`text-xs font-bold uppercase tracking-[0.2em] ${print ? "text-hc-ok-ink" : "text-emerald-300"}`}>Aðgerðaáætlun · Lifeline Health</p>
       <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">{plan.headline || "Áætlunin þín til næstu þriggja mánaða"}</h1>
       <p className={`mt-2 text-sm ${print ? "text-hc-ink-2" : "text-emerald-100"}`}>
@@ -166,7 +160,7 @@ function Overview({ plan, byPillar }: { plan: ActionPlan; byPillar: (p: Pillar) 
           const items = byPillar(p);
           if (!goal && !items.length) return null;
           return (
-            <div key={p} className="break-inside-avoid rounded-2xl border bg-hc-surface p-5 shadow-sm" style={{ borderColor: meta.ring }}>
+            <div key={p} className="break-inside-avoid rounded-hc-card border bg-hc-surface p-5 shadow-hc-card" style={{ borderColor: meta.ring }}>
               <div className="flex items-center justify-between">
                 <PillarBadge pillar={p} />
                 <span className="text-xs text-hc-ink-3">{items.length} {items.length === 1 ? "aðgerð" : "aðgerðir"}</span>
@@ -185,7 +179,7 @@ function Overview({ plan, byPillar }: { plan: ActionPlan; byPillar: (p: Pillar) 
         })}
       </div>
       {plan.nurse_note && (
-        <div className="break-inside-avoid rounded-2xl border border-emerald-100 bg-emerald-50/60 p-5">
+        <div className="break-inside-avoid rounded-hc-card border border-hc-ok-ink/20 bg-hc-ok-surface p-5">
           <p className="text-xs font-bold uppercase tracking-wide text-hc-ok-ink">Frá hjúkrunarfræðingnum þínum</p>
           <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-hc-ink-2">{plan.nurse_note}</p>
         </div>
@@ -207,17 +201,17 @@ function ModuleCard({ m }: { m: PlanItem }) {
       </div>
     </div>
   );
-  if (!hasMore) return <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-sm">{body}</div>;
+  if (!hasMore) return <div className="rounded-hc-card border border-hc-hairline bg-hc-surface p-4 shadow-hc-card">{body}</div>;
   return (
-    <details className="group rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-sm open:ring-1 open:ring-hc-hairline">
+    <details className="group rounded-hc-card border border-hc-hairline bg-hc-surface p-4 shadow-hc-card open:ring-1 open:ring-hc-hairline">
       <summary className="flex cursor-pointer list-none items-start gap-2 [&::-webkit-details-marker]:hidden">
         <div className="flex-1">{body}</div>
-        <span className="mt-1 text-hc-ink-3 transition group-open:rotate-180" aria-hidden>▾</span>
+        <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-hc-ink-3 transition group-open:rotate-180" aria-hidden />
       </summary>
       <div className="mt-3 space-y-3 pl-4 text-sm leading-relaxed text-hc-ink-2">
         {m.details && <p>{m.details}</p>}
         {m.note && (
-          <p className="rounded-xl bg-hc-warn-surface px-3 py-2 text-hc-warn-ink"><span className="font-semibold">Athugasemd til þín: </span>{m.note}</p>
+          <p className="rounded-hc-element bg-hc-warn-surface px-3 py-2 text-hc-warn-ink"><span className="font-semibold">Athugasemd til þín: </span>{m.note}</p>
         )}
       </div>
     </details>
@@ -265,8 +259,8 @@ function Lectures({ lectures, href }: { lectures: LectureRef[]; href?: (slug: st
           </>
         );
         return to
-          ? <a key={l.slug} href={to} className="block rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-emerald-100 transition hover:ring-emerald-300">{body}</a>
-          : <div key={l.slug} className="rounded-3xl bg-hc-surface p-5 shadow-sm ring-1 ring-emerald-100">{body}</div>;
+          ? <a key={l.slug} href={to} className="block rounded-hc-hero bg-hc-surface p-5 shadow-hc-card ring-1 ring-emerald-100 transition hover:ring-emerald-300">{body}</a>
+          : <div key={l.slug} className="rounded-hc-hero bg-hc-surface p-5 shadow-hc-card ring-1 ring-emerald-100">{body}</div>;
       })}
     </div>
   );
@@ -281,7 +275,9 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
   return (
     <div className="space-y-6">
       {/* Hero */}
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-400 p-5 text-white shadow-sm sm:p-6">
+      {/* The exercise tokens, not orange-500 → amber-400: white on those
+          measured 1.7–2.8:1. orange-800 → orange-700 is ≥5.2:1 throughout. */}
+      <div className="overflow-hidden rounded-hc-hero bg-gradient-to-br from-hc-exercise-hero-from to-hc-exercise-hero-to p-5 text-white shadow-hc-card sm:p-6">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/80">Æfingaáætlun</p>
         <h2 className="mt-1 text-2xl font-bold">{e.name}</h2>
         {e.goal && <p className="mt-1 text-white/90">{e.goal}</p>}
@@ -296,7 +292,7 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
             {WEEK.map((w, i) => {
               const s = byDay.get(i);
               return (
-                <div key={w.short} className={`rounded-xl px-1 py-2 text-center ${s ? "bg-hc-surface text-orange-700" : "bg-hc-surface/15 text-white/70"}`}>
+                <div key={w.short} className={`rounded-hc-element px-1 py-2 text-center ${s ? "bg-hc-surface text-hc-exercise-ink" : "bg-black/15 text-white"}`}>
                   <p className="text-[11px] font-bold uppercase">{w.short}</p>
                   <p className="mt-0.5 truncate text-[10px] font-medium">{s ? s.title : "Hvíld"}</p>
                 </div>
@@ -313,8 +309,8 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
           <h3 className="text-sm font-bold uppercase tracking-wide text-hc-ink-2">Af hverju þetta virkar</h3>
           <ol className="mt-2 grid gap-2 sm:grid-cols-2">
             {e.principles.map((p, i) => (
-              <li key={i} className="flex gap-3 rounded-2xl border border-orange-100 bg-hc-surface p-3 shadow-sm">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-700">{i + 1}</span>
+              <li key={i} className="flex gap-3 rounded-hc-card border border-orange-100 bg-hc-surface p-3 shadow-hc-card">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-hc-exercise-ink">{i + 1}</span>
                 <span className="text-sm text-hc-ink-2">{p}</span>
               </li>
             ))}
@@ -327,10 +323,10 @@ function Exercise({ plan, currentStage = null }: { plan: ActionPlan; currentStag
           <h3 className="text-sm font-bold uppercase tracking-wide text-hc-ink-2">{currentStage !== null ? "Stigin" : "Næstu 12 vikur"}</h3>
           <ol className={`mt-2 grid gap-2 ${e.progression.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
             {e.progression.map((p, i) => (
-              <li key={i} className={`relative rounded-2xl bg-hc-surface p-4 shadow-sm ring-1 ${currentStage === i ? "ring-2 ring-orange-500" : "ring-orange-100"}`}>
-                {currentStage === i && <span className="absolute right-3 top-3 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Núna</span>}
+              <li key={i} className={`relative rounded-hc-card bg-hc-surface p-4 shadow-hc-card ring-1 ${currentStage === i ? "ring-2 ring-orange-500" : "ring-orange-100"}`}>
+                {currentStage === i && <span className="absolute right-3 top-3 rounded-full bg-hc-exercise-hero-to px-2 py-0.5 text-[11px] font-bold uppercase text-white">Núna</span>}
                 <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-orange-500" style={{ opacity: 0.35 + (0.65 * (i + 1)) / e.progression!.length }} />
-                <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{p.weeks}</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-hc-exercise-ink">{p.weeks}</p>
                 <p className="mt-0.5 font-semibold text-hc-ink">{p.title}</p>
                 <p className="mt-1 text-sm text-hc-ink-2">{p.text}</p>
               </li>
@@ -351,14 +347,14 @@ function SessionCard({ s, n }: { s: ExerciseSession; n: number }) {
     .map((key) => ({ key, items: s.items.filter((it) => (it.block ?? "main") === key) }))
     .filter((b) => b.items.length);
   return (
-    <div className="overflow-hidden rounded-3xl border border-orange-100 bg-hc-surface shadow-sm">
-      <div className="flex items-center gap-3 border-b border-orange-100 bg-orange-50/70 px-4 py-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-600 font-bold text-white">{n}</span>
+    <div className="overflow-hidden rounded-hc-hero border border-orange-100 bg-hc-surface shadow-hc-card">
+      <div className="flex items-center gap-3 border-b border-hc-exercise/20 bg-hc-exercise-soft px-4 py-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-hc-card bg-hc-exercise-hero-to font-bold text-white">{n}</span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{s.day}</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-hc-exercise-ink">{s.day}</p>
           <p className="font-semibold text-hc-ink">{s.title}{s.focus ? <span className="font-normal text-hc-ink-2"> · {s.focus}</span> : null}</p>
         </div>
-        {s.minutes ? <span className="rounded-full bg-hc-surface px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">{s.minutes} mín.</span> : null}
+        {s.minutes ? <span className="rounded-full bg-hc-surface px-3 py-1 text-xs font-semibold text-hc-exercise-ink ring-1 ring-orange-200">{s.minutes} mín.</span> : null}
       </div>
       <div className="divide-y divide-hc-hairline">
         {blocks.map((b) => (
@@ -389,9 +385,9 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
   const [open, setOpen] = useState(false);
   const how = !!(it.cues?.length || it.video);
   return (
-    <li className="rounded-2xl ring-1 ring-hc-hairline">
+    <li className="rounded-hc-card ring-1 ring-hc-hairline">
       <div className="flex gap-3 p-2">
-        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-orange-50 sm:h-24 sm:w-24">
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-hc-element bg-hc-exercise-soft sm:h-24 sm:w-24">
           {it.image
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={it.image} alt={it.name} loading="lazy" className="h-full w-full object-cover" />
@@ -400,7 +396,7 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
         <div className="min-w-0 flex-1 py-0.5">
           <div className="flex items-start justify-between gap-2">
             <p className="font-semibold leading-tight text-hc-ink">{it.name}</p>
-            <p className="shrink-0 rounded-lg bg-orange-50 px-2 py-0.5 text-sm font-bold text-orange-700">{it.prescription}</p>
+            <p className="shrink-0 rounded-lg bg-hc-exercise-soft px-2 py-0.5 text-sm font-bold text-hc-exercise-ink">{it.prescription}</p>
           </div>
           {!!it.muscles?.length && (
             <p className="mt-1 flex flex-wrap gap-1">
@@ -414,7 +410,7 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
           </p>
           {it.note && <p className="mt-1 text-sm italic text-hc-ink-2">{it.note}</p>}
           {how && (
-            <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="mt-1.5 text-xs font-semibold text-orange-700 hover:underline">
+            <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="mt-1.5 text-xs font-semibold text-hc-exercise-ink hover:underline">
               {open ? "Fela" : it.video ? "▶ Sjá hvernig" : "Hvernig?"}
             </button>
           )}
@@ -422,7 +418,7 @@ function ExerciseRow({ it }: { it: ExerciseItem }) {
       </div>
       {open && (
         <div className="space-y-3 border-t border-hc-hairline p-3">
-          {it.video && <video src={it.video} poster={it.image ?? undefined} controls playsInline preload="none" className="w-full max-w-md rounded-xl bg-black" />}
+          {it.video && <video src={it.video} poster={it.image ?? undefined} controls playsInline preload="none" className="w-full max-w-md rounded-hc-element bg-black" />}
           {!!it.cues?.length && (
             <ol className="list-decimal space-y-1 pl-5 text-sm text-hc-ink-2">
               {it.cues.map((c, k) => <li key={k}>{c}</li>)}
@@ -444,7 +440,7 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
       {n.principles.length > 0 && (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 print:grid-cols-2">
           {n.principles.map((p, i) => (
-            <div key={i} className="break-inside-avoid rounded-2xl border border-lime-100 bg-lime-50/50 p-4 text-sm font-medium text-hc-ink-2">
+            <div key={i} className="break-inside-avoid rounded-hc-card border border-lime-100 bg-lime-50/50 p-4 text-sm font-medium text-hc-ink-2">
               <span className="mr-2 font-bold text-lime-700">{i + 1}.</span>{p}
             </div>
           ))}
@@ -455,12 +451,12 @@ function Nutrition({ plan }: { plan: ActionPlan }) {
           <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-hc-ink-2">Dæmi um dag</h3>
           <div className="grid gap-3 sm:grid-cols-2 print:grid-cols-2">
             {n.day_example.map((d, i) => (
-              <div key={i} className="flex break-inside-avoid items-center gap-3 overflow-hidden rounded-2xl border border-hc-hairline bg-hc-surface p-2 shadow-sm">
+              <div key={i} className="flex break-inside-avoid items-center gap-3 overflow-hidden rounded-hc-card border border-hc-hairline bg-hc-surface p-2 shadow-hc-card">
                 {d.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={d.image} alt="" loading="lazy" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                  <img src={d.image} alt="" loading="lazy" className="h-16 w-16 shrink-0 rounded-hc-element object-cover" />
                 ) : (
-                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-lime-50 text-xl text-lime-400">🍽️</span>
+                  <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-hc-element bg-lime-50 text-xl text-lime-400">🍽️</span>
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold uppercase tracking-wide text-lime-700">{d.meal}</p>
@@ -562,7 +558,7 @@ function PrintPage({ plan, clientName, author, byPillar }: {
         <section className="mt-3 grid grid-cols-[1.25fr_1fr] gap-3">
           {plan.exercise?.sessions?.length ? (
             <div className="rounded-lg border border-orange-200 px-3 py-2.5">
-              <p className="text-[9.5pt] font-bold text-orange-700">Hreyfing: {clip(plan.exercise.name, 40)}</p>
+              <p className="text-[9.5pt] font-bold text-hc-exercise-ink">Hreyfing: {clip(plan.exercise.name, 40)}</p>
               <table className="mt-1 w-full text-[8.5pt]">
                 <tbody>
                   {plan.exercise.sessions.slice(0, 7).map((s, i) => (

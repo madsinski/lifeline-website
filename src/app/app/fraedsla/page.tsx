@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import LectureLibrary, { LibraryButton } from "@/app/components/hc/LectureLibrary";
 import { hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
+import { Alert, Button, PageHero } from "@/app/components/account/ui";
 import * as cache from "@/lib/hc/client-cache";
 import { PILLAR_META, type Pillar } from "@/lib/hc/types";
 
@@ -25,23 +26,6 @@ interface LectureRef {
   duration_min: number | null; pillar: string | null; completed?: boolean;
 }
 
-/** Completion as a ring, the same sign the hero uses for the day. */
-function Ring({ done, of }: { done: number; of: number }) {
-  const share = of > 0 ? done / of : 0;
-  const R = 16, C = 2 * Math.PI * R;
-  return (
-    <span className="relative grid h-12 w-12 shrink-0 place-items-center text-hc-brand"
-      aria-label={`${done} af ${of} lokið`}>
-      <svg viewBox="0 0 40 40" className="absolute inset-0 -rotate-90" aria-hidden>
-        <circle cx="20" cy="20" r={R} fill="none" stroke="currentColor" strokeWidth="3.5" className="opacity-15" />
-        <circle cx="20" cy="20" r={R} fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"
-          strokeDasharray={C} strokeDashoffset={C * (1 - share)} style={{ transition: "stroke-dashoffset 400ms" }} />
-      </svg>
-      <span className="relative text-xs font-bold tabular-nums text-hc-ink">{done}/{of}</span>
-    </span>
-  );
-}
-
 export default function FraedslaPage() {
   return <Suspense><Fraedsla /></Suspense>;
 }
@@ -51,6 +35,9 @@ function Fraedsla() {
   const [lectures, setLectures] = useState<LectureRef[] | null>(null);
   /** The whole catalogue, behind a button: a plan is a recommendation. */
   const [library, setLibrary] = useState(false);
+  /** The plan could not be fetched — not the same as a plan with no lectures. */
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   const api = useCallback(async (url: string, init: RequestInit = {}) => {
     const { data } = await supabase.auth.getSession();
@@ -64,10 +51,12 @@ function Fraedsla() {
       if (!data.session) { router.replace(`/account/login?next=${encodeURIComponent("/app/fraedsla")}`); return; }
       const seed = cache.peek<{ lectures?: LectureRef[] }>("/api/hc/plan");
       if (seed?.body?.lectures) setLectures(seed.body.lectures);
-      const r = await cache.load(api, "/api/hc/plan");
+      const r = await cache.load(api, "/api/hc/plan").catch(() => null);
+      if (!r || r.status >= 400) { if (!seed?.body?.lectures) setFailed(true); return; }
+      setFailed(false);
       setLectures(((r.body as { lectures?: LectureRef[] }).lectures) ?? []);
     })();
-  }, [api, router]);
+  }, [api, router, attempt]);
 
   const done = (lectures ?? []).filter((l) => l.completed).length;
   const next = (lectures ?? []).find((l) => !l.completed) ?? null;
@@ -83,18 +72,8 @@ function Fraedsla() {
         <JourneyHeader />
         <div className="sm:mb-4"><JourneyNav active="fraedsla" /></div>
 
-        {/* A line, not a hero.
-            The page used to open with a gradient card announcing "3 af 7
-            lokið" — status above the thing to do, which is the pattern Í dag
-            and Æfingar both moved away from. The count is a ring on the
-            title line now, and the space goes to the next lecture. */}
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className={`${hcKicker} text-hc-brand-text`}>Fræðslan mín</p>
-            <h1 className="text-2xl font-bold text-hc-ink sm:text-3xl">Fræðsla</h1>
-          </div>
-          {!!lectures?.length && <Ring done={done} of={lectures.length} />}
-        </div>
+        <PageHero kicker="Ég" title="Fræðsla"
+          body={lectures?.length ? `${done} af ${lectures.length} lokið í áætluninni þinni.` : "Fyrirlestrarnir í áætluninni þinni og allt safnið."} />
 
         {/* Under the title, not in it: the plan is still the page, and this
             is the way out of it for anyone who wants to read ahead or look
@@ -103,7 +82,14 @@ function Fraedsla() {
 
         {library && <LectureLibrary api={api} onClose={() => setLibrary(false)} />}
 
-        {lectures === null && (
+        {failed && lectures === null && (
+          <Alert tone="bad" title="Ekki tókst að sækja fræðsluna"
+            actions={<Button variant="secondary" onClick={() => { setFailed(false); setAttempt((n) => n + 1); }}>Reyna aftur</Button>}>
+            Athugaðu nettenginguna og reyndu aftur.
+          </Alert>
+        )}
+
+        {!failed && lectures === null && (
           <div className="space-y-2" aria-busy="true" aria-label="Hleð fræðslu">
             <div className="h-28 rounded-hc-card hc-shimmer" />
             <div className="h-16 rounded-hc-card hc-shimmer" />
@@ -155,10 +141,10 @@ function Fraedsla() {
                         ? <CheckCircle2 className="h-6 w-6 shrink-0 text-hc-brand-text" aria-label="Lokið" />
                         : <span className="h-6 w-6 shrink-0 rounded-full border-2 border-slate-200" aria-hidden />}
                       <span className="min-w-0 flex-1">
-                        <span className={`block font-semibold ${l.completed ? "text-slate-400" : "text-hc-ink"}`}>{l.title}</span>
+                        <span className={`block font-semibold ${l.completed ? "text-hc-ink-3" : "text-hc-ink"}`}>{l.title}</span>
                         {l.subtitle && <span className="mt-0.5 block truncate text-sm text-hc-ink-3">{l.subtitle}</span>}
                       </span>
-                      {l.duration_min ? <span className="shrink-0 text-sm tabular-nums text-slate-400">{l.duration_min} mín.</span> : null}
+                      {l.duration_min ? <span className="shrink-0 text-sm tabular-nums text-hc-ink-3">{l.duration_min} mín.</span> : null}
                     </Link>
                   </li>
                 ))}

@@ -28,8 +28,11 @@ export function usePrograms(api: Api) {
 }
 
 export function ProgramList({ rows, current, onPick, tone }: { rows: ProgramRow[]; current: string | null; onPick: (key: string) => void; tone: "exercise" | "nutrition" }) {
-  const ring = tone === "exercise" ? "ring-orange-500" : "ring-lime-600";
-  const badge = tone === "exercise" ? "bg-orange-600" : "bg-lime-600";
+  /* White on orange-600 / lime-600 measured 3.6:1 and 3.0:1. The pillar
+     tokens' darker ends carry white at ≥5.2:1 (exercise) and 7.3:1
+     (nutrition), and the selection ring gets the same tone. */
+  const ring = tone === "exercise" ? "ring-hc-exercise-ink" : "ring-hc-nutrition-ink";
+  const badge = tone === "exercise" ? "bg-hc-exercise-hero-to" : "bg-hc-nutrition-ink";
   return (
     <ul className="grid gap-2 sm:grid-cols-2">
       {rows.map((r) => {
@@ -37,8 +40,8 @@ export function ProgramList({ rows, current, onPick, tone }: { rows: ProgramRow[
         return (
           <li key={r.key}>
             <button type="button" onClick={() => onPick(r.key)} aria-pressed={on}
-              className={`relative h-full w-full rounded-2xl bg-hc-surface p-3 text-left ring-1 transition hover:ring-slate-400 ${on ? `ring-2 ${ring}` : "ring-hc-hairline"}`}>
-              {on && <span className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-white ${badge}`}><Check className="h-4 w-4" /></span>}
+              className={`relative h-full w-full rounded-hc-card bg-hc-surface p-3 text-left ring-1 transition hover:ring-hc-control ${on ? `ring-2 ${ring}` : "ring-hc-hairline"}`}>
+              {on && <span className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-white ${badge}`}><Check className="h-4 w-4" aria-hidden /></span>}
               <span className="block pr-7 font-semibold text-hc-ink">{r.name}</span>
               {r.goal && <span className="mt-0.5 block text-sm text-hc-ink-2">{r.goal}</span>}
               <span className="mt-1 block text-xs text-hc-ink-2">

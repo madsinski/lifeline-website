@@ -17,7 +17,7 @@
 import { useRef, useState } from "react";
 import { Camera, Dumbbell, Flame, Hand, Send, UserRound, UsersRound } from "lucide-react";
 import Sheet from "./Sheet";
-import { hcBtn } from "./ui";
+import { hcBtn, hcInput, hcPill } from "./ui";
 import type { Stats } from "./TodayCards";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -142,7 +142,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                 <Hand className="h-4 w-4 text-hc-brand-text" aria-hidden /> Ýta við {partner.name.split(" ")[0]}
               </p>
               {err && (
-                <p role="status" className="mt-2 rounded-hc-element bg-red-50 px-3 py-2 text-xs font-semibold text-red-800 ring-1 ring-red-200">
+                <p role="status" className="mt-2 rounded-hc-element bg-hc-bad-surface px-3 py-2 text-xs font-semibold text-hc-bad-ink ring-1 ring-hc-bad-ink/30">
                   {err}
                 </p>
               )}
@@ -163,7 +163,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {NUDGE_KINDS.map((k) => (
                       <button key={k.key} type="button" disabled={sending} onClick={() => void nudge(k.key)}
-                        className="rounded-full bg-hc-sunken-2 px-3 py-1.5 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-brand/10 hover:text-hc-brand-text disabled:opacity-40">
+                        className={`${hcPill} bg-hc-sunken-2 px-3 text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-text`}>
                         {k.label}
                       </button>
                     ))}
@@ -171,7 +171,7 @@ export default function PeopleSheet({ api, mine, myAvatar, partner, done, of, on
                   <div className="mt-2 flex items-end gap-2">
                     <input value={note} onChange={(e) => setNote(e.target.value)}
                       placeholder="Eða skrifaðu eitthvað…" aria-label="Skilaboð með ýtingunni"
-                      className="min-h-11 min-w-0 flex-1 rounded-hc-element border border-hc-control px-3 text-sm outline-none focus:border-hc-brand" />
+                      className={`${hcInput} min-h-11 min-w-0 flex-1`} />
                     <button type="button" disabled={sending || !note.trim()} onClick={() => void nudge("note", note.trim())}
                       aria-label="Senda" className={`${hcBtn.primary} shrink-0 disabled:opacity-40`}>
                       <Send className="h-4 w-4" aria-hidden />
@@ -341,13 +341,13 @@ function MyFace({ api, src, onChanged }: {
         {/* Always visible, because a face that happens to be tappable is a
             face nobody taps. */}
         <span aria-hidden
-          className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-hc-brand text-white ring-2 ring-white">
+          className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-hc-brand-dark text-white ring-2 ring-hc-surface">
           <Camera className="h-3 w-3" />
         </span>
       </button>
       <input ref={input} type="file" accept="image/*" capture="user" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) void pick(f); e.target.value = ""; }} />
-      {err && <span className="absolute left-0 top-full mt-1 w-40 text-[11px] font-semibold text-red-700">{err}</span>}
+      {err && <span className="absolute left-0 top-full mt-1 w-40 text-[11px] font-semibold text-hc-bad-ink">{err}</span>}
     </span>
   );
 }

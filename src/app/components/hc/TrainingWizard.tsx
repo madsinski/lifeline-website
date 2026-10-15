@@ -25,7 +25,7 @@ import type { Signal } from "@/lib/hc/grunnheilsa";
 import { hcBtn, hcCard, hcKicker } from "./ui";
 import ActivityEditor from "./ActivityEditor";
 
-const STEPS = ["Hvar", "Mitt núna", "Dagar", "Aðlögun", "Takmarkanir", "Vikan"] as const;
+const STEPS = ["Hvar", "Það sem ég geri", "Dagar", "Fyrstu vikurnar", "Takmarkanir", "Vikan"] as const;
 
 const PLACE_ICON: Record<Place, typeof Home> = { gym: Dumbbell, class: Users, home: Home };
 
@@ -194,11 +194,11 @@ export default function TrainingWizard({ settings, planStart, signals, titles, g
       {/* 4 ─ adaptation block */}
       {step === 3 && (
         <div className="space-y-3">
-          <h3 className="text-lg font-bold text-hc-ink">Þarftu aðlögun fyrst?</h3>
-          <p className="text-sm text-hc-ink-2">Sinar og liðbönd aðlagast hægar en vöðvarnir. Fjórar vikur af léttu álagi fyrst eru það sem heldur fólki frá meiðslum.</p>
+          <h3 className="text-lg font-bold text-hc-ink">Viltu byrja rólega?</h3>
+          <p className="text-sm text-hc-ink-2">Fjórar vikur af léttu álagi fyrst. Flestir byrja svona til að gefa sinum og liðböndum tíma til að venjast álaginu.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <button type="button" onClick={() => set({ level: "beginner" })} aria-pressed={s.level === "beginner"} className={card(s.level === "beginner")}>
-              <span className="font-semibold text-hc-ink">Já — byrja á aðlögun</span>
+              <span className="font-semibold text-hc-ink">Já — byrja rólega</span>
               <span className="mt-0.5 block text-xs text-hc-ink-2">Fjórar vikur, létt og tæknin í forgangi. Veldu þetta ef þú hefur ekki lyft reglulega síðustu mánuði.</span>
             </button>
             <button type="button" onClick={() => set({ level: "active" })} aria-pressed={s.level === "active"} className={card(s.level === "active")}>
