@@ -121,7 +121,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
    * onboarding and the partner invite) render AuthShell, which carries its
    * own logo — with the Navbar too there were two.
    */
-  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar", "/vinnustod", "/app", "/byrja", "/account/login", "/auth", "/business/onboard", "/account/partner-invite"];
+  const chromeFree = ["/survey", "/research", "/verkefnalysing", "/radningarsamningur", "/present", "/security-review", "/leidbeiningar", "/legal-review", "/privacy", "/terms", "/sales-terms", "/soluskilmalar", "/vinnustod", "/app", "/byrja", "/account/login", "/auth", "/business/onboard", "/business/login", "/business/signup", "/business/co-admin-setup", "/account/partner-invite"];
   if (chromeFree.some((p) => pathname.startsWith(p))) {
     return null;
   }

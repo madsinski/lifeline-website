@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import BusinessHeader from "../BusinessHeader";
+import AuthShell, { authInput, authLabel, authPrimary } from "@/app/components/AuthShell";
+import { authErrorIs } from "@/lib/auth-errors-is";
+import { cleanKennitala, formatKennitala, isValidKennitala } from "@/lib/kennitala";
+import PasswordField, { B2B_MIN_PW } from "../PasswordField";
 
 // Co-admins arrive here from the magic-link invite. They set a password and
 // their details (name, role, phone, kennitala) before entering the company
@@ -11,6 +15,11 @@ import BusinessHeader from "../BusinessHeader";
 // Name/role/phone live on the auth user (user_metadata); phone/position +
 // the encrypted kennitala are also persisted to company_admins via
 // /api/business/co-admin-profile so they show up in the company dashboard.
+//
+// Order matters: the profile is saved first and the password +
+// coadmin_setup_complete flag last. The other way round, a failed profile
+// save left the flag set (so a reload skipped this page) and a retry hit
+// Supabase's "new password must differ" error.
 export default function CoAdminSetupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -38,21 +47,43 @@ export default function CoAdminSetupPage() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     setError("");
-    const kt = kennitala.replace(/[^0-9]/g, "");
     if (!fullName.trim() || !position.trim() || !phone.trim()) {
-      setError("Please fill in your name, role and phone."); return;
+      setError("Fylltu út nafn, starfsheiti og símanúmer."); return;
     }
-    if (kt.length !== 10) {
-      setError("Your kennitala must be 10 digits."); return;
+    if (!isValidKennitala(kennitala)) {
+      setError("Kennitalan er ekki gild. Hún á að vera 10 tölustafir."); return;
     }
-    if (password.length < 8) {
-      setError("Choose a password of at least 8 characters."); return;
+    if (password.length < B2B_MIN_PW) {
+      setError(`Lykilorðið þarf að vera minnst ${B2B_MIN_PW} stafir.`); return;
     }
     if (password !== confirm) {
-      setError("The passwords don't match."); return;
+      setError("Lykilorðin stemma ekki."); return;
     }
     setSaving(true);
+
+    // 1. Phone/position + encrypted kennitala onto company_admins, so the
+    //    company dashboard shows the same details it shows for the primary.
+    const { data: s } = await supabase.auth.getSession();
+    const tok = s.session?.access_token;
+    const res = await fetch("/api/business/co-admin-profile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
+      body: JSON.stringify({ phone: phone.trim(), position: position.trim(), kennitala: cleanKennitala(kennitala) }),
+    }).catch(() => null);
+    if (!res) { setSaving(false); setError("Engin tenging. Athugaðu netið og reyndu aftur."); return; }
+    if (!res.ok) {
+      setSaving(false);
+      setError(res.status === 401
+        ? "Innskráningin er útrunnin. Opnaðu hlekkinn úr boðspóstinum aftur."
+        : res.status === 400
+          ? "Athugaðu símanúmer, starfsheiti og kennitölu og reyndu aftur."
+          : "Ekki tókst að vista upplýsingarnar. Reyndu aftur.");
+      return;
+    }
+
+    // 2. Password + name, and the flag that this page is done.
     const { error: e1 } = await supabase.auth.updateUser({
       password,
       data: {
@@ -62,82 +93,74 @@ export default function CoAdminSetupPage() {
         coadmin_setup_complete: true,
       },
     });
-    if (e1) { setSaving(false); setError(e1.message); return; }
+    if (e1) { setSaving(false); setError(authErrorIs(e1)); return; }
 
-    // Persist phone/position + encrypted kennitala to company_admins so the
-    // company dashboard shows the same details it shows for the primary.
-    const { data: s } = await supabase.auth.getSession();
-    const tok = s.session?.access_token;
-    const res = await fetch("/api/business/co-admin-profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(tok ? { Authorization: `Bearer ${tok}` } : {}) },
-      body: JSON.stringify({ phone: phone.trim(), position: position.trim(), kennitala: kt }),
-    }).catch(() => null);
-    setSaving(false);
-    if (!res) { setError("No connection. Check your network and try again."); return; }
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      setError(j.error || "Could not save your details. Please try again.");
-      return;
-    }
+    // Stays "Vista…" until the account page takes over.
     router.replace("/business/account");
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading…</div>;
+    return (
+      <AuthShell>
+        <div role="status" className="flex items-center justify-center gap-2 py-6 text-sm text-hc-ink-2">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> Hleð…
+        </div>
+      </AuthShell>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
-      <BusinessHeader crumbs={[{ label: "Co-admin setup" }]} />
-      <main className="max-w-md mx-auto px-6 py-12">
-        <section className="bg-white rounded-2xl p-8 shadow-sm">
-          <h1 className="text-2xl font-semibold">Finish setting up your access</h1>
-          <p className="text-sm text-gray-600 mt-1 mb-6">
-            You&apos;ve been added as a co-admin. Set a password and your details so you can log in and help manage the company.
-          </p>
-          <form onSubmit={save} className="space-y-4">
-            <Field label="Full name">
-              <input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Jón Jónsson" required />
-            </Field>
-            <Field label="Your role / position">
-              <input className="input" value={position} onChange={(e) => setPosition(e.target.value)} placeholder="e.g. HR Manager" required />
-            </Field>
-            <Field label="Phone">
-              <input className="input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="6XX XXXX" required />
-            </Field>
-            <Field label="Your kennitala (10 digits)">
-              <input className="input" inputMode="numeric" value={kennitala} onChange={(e) => setKennitala(e.target.value)} placeholder="0000000000" maxLength={11} required />
-            </Field>
-            <Field label="Set a password">
-              <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} placeholder="At least 8 characters" required />
-            </Field>
-            <Field label="Confirm password">
-              <input className="input" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} minLength={8} required />
-            </Field>
-            {error && <div role="alert" className="text-red-600 text-sm">{error}</div>}
-            <button type="submit" disabled={saving} className="btn-primary w-full">
-              {saving ? "Saving…" : "Save & continue"}
-            </button>
-          </form>
-        </section>
-      </main>
-
-      <style jsx global>{`
-        .input { width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; outline: none; transition: border-color .15s, box-shadow .15s; }
-        .input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
-        .btn-primary { background: linear-gradient(135deg,#3b82f6,#10b981); color: white; padding: 0.75rem 1rem; border-radius: 0.75rem; font-weight: 600; transition: opacity .15s; }
-        .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-      `}</style>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-sm font-medium text-gray-700 mb-1">{label}</span>
-      {children}
-    </label>
+    <AuthShell>
+      <h1 className="text-2xl font-bold text-hc-ink">Ljúktu uppsetningu aðgangsins</h1>
+      <p className="mt-1 text-sm leading-relaxed text-hc-ink-2">
+        Þér hefur verið bætt við sem stjórnanda fyrirtækisins. Veldu lykilorð og fylltu út upplýsingarnar
+        þínar svo þú getir skráð þig inn og haldið utan um verkefnið með öðrum stjórnendum.
+      </p>
+      <form onSubmit={save} className="mt-6 space-y-4" noValidate>
+        <label className="block">
+          <span className={authLabel}>Fullt nafn</span>
+          <input className={authInput} value={fullName} onChange={(e) => setFullName(e.target.value)}
+            autoComplete="name" placeholder="Jón Jónsson" required />
+        </label>
+        <label className="block">
+          <span className={authLabel}>Starfsheiti</span>
+          <input className={authInput} value={position} onChange={(e) => setPosition(e.target.value)}
+            autoComplete="organization-title" placeholder="t.d. mannauðsstjóri" required />
+        </label>
+        <label className="block">
+          <span className={authLabel}>Símanúmer</span>
+          <input className={authInput} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+            autoComplete="tel" placeholder="000 0000" required />
+        </label>
+        <label className="block">
+          <span className={authLabel}>Kennitala</span>
+          <input className={authInput} inputMode="numeric" value={kennitala}
+            onChange={(e) => setKennitala(e.target.value)}
+            onBlur={() => setKennitala((v) => formatKennitala(v))}
+            placeholder="000000-0000" maxLength={11} required />
+          <span className="mt-1 block text-xs text-hc-ink-3">10 tölustafir. Geymd dulkóðuð.</span>
+        </label>
+        <PasswordField
+          label="Veldu lykilorð"
+          value={password}
+          onChange={setPassword}
+          autoComplete="new-password"
+          minLength={B2B_MIN_PW}
+          hint={`Minnst ${B2B_MIN_PW} stafir`}
+        />
+        <PasswordField
+          label="Endurtaktu lykilorðið"
+          value={confirm}
+          onChange={setConfirm}
+          autoComplete="new-password"
+          minLength={B2B_MIN_PW}
+        />
+        {error && <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">{error}</p>}
+        <button type="submit" disabled={saving} aria-busy={saving} className={authPrimary}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+          {saving ? "Vista…" : "Vista og halda áfram"}
+        </button>
+      </form>
+    </AuthShell>
   );
 }

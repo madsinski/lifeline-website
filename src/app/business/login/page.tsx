@@ -1,14 +1,21 @@
 "use client";
 
+// Company login + account creation for the B2B contact person. On the
+// shared AuthShell like /account/login and /byrja, Icelandic first: the t()
+// fallbacks are the Icelandic copy; English comes from the translations
+// table (supabase/migration-b2b-auth-translations.sql).
+
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { Loader2, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
-import LifelineLogo from "@/app/components/LifelineLogo";
+import AuthShell, { authInput, authLabel, authLink, authPrimary } from "@/app/components/AuthShell";
 import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
 import { authErrorIs } from "@/lib/auth-errors-is";
 import { safeNextPath } from "@/lib/signup-consent";
+import PasswordField, { B2B_MIN_PW } from "../PasswordField";
+import ResendB2BConfirmation from "../signup/ResendConfirmation";
 
 export default function BusinessLoginPage() {
   return (
@@ -40,7 +47,14 @@ function BusinessLoginInner() {
     ? t("b2b.login.claimed", "Aðgangurinn er tilbúinn. Skráðu þig inn með lykilorðinu sem þú valdir.")
     : "");
   const [signupSent, setSignupSent] = useState(false);
-  const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  const switchMode = (m: "login" | "signup") => {
+    if (loading) return;
+    setMode(m);
+    setSignupSent(false);
+    setError("");
+    setInfo("");
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,34 +68,39 @@ function BusinessLoginInner() {
       setError(authErrorIs(err));
       return;
     }
-    // Stays "Signing in…" until the next page takes over.
+    // Stays "Skrái inn…" until the next page takes over.
     router.push(next);
   };
 
   const submitSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      setError(t("b2b.signup.password_mismatch", "Passwords don't match."));
-      return;
-    }
     if (loading) return;
-    setLoading(true);
     setError("");
     setInfo("");
+    if (password.length < B2B_MIN_PW) {
+      setError(t("b2b.signup.password_short", "Lykilorðið þarf að vera minnst 12 stafir."));
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError(t("b2b.signup.password_mismatch", "Lykilorðin stemma ekki."));
+      return;
+    }
+    setLoading(true);
     try {
       const res = await fetch("/api/business/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, full_name: fullName }),
+        body: JSON.stringify({ email: email.trim(), password, full_name: fullName.trim() }),
       });
       const j = await res.json().catch(() => ({}));
       if (res.status === 409 && j.error === "email_already_registered") {
+        setMode("login");
+        setPassword("");
+        setConfirmPassword("");
         setError(t(
           "b2b.login.email_exists",
-          "This email already has a Lifeline account. Switch to Log in and sign in with your existing password.",
+          "Netfangið er þegar með Lifeline-aðgang. Skráðu þig inn með lykilorðinu sem þú notar nú þegar.",
         ));
-        setMode("login");
-        setLoading(false);
         return;
       }
       if (!res.ok) {
@@ -102,22 +121,11 @@ function BusinessLoginInner() {
     }
   };
 
-  const resendSignup = async () => {
-    if (!email) return;
-    setResendStatus("sending");
-    const res = await fetch("/api/business/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, resend: true }),
-    }).catch(() => null);
-    setResendStatus(res?.ok ? "sent" : "error");
-  };
-
   const [resetBusy, setResetBusy] = useState(false);
   const handleForgotPassword = async () => {
     if (resetBusy) return;
-    if (!email) {
-      setError(t("b2b.login.enter_email_first", "Enter your email address first."));
+    if (!email.trim()) {
+      setError(t("b2b.login.enter_email_first", "Sláðu fyrst inn netfangið þitt."));
       return;
     }
     setError("");
@@ -133,269 +141,171 @@ function BusinessLoginInner() {
     if (resetError) {
       setError(authErrorIs(resetError));
     } else {
-      setInfo(t("b2b.login.reset_sent", "Password reset link sent to your email."));
+      setInfo(t("b2b.login.reset_sent", "Við sendum þér hlekk til að velja nýtt lykilorð."));
     }
   };
 
+  const errorBox = error && (
+    <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">{error}</p>
+  );
+  const infoBox = info && (
+    <p role="status" className="rounded-hc-element bg-hc-ok-surface px-3 py-2 text-sm text-hc-ok-ink">{info}</p>
+  );
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white via-[#eff4fa] to-[#e2ebf5] px-4 py-16">
-      <div className="w-full max-w-md">
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
-            <LifelineLogo size="lg" />
-          </Link>
-          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-700">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            <span className="text-xs font-semibold uppercase tracking-wide">
-              {t("b2b.login.badge", "For companies")}
-            </span>
-          </div>
-          <p className="mt-3 text-[#6B7280] text-sm max-w-sm mx-auto">
-            {t("b2b.login.tagline", "Sign in to your company's Lifeline Health workspace — manage the programme or complete your assessment.")}
+    <AuthShell
+      above={<LoginAudienceTabs active="business" />}
+      footer={signupSent ? undefined : mode === "login" ? (
+        <>
+          {t("b2b.login.no_account", "Fyrirtækið ekki með aðgang?")}{" "}
+          <button type="button" onClick={() => switchMode("signup")} className={authLink}>
+            {t("b2b.login.tab.signup", "Stofna fyrirtækjaaðgang")}
+          </button>
+        </>
+      ) : (
+        <>
+          {t("b2b.signup.have_account", "Ertu þegar með aðgang?")}{" "}
+          <button type="button" onClick={() => switchMode("login")} className={authLink}>
+            {t("b2b.login.tab.login", "Skrá inn")}
+          </button>
+        </>
+      )}
+    >
+      {mode === "signup" && signupSent ? (
+        <section className="text-center">
+          <span aria-hidden className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-hc-brand-surface text-hc-brand-text">
+            <Mail className="h-7 w-7" />
+          </span>
+          <h1 className="mt-4 text-2xl font-bold text-hc-ink">
+            {t("b2b.signup.sent.title", "Opnaðu póstinn þinn")}
+          </h1>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-hc-ink-2">
+            {t("b2b.signup.sent.body", "Við sendum staðfestingarhlekk á netfangið hér fyrir neðan. Smelltu á hann til að staðfesta netfangið og halda áfram að skrá fyrirtækið.")}
           </p>
-        </div>
+          <p className="mt-4 break-all rounded-hc-element bg-hc-sunken px-4 py-3 text-sm font-semibold text-hc-ink">{email.trim()}</p>
+          <p className="mt-3 text-xs leading-relaxed text-hc-ink-3">
+            {t("b2b.signup.sent.spam", "Finnurðu hann ekki? Athugaðu ruslpóstinn.")}
+          </p>
+          <ResendB2BConfirmation email={email} className="mt-5" />
+          <p className="mt-5 text-sm text-hc-ink-2">
+            {t("b2b.signup.sent.wrong_email", "Rangt netfang?")}{" "}
+            <button type="button" onClick={() => setSignupSent(false)} className={authLink}>
+              {t("b2b.signup.sent.change", "Breyta")}
+            </button>
+          </p>
+          <button type="button" onClick={() => switchMode("login")} className={`mt-3 text-sm ${authLink}`}>
+            {t("b2b.signup.sent.back", "Til baka í innskráningu")}
+          </button>
+        </section>
+      ) : mode === "login" ? (
+        <>
+          <h1 className="text-2xl font-bold text-hc-ink">{t("b2b.login.title", "Innskráning fyrirtækja")}</h1>
+          <p className="mt-1 text-sm text-hc-ink-2">
+            {t("b2b.login.tagline", "Fyrir stjórnendur sem halda utan um heilsuverkefni fyrirtækisins hjá Lifeline Health.")}
+          </p>
 
-        {/* Audience switch */}
-        <LoginAudienceTabs active="business" />
+          <form onSubmit={submit} className="mt-6 space-y-4">
+            <label className="block">
+              <span className={authLabel}>{t("b2b.login.email", "Netfang")}</span>
+              <input
+                type="email" required autoFocus value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email" placeholder="nafn@fyrirtaeki.is"
+                onInvalid={(e) => e.currentTarget.setCustomValidity("Sláðu inn gilt netfang.")}
+                onInput={(e) => e.currentTarget.setCustomValidity("")}
+                className={authInput}
+              />
+            </label>
+            <PasswordField
+              label={t("b2b.login.password", "Lykilorð")}
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+            />
 
-        {/* Card */}
-        <div className="relative overflow-hidden bg-white rounded-2xl shadow-lg">
-          <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
+            {errorBox}
+            {infoBox}
 
-          {/* Tab bar */}
-          <div className="flex border-b border-gray-100 pt-2" role="tablist">
-            {([
-              { key: "login", label: t("b2b.login.tab.login", "Log in") },
-              { key: "signup", label: t("b2b.login.tab.signup", "Create account") },
-            ] as const).map((tab) => {
-              const active = mode === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => { setMode(tab.key); setError(""); setInfo(""); }}
-                  className={`flex-1 py-4 text-sm font-semibold transition-colors relative ${
-                    active ? "text-[#1F2937]" : "text-gray-400 hover:text-gray-600"
-                  }`}
-                >
-                  {tab.label}
-                  {active && (
-                    <span className="absolute left-1/2 -translate-x-1/2 bottom-0 w-12 h-0.5 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#10B981]" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+            <button type="submit" disabled={loading} aria-busy={loading} className={authPrimary}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              {loading ? t("b2b.login.signing_in", "Skrái inn…") : t("b2b.login.submit", "Skrá inn")}
+            </button>
+          </form>
 
-          <div className="p-8">
-            <h1 className="text-xl font-semibold text-[#1F2937]">
-              {mode === "login"
-                ? t("b2b.login.title", "Company account log in")
-                : t("b2b.signup.title", "Create a company account")}
-            </h1>
-            <p className="text-sm text-[#6B7280] mt-1">
-              {mode === "login"
-                ? t("b2b.login.subtitle", "Access for managers and employees.")
-                : t("b2b.signup.subtitle", "Start the 4-step setup for Lifeline Health at your workplace.")}
+          <button
+            type="button"
+            onClick={() => void handleForgotPassword()}
+            disabled={resetBusy}
+            aria-busy={resetBusy}
+            className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 text-sm font-medium text-hc-ink-2 hover:text-hc-ink disabled:opacity-60"
+          >
+            {resetBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+            {t("b2b.login.forgot", "Gleymt lykilorð?")}
+          </button>
+        </>
+      ) : (
+        <>
+          <h1 className="text-2xl font-bold text-hc-ink">{t("b2b.signup.title", "Stofna fyrirtækjaaðgang")}</h1>
+          <p className="mt-1 text-sm text-hc-ink-2">
+            {t("b2b.signup.subtitle", "Þú verður tengiliður fyrirtækisins hjá Lifeline Health. Fyrst stofnarðu aðganginn þinn og staðfestir netfangið.")}
+          </p>
+
+          <form onSubmit={submitSignup} className="mt-6 space-y-4">
+            <label className="block">
+              <span className={authLabel}>{t("b2b.signup.full_name", "Fullt nafn")}</span>
+              <input
+                type="text" required autoFocus value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                autoComplete="name" placeholder="Jón Jónsson"
+                onInvalid={(e) => e.currentTarget.setCustomValidity("Sláðu inn nafnið þitt.")}
+                onInput={(e) => e.currentTarget.setCustomValidity("")}
+                className={authInput}
+              />
+            </label>
+            <label className="block">
+              <span className={authLabel}>{t("b2b.signup.email", "Netfang í vinnu")}</span>
+              <input
+                type="email" required value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email" placeholder="nafn@fyrirtaeki.is"
+                onInvalid={(e) => e.currentTarget.setCustomValidity("Sláðu inn gilt netfang.")}
+                onInput={(e) => e.currentTarget.setCustomValidity("")}
+                className={authInput}
+              />
+            </label>
+            <PasswordField
+              label={t("b2b.signup.password", "Lykilorð")}
+              value={password}
+              onChange={setPassword}
+              autoComplete="new-password"
+              minLength={B2B_MIN_PW}
+              hint={t("b2b.signup.password_placeholder", "Minnst 12 stafir")}
+            />
+            <PasswordField
+              label={t("b2b.signup.confirm_password", "Endurtaktu lykilorðið")}
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              autoComplete="new-password"
+              minLength={B2B_MIN_PW}
+            />
+
+            {errorBox}
+            {infoBox}
+
+            <button type="submit" disabled={loading} aria-busy={loading} className={authPrimary}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              {loading ? t("b2b.signup.creating", "Stofna aðgang…") : t("b2b.signup.submit", "Stofna aðgang")}
+            </button>
+
+            <p className="text-center text-xs leading-relaxed text-hc-ink-3">
+              {t(
+                "b2b.signup.footer_note",
+                "Næstu skref: þú staðfestir netfangið, samþykkir notkunarskilmála og vinnslusamning, skráir fyrirtækið og býður starfsfólki.",
+              )}
             </p>
-
-            {mode === "login" ? (
-              <>
-                <form onSubmit={submit} className="space-y-5 mt-6">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("b2b.login.email", "Email")}
-                    </label>
-                    <input
-                      id="email"
-                      type="email"
-                      required
-                      autoFocus
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                      placeholder="you@company.is"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                      {t("b2b.login.password", "Password")}
-                    </label>
-                    <input
-                      id="password"
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                      placeholder={t("b2b.login.password_placeholder", "Enter your password")}
-                    />
-                  </div>
-
-                  {error && (
-                    <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                      {error}
-                    </div>
-                  )}
-                  {info && (
-                    <div role="status" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-                      {info}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-2.5 px-4 rounded-lg text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 shadow-sm"
-                  >
-                    {loading ? t("b2b.login.signing_in", "Signing in…") : t("b2b.login.submit", "Sign in")}
-                  </button>
-                </form>
-
-                <button
-                  type="button"
-                  onClick={() => void handleForgotPassword()}
-                  disabled={resetBusy}
-                  className="block w-full text-center text-sm text-[#6B7280] hover:text-blue-600 mt-4 transition-colors disabled:opacity-60"
-                >
-                  {t("b2b.login.forgot", "Forgot your password?")}
-                </button>
-              </>
-            ) : signupSent ? (
-              <div className="mt-6 text-center space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
-                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-gray-900">Confirm your email to continue</h2>
-                <p className="text-sm text-gray-600">
-                  We&apos;ve sent a confirmation link to <span className="font-semibold text-gray-900">{email}</span>.
-                  Click it to verify your address — then you can finish setting up your company.
-                </p>
-                <div className="flex flex-col items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={resendSignup}
-                    disabled={resendStatus === "sending" || resendStatus === "sent"}
-                    className="text-sm font-medium text-blue-600 hover:underline disabled:opacity-50 disabled:no-underline"
-                  >
-                    {resendStatus === "sending" ? "Sending…" : resendStatus === "sent" ? "Confirmation re-sent ✓" : "Didn't get it? Resend confirmation email"}
-                  </button>
-                  {resendStatus === "error" && <p role="alert" className="text-xs text-red-600">Could not resend — try again shortly.</p>}
-                  <button
-                    type="button"
-                    onClick={() => { setSignupSent(false); setMode("login"); setError(""); setInfo(""); }}
-                    className="text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    Back to log in
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={submitSignup} className="space-y-5 mt-6">
-                <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("b2b.signup.full_name", "Your full name")}
-                  </label>
-                  <input
-                    id="fullName"
-                    type="text"
-                    required
-                    autoFocus
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                    placeholder="Jón Jónsson"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="signupEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("b2b.signup.email", "Work email")}
-                  </label>
-                  <input
-                    id="signupEmail"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                    placeholder="you@company.is"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="signupPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("b2b.signup.password", "Password")}
-                  </label>
-                  <input
-                    id="signupPassword"
-                    type="password"
-                    required
-                    minLength={12}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                    placeholder={t("b2b.signup.password_placeholder", "At least 12 characters")}
-                    autoComplete="new-password"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="signupConfirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t("b2b.signup.confirm_password", "Confirm password")}
-                  </label>
-                  <input
-                    id="signupConfirmPassword"
-                    type="password"
-                    required
-                    minLength={12}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-gray-900"
-                    placeholder={t("b2b.signup.confirm_password_placeholder", "Re-enter your password")}
-                    autoComplete="new-password"
-                  />
-                </div>
-
-                {error && (
-                  <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                    {error}
-                  </div>
-                )}
-                {info && (
-                  <div role="status" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-                    {info}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 px-4 rounded-lg text-white font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#3B82F6] to-[#10B981] hover:opacity-95 shadow-sm"
-                >
-                  {loading ? t("b2b.signup.creating", "Creating account…") : t("b2b.signup.submit", "Create account & continue →")}
-                </button>
-
-                <p className="text-xs text-gray-500 text-center">
-                  {t(
-                    "b2b.signup.footer_note",
-                    "Next steps: accept platform terms & DPA → create your company → invite your team.",
-                  )}
-                </p>
-              </form>
-            )}
-          </div>
-        </div>
-
-        <p className="text-center text-[#6B7280] text-xs mt-6">
-          <Link href="/" className="hover:text-blue-600 transition-colors">
-            {t("b2b.login.back_home", "Back to Lifeline Health")}
-          </Link>
-        </p>
-      </div>
-    </div>
+          </form>
+        </>
+      )}
+    </AuthShell>
   );
 }
