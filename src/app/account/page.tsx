@@ -6,6 +6,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
 import { COACHING_DEFAULTS_IS, COACHING_DEFAULTS_EN } from "@/lib/site-content/coaching";
+import { HOME_DEFAULTS_IS, HOME_DEFAULTS_EN } from "@/lib/site-content/home";
+import { HowItWorksSteps } from "@/app/components/HowItWorksSteps";
 import * as hcCache from "@/lib/hc/client-cache";
 import type { User } from "@supabase/supabase-js";
 import { Suspense } from "react";
@@ -1524,6 +1526,7 @@ function AccountPageInner() {
 
                 <NextSteps
                   t={t}
+                  locale={locale}
                   assessmentDone={bodyCompStatus === "completed"}
                   onGo={(sec) => { setActiveSection(sec); if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" }); }}
                 />
@@ -2646,17 +2649,28 @@ function AccountPageInner() {
             {activeSection === "upgrade" && (
               <section className="space-y-6">
                 {/* Hero */}
-                <div className="rounded-2xl bg-gradient-to-br from-[#0F2A23] to-[#065F46] p-8 text-white shadow-sm">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-emerald-300">
-                    Þjálfun hjá Lifeline
-                  </p>
-                  <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">
-                    Úr niðurstöðum í daglegar venjur
-                  </h1>
-                  <p className="mt-3 max-w-xl text-base text-emerald-100">
-                    Daglegar aðgerðir, máltíðir, vigtun, áætlun sem er þín — og þjálfari sem þú nærð í.
-                    Þjálfunin er valkvæð og greidd sérstaklega.
-                  </p>
+                <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm">
+                  <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#3B82F6] via-[#0D9488] via-[#8B5CF6] to-[#06B6D4]" />
+                  <div className="p-6 sm:p-8">
+                    <div className="flex items-start gap-4">
+                      <span aria-hidden className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3B82F6] via-[#0D9488] to-[#8B5CF6] text-white shadow-sm sm:flex">
+                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </span>
+                      <div className="min-w-0">
+                        <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.15em] text-[#047857]">
+                          {t("account.coaching.kicker", "Þjálfun hjá Lifeline")}
+                        </p>
+                        <h1 className="text-2xl font-bold leading-tight text-[#0F172A] sm:text-3xl">
+                          {t("account.coaching.hero", "Úr niðurstöðum í daglegar venjur")}
+                        </h1>
+                        <p className="mt-2.5 max-w-xl text-base leading-relaxed text-[#6B7280]">
+                          {t("account.coaching.heroBody", "Daglegar aðgerðir, máltíðir, vigtun, áætlun sem er þín — og þjálfari sem þú nærð í. Þjálfunin er valkvæð og greidd sérstaklega.")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* ── Svona virkar heilsuþjálfun ─────────────────────
@@ -3125,78 +3139,30 @@ function BiodyReconsentBanner({ userId, onGoToSettings }: { userId: string; onGo
  * whether somebody has started using the app or taken up coaching, and a
  * tick that guesses is worse than no tick.
  */
-function NextSteps({ assessmentDone, onGo, t }: {
+function NextSteps({ assessmentDone, onGo, t, locale }: {
   assessmentDone: boolean;
   onGo: (s: Section) => void;
   t: (k: string, f?: string) => string;
+  locale: string;
 }) {
-  /* The same three steps as the front page, in the same shape and the same
-     words — copy lifted verbatim from src/lib/site-content/home.ts in both
-     locales. Somebody who read the front page and then signed in should
-     recognise where they are, and a second, differently worded account of
-     how the service works is how two versions of the truth start.
+  /* The front page's own component, not a rebuild of it — HomeView renders
+     the same one. The copy comes from the same place too, so editing the
+     home page on /admin/website changes both.
 
-     One difference, and it is deliberate: here they are buttons. On the
-     front page they explain; on a page you reach by signing in, the step
-     you are on is the thing you came to do. */
-  const steps = [
-    {
-      n: 1, color: "#3B82F6",
-      title: t("account.steps.1.title", "Farðu í heilsumat"),
-      desc: t("account.steps.1.desc", "Ljúktu líkamssamsetningarmælingu, blóðprufum og lífsstílsgreiningu á stöðvum okkar eða í gegnum Sameind."),
-      go: () => onGo("assessment"), done: assessmentDone,
-      icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
-    },
-    {
-      n: 2, color: "#10B981",
-      title: t("account.steps.2.title", "Fáðu skýrsluna þína"),
-      desc: t("account.steps.2.desc", "Lifeline-læknir fer yfir niðurstöðurnar þínar og hittir þig til að ræða þær og næstu skref."),
-      go: () => onGo("assessment"),
-      icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
-    },
-    {
-      n: 3, color: "#8B5CF6",
-      title: t("account.steps.3.title", "Byrjaðu þjálfun"),
-      desc: t("account.steps.3.desc", "Sæktu appið fyrir daglegar aðgerðaáætlanir, æfingakerfi, næringarráðgjöf og eftirfylgni með framförum."),
-      go: () => onGo("upgrade"),
-      icon: "M13 10V3L4 14h7v7l9-11h-7z",
-    },
-  ];
+     The heading is the one thing that differs, and it should: the front
+     page is explaining a service to somebody deciding whether to buy it.
+     Here they have already bought it, and the question is what they want
+     to do today. */
+  const c = locale === "en" ? HOME_DEFAULTS_EN : HOME_DEFAULTS_IS;
+  const go = (n: 1 | 2 | 3) => onGo(n === 3 ? "upgrade" : "assessment");
   return (
     <section className="pb-2">
-      <div className="mx-auto mb-10 max-w-2xl text-center">
-        <h2 className="text-2xl font-bold text-[#1F2937] sm:text-3xl">{t("account.steps.title", "Hvernig Lifeline virkar")}</h2>
-        <p className="mt-3 text-[#6B7280]">{t("account.steps.sub", "Þrjú skref til að umbreyta heilsu þinni")}</p>
+      <div className="mx-auto mb-16 max-w-2xl text-center">
+        <h2 className="text-3xl font-bold text-[#1F2937] sm:text-4xl">
+          {t("account.steps.greeting", "Hvað má bjóða þér í dag?")}
+        </h2>
       </div>
-      <div className="relative space-y-8 sm:grid sm:grid-cols-3 sm:gap-12 sm:space-y-0">
-        {/* The connectors only make sense once the tiles sit side by side. */}
-        <div className="absolute left-[30%] top-12 hidden h-0.5 w-[12%] bg-gradient-to-r from-[#EA580C]/40 to-[#84CC16]/40 sm:block" />
-        <div className="absolute left-[58%] top-12 hidden h-0.5 w-[12%] bg-gradient-to-r from-[#84CC16]/40 to-[#767194]/40 sm:block" />
-        {steps.map((st) => (
-          <button key={st.n} type="button" onClick={st.go}
-            className="group relative flex flex-col items-center rounded-2xl p-2 text-center transition hover:bg-black/[0.02]">
-            <span className="relative mb-6">
-              <span className="flex h-24 w-24 items-center justify-center rounded-3xl shadow-lg transition group-hover:shadow-xl"
-                style={{ backgroundColor: `${st.color}10`, border: `2px solid ${st.color}20` }}>
-                <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: st.color }} aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={st.icon} />
-                </svg>
-              </span>
-              {/* Done replaces the number rather than sitting next to it —
-                  the step count stops mattering once a step is behind you. */}
-              <span className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white shadow-md"
-                style={{ backgroundColor: st.done ? "#047857" : st.color }}>
-                {st.done ? "✓" : st.n}
-              </span>
-            </span>
-            <span className="mb-3 block text-xl font-semibold text-[#1F2937]">{st.title}</span>
-            <span className="block max-w-[280px] text-sm leading-relaxed text-[#6B7280]">{st.desc}</span>
-            <span className="mt-3 text-sm font-semibold text-[#047857] opacity-0 transition group-hover:opacity-100">
-              {st.done ? `${t("account.steps.seeresults", "Sjá niðurstöður")} →` : `${t("account.steps.go", "Áfram")} →`}
-            </span>
-          </button>
-        ))}
-      </div>
+      <HowItWorksSteps c={c} onStep={go} doneStep={assessmentDone ? 1 : undefined} />
     </section>
   );
 }
