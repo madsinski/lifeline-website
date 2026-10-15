@@ -17,7 +17,7 @@ export default function Footer() {
   // Match Navbar — survey respondent pages + research docs are chrome-free.
   // Same list as the Navbar, plus the participant app: a training plan does
   // not need a newsletter signup and a sitemap under it.
-  if (pathname.startsWith("/survey") || pathname.startsWith("/research") || pathname.startsWith("/verkefnalysing") || pathname.startsWith("/present") || pathname.startsWith("/security-review") || pathname.startsWith("/leidbeiningar") || pathname.startsWith("/legal-review") || pathname.startsWith("/vinnustod") || pathname.startsWith("/app") || pathname.startsWith("/byrja") || pathname.startsWith("/account/login") || pathname.startsWith("/auth") || pathname.startsWith("/business/onboard") || pathname.startsWith("/account/partner-invite")) {
+  if (pathname.startsWith("/survey") || pathname.startsWith("/research") || pathname.startsWith("/verkefnalysing") || pathname.startsWith("/present") || pathname.startsWith("/security-review") || pathname.startsWith("/leidbeiningar") || pathname.startsWith("/legal-review") || pathname.startsWith("/vinnustod") || pathname.startsWith("/app") || pathname.startsWith("/byrja") || pathname.startsWith("/account/login") || pathname.startsWith("/auth") || pathname.startsWith("/business/onboard") || pathname.startsWith("/business/login") || pathname.startsWith("/business/signup") || pathname.startsWith("/business/co-admin-setup") || pathname.startsWith("/account/partner-invite")) {
     return null;
   }
 

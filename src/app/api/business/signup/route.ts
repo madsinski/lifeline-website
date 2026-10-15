@@ -8,24 +8,24 @@ import { sendEmail } from "@/lib/email";
 // built-in SMTP, which isn't configured for this project.
 function confirmationEmailHtml(link: string): string {
   return `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0F172A">
-    <h1 style="font-size:20px;margin:0 0 12px">Confirm your email</h1>
+  <div lang="is" style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0F172A">
+    <h1 style="font-size:20px;margin:0 0 12px">Staðfestu netfangið þitt</h1>
     <p style="font-size:14px;line-height:1.6;color:#334155;margin:0 0 20px">
-      Thanks for starting your company setup with Lifeline Health. Please confirm this
-      email address to continue — you won't be able to create your company or invite
-      employees until it's verified.
+      Takk fyrir að hefja skráningu fyrirtækisins hjá Lifeline Health. Staðfestu netfangið
+      til að halda áfram — ekki er hægt að skrá fyrirtækið eða bjóða starfsfólki fyrr en
+      netfangið hefur verið staðfest.
     </p>
     <p style="margin:0 0 24px">
-      <a href="${link}" style="display:inline-block;background:linear-gradient(135deg,#3B82F6,#10B981);color:#fff;font-weight:600;font-size:14px;text-decoration:none;padding:12px 22px;border-radius:10px">
-        Confirm email &amp; continue
+      <a href="${link}" style="display:inline-block;background:#047857;color:#fff;font-weight:600;font-size:14px;text-decoration:none;padding:12px 22px;border-radius:10px">
+        Staðfesta netfang og halda áfram
       </a>
     </p>
     <p style="font-size:12px;line-height:1.6;color:#64748B;margin:0 0 8px">
-      If the button doesn't work, paste this link into your browser:
+      Ef hnappurinn virkar ekki geturðu afritað þennan hlekk í vafrann:
     </p>
-    <p style="font-size:12px;line-height:1.6;color:#3B82F6;word-break:break-all;margin:0 0 24px">${link}</p>
+    <p style="font-size:12px;line-height:1.6;color:#047857;word-break:break-all;margin:0 0 24px">${link}</p>
     <p style="font-size:12px;color:#94A3B8;margin:0">
-      If you didn't request this, you can safely ignore this email.
+      Ef þú baðst ekki um þetta máttu hunsa póstinn.
     </p>
   </div>`;
 }
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     if (existing.email_confirmed_at) {
       return NextResponse.json({
         error: "email_already_registered",
-        detail: "This email already has a Lifeline account. Please sign in instead.",
+        detail: "Netfangið er þegar með Lifeline-aðgang. Skráðu þig inn í staðinn.",
       }, { status: 409 });
     }
     // Exists but unconfirmed → fall through and (re)send the confirmation link.
@@ -116,9 +116,9 @@ export async function POST(req: NextRequest) {
 
   const send = await sendEmail({
     to: email,
-    subject: "Confirm your email — Lifeline Health",
+    subject: "Staðfestu netfangið — Lifeline Health",
     html: confirmationEmailHtml(confirmLink),
-    text: `Confirm your email to continue setting up your company on Lifeline Health:\n\n${confirmLink}`,
+    text: `Staðfestu netfangið til að halda áfram að skrá fyrirtækið hjá Lifeline Health:\n\n${confirmLink}`,
   });
   if (!send.ok) {
     console.error("[b2b signup] confirmation email failed", send.error);

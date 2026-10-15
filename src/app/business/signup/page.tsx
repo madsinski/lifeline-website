@@ -1,11 +1,17 @@
 "use client";
 
+// B2B company signup, after /business/login has created and confirmed the
+// contact person's account: confirm-email gate → platform terms + DPA →
+// company details → the company page. Icelandic first, on the shared
+// AuthShell like the other signup flows (/byrja, /business/onboard).
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Loader2, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
-import BusinessHeader from "../BusinessHeader";
+import AuthShell, { authInput, authLabel, authLink, authPrimary } from "@/app/components/AuthShell";
 import { cleanKennitala, isValidKennitala, formatKennitala } from "@/lib/kennitala";
 import {
   TOS_KEY,
@@ -15,10 +21,13 @@ import {
   renderTermsOfService,
   renderDataProcessingAgreement,
 } from "@/lib/platform-terms-content";
+import ResendB2BConfirmation from "./ResendConfirmation";
 
 const AGREEMENT_VERSION = "1.0"; // legacy column on companies — kept for backwards compat
 
-type Step = "agreement" | "company" | "done";
+type Step = "agreement" | "company";
+
+const OFFLINE = "Engin tenging. Athugaðu netið og reyndu aftur.";
 
 export default function BusinessSignupPage() {
   const router = useRouter();
@@ -38,7 +47,6 @@ export default function BusinessSignupPage() {
   // Email-confirmation gate (#13): an unconfirmed user must not be able to
   // sign agreements or create a company.
   const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
-  const [resendStatus, setResendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const [tosChecked, setTosChecked] = useState(false);
   const [dpaChecked, setDpaChecked] = useState(false);
@@ -114,10 +122,9 @@ export default function BusinessSignupPage() {
           body: JSON.stringify({ document_key: key, document_version: version }),
         });
         if (!r.ok) {
-          const j = await r.json().catch(() => ({}));
           throw new Error(r.status === 401 || r.status === 403
-            ? "Your session has expired or your email is not confirmed yet. Sign in again and retry."
-            : `Could not record your acceptance (${j.error || r.status}). Please try again.`);
+            ? "Innskráningin er útrunnin eða netfangið óstaðfest. Skráðu þig inn aftur og reyndu svo aftur."
+            : "Ekki tókst að skrá samþykkið. Reyndu aftur.");
         }
       };
 
@@ -128,23 +135,10 @@ export default function BusinessSignupPage() {
       ]);
       setStep("company");
     } catch (e) {
-      setError(e instanceof TypeError ? "No connection. Check your network and try again." : (e as Error).message);
+      setError(e instanceof TypeError ? OFFLINE : (e as Error).message);
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const resendConfirmation = async () => {
-    if (!userEmail) return;
-    setResendStatus("sending");
-    // Resend via our own endpoint (Resend channel), not Supabase's built-in
-    // email — which isn't configured for this project.
-    const res = await fetch("/api/business/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: userEmail, resend: true }),
-    }).catch(() => null);
-    setResendStatus(res?.ok ? "sent" : "error");
   };
 
   const handleCreateCompany = async (e: React.FormEvent) => {
@@ -152,17 +146,17 @@ export default function BusinessSignupPage() {
     if (submitting) return;
     setError("");
     if (!userId) return;
-    if (!companyName.trim()) { setError("Please enter a company name."); return; }
+    if (!companyName.trim()) { setError("Sláðu inn nafn fyrirtækisins."); return; }
     if (!isValidKennitala(companyKennitala)) {
-      setError("Company kennitala must be 10 digits and pass the Icelandic checksum.");
+      setError("Kennitala fyrirtækisins er ekki gild. Hún á að vera 10 tölustafir.");
       return;
     }
     if (!isValidKennitala(contactKennitala)) {
-      setError("Your kennitala must be 10 digits and pass the Icelandic checksum.");
+      setError("Kennitalan þín er ekki gild. Hún á að vera 10 tölustafir.");
       return;
     }
-    if (!contactPhone.trim()) { setError("Please enter your phone number."); return; }
-    if (!contactPosition.trim()) { setError("Please enter your position at the company."); return; }
+    if (!contactPhone.trim()) { setError("Sláðu inn símanúmerið þitt."); return; }
+    if (!contactPosition.trim()) { setError("Sláðu inn starfsheitið þitt hjá fyrirtækinu."); return; }
     setSubmitting(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -186,274 +180,217 @@ export default function BusinessSignupPage() {
       if (!res.ok) {
         // The route answers with short codes; turn the ones a person can act on into sentences.
         throw new Error(
-          res.status === 401 ? "Your session has expired. Sign in again and retry."
-          : j.error === "email_not_confirmed" ? "Confirm your email address first, then reload this page."
-          : res.status === 400 ? "Check the company details and try again."
-          : "Could not create the company. Please try again shortly.",
+          res.status === 401 ? "Innskráningin er útrunnin. Skráðu þig inn aftur og reyndu svo aftur."
+          : j.error === "email_not_confirmed" ? "Staðfestu netfangið fyrst og endurhlaððu svo síðuna."
+          : res.status === 400 ? "Athugaðu upplýsingarnar um fyrirtækið og reyndu aftur."
+          : "Ekki tókst að skrá fyrirtækið. Reyndu aftur eftir smástund.",
         );
       }
+      // Stays "Skrái fyrirtækið…" until the company page takes over.
       router.push(`/business/${j.id}`);
     } catch (e) {
-      setError(e instanceof TypeError ? "No connection. Check your network and try again." : (e as Error).message);
-    } finally {
+      setError(e instanceof TypeError ? OFFLINE : (e as Error).message);
       setSubmitting(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-500">Loading…</div>
-      </div>
+      <AuthShell>
+        <div role="status" className="flex items-center justify-center gap-2 py-6 text-sm text-hc-ink-2">
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> Hleð…
+        </div>
+      </AuthShell>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
-      <BusinessHeader
-        crumbs={[{ label: t("b2b.signup.header", "Business onboarding") }]}
-      />
+  if (needsEmailConfirm) {
+    return (
+      <AuthShell>
+        <section className="text-center">
+          <span aria-hidden className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-hc-warn-surface text-hc-warn-ink">
+            <Mail className="h-7 w-7" />
+          </span>
+          <h1 className="mt-4 text-2xl font-bold text-hc-ink">Staðfestu netfangið fyrst</h1>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-hc-ink-2">
+            Til að vernda fyrirtækið þarftu að staðfesta netfangið áður en þú samþykkir skilmála, skráir
+            fyrirtækið eða undirritar samninga. Við sendum staðfestingarhlekk á:
+          </p>
+          <p className="mt-4 break-all rounded-hc-element bg-hc-sunken px-4 py-3 text-sm font-semibold text-hc-ink">{userEmail}</p>
+          <p className="mt-3 text-xs leading-relaxed text-hc-ink-3">
+            Smelltu á hlekkinn og endurhlaððu svo síðuna. Finnurðu hann ekki? Athugaðu ruslpóstinn.
+          </p>
+          <ResendB2BConfirmation email={userEmail} className="mt-5" />
+          <button type="button" onClick={() => window.location.reload()} className={`mt-3 ${authPrimary}`}>
+            Ég hef staðfest — endurhlaða
+          </button>
+        </section>
+      </AuthShell>
+    );
+  }
 
-      <main className="max-w-xl mx-auto px-6 py-12">
-        {needsEmailConfirm ? (
-          <section className="bg-white rounded-2xl p-8 shadow-sm space-y-5 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto">
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-semibold">Confirm your email first</h1>
-            <p className="text-sm text-gray-600 max-w-md mx-auto">
-              For your company&apos;s security, you must confirm your email address before you can
-              accept the platform terms, create the company, or sign any agreement. We sent a
-              confirmation link to <span className="font-semibold text-gray-900">{userEmail}</span>.
-              Click it, then reload this page.
-            </p>
-            <div className="flex flex-col items-center gap-2">
-              <button
-                type="button"
-                onClick={resendConfirmation}
-                disabled={resendStatus === "sending" || resendStatus === "sent"}
-                className="btn-primary"
-              >
-                {resendStatus === "sending" ? "Sending…" : resendStatus === "sent" ? "Confirmation sent ✓" : "Resend confirmation email"}
-              </button>
-              {resendStatus === "error" && <p role="alert" className="text-xs text-red-600">Could not resend — try again shortly.</p>}
-              <button type="button" onClick={() => window.location.reload()} className="text-sm text-blue-600 hover:underline mt-1">
-                I&apos;ve confirmed — reload
-              </button>
-            </div>
-          </section>
-        ) : (
-        <>
-        <Stepper step={step} />
-
-        {step === "agreement" && (
-          <section className="bg-white rounded-2xl p-8 shadow-sm space-y-6">
-            <header>
-              <h1 className="text-2xl font-semibold">Platform terms &amp; data processing</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Two documents cover your use of the Lifeline portal and how we handle your employees&apos; data under GDPR /
-                Icelandic law nr. 90/2018. Please read and accept both. Your separate commercial service agreement is
-                signed later, once your programme is set up.
-              </p>
-            </header>
-
-            {/* Terms of Service */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">1. Notkunarskilmálar (Terms of Service) — {TOS_VERSION}</h2>
-              <p className="text-xs text-gray-500 mb-2">How you and your team use the Lifeline portal.</p>
-              <pre className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
-{renderTermsOfService()}
-              </pre>
-              <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={tosChecked}
-                  onChange={(e) => setTosChecked(e.target.checked)}
-                  className="mt-1"
-                />
-                <span className="text-sm text-gray-700">
-                  Ég hef lesið og samþykki Notkunarskilmála Lifeline Health ({TOS_VERSION}) fyrir hönd fyrirtækisins.
-                </span>
-              </label>
-            </div>
-
-            {/* Data Processing Agreement */}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">2. Vinnslusamningur (Data Processing Agreement) — {DPA_VERSION}</h2>
-              <p className="text-xs text-gray-500 mb-2">How Lifeline processes your employees&apos; personal data.</p>
-              <pre className="max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-4 text-[12px] leading-relaxed text-gray-800 bg-gray-50 whitespace-pre-wrap font-sans">
-{renderDataProcessingAgreement()}
-              </pre>
-              <label className="flex items-start gap-2 mt-3 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={dpaChecked}
-                  onChange={(e) => setDpaChecked(e.target.checked)}
-                  className="mt-1"
-                />
-                <span className="text-sm text-gray-700">
-                  Ég staðfesti heimild mína til að binda fyrirtækið og samþykki Vinnslusamninginn ({DPA_VERSION}).
-                </span>
-              </label>
-            </div>
-
-            {error && <div role="alert" className="text-sm text-red-600">{error}</div>}
-
-            <p className="text-xs text-gray-500">
-              Tímastimpill, IP-tala og vafraauðkenni verða skráð sem hluti af samþykkinu.{" "}
-              <Link href="/terms" className="text-blue-600 hover:underline">Skoða á opinberri síðu →</Link>
-            </p>
-
-            <button
-              onClick={handleAgreement}
-              disabled={!tosChecked || !dpaChecked || submitting}
-              className="btn-primary w-full"
-            >
-              {submitting ? "Saving…" : "Accept both & continue"}
-            </button>
-          </section>
-        )}
-
-        {step === "company" && (
-          <section className="bg-white rounded-2xl p-8 shadow-sm">
-            <h1 className="text-2xl font-semibold mb-2">Your company</h1>
-            <p className="text-sm text-gray-600 mb-6">
-              We&apos;ll create a company workspace. You can add employees on the next screen.
-            </p>
-            <form onSubmit={handleCreateCompany} className="space-y-4">
-              <Field label="Company name">
-                <input
-                  type="text"
-                  required
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  className="input"
-                />
-              </Field>
-              <Field label="Company kennitala (10 digits)">
-                <input
-                  type="text"
-                  required
-                  inputMode="numeric"
-                  value={companyKennitala}
-                  onChange={(e) => setCompanyKennitala(e.target.value)}
-                  onBlur={() => setCompanyKennitala((v) => formatKennitala(v))}
-                  placeholder="123456-7890"
-                  className="input"
-                />
-              </Field>
-
-              <div className="pt-2 mt-2 border-t border-gray-100">
-                <p className="text-sm font-semibold text-gray-900">About you (authorised contact)</p>
-                <p className="text-xs text-gray-500 mt-0.5 mb-3">
-                  Confirms who is binding the company. Your kennitala is stored encrypted.
-                </p>
-              </div>
-              <Field label="Your kennitala (10 digits)">
-                <input
-                  type="text"
-                  required
-                  inputMode="numeric"
-                  value={contactKennitala}
-                  onChange={(e) => setContactKennitala(e.target.value)}
-                  onBlur={() => setContactKennitala((v) => formatKennitala(v))}
-                  placeholder="123456-7890"
-                  className="input"
-                />
-              </Field>
-              <Field label="Your phone">
-                <input
-                  type="tel"
-                  required
-                  value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="6XX XXXX"
-                  className="input"
-                />
-              </Field>
-              <Field label="Your position at the company">
-                <input
-                  type="text"
-                  required
-                  value={contactPosition}
-                  onChange={(e) => setContactPosition(e.target.value)}
-                  placeholder="e.g. HR Manager, CEO"
-                  className="input"
-                />
-              </Field>
-              {error && <div role="alert" className="text-red-600 text-sm">{error}</div>}
-              <button type="submit" disabled={submitting} className="btn-primary w-full">
-                {submitting ? "Creating…" : "Create company"}
-              </button>
-            </form>
-          </section>
-        )}
-        </>
-        )}
-      </main>
-
-      <style jsx global>{`
-        .input {
-          width: 100%;
-          padding: 0.625rem 0.875rem;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.5rem;
-          outline: none;
-          transition: border-color .15s, box-shadow .15s;
-        }
-        .input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
-        .btn-primary {
-          background: linear-gradient(135deg,#3b82f6,#10b981);
-          color: white;
-          padding: 0.75rem 1rem;
-          border-radius: 0.75rem;
-          font-weight: 600;
-          transition: opacity .15s;
-        }
-        .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-      `}</style>
-    </div>
+  const stepN = step === "agreement" ? 2 : 3;
+  const stepLabel = step === "agreement"
+    ? t("b2b.signup.stepper.agreement", "Samningur")
+    : t("b2b.signup.stepper.company", "Fyrirtæki");
+  const pane = "max-h-80 overflow-y-auto whitespace-pre-wrap rounded-hc-element bg-hc-sunken p-4 font-sans text-[12px] leading-relaxed text-hc-ink ring-1 ring-hc-hairline";
+  const errorBox = error && (
+    <p role="alert" className="rounded-hc-element bg-hc-bad-surface px-3 py-2 text-sm text-hc-bad-ink">{error}</p>
   );
-}
 
-function Stepper({ step }: { step: Step }) {
-  const { t } = useI18n();
-  // Account is always shown as completed — this page only renders once the
-  // user is authenticated (auth happens on /business/login). Active step is
-  // either Agreement or Company.
-  const order = ["account", "agreement", "company"] as const;
-  const idx = order.indexOf(step === "done" ? "company" : step);
-  const labels = [
-    t("b2b.signup.stepper.account", "Account"),
-    t("b2b.signup.stepper.agreement", "Agreement"),
-    t("b2b.signup.stepper.company", "Company"),
-  ];
   return (
-    <div className="flex items-center justify-center gap-3 mb-8">
-      {labels.map((l, i) => (
-        <div key={l} className="flex items-center gap-3">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-              i <= idx ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-500"
-            }`}
-          >
-            {i + 1}
+    <AuthShell
+      width={step === "agreement" ? "lg" : "md"}
+      step={{ n: stepN, of: 3 }}
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-hc-brand-text">
+        {t("b2b.signup.header", "Fyrirtækjaskráning")} · {stepLabel}
+      </p>
+
+      {step === "agreement" && (
+        <section className="mt-2 space-y-8">
+          <header>
+            <h1 className="text-2xl font-bold text-hc-ink">Notkunarskilmálar og vinnslusamningur</h1>
+            <p className="mt-2 text-sm leading-relaxed text-hc-ink-2">
+              Tvö skjöl gilda um notkun fyrirtækisins á Lifeline-gáttinni og um meðferð persónuupplýsinga
+              starfsfólks samkvæmt persónuverndarlögum (nr. 90/2018) og GDPR. Lestu bæði og samþykktu.
+              Þjónustusamningurinn sjálfur er undirritaður síðar, þegar verkefnið hefur verið sett upp.
+            </p>
+          </header>
+
+          {/* Terms of Service */}
+          <div>
+            <h2 className="mb-1 text-lg font-semibold text-hc-ink">1. Notkunarskilmálar ({TOS_VERSION})</h2>
+            <p className="mb-2 text-xs text-hc-ink-3">Hvernig þú og starfsfólkið notið Lifeline-gáttina.</p>
+            <pre className={pane}>{renderTermsOfService()}</pre>
+            <label className="mt-3 flex min-h-11 cursor-pointer select-none items-start gap-3">
+              <input
+                type="checkbox"
+                checked={tosChecked}
+                onChange={(e) => setTosChecked(e.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-hc-brand-dark"
+              />
+              <span className="text-sm text-hc-ink">
+                Ég hef lesið og samþykki notkunarskilmála Lifeline Health ({TOS_VERSION}) fyrir hönd fyrirtækisins.
+              </span>
+            </label>
           </div>
-          <span className={`text-sm ${i === idx ? "font-semibold" : "text-gray-500"}`}>{l}</span>
-          {i < labels.length - 1 && <div className="w-8 h-px bg-gray-300" />}
-        </div>
-      ))}
-    </div>
-  );
-}
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-sm font-medium text-gray-700 mb-1">{label}</span>
-      {children}
-    </label>
+          {/* Data Processing Agreement */}
+          <div>
+            <h2 className="mb-1 text-lg font-semibold text-hc-ink">2. Vinnslusamningur ({DPA_VERSION})</h2>
+            <p className="mb-2 text-xs text-hc-ink-3">Hvernig Lifeline vinnur með persónuupplýsingar starfsfólksins.</p>
+            <pre className={pane}>{renderDataProcessingAgreement()}</pre>
+            <label className="mt-3 flex min-h-11 cursor-pointer select-none items-start gap-3">
+              <input
+                type="checkbox"
+                checked={dpaChecked}
+                onChange={(e) => setDpaChecked(e.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-hc-brand-dark"
+              />
+              <span className="text-sm text-hc-ink">
+                Ég staðfesti heimild mína til að skuldbinda fyrirtækið og samþykki vinnslusamninginn ({DPA_VERSION}).
+              </span>
+            </label>
+          </div>
+
+          <p className="text-xs leading-relaxed text-hc-ink-3">
+            Tímastimpill, IP-tala og vafraauðkenni eru skráð sem hluti af samþykkinu.{" "}
+            <Link href="/terms" className={authLink}>Skoða skilmálana á vefnum</Link>
+          </p>
+
+          {errorBox}
+
+          <button
+            type="button"
+            onClick={() => void handleAgreement()}
+            disabled={!tosChecked || !dpaChecked || submitting}
+            aria-busy={submitting}
+            className={authPrimary}
+          >
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+            {submitting ? "Skrái samþykki…" : "Samþykkja bæði og halda áfram"}
+          </button>
+        </section>
+      )}
+
+      {step === "company" && (
+        <section className="mt-2">
+          <h1 className="text-2xl font-bold text-hc-ink">Fyrirtækið</h1>
+          <p className="mt-1 text-sm text-hc-ink-2">
+            Við stofnum svæði fyrir fyrirtækið. Á næsta skjá geturðu bætt starfsfólki við.
+          </p>
+          <form onSubmit={handleCreateCompany} className="mt-6 space-y-4" noValidate>
+            <label className="block">
+              <span className={authLabel}>Nafn fyrirtækis</span>
+              <input
+                type="text" required autoComplete="organization"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className={authInput}
+              />
+            </label>
+            <label className="block">
+              <span className={authLabel}>Kennitala fyrirtækis</span>
+              <input
+                type="text" required inputMode="numeric"
+                value={companyKennitala}
+                onChange={(e) => setCompanyKennitala(e.target.value)}
+                onBlur={() => setCompanyKennitala((v) => formatKennitala(v))}
+                placeholder="000000-0000"
+                className={authInput}
+              />
+              <span className="mt-1 block text-xs text-hc-ink-3">10 tölustafir</span>
+            </label>
+
+            <div className="border-t border-hc-hairline pt-4">
+              <p className="text-sm font-semibold text-hc-ink">Um þig sem tengilið</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-hc-ink-3">
+                Staðfestir hver skuldbindur fyrirtækið. Kennitalan þín er geymd dulkóðuð.
+              </p>
+            </div>
+            <label className="block">
+              <span className={authLabel}>Kennitalan þín</span>
+              <input
+                type="text" required inputMode="numeric"
+                value={contactKennitala}
+                onChange={(e) => setContactKennitala(e.target.value)}
+                onBlur={() => setContactKennitala((v) => formatKennitala(v))}
+                placeholder="000000-0000"
+                className={authInput}
+              />
+              <span className="mt-1 block text-xs text-hc-ink-3">10 tölustafir</span>
+            </label>
+            <label className="block">
+              <span className={authLabel}>Símanúmer</span>
+              <input
+                type="tel" required autoComplete="tel"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="000 0000"
+                className={authInput}
+              />
+            </label>
+            <label className="block">
+              <span className={authLabel}>Starfsheiti hjá fyrirtækinu</span>
+              <input
+                type="text" required autoComplete="organization-title"
+                value={contactPosition}
+                onChange={(e) => setContactPosition(e.target.value)}
+                placeholder="t.d. mannauðsstjóri, framkvæmdastjóri"
+                className={authInput}
+              />
+            </label>
+
+            {errorBox}
+
+            <button type="submit" disabled={submitting} aria-busy={submitting} className={authPrimary}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+              {submitting ? "Skrái fyrirtækið…" : "Skrá fyrirtækið"}
+            </button>
+          </form>
+        </section>
+      )}
+    </AuthShell>
   );
 }
