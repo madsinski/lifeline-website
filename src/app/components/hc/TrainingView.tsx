@@ -67,7 +67,7 @@ export default function TrainingView({ api, exercise, personal, onSave, controls
   /** Weight, body fat and sex, for suggesting a starting load. */
   body?: BodyData;
   /** They did something else instead of this session. */
-  onInstead?: (info: { label: string; modality: PSession["modality"]; session: PSession }) => void;
+  onInstead?: (info: { label: string; modality: PSession["modality"]; minutes: number | null; rpe: number | null; session: PSession }) => void;
   /** Marking one of their own sessions done. */
   onCompleteActivity?: (a: Activity) => void | Promise<boolean | void>;
   onMoveActivity?: (id: string, weekday: number) => void;

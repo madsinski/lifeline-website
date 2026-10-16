@@ -49,6 +49,10 @@ export interface Row {
   staff_import_consent_at?: string | null;
   doctor_interview_done_at?: string | null;
   partner_failed?: number;
+  /** The same prescribed session done as something else ≥3 times in 14 days
+   *  (queue route; migration-session-substitutions.sql). label null = title
+   *  not stored (older rows). */
+  swap_hint?: { label: string | null; count: number } | null;
 }
 
 export interface Journey extends Omit<Row, "client_id" | "client_name" | "client_phone" | "client_dob" | "plan_status"> {
@@ -135,6 +139,17 @@ export function nextTask(r: Row | Journey): Task {
     return { key: "partner", label: "Tölvupóstur til samstarfsaðila (Vera) fór ekki", cta: "Senda aftur", tone: "urgent" };
   }
   if (r.plan_published_at) {
+    // They keep doing something else instead of one session: the plan does
+    // not fit their week, which is the plan's problem, not theirs. Behind a
+    // follow-up that is today, which is where it gets discussed anyway.
+    const swap = r.swap_hint;
+    if (swap && swap.count >= 3 && !(r.followup_booked_for && !r.followup_done_at && isToday(r.followup_booked_for))) {
+      return {
+        key: "swaps",
+        label: `Skiptir oft út ${swap.label ? `„${swap.label}“` : "sömu æfingunni"} · Lagfæra áætlun?`,
+        cta: "Lagfæra áætlun", tone: "normal",
+      };
+    }
     // Follow-up done: nothing is owed until the re-evaluation.
     if (r.followup_done_at) return { key: "done", label: "Eftirfylgd lokið", cta: "Opna", tone: "waiting" };
     // A week of silence since the plan went out: worth a message.
@@ -207,7 +222,8 @@ export function taskTarget(key: string): PatientNav {
     case "book":
     case "followup":
     case "bookfollow": return { tab: "status", sheet: "interview" };
-    case "plan": return { tab: "plan" };
+    case "plan":
+    case "swaps": return { tab: "plan" };
     // "doctor", "measure", "activating": the Staða checklist says it.
     default: return { tab: "status" };
   }
