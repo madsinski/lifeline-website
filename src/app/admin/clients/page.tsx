@@ -222,7 +222,6 @@ export default function ClientsPage() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      console.log("[Admin Clients] Query result:", { clientsData, clientsError });
 
       if (clientsError) {
         setError(
@@ -289,13 +288,12 @@ export default function ClientsPage() {
 
         setClients(normalized);
       } else {
-        console.log("[Admin Clients] No clients found in clients table, trying auth admin API...");
+        
         // Fallback: try auth admin API (requires service role key)
         try {
           const { data: authData, error: authError } =
             await supabase.auth.admin.listUsers();
 
-          console.log("[Admin Clients] Auth admin result:", { authData, authError });
 
           if (!authError && authData?.users && authData.users.length > 0) {
             setClients(
