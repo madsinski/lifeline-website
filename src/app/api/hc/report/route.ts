@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
   const now = new Date().toISOString();
   const { error } = await supabaseAdmin.from("hc_reports").insert({
-    self_consent_at: now,
+    self_consent_at: now, client_approved_at: now,
     self_consent_version: SELF_CONSENT_VERSION,
     journey_id: journey.id,
     client_id: user.id,
