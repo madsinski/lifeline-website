@@ -29,7 +29,7 @@ interface Group {
 
 const STAGE_IS: Record<string, string> = {
   profile: "Nýr", protocol: "Virkjun", tests: "Rannsóknir", report: "Skýrsla",
-  interview: "Viðtal", plan: "Áætlun", action: "Í gangi", done: "Lokið",
+  interview: "Áætlunarsamtal", plan: "Áætlun", action: "Í gangi", done: "Lokið",
 };
 
 export default function ClientsView({ api, rows, onOpenClient, onReload, capped = false }: {

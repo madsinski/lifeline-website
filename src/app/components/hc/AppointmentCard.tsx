@@ -31,6 +31,10 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
   const now = useSyncExternalStore(subscribe, minute, minute) * 60_000;
   const at = new Date(a.at);
   const soon = at.getTime() - now < 30 * 60_000;
+  /* The interview booked in Lifeline is the plan session with the nurse.
+     The doctor's interview is booked and held in the sjúklingagátt and
+     never appears here, so the two must not share the name "Viðtal". */
+  const title = a.kind === "interview" ? "Áætlunarsamtal með Lifeline" : a.title;
   return (
     <section className="overflow-hidden rounded-3xl bg-hc-surface shadow-sm ring-1 ring-emerald-100" aria-label="Næsti tími">
       <div className="flex items-stretch">
@@ -39,7 +43,7 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.15em] text-hc-ok-ink">Næsti tími</p>
-              <p className="mt-1 text-lg font-bold text-hc-ink">{a.title}</p>
+              <p className="mt-1 text-lg font-bold text-hc-ink">{title}</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-hc-ink-2">
                 <CalendarClock className="h-4 w-4 text-hc-ink-3" aria-hidden />
                 {fmtDateTime(a.at, { weekday: "short" })}
@@ -59,7 +63,7 @@ export default function AppointmentCard({ a }: { a: Upcoming }) {
               <Video className="h-5 w-5" aria-hidden /> Tengjast myndsímtalinu
             </a>
           ) : (
-            <p className="mt-3 rounded-xl bg-hc-warn-surface px-3 py-2 text-sm text-hc-warn-ink">Hlekkurinn á myndsímtalið birtist hér fyrir viðtalið.</p>
+            <p className="mt-3 rounded-xl bg-hc-warn-surface px-3 py-2 text-sm text-hc-warn-ink">Hlekkurinn á myndsímtalið birtist hér fyrir tímann.</p>
           ))}
         </div>
       </div>

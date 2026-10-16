@@ -110,3 +110,20 @@ export async function loadReport(
     created_at: row.created_at,
   };
 }
+
+/**
+ * Remove the hc_results rows that were read off a report (source 'medalia'
+ * from the old intake copy, 'report' going forward) once no report is left
+ * on the journey to have produced them. Station measurements and the
+ * participant's own entries stay. Best effort; never throws.
+ */
+export async function removeReportDerivedResults(journeyId: string): Promise<void> {
+  try {
+    const { count } = await supabaseAdmin.from("hc_reports")
+      .select("id", { count: "exact", head: true }).eq("journey_id", journeyId);
+    if ((count ?? 0) > 0) return;
+    await supabaseAdmin.from("hc_results").delete().eq("journey_id", journeyId).in("source", ["medalia", "report"]);
+  } catch {
+    // Retention runs again; a later pass catches it.
+  }
+}

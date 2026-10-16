@@ -1,14 +1,20 @@
 // One journey in the workstation.
 // GET  → patient card (name, kennitala, contact), timeline, orders, audit
-// POST { event, at?, mode?, note? } → record a milestone. Doctor-only events
-//      (report_generated, referral_heilsugaesla) need a doctor/admin actor.
+// POST { event, at?, mode?, note? } → record a milestone (incl.
+//      doctor_interview_done — the Medalia interview happened; any staff).
+// PATCH { interview_notes | followup_notes } → lifestyle notes, encrypted.
+//
+// Medalia split (2026-10-16): the Lifeline doctor workflow is gone — no
+// report confirmation, no doctor review (request_doctor / doctor_reviewed),
+// no share_report (Medalia releases the report). Those actions answer 410.
 // Actor: workstation session or Lifeline staff (Bearer + AAL2).
 
 import { NextRequest, NextResponse } from "next/server";
 import { compareJourneys } from "@/lib/hc/compare";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { applyJourneyEvent, DOCTOR_ONLY, isJourneyEvent } from "@/lib/hc/events";
-import { decryptKennitala, getClientProfile, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
+import { applyJourneyEvent, isJourneyEvent } from "@/lib/hc/events";
+import { decryptKennitala, getClientProfile, hcAudit, siteOrigin } from "@/lib/hc/server";
+import { loadReferrals, saveJourneyNote, withJourneyNotes } from "@/lib/hc/notes";
 import { loadReport } from "@/lib/hc/report-store";
 
 import { supabaseAdmin as db } from "@/lib/supabase-admin";
@@ -49,7 +55,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     journey.location_id ? supabaseAdmin.from("hc_locations").select("id, name").eq("id", journey.location_id).maybeSingle() : Promise.resolve({ data: null }),
     supabaseAdmin.from("hc_workers").select("id, name, organization, role").eq("active", true),
     supabaseAdmin.from("hc_messages").select("id, channel, recipient, template, subject, body, status, error, sent_by, sent_at").eq("journey_id", journey.id).order("sent_at", { ascending: false }).limit(50),
-    supabaseAdmin.from("hc_referrals").select("*").eq("journey_id", journey.id).order("created_at", { ascending: false }),
+    loadReferrals({ journeyId: journey.id }).then((data) => ({ data })),
     supabaseAdmin.from("hc_ai_proposals").select("output, input, created_at").eq("journey_id", journey.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
   const since = new Date(Date.now() - 28 * 86400_000).toISOString().slice(0, 10);
@@ -106,7 +112,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   return NextResponse.json({
     reportProvenance,
     coaching,
-    journey,
+    // Notes decrypted in place (lifestyle notes; stored encrypted), and no
+    // ciphertext columns in the response.
+    journey: await withJourneyNotes(journey),
+    // Whether the client has allowed a nurse to put the report in for them.
+    staff_import_consent_at: journey.staff_import_consent_at ?? null,
     patient: {
       full_name: profile?.full_name ?? null,
       kennitala,
@@ -149,9 +159,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const body = await req.json().catch(() => ({}));
   if (typeof body.action === "string") return handleAction(req, actor, journey, body);
   if (!isJourneyEvent(body.event)) return NextResponse.json({ error: "bad_event" }, { status: 400 });
-  if (DOCTOR_ONLY.includes(body.event) && !actor.isDoctor) {
-    return NextResponse.json({ error: "Aðeins læknir getur skráð þetta." }, { status: 403 });
-  }
   if (body.at && Number.isNaN(new Date(body.at).getTime())) return NextResponse.json({ error: "bad_date" }, { status: 400 });
 
   const updated = await applyJourneyEvent(journey, body.event, {
@@ -171,10 +178,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     origin: siteOrigin(req),
   });
   if (!updated) return NextResponse.json({ error: "update_failed" }, { status: 500 });
-  return NextResponse.json({ journey: updated });
+  return NextResponse.json({ journey: await withJourneyNotes(updated) });
 }
 
-// ── Save interview notes (autosave from the guided interview) ──────────────
+// ── Save Áætlunarsamtal notes (autosave from the guided session) ───────────
+// Lifestyle notes for the plan, one field per topic. No clinical content —
+// that is Medalia's. Stored encrypted (src/lib/hc/notes.ts).
 const NOTE_KEYS = ["sleep", "exercise", "nutrition", "mental", "measurements", "goals", "other"] as const;
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -189,9 +198,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   const src = (body[field] && typeof body[field] === "object" ? body[field] : {}) as Record<string, unknown>;
   const notes: Record<string, string> = {};
   for (const k of NOTE_KEYS) if (typeof src[k] === "string") notes[k] = (src[k] as string).slice(0, 6000);
-  // Plain update: notes are working text, not a milestone — no audit per keystroke.
-  const { error } = await db.from("hc_journeys").update({ [field]: notes, updated_at: new Date().toISOString() }).eq("id", journey.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Not a milestone — no audit per keystroke. The DB trigger encrypts.
+  const error = await saveJourneyNote(journey.id, field, notes);
+  if (error) return NextResponse.json({ error }, { status: 500 });
   return NextResponse.json({ ok: true, saved_at: new Date().toISOString() });
 }
 
@@ -226,23 +235,10 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
     return NextResponse.json({ ok: true });
   }
 
-  // Nurse asks a Lifeline doctor to look at something before or after the interview.
-  if (body.action === "request_doctor") {
-    const note = typeof body.note === "string" ? body.note.trim().slice(0, 2000) : "";
-    if (!note) return NextResponse.json({ error: "Lýstu stuttlega hvað læknirinn á að meta." }, { status: 400 });
-    const updated = await patchJourney(journey.id, { doctor_review_requested_at: new Date().toISOString(), doctor_review_note: note, doctor_reviewed_at: null }, actor.label, "doctor_review_requested", { note });
-    const { data: doctors } = await db.from("hc_workers").select("email, phone, location_ids").in("role", ["doctor", "admin"]).eq("active", true);
-    const mine = (doctors || []).filter((d) => !d.location_ids?.length || (journey.location_id && d.location_ids.includes(journey.location_id)));
-    await Promise.all(mine.flatMap((d) => [
-      d.email ? sendEmail({
-        to: d.email,
-        subject: "Beiðni um mat læknis – Lifeline",
-        html: renderBrandedEmail({ title: "Hjúkrunarfræðingur óskar eftir mati læknis", bodyHtml: `<p style="margin:0;">Opnaðu vinnustöðina til að sjá beiðnina.</p>`, ctaLabel: "Opna vinnustöð", ctaUrl: `${origin}/vinnustod?p=${journey.id}` }),
-        text: `Hjúkrunarfræðingur óskar eftir mati læknis. ${origin}/vinnustod?p=${journey.id}`,
-      }) : null,
-      d.phone ? sendSms({ to: d.phone, body: `Lifeline: Beidni um mat laeknis bidur i vinnustodinni. ${origin}/vinnustod` }) : null,
-    ].filter(Boolean)));
-    return NextResponse.json({ journey: updated });
+  // Removed in the Medalia split: the Lifeline doctor workflow (review
+  // requests, review ticks) and sharing the report — Medalia releases it.
+  if (body.action === "request_doctor" || body.action === "doctor_reviewed" || body.action === "share_report") {
+    return NextResponse.json({ error: "Þetta er ekki lengur gert í Lifeline. Læknisþátturinn og skýrslan eru í Medalia." }, { status: 410 });
   }
 
   // SMS and/or email to the client, text approved by the nurse in the composer.
@@ -286,55 +282,6 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
     await hcAudit(actor.label, "message_sent", journey.id, { channels, template, results: results.map((r) => ({ channel: r.channel, status: r.status })) });
     const ok = results.some((r) => r.ok);
     return NextResponse.json({ ok, results }, { status: ok ? 200 : 502 });
-  }
-
-  // Share the confirmed report with the client.
-  //
-  // Nothing is attached and nothing is copied: the report already renders on
-  // their account, so this is a message pointing at it. It reuses the same
-  // send path as any other message, which is what keeps the rate limit, the
-  // hc_messages record and the audit trail honest.
-  if (body.action === "share_report") {
-    if (!journey.report_generated_at) {
-      return NextResponse.json({ error: "Skýrslan er ekki staðfest enn." }, { status: 409 });
-    }
-    const profile = await getClientProfile(journey.client_id);
-    const first = (profile?.full_name ?? "").split(" ")[0] || "þú";
-    const text = `Hæ ${first}. Heilsufarsskýrslan þín er tilbúin og komin á aðganginn þinn hjá Lifeline. Þar sérðu niðurstöðurnar þínar, viðmiðin og hvað hefur áhrif á hvert gildi.`;
-    const link = `${origin}/app/aaetlun`;
-
-    const results: { channel: string; ok: boolean; status: string }[] = [];
-    if (profile?.phone) {
-      const r = await sendSms({ to: profile.phone, body: `${text}\n\n${link}` });
-      const status = r.dryRun ? "dry-run" : r.ok ? "sent" : "failed";
-      results.push({ channel: "sms", ok: r.ok, status });
-      await db.from("hc_messages").insert({ journey_id: journey.id, client_id: journey.client_id, channel: "sms", recipient: profile.phone, template: "report_shared", body: text, status, error: r.error ?? null, provider_id: r.sid ?? null, sent_by: actor.label });
-    }
-    if (profile?.email) {
-      const subject = "Heilsufarsskýrslan þín er tilbúin";
-      const r = await sendEmail({
-        to: profile.email,
-        subject,
-        html: renderBrandedEmail({ title: subject, bodyHtml: `<p style="margin:0 0 12px;">${escapeHtml(text)}</p>`, ctaLabel: "Opna skýrsluna", ctaUrl: link }),
-        text: `${text}\n\n${link}`,
-      });
-      const status = r.id === "dev-log" ? "dry-run" : r.ok ? "sent" : "failed";
-      results.push({ channel: "email", ok: r.ok, status });
-      await db.from("hc_messages").insert({ journey_id: journey.id, client_id: journey.client_id, channel: "email", recipient: profile.email, template: "report_shared", subject, body: text, status, error: r.error ?? null, provider_id: r.id ?? null, sent_by: actor.label });
-    }
-    if (!results.length) return NextResponse.json({ error: "Hvorki sími né netfang er skráð." }, { status: 400 });
-
-    const ok = results.some((r) => r.ok);
-    if (ok) await patchJourney(journey.id, { report_sms_sent_at: new Date().toISOString() }, actor.label, "report_shared");
-    await hcAudit(actor.label, "report_shared", journey.id, { results });
-    return NextResponse.json({ ok, results }, { status: ok ? 200 : 502 });
-  }
-
-  if (body.action === "doctor_reviewed") {
-    if (!actor.isDoctor) return NextResponse.json({ error: "Aðeins læknir getur skráð þetta." }, { status: 403 });
-    const updated = await patchJourney(journey.id, { doctor_reviewed_at: new Date().toISOString() }, actor.label, "doctor_reviewed",
-      { note: typeof body.note === "string" ? body.note.slice(0, 2000) : null });
-    return NextResponse.json({ journey: updated });
   }
 
   return NextResponse.json({ error: "unknown_action" }, { status: 400 });

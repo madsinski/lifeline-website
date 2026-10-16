@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { ensureSignupConsentRecorded } from "@/lib/signup-consent";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import OnboardingPlayer from "@/app/components/hc/OnboardingPlayer";
-import { INTERVIEW_WAIT_DAYS, interviewEligibleFrom, type JourneyStep, type StepKey, STEP_SHORT } from "@/lib/hc/stages";
+import { type JourneyStep, type StepKey, STEP_SHORT } from "@/lib/hc/stages";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import ReportApproval from "@/app/components/hc/ReportApproval";
@@ -31,6 +31,25 @@ import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { SAVE_FAILED, useToast } from "@/app/components/hc/Toast";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
 import { quote, type UnionRules } from "@/lib/hc/reimbursement";
+import { portalFor } from "@/lib/hc/portal";
+
+/**
+ * Journey fields that arrive with the Lifeline↔Medalia split. Optional:
+ * the page must work against a server that does not send them yet.
+ *
+ *   staff_import_consent_at   the participant allowed a Lifeline nurse to put
+ *                             their report in from the sjúklingagátt
+ *                             (POST /api/hc/journey allow_staff_import /
+ *                             revoke_staff_import)
+ *   doctor_interview_done_at  the doctor's interview, held in Medalia
+ */
+type SplitFields = {
+  staff_import_consent_at?: string | null;
+  staff_import_consent_version?: string | null;
+  doctor_interview_done_at?: string | null;
+};
+const split = (j: HcJourney) => j as HcJourney & SplitFields;
+const reportOnFile = (j: HcJourney) => !!(j.own_report_at || j.report_imported_at || j.report_generated_at);
 
 interface JourneyData {
   journey: HcJourney;
@@ -123,7 +142,7 @@ function Heilsuferd() {
       setNoJourney(false);
       if (j.plan && !showJourney) { router.replace("/app/aaetlun"); return false; }
       setData(j);
-      setOpen((o) => o ?? j.steps.find((s) => s.state === "current")?.key ?? null);
+      setOpen((o) => o ?? mergeReportSteps(j.steps).find((s) => s.state === "current")?.key ?? null);
       return true;
     };
     // Cached first (coming back from "Í dag"), then fresh in the background.
@@ -143,7 +162,7 @@ function Heilsuferd() {
   /** After a step is completed: reload and open the next step. */
   const advance = useCallback(async () => {
     const j = await load(true);
-    const next = j?.steps.find((s) => s.state === "current")?.key ?? null;
+    const next = j ? mergeReportSteps(j.steps).find((s) => s.state === "current")?.key ?? null : null;
     setOpen(next);
     if (next) setTimeout(() => document.getElementById(`step-${next}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }, [load]);
@@ -257,32 +276,37 @@ function Heilsuferd() {
   }
 
   const coaching = data.journey.entry === "coach" || data.journey.entry === "app";
+  /* "upload" and "report" are one step to the participant. */
+  const steps = mergeReportSteps(data.steps);
+  const openKey: StepKey | null = open === "upload" ? "report" : open;
   /* The ring counts what the participant does. The account is made before
      they arrive here, and on the health check the report and the plan are
      ours — counting them made the ring stall for weeks at a time on steps
      nobody could act on. */
   const isOurs = (k: StepKey) => !coaching && OURS_KEYS.has(k);
-  const mine = data.steps.filter((s) => !s.optional && s.key !== "account" && !isOurs(s.key));
+  const mine = steps.filter((s) => !s.optional && s.key !== "account" && !isOurs(s.key));
   const done = mine.filter((s) => s.state === "done").length;
   const required = mine.length;
-  const current = data.steps.find((s) => s.state === "current");
+  const current = steps.find((s) => s.state === "current");
   // The step being worked on, unless the customer has picked another.
-  const shownStep = data.steps.find((x) => x.key === open)
+  const shownStep = steps.find((x) => x.key === openKey)
     ?? current
     // Plan published: nothing is "current", and the last step (re-evaluation)
     // is a year away. The plan is what they are living with now.
-    ?? (data.plan ? data.steps.find((x) => x.key === "plan") : undefined)
-    ?? data.steps.find((x) => x.state === "upcoming")
-    ?? data.steps.at(-1)
+    ?? (data.plan ? steps.find((x) => x.key === "plan") : undefined)
+    ?? steps.find((x) => x.state === "upcoming")
+    ?? steps.at(-1)
     ?? null;
   const next = upcomingAppointments(data.journey, data.location)[0] ?? null;
-  // Steps where the next move is Lifeline's, not the participant's.
+  // Steps where the next move is Lifeline's, not the participant's. Only
+  // Lifeline's own work counts: the plan session once the report is in and
+  // the doctor's interview is behind them, and the plan. Anything in the
+  // sjúklingagátt (the code, the blood test, the report, the doctor) is
+  // either the participant's to do or Medalia's, never "ours".
   const jj = data.journey;
   const ours = !coaching && !!current && (
-    current.key === "report"
-    || current.key === "plan"
-    || (current.key === "interview" && !jj.interview_booked_for)
-    || (current.key === "tests" && !!jj.protocol_activated_at && !!(jj.blood_test_done_at || jj.blood_results_at) && !!jj.measurements_done_at)
+    current.key === "plan"
+    || (current.key === "interview" && reportOnFile(jj) && !!split(jj).doctor_interview_done_at && !jj.interview_booked_for)
   );
   const healthOrder = data.orders.find((o) => o.journey_id === data.journey.id && (o.kind === "health_check" || o.kind === "reevaluation"));
 
@@ -364,7 +388,7 @@ function Heilsuferd() {
               do are grouped as such so nobody waits on themselves. */}
           {(() => {
             const phases = PHASES
-              .map((ph) => ({ ...ph, steps: data.steps.filter((st) => ph.keys.includes(st.key)) }))
+              .map((ph) => ({ ...ph, steps: steps.filter((st) => ph.keys.includes(st.key)) }))
               .filter((ph) => ph.steps.length);
             const activePhase = phases.find((ph) => ph.steps.some((st) => st.key === shownStep?.key)) ?? phases[0];
             const theirs = activePhase?.steps.filter((st) => !isOurs(st.key)) ?? [];
@@ -420,9 +444,9 @@ function Heilsuferd() {
           })()}
 
           {shownStep && (() => {
-            const idx = data.steps.findIndex((x) => x.key === shownStep.key);
-            const prev = idx > 0 ? data.steps[idx - 1] : null;
-            const nextStep = idx < data.steps.length - 1 ? data.steps[idx + 1] : null;
+            const idx = steps.findIndex((x) => x.key === shownStep.key);
+            const prev = idx > 0 ? steps[idx - 1] : null;
+            const nextStep = idx < steps.length - 1 ? steps[idx + 1] : null;
             const phase = PHASES.find((ph) => ph.keys.includes(shownStep.key));
             return (
               <section className={`${shownStep.state === "current" ? hcCard.raised : hcCard.base} p-5 sm:p-6`}>
@@ -479,6 +503,7 @@ function Heilsuferd() {
               <p className="mt-2 text-xs text-hc-ink-3">{healthOrder.activation_redeemed_at ? "Virkjaður í sjúklingagátt." : "Sláðu kóðann inn í sjúklingagáttina."}</p>
             </div>
           )}
+          {!coaching && <WhereCard portal={portalFor(data.location?.patient_portal_url)} />}
           {/* Fræðsla had its own card here. It has its own page in the
               navbar, and this page is for keeping track of the health
               check — which lectures are not a step of. */}
@@ -505,12 +530,19 @@ function Heilsuferd() {
 const PHASES: { title: string; keys: StepKey[] }[] = [
   { title: "Undirbúningur", keys: ["account", "profile", "welcome", "package"] },
   { title: "Skoðun", keys: ["tests", "upload", "report"] },
-  { title: "Viðtal og áætlun", keys: ["interview", "plan"] },
+  { title: "Viðtöl og áætlun", keys: ["doctor", "interview", "plan"] },
   { title: "Eftirfylgd", keys: ["subscription", "followup", "reevaluation"] },
 ];
 
-/** On the health check, the steps where the next move is Lifeline's. */
-const OURS_KEYS = new Set<StepKey>(["report", "plan"]);
+/**
+ * On the health check, the steps that are Lifeline's own work. Only the
+ * plan: the report is made in the sjúklingagátt and brought in by the
+ * participant (or by a nurse with their leave), the tests are theirs, and
+ * the interview step holds the doctor's interview, which is theirs to book.
+ * Typed loosely so a key the server adds later ("plan_session") can be
+ * listed before StepKey knows it.
+ */
+const OURS_KEYS = new Set<string>(["plan", "plan_session"]);
 
 /** Progress as a ring (done of required), for the hero. */
 function ProgressRing({ done, total }: { done: number; total: number }) {
@@ -531,11 +563,55 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
 
 /** What Lifeline is doing, when the next move is ours. */
 const OURS_TEXT: Partial<Record<StepKey, string>> = {
-  tests: "niðurstöðurnar eru að berast",
-  report: "læknir fer yfir skýrsluna",
-  interview: "hjúkrunarfræðingur hefur samband til að bóka viðtalið",
+  interview: "hjúkrunarfræðingur Lifeline hefur samband til að bóka áætlunarsamtalið",
   plan: "hjúkrunarfræðingurinn gengur frá áætluninni þinni",
 };
+
+/**
+ * „Skýrslan þín“ — the "upload" and "report" steps as one.
+ *
+ * The report is made and signed in the sjúklingagátt; what happens here is
+ * only getting a copy into the app, by the participant or by a nurse with
+ * their leave. Two steps for that read as two errands, and the second one
+ * ("læknir staðfestir") described work that is not done here. Merged on
+ * this page so it does not depend on the step list the server sends.
+ */
+function mergeReportSteps(list: JourneyStep[]): JourneyStep[] {
+  const up = list.find((x) => x.key === "upload");
+  const rep = list.find((x) => x.key === "report");
+  if (!up || !rep) return list;
+  const doneAt = rep.doneAt ?? up.doneAt;
+  const state = doneAt ? "done" : up.state === "current" || rep.state === "current" ? "current" : rep.state;
+  const merged: JourneyStep = {
+    ...rep, state, doneAt,
+    title: "Skýrslan þín",
+    blurb: "Þú lest skýrsluna í sjúklingagáttinni. Hér kemur þú afriti af henni í appið svo hægt sé að byggja áætlunina á henni.",
+  };
+  return list.filter((x) => x.key !== "upload").map((x) => (x.key === "report" ? merged : x));
+}
+
+/** Which system does what, in four lines. Health-check journeys only. */
+function WhereCard({ portal }: { portal: string }) {
+  return (
+    <div className="rounded-2xl border border-hc-hairline bg-hc-surface p-5 shadow-sm">
+      <p className="font-bold text-hc-ink">Hvar geri ég hvað?</p>
+      <dl className="mt-2 space-y-2 text-sm">
+        <div>
+          <dt className="font-semibold text-hc-ink">Lifeline appið</dt>
+          <dd className="text-hc-ink-2">Bókanir, áætlunin þín, þjálfun og skilaboð.</dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-hc-ink">Sjúklingagáttin (Medalia)</dt>
+          <dd className="text-hc-ink-2">Virkja kóðann, blóðprufan, skýrslan og læknisviðtalið.</dd>
+        </div>
+      </dl>
+      <a href={portal} target="_blank" rel="noopener noreferrer"
+        className="mt-3 inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+        Opna sjúklingagátt
+      </a>
+    </div>
+  );
+}
 
 function Shell({ children }: { children: React.ReactNode }) {
   // The heilsuferð is the participant's home, so this does not go "up" to
@@ -576,7 +652,7 @@ function ChooseRoute({ onChoose }: { onChoose: (track: "check" | "coach") => Pro
   };
   const routes = [
     { key: "check" as const, title: "Heilsufarsskoðun",
-      line: "Mælingar, blóðprufa og viðtal við hjúkrunarfræðing — áætlun út frá þínum tölum." },
+      line: "Mælingar, blóðprufa og læknisviðtal — og áætlun með hjúkrunarfræðingi út frá þínum tölum." },
     { key: "coach" as const, title: "Þjálfun í appinu",
       line: "Æfingar, næring og svefn frá fyrsta degi, án mælinga." },
   ];
@@ -596,7 +672,7 @@ function ChooseRoute({ onChoose }: { onChoose: (track: "check" | "coach") => Pro
           ))}
         </div>
         <p className="mt-4 text-sm text-hc-ink-3">
-          Ertu þegar með skýrslu frá Lifeline? Veldu heilsufarsskoðun og settu hana inn í skrefinu „Settu skýrsluna inn“.
+          Ertu þegar með skýrslu úr sjúklingagáttinni? Veldu heilsufarsskoðun og settu hana inn í skrefinu „Skýrslan þín“.
         </p>
       </div>
     </Shell>
@@ -625,51 +701,6 @@ function FirstStep({ stadur }: { stadur: string }) {
 }
 
 // ── Step shell ─────────────────────────────────────────────────────────────
-
-/**
- * When the interview can be booked, and why not yet if it cannot.
- *
- * Two clear days after the later of the blood draw and the measurements, so
- * the numbers are back before anyone sits down. Saying which of the two is
- * still outstanding is more use than a disabled button with no reason.
- */
-function InterviewBooking({ j, portal }: { j: HcJourney; portal: string }) {
-  // The clock is read after mount, not during render: reading it in render is
-  // impure, and the server and the browser would disagree about "now".
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    const t = setTimeout(() => setNow(Date.now()), 0);
-    return () => clearTimeout(t);
-  }, []);
-
-  const bloodDone = !!(j.blood_test_done_at ?? j.blood_results_at);
-  const measured = !!j.measurements_done_at;
-  const from = interviewEligibleFrom(j);
-  const ready = !!from && now != null && from.getTime() <= now;
-
-  if (!bloodDone || !measured) {
-    const missing = [!measured ? "mælingarnar" : null, !bloodDone ? "blóðprufan" : null].filter(Boolean);
-    return (
-      <p className="rounded-xl bg-hc-sunken px-3 py-2 text-hc-ink-2">
-        Viðtalið bókast þegar {missing.join(" og ")} {missing.length > 1 ? "eru" : "er"} búin.
-        Eftir það líða {INTERVIEW_WAIT_DAYS} dagar á meðan niðurstöðurnar koma.
-      </p>
-    );
-  }
-  if (!ready && from) {
-    return (
-      <p className="rounded-xl bg-hc-sunken px-3 py-2 text-hc-ink-2">
-        Niðurstöðurnar eru á leiðinni. Þú getur bókað viðtalið frá <strong>{fmtDate(from.toISOString())}</strong>.
-      </p>
-    );
-  }
-  return (
-    <a href={portal} target="_blank" rel="noreferrer"
-      className={hcBtn.cta}>
-      Bóka viðtal í sjúklingagátt
-    </a>
-  );
-}
 
 /** One of the three things inside the tests step, ticked when it is done. */
 function TestTask({ n, title, done, children }: { n: number; title: string; done: boolean; children: React.ReactNode }) {
@@ -750,7 +781,7 @@ function SubscriptionStep({ api }: {
 function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyStep; data: JourneyData; reload: () => Promise<void>; advance: () => Promise<void>; healthOrder: HcOrder | null }) {
   const loc = data.location;
   const j = data.journey;
-  const portal = loc?.patient_portal_url || "https://app.medalia.is";
+  const portal = portalFor(loc?.patient_portal_url);
   switch (step.key) {
     case "account":
       return <p className="text-sm text-hc-ink-2">Aðgangurinn þinn er á <strong>{data.profile.email}</strong>. Hér heldur þú utan um alla heilsuferðina.</p>;
@@ -803,23 +834,31 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
         </div>
       );
     case "tests":
+      /*
+       * Three things, and only one of them is booked here.
+       *
+       * The code and the blood test belong to the sjúklingagátt (Medalia):
+       * the blood test is ordered there once the code is activated, and is
+       * a walk-in at the lab — nothing to book, so no booking form. The
+       * measurements are at Lifeline's own station, booked in this app.
+       */
       return (
         <div className="space-y-4 text-sm text-hc-ink-2">
           {!healthOrder ? <p>Virkjunarkóðinn birtist hér eftir greiðslu.</p> : (
             <>
               <p>
-                Heilsufarsskoðunin fer fram í sjúklingagáttinni (Medalia), þar sem heilbrigðisgögnin þín eru
-                varðveitt. Þrennt þarf að gerast og þú ræður röðinni á tvennu af því.
+                Þrennt þarf að gerast. Kóðinn og blóðprufan fara í gegnum sjúklingagáttina (Medalia), þar
+                sem heilbrigðisgögnin þín eru varðveitt. Mælingartímann bókar þú hér hjá Lifeline.
               </p>
 
-              <TestTask n={1} title="Virkjaðu í sjúklingagáttinni" done={!!j.protocol_activated_at}>
+              <TestTask n={1} title="Virkjaðu kóðann í sjúklingagáttinni" done={!!j.protocol_activated_at}>
                 {healthOrder.activation_code ? <CodeBox code={healthOrder.activation_code} /> : healthOrder.status === "paid" && <p className="rounded-xl bg-hc-info-surface px-3 py-2 text-sm text-hc-info-ink">Virkjunarkóðinn er á leiðinni. Hann berst þér í tölvupósti innan eins virks dags og birtist hér.</p>}
                 <p className="mt-1">
                   Skráðu þig inn með rafrænum skilríkjum, sláðu inn kóðann og svaraðu
                   spurningalistanum. Hann er í gáttinni, ekki hér.
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <a href={portal} target="_blank" rel="noreferrer"
+                  <a href={portal} target="_blank" rel="noopener noreferrer"
                     className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
                     Opna sjúklingagátt
                   </a>
@@ -827,94 +866,93 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
                 </div>
               </TestTask>
 
-              <TestTask n={2} title="Bókaðu mælingar" done={!!j.measurements_done_at}>
-                <TestStep kind="measurements" title={loc?.measurement_site || "Mælingar"} address={loc?.measurement_address}
-                  info={loc?.measurement_info} bookedFor={j.measurements_booked_for}
-                  done={!!j.measurements_done_at} portal={portal} reload={reload} />
+              <TestTask n={2} title="Bókaðu mælingartíma" done={!!j.measurements_done_at}>
+                <SiteInfo title={loc?.measurement_site || "Mælingar"} address={loc?.measurement_address} info={loc?.measurement_info} />
+                {j.measurements_done_at ? (
+                  <p className="mt-2 text-hc-ok-ink">Mælingunum er lokið.</p>
+                ) : j.measurements_booked_for ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">Bókað: <strong>{fmtDateTime(j.measurements_booked_for)}</strong></p>
+                    <Link href="/app/aaetlun?tab=coach&sub=book"
+                      className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+                      Sjá bókunina
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mt-2">Þú velur hvað er mælt og tíma sem hentar, hér í appinu.</p>
+                    <Link href="/app/aaetlun?tab=coach&sub=book&maela=1" className={`${hcBtn.cta} mt-2`}>Bóka mælingartíma</Link>
+                  </>
+                )}
               </TestTask>
 
               <TestTask n={3} title="Farðu í blóðprufu" done={!!(j.blood_test_done_at ?? j.blood_results_at)}>
-                <p className="mb-2">
-                  Blóðprufuna þarf ekki að bóka — mættu hvenær sem er á opnunartíma.
-                  Eina skilyrðið er að þú sért <strong>fastandi</strong>: ekkert nema vatn í 10–12 klukkustundir á undan.
-                </p>
-                <TestStep kind="blood" title={loc?.blood_test_site || "Heilsugæslan"} address={loc?.blood_test_address}
-                  info={loc?.blood_test_info} bookedFor={j.blood_test_booked_for}
-                  done={!!(j.blood_test_done_at ?? j.blood_results_at)} portal={portal} reload={reload} />
+                {j.blood_test_done_at || j.blood_results_at ? (
+                  <p className="text-hc-ok-ink">Blóðprufan er skráð. Niðurstöðurnar birtast í sjúklingagáttinni.</p>
+                ) : (
+                  <>
+                    <p className="mb-2">
+                      Blóðprufan er pöntuð í sjúklingagáttinni þegar þú hefur virkjað kóðann. Það þarf ekki
+                      að bóka hana: mættu fastandi á rannsóknarstofu á opnunartíma. Fastandi merkir ekkert
+                      nema vatn í 10–12 klukkustundir á undan.
+                    </p>
+                    {loc?.blood_test_site && <SiteInfo title={loc.blood_test_site} address={loc.blood_test_address} info={loc.blood_test_info} />}
+                  </>
+                )}
               </TestTask>
 
               <p className="rounded-xl bg-hc-sunken px-3 py-2 text-xs text-hc-ink-2">
-                Viðtalið er bókað þegar bæði mælingar og blóðprufa eru búnar — og í fyrsta lagi
-                tveimur dögum síðar, svo niðurstöðurnar séu komnar þegar þið setjist niður.
+                Skýrslan verður til í sjúklingagáttinni þegar niðurstöðurnar liggja fyrir.
               </p>
             </>
           )}
         </div>
       );
     case "upload":
-      /*
-       * The participant's own errand: fetch the PDF from the
-       * sjúklingagátt and put it here. Said in that order, with the portal
-       * link first, because the file has to exist before it can be
-       * uploaded.
-       *
-       * Somebody whose report is already on file — a nurse imported it, or
-       * it was generated here — is told so and asked for nothing.
-       */
-      return (
-        <div className="space-y-3 text-sm text-hc-ink-2">
-          {j.own_report_at || j.report_imported_at || j.report_generated_at ? (
-            <p>
-              {j.own_report_at
-                ? "Skýrslan er komin inn. Þú getur sett nýrri skýrslu inn hvenær sem er."
-                : "Skýrslan þín er þegar komin til okkar — þú þarft ekki að gera neitt hér."}
-            </p>
-          ) : (
-            <>
-              <p>
-                Heilsufarsskoðunin sjálf fer fram í sjúklingagáttinni. Þegar niðurstöðurnar eru
-                komnar sækir þú Grunnheilsa-skýrsluna (PDF-skjal) þangað og setur hana hér inn.
-              </p>
-              {/* The location's own portal where it has one, which is what
-                  the rest of this page already uses. */}
-              <a href={portal} target="_blank" rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
-                Opna sjúklingagátt
-              </a>
-            </>
-          )}
-          <ReportUpload api={api} onDone={() => void reload()}
-            heading="Hlaða upp skýrslu"
-            blurb="PDF úr sjúklingagáttinni. Við lesum hana á okkar vél og geymum ekki skjalið sjálft." />
-        </div>
-      );
     case "report":
+      return <ReportStep data={data} reload={reload} portal={portal} />;
+    case "doctor":
+      /* The doctor's interview: booked and held in the sjúklingagátt. Lifeline
+         only marks it done (the nurse ticks it, or Medalia tells us). */
       return (
         <div className="space-y-3 text-sm text-hc-ink-2">
-          <p>
-            {j.report_generated_at
-              ? "Skýrslan þín hefur verið staðfest af lækni. Hún er aðgengileg í sjúklingagáttinni og þú ferð yfir hana með hjúkrunarfræðingi í viðtalinu."
-              : j.own_report_at
-                ? "Skýrslan þín er komin inn. Þú getur skoðað niðurstöðurnar og búið til áætlunina sjálf(ur), eða gert hana með hjúkrunarfræðingi í viðtalinu."
-                : "Skýrslan verður til þegar niðurstöður blóðprufu og mælinga liggja fyrir. Þegar hún er komin í sjúklingagáttina getur þú sett hana inn hér."}
-          </p>
-          {(j.report_generated_at || j.own_report_at)
-            ? (
-              <div className="flex flex-wrap gap-2">
-                <Link href="/app/aaetlun?tab=report" className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">Skoða niðurstöðurnar</Link>
-                {!data.plan && <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Búa til áætlun sjálf(ur)</Link>}
-              </div>
-            )
-            : <ReportUpload api={api} onDone={() => void reload()} />}
+          <p>Læknir fer yfir niðurstöðurnar með þér. Viðtalið er bókað og haldið í gegnum sjúklingagáttina, á staðnum.</p>
+          {split(j).doctor_interview_done_at
+            ? <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">Læknisviðtali lokið.</p>
+            : <a href={portal} target="_blank" rel="noopener noreferrer" className={hcBtn.cta}>Bóka í sjúklingagátt</a>}
         </div>
       );
     case "interview":
+      /*
+       * Two conversations, with two different people, in two systems.
+       *
+       * The doctor's interview is booked and held in the sjúklingagátt;
+       * the doctor goes over the results there. The plan session is
+       * Lifeline's: a nurse builds the plan with you, after the report is
+       * on file here. No waiting rules on our side for the first one —
+       * Medalia decides when it can be booked.
+       */
       return (
-        <div className="space-y-2 text-sm text-hc-ink-2">
-          <p>Í viðtalinu farið þið yfir svefn, hreyfingu, næringu og andlega líðan, mælingar og blóðprufur, og gerið saman áætlun til þriggja mánaða.</p>
-          {j.interview_booked_for
-            ? (
-              <div className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">
+        <div className="space-y-3 text-sm text-hc-ink-2">
+          {/* The doctor's interview is its own step now ("doctor"); only the
+              steps list without it (older server) shows it here too. */}
+          {!data.steps.some((st) => st.key === "doctor") && (
+            <TestTask n={1} title="Læknisviðtal í sjúklingagáttinni" done={!!split(j).doctor_interview_done_at}>
+              <p>Læknir fer yfir niðurstöðurnar með þér. Viðtalið er bókað og haldið í gegnum sjúklingagáttina.</p>
+              {!split(j).doctor_interview_done_at && (
+                <a href={portal} target="_blank" rel="noopener noreferrer" className={`${hcBtn.cta} mt-2`}>
+                  Bóka í sjúklingagátt
+                </a>
+              )}
+            </TestTask>
+          )}
+          <TestTask n={data.steps.some((st) => st.key === "doctor") ? 1 : 2} title="Áætlunarsamtal með Lifeline" done={!!j.interview_done_at}>
+            <p>
+              Eftir læknisviðtalið gerir hjúkrunarfræðingur Lifeline áætlunina þína með þér út frá
+              niðurstöðunum: svefn, hreyfing, næring og andleg líðan.
+            </p>
+            {j.interview_done_at ? null : j.interview_booked_for ? (
+              <div className="mt-2 rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">
                 <p>Bókað: <strong>{fmtDateTime(j.interview_booked_for)}</strong>{j.interview_mode === "video" ? " · myndsímtal" : loc?.interview_site ? ` · ${loc.interview_site}` : ""}</p>
                 {j.meeting_url && (
                   <a href={j.meeting_url} target="_blank" rel="noreferrer"
@@ -923,8 +961,22 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
                   </a>
                 )}
               </div>
-            )
-            : <InterviewBooking j={j} portal={portal} />}
+            ) : !reportOnFile(j) ? (
+              <p className="mt-2 rounded-xl bg-hc-sunken px-3 py-2">
+                Samtalið er bókað þegar skýrslan þín er komin í appið (skrefið „Skýrslan þín“).
+              </p>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <p className="rounded-xl bg-hc-sunken px-3 py-2">
+                  Hjúkrunarfræðingur Lifeline hefur samband og bókar tímann með þér.
+                </p>
+                <Link href="/app/aaetlun?tab=coach"
+                  className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+                  Senda skilaboð
+                </Link>
+              </div>
+            )}
+          </TestTask>
         </div>
       );
     case "plan":
@@ -948,7 +1000,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
             </div>
           ) : (
           <div className="space-y-3 text-sm text-hc-ink-2">
-            <p>Hjúkrunarfræðingurinn gengur frá áætluninni eftir viðtalið. Hún birtist hér og þú færð tölvupóst.</p>
+            <p>Hjúkrunarfræðingurinn gengur frá áætluninni eftir áætlunarsamtalið. Hún birtist hér og þú færð tölvupóst.</p>
             {(j.report_generated_at || j.own_report_at) && (
               <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Búa til áætlun sjálf(ur)</Link>
             )}
@@ -1302,44 +1354,147 @@ function PaidSummary({ order }: { order: HcOrder | null }) {
   );
 }
 
-// ── Tests (blood / measurements) ───────────────────────────────────────────
+// ── Report ─────────────────────────────────────────────────────────────────
 
-function TestStep({ kind, title, address, info, bookedFor, done, portal, reload }: {
-  kind: "blood" | "measurements"; title: string; address?: string | null; info?: string | null;
-  bookedFor: string | null; done: boolean; portal: string; reload: () => Promise<void>;
-}) {
-  const [at, setAt] = useState(bookedFor ? bookedFor.slice(0, 16) : "");
-  const [saving, setSaving] = useState(false);
-  const toast = useToast();
-  const save = async () => {
-    if (saving) return;
-    setSaving(true);
-    const r = await api("/api/hc/journey", { method: "POST", body: JSON.stringify({ action: "set_booking", kind, at: at ? new Date(at).toISOString() : null }) }).catch(() => null);
-    setSaving(false);
-    // Saved or not, it used to look the same.
-    if (!r || !r.ok) { toast.show(SAVE_FAILED, { tone: "bad" }); return; }
-    toast.show(at ? "Tíminn er vistaður" : "Tíminn var fjarlægður", { tone: "ok" });
-    await reload();
-  };
+/**
+ * „Skýrslan þín“.
+ *
+ * The report is produced and signed in the sjúklingagátt; it is read
+ * there. What this step asks for is a copy here, for the plan, by one of
+ * two routes: the participant uploads the PDF, or allows a Lifeline nurse
+ * to put it in for them. Either is enough.
+ */
+function ReportStep({ data, reload, portal }: { data: JourneyData; reload: () => Promise<void>; portal: string }) {
+  const j = data.journey;
+  const onFile = reportOnFile(j);
+  const consentAt = split(j).staff_import_consent_at ?? null;
   return (
     <div className="space-y-3 text-sm text-hc-ink-2">
-      <div className="rounded-xl bg-hc-sunken p-3">
-        <p className="font-semibold text-hc-ink-2">{title}</p>
-        {address && <p>{address}</p>}
-        {info && <p className="mt-1 text-hc-ink-3">{info}</p>}
-      </div>
-      {done ? <p className="text-hc-ok-ink">Lokið. Niðurstöður berast lækni sjálfkrafa.</p> : (
+      <p>
+        Skýrslan er unnin og undirrituð í sjúklingagáttinni (Medalia). Þar lestu hana þegar hún er tilbúin.
+      </p>
+      <a href={portal} target="_blank" rel="noopener noreferrer"
+        className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+        Opna sjúklingagátt
+      </a>
+      {onFile ? (
         <>
-          <a href={portal} target="_blank" rel="noreferrer" className={hcBtn.cta}>Bóka í sjúklingagátt</a>
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="text-xs font-medium text-hc-ink-2">
-              Bókaður tími (fer í dagatalið þitt)
-              <input type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} className="mt-1 block rounded-lg border border-hc-control px-3 py-2 text-sm" />
-            </label>
-            <button type="button" onClick={save} disabled={saving} className="min-h-11 rounded-lg border border-hc-control px-3 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">{saving ? "Vistar…" : "Vista tíma"}</button>
+          <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">Afrit af skýrslunni er komið í appið.</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/app/aaetlun?tab=report" className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">Skoða niðurstöðurnar</Link>
+            {!data.plan && <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Búa til áætlun sjálf(ur)</Link>}
           </div>
+          {consentAt && <StaffImportConsent consentAt={consentAt} onFile reload={reload} />}
+          <details className="rounded-xl ring-1 ring-hc-hairline">
+            <summary className="flex min-h-11 cursor-pointer items-center px-3 font-semibold text-hc-ink-2">Setja inn nýrri skýrslu</summary>
+            <div className="px-3 pb-3">
+              <ReportUpload api={api} onDone={() => void reload()} compact />
+            </div>
+          </details>
+        </>
+      ) : (
+        <>
+          <p className="pt-1 font-semibold text-hc-ink">Komdu afriti af henni í appið. Önnur leiðin dugar:</p>
+          <ReportUpload api={api} onDone={() => void reload()}
+            heading="Settu afritið þitt inn"
+            blurb="Sæktu skýrsluna (PDF) í sjúklingagáttina og settu hana hér inn." />
+          <StaffImportConsent consentAt={consentAt} onFile={false} reload={reload} />
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Leave for a Lifeline nurse to put the report in from the sjúklingagátt.
+ *
+ * An explicit, unticked box and a recorded act (POST /api/hc/journey
+ * allow_staff_import), revocable here (revoke_staff_import). Says what is
+ * kept, for what and for how long before the box, not after it.
+ */
+function StaffImportConsent({ consentAt, onFile, reload }: { consentAt: string | null; onFile: boolean; reload: () => Promise<void> }) {
+  const [checked, setChecked] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const toast = useToast();
+  const dialog = useDialog();
+
+  const post = async (action: "allow_staff_import" | "revoke_staff_import") => {
+    if (busy) return;
+    setBusy(true); setErr("");
+    const r = await api("/api/hc/journey", { method: "POST", body: JSON.stringify({ action }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (!r || !r.ok) {
+      const text = humanError(j.error, SAVE_FAILED);
+      setErr(text);
+      toast.show(text, { tone: "bad" });
+      return;
+    }
+    toast.show(action === "allow_staff_import" ? "Leyfið er skráð" : "Leyfið er afturkallað", { tone: "ok" });
+    setChecked(false);
+    await reload();
+  };
+
+  const revoke = async () => {
+    const ok = await dialog.confirm({
+      title: "Afturkalla leyfið?",
+      body: "Hjúkrunarfræðingur setur þá ekki skýrsluna inn fyrir þig. Afrit sem þegar er komið í appið eyðir þú í Aðgangi.",
+      confirmLabel: "Afturkalla",
+    });
+    if (ok) await post("revoke_staff_import");
+  };
+
+  if (consentAt) {
+    return (
+      <div className={`${hcCard.base} p-5`}>
+        <p className="font-semibold text-hc-ink">Hjúkrunarfræðingur Lifeline má setja skýrsluna inn fyrir þig</p>
+        <p className="mt-1">
+          Leyfi veitt {fmtDate(consentAt)}.{onFile ? "" : " Skýrslan er sett inn þegar hún er tilbúin í sjúklingagáttinni."}
+        </p>
+        <button type="button" onClick={() => void revoke()} disabled={busy}
+          className="mt-3 inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken disabled:opacity-50">
+          {busy ? "Augnablik…" : "Afturkalla leyfi"}
+        </button>
+        {err && <p role="alert" className="mt-2 text-hc-bad-ink">{err}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${hcCard.base} p-5`}>
+      <p className="font-semibold text-hc-ink">Eða láttu hjúkrunarfræðing setja hana inn</p>
+      <ul className="mt-2 list-disc space-y-1 pl-5">
+        <li>Hjúkrunarfræðingur Lifeline sækir skýrsluna þína í sjúklingagáttina og setur hana inn í appið.</li>
+        <li>Lifeline geymir dulkóðað afrit af niðurstöðunum til að byggja áætlunina þína á. Það er geymt þar til þú eyðir því í Aðgangi.</li>
+        <li>Þú getur afturkallað leyfið hvenær sem er, hér í þessu skrefi.</li>
+      </ul>
+      <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-hc-element p-1">
+        <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md border-2 transition ${
+          checked ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-hc-control"}`}>
+          {checked && <Check className="h-4 w-4" strokeWidth={3} aria-hidden />}
+        </span>
+        <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="sr-only" />
+        <span className="leading-snug text-hc-ink">Ég leyfi hjúkrunarfræðingi Lifeline að setja skýrsluna mína úr sjúklingagáttinni inn í appið fyrir mig.</span>
+      </label>
+      <button type="button" onClick={() => void post("allow_staff_import")} disabled={!checked || busy}
+        className={`${hcBtn.dark} mt-3 w-full disabled:opacity-40`}>
+        {busy ? "Augnablik…" : "Veita leyfi"}
+      </button>
+      {err && <p role="alert" className="mt-2 text-hc-bad-ink">{err}</p>}
+    </div>
+  );
+}
+
+// ── Tests (blood / measurements) ───────────────────────────────────────────
+
+/** Where something happens: the location's site, address and note. */
+function SiteInfo({ title, address, info }: { title: string; address?: string | null; info?: string | null }) {
+  return (
+    <div className="rounded-xl bg-hc-sunken p-3 text-sm text-hc-ink-2">
+      <p className="font-semibold text-hc-ink-2">{title}</p>
+      {address && <p>{address}</p>}
+      {info && <p className="mt-1 text-hc-ink-3">{info}</p>}
     </div>
   );
 }
@@ -1355,15 +1510,34 @@ function FollowupStep({ data, kind, reload }: { data: JourneyData; kind: "follow
   const pkgs = data.packages.filter((p) => (kind === "followup_3m" ? p.kind === "followup_3m" : (p.kind === "reevaluation" && reevalOpen) || p.kind === "extra_followup"));
   const [buying, setBuying] = useState<string | null>(null);
 
-  if (kind === "followup_3m" && !j.interview_done_at) return <p className="text-sm text-hc-ink-2">Eftirfylgd opnast eftir fyrsta viðtalið. Hún er ráðlögð en valfrjáls.</p>;
+  if (kind === "followup_3m" && !j.interview_done_at) return <p className="text-sm text-hc-ink-2">Eftirfylgd opnast eftir áætlunarsamtalið. Hún er ráðlögð en valfrjáls.</p>;
   if (kind === "reevaluation" && !j.plan_published_at) return <p className="text-sm text-hc-ink-2">Eftir ár býðst endurmat, eða aukaviðtal við hjúkrunarfræðing hvenær sem er.</p>;
 
   if (order) {
     return (
       <div className="space-y-2 text-sm text-hc-ink-2">
-        <p>Greitt. Virkjaðu eftirfylgdina í sjúklingagáttinni með kóðanum og bókaðu tíma:</p>
-        {order.activation_code ? <CodeBox code={order.activation_code} /> : order.status === "paid" && <p className="rounded-xl bg-hc-info-surface px-3 py-2 text-sm text-hc-info-ink">Virkjunarkóðinn er á leiðinni. Hann berst þér í tölvupósti innan eins virks dags og birtist hér.</p>}
-        {j.followup_booked_for && <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">Bókað: <strong>{fmtDateTime(j.followup_booked_for)}</strong></p>}
+        <p>Greitt.</p>
+        {/* A code only where the order carries one (it opens the matching
+            questionnaire in the sjúklingagátt). The appointment itself is
+            Lifeline's, booked here, never in the portal. */}
+        {order.activation_code && (
+          <>
+            <p>Sláðu kóðann inn í sjúklingagáttina:</p>
+            <CodeBox code={order.activation_code} />
+          </>
+        )}
+        {!order.activation_code && kind === "reevaluation" && order.status === "paid" && <p className="rounded-xl bg-hc-info-surface px-3 py-2 text-sm text-hc-info-ink">Virkjunarkóðinn er á leiðinni. Hann berst þér í tölvupósti innan eins virks dags og birtist hér.</p>}
+        {kind === "followup_3m" && (j.followup_booked_for
+          ? <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">Bókað: <strong>{fmtDateTime(j.followup_booked_for)}</strong></p>
+          : (
+            <div className="space-y-2">
+              <p className="rounded-xl bg-hc-sunken px-3 py-2">Hjúkrunarfræðingur Lifeline hefur samband og bókar eftirfylgdartímann með þér.</p>
+              <Link href="/app/aaetlun?tab=coach"
+                className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">
+                Senda skilaboð
+              </Link>
+            </div>
+          ))}
       </div>
     );
   }

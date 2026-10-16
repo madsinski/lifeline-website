@@ -7,6 +7,7 @@ import { currentJourney, getClientProfile, requireUser } from "@/lib/hc/server";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { withWhen } from "@/lib/hc/plan-when";
 import type { HcJourney } from "@/lib/hc/types";
+import { reportOnFile } from "@/lib/hc/stages";
 
 export const runtime = "nodejs";
 
@@ -41,6 +42,8 @@ export async function GET(req: NextRequest) {
     client_name: profile?.full_name ?? null,
     lectures: lectures.map((l) => ({ ...l, completed: doneSlugs.has(l!.slug) })),
     appointments: j ? upcomingAppointments(j as HcJourney, loc) : [],
-    has_report: !!j?.report_generated_at,
+    // A report is on file (own upload or a consented staff import) — not
+    // "a Lifeline doctor confirmed it", which no longer happens.
+    has_report: !!(j && reportOnFile(j as HcJourney)),
   });
 }

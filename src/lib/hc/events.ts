@@ -1,13 +1,18 @@
-// Journey events — the single place a clinical/logistic milestone is
-// recorded. Called by the patient-portal partner API (/api/hc/partner/event)
+// Journey events — the single place a logistic milestone is recorded.
+// Called by the patient-portal partner API (/api/hc/partner/event, dormant)
 // and by the workstation (/api/vinnustod/journeys/[id]). Server-only.
+//
+// Since the Medalia split (2026-10-16) the clinical side — the report, the
+// doctor's interview, releasing the report — is Medalia's. Lifeline only
+// records that the doctor's interview happened (doctor_interview_done) and
+// runs its own Áætlunarsamtal (the interview_* events).
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 import { patchJourney } from "./server";
 import type { HcJourney } from "./types";
 
-export { JOURNEY_EVENTS, EVENT_LABELS, DOCTOR_ONLY, isJourneyEvent, type JourneyEvent } from "./events-labels";
+export { JOURNEY_EVENTS, LEGACY_JOURNEY_EVENTS, EVENT_LABELS, DOCTOR_ONLY, isJourneyEvent, type JourneyEvent, type LegacyJourneyEvent } from "./events-labels";
 import type { JourneyEvent } from "./events-labels";
 
 export async function applyJourneyEvent(
@@ -27,10 +32,8 @@ export async function applyJourneyEvent(
       break;
     case "measurements_booked": patch.measurements_booked_for = at; break;
     case "measurements_done": patch.measurements_done_at = at; break;
-    case "report_generated":
-      patch.report_generated_at = at;
-      patch.report_generated_by = opts.actor;
-      break;
+    // Ticked by staff once Medalia shows the doctor's interview took place.
+    case "doctor_interview_done": patch.doctor_interview_done_at = at; break;
     case "interview_booked":
       patch.interview_booked_for = at;
       patch.interview_reminded_at = null;   // a new time gets its own reminder
@@ -44,11 +47,6 @@ export async function applyJourneyEvent(
     case "interview_done":
       patch.interview_done_at = at;
       if (opts.interviewerId && !journey.interviewer_id) patch.interviewer_id = opts.interviewerId;
-      break;
-    case "referral_heilsugaesla":
-      patch.referral_to_heilsugaesla = true;
-      patch.referral_note = opts.note ?? null;
-      patch.referred_at = at;
       break;
     case "followup_booked":
       patch.followup_booked_for = at;
@@ -86,9 +84,9 @@ function bookingMessage(j: HcJourney, kind: "interview" | "followup"): { title: 
   if (!at || new Date(at).getTime() < Date.now()) return null;
   const video = (kind === "interview" ? j.interview_mode : j.followup_mode) === "video";
   const link = kind === "interview" ? j.meeting_url : j.followup_meeting_url;
-  const what = kind === "interview" ? "Viðtalið þitt við hjúkrunarfræðing" : "Eftirfylgdarviðtalið þitt";
+  const what = kind === "interview" ? "Áætlunarsamtalið þitt" : "Eftirfylgdarviðtalið þitt";
   return {
-    title: kind === "interview" ? "Viðtalið þitt er bókað" : "Eftirfylgdarviðtal bókað",
+    title: kind === "interview" ? "Áætlunarsamtalið þitt er bókað" : "Eftirfylgdarviðtal bókað",
     body: `${what} er ${whenIs(at)}. ` + (video
       ? (link
         ? `Það fer fram í myndsímtali. Þú tengist með hlekknum á heilsuferðinni þinni eða beint: ${link}`
@@ -104,15 +102,11 @@ async function notifyClient(j: HcJourney, event: JourneyEvent, origin = "https:/
     followup_booked: bookingMessage(j, "followup"),
     // A no-show is not told it was cancelled; a cancellation is.
     ...(noShow ? {} : {
-      interview_cancelled: { title: "Viðtalinu var aflýst", body: "Tímanum þínum í viðtal var aflýst. Hjúkrunarfræðingur hefur samband til að finna nýjan tíma." },
+      interview_cancelled: { title: "Áætlunarsamtalinu var aflýst", body: "Tímanum þínum í áætlunarsamtal var aflýst. Hjúkrunarfræðingur hefur samband til að finna nýjan tíma." },
       followup_cancelled: { title: "Eftirfylgdarviðtali aflýst", body: "Tímanum þínum í eftirfylgd var aflýst. Hjúkrunarfræðingur hefur samband til að finna nýjan tíma." },
     }),
-    report_generated: {
-      title: "Skýrslan þín er tilbúin",
-      body: "Læknir hefur staðfest skýrsluna þína. Næsta skref er viðtal við hjúkrunarfræðing þar sem þið farið yfir niðurstöðurnar og gerið áætlun. Bókaðu viðtalið í sjúklingagáttinni.",
-    },
     interview_done: {
-      title: "Takk fyrir viðtalið",
+      title: "Takk fyrir áætlunarsamtalið",
       body: "Aðgerðaáætlunin þín birtist á aðganginum um leið og hjúkrunarfræðingurinn hefur gengið frá henni.",
     },
   };

@@ -8,6 +8,9 @@
 //      person sees a card next time they open the journey.
 //   3. No answer after the grace period removes Lifeline's copy.
 //
+// Step 3 removes the report AND any hc_results rows derived from it
+// (source 'medalia' / 'report'), so no copy of its values outlives it.
+//
 // Step 3 is only defensible because the original is in Medalia. Removing
 // the copy loses nothing: it can be imported again in one step. Without
 // that, silence would have to mean keep, and a review where silence means
@@ -16,6 +19,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { hcAudit } from "@/lib/hc/server";
+import { removeReportDerivedResults } from "@/lib/hc/report-store";
 import { ACTIVE_WITHIN_DAYS, REMIND_AFTER_DAYS, REMOVE_AFTER_DAYS, REVIEW_AFTER_DAYS } from "@/lib/hc/retention";
 
 export const runtime = "nodejs";
@@ -68,6 +72,9 @@ export async function GET(req: NextRequest) {
     if (since >= REMOVE_AFTER_DAYS) {
       // 3. Still nothing. The copy goes; Medalia still has the original.
       await supabaseAdmin.from("hc_reports").delete().eq("id", r.id);
+      // And the values read off it onto the journey (hc_results source
+      // 'medalia' / 'report'), once no report is left to have produced them.
+      await removeReportDerivedResults(r.journey_id as string);
       await hcAudit("system", "report_removed_no_response", r.journey_id as string, {
         report_date: r.report_date, asked_at: r.retention_asked_at, note: "re-importable from Medalia",
       });

@@ -14,9 +14,14 @@ export async function GET(req: NextRequest) {
   const locs = actorLocationFilter(actor);
   if (locs && locs.length === 0) return NextResponse.json({ journeys: [] });
 
-  let q = supabaseAdmin
+  const BASE = "id, client_id, location_id, stage, entry, paid_at, protocol_activated_at, blood_test_booked_for, blood_test_done_at, blood_results_at, measurements_booked_for, measurements_done_at, report_generated_at, report_sms_sent_at, report_imported_at, interview_booked_for, interview_mode, interviewer_id, interview_done_at, meeting_url, plan_published_at, followup_booked_for, followup_done_at, followup_mode, followup_meeting_url, referral_to_heilsugaesla, doctor_review_requested_at, doctor_reviewed_at, updated_at";
+  // Medalia split columns (migration-hc-medalia-split.sql). If they are not
+  // there yet, the queue still loads without them.
+  const SPLIT = ", own_report_at, doctor_interview_done_at, staff_import_consent_at";
+  const query = (cols: string) => {
+    let q = supabaseAdmin
     .from("hc_journeys")
-    .select("id, client_id, location_id, stage, entry, paid_at, protocol_activated_at, blood_test_booked_for, blood_test_done_at, blood_results_at, measurements_booked_for, measurements_done_at, report_generated_at, report_sms_sent_at, report_imported_at, interview_booked_for, interview_mode, interviewer_id, interview_done_at, meeting_url, plan_published_at, followup_booked_for, followup_done_at, followup_mode, followup_meeting_url, referral_to_heilsugaesla, doctor_review_requested_at, doctor_reviewed_at, updated_at")
+    .select(cols)
     .is("cancelled_at", null)
     /*
      * The coaching track is not clinical work.
@@ -36,11 +41,17 @@ export async function GET(req: NextRequest) {
     // client the nurse created from a report has not done the customer-facing
     // steps (profile, payment), so their stage still reads "profile" — they
     // must still appear in the queue.
-    .or("stage.in.(tests,report,interview,plan,action,protocol),report_generated_at.not.is.null,report_imported_at.not.is.null")
+    // "doctor" = waiting for the doctor's interview in Medalia.
+    .or("stage.in.(tests,report,doctor,interview,plan,action,protocol),report_generated_at.not.is.null,report_imported_at.not.is.null")
     .order("updated_at", { ascending: false })
     .limit(400);
-  if (locs) q = q.in("location_id", locs);
-  const { data: journeys, error } = await q;
+    if (locs) q = q.in("location_id", locs);
+    return q;
+  };
+  let res = await query(BASE + SPLIT);
+  if (res.error) res = await query(BASE);
+  const { error } = res;
+  const journeys = (res.data ?? []) as unknown as ({ id: string; client_id: string; plan_published_at: string | null } & Record<string, unknown>)[];
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const ids = Array.from(new Set((journeys || []).map((j) => j.client_id)));
@@ -55,10 +66,13 @@ export async function GET(req: NextRequest) {
     .in("journey_id", (journeys || []).map((j) => j.id));
   const planStatus: Record<string, string> = {};
   for (const p of plans || []) planStatus[p.journey_id] = p.status;
-  // Referrals waiting for a doctor, for the doctor's to-do list.
+  // Vera partner contacts whose email did not go — something to resend.
+  // (The doctor-referral path this used to count was removed in the
+  // Medalia split.)
   const openRefs: Record<string, number> = {};
   if ((journeys || []).length) {
-    const { data: refs } = await supabaseAdmin.from("hc_referrals").select("journey_id").eq("status", "requested").in("journey_id", (journeys || []).map((j) => j.id));
+    const { data: refs } = await supabaseAdmin.from("hc_referrals").select("journey_id").eq("status", "failed")
+      .in("target", ["physio", "psychologist", "nutritionist"]).in("journey_id", (journeys || []).map((j) => j.id));
     for (const r of refs || []) openRefs[r.journey_id] = (openRefs[r.journey_id] ?? 0) + 1;
   }
   // Plan use in the last week, for "needs a nudge" on the to-do list.
@@ -107,6 +121,8 @@ export async function GET(req: NextRequest) {
       plan_status: planStatus[j.id] ?? null,
       last_tick_on: lastTick[j.id] ?? null,
       open_referrals: openRefs[j.id] ?? 0,
+      // A Vera partner contact whose email did not go: resend it.
+      partner_failed: (openRefs[j.id] ?? 0) > 0,
       ticks_7d: ticks7[j.id] ?? 0,
     })),
   });

@@ -2,14 +2,14 @@
 
 // One client's workspace: who they are, ONE "Næsta verk", and four tabs
 // (Staða · Skýrsla · Aðgerðaáætlun · Forskoðun — Mads, 2026-10-12). The
-// interview, referrals, outbound messages, payments and the audit trail open
-// as sheets over it, so the four tabs stay four.
+// Áætlunarsamtal, Vera partners, outbound messages, payments and the audit
+// trail open as sheets over it, so the four tabs stay four.
 //
 // Tab and sheet live in the URL (&tab=, &sheet=), so a queue row can land on
 // the exact place the work is, and a reload or a shared link comes back to it.
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, CreditCard, Droplet, ExternalLink, History as HistoryIcon, Mail, MessageSquare, Phone, Stethoscope, Video } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CreditCard, ExternalLink, FileText, History as HistoryIcon, Loader2, Mail, MessageSquare, Phone, Users, Video } from "lucide-react";
 import PlanBuilder from "@/app/components/hc/PlanBuilder";
 import CoachAsClient from "@/app/components/hc/CoachAsClient";
 import CoachBookings from "@/app/components/hc/CoachBookings";
@@ -21,15 +21,17 @@ import { useWsApi, WS_SESSION_EXPIRED } from "@/app/components/hc/ws-api";
 import { Alert } from "@/app/components/account/ui";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { age, cleanName, day, dayTime, isTest, wsBtn } from "../format";
-import { nextTask, taskTarget, type Detail, type Me, type PatientNav, type WsTab } from "../tasks";
+import { nextTask, reportOnFile, taskTarget, type Detail, type Me, type PatientNav, type Record_, type WsTab } from "../tasks";
 import { Shimmer, TestBadge } from "../ui";
 import { badgeClass } from "@/app/components/hc/Badge";
 import { NotesPeek } from "./Interview";
 import { PatientSheet } from "./Sheets";
+import type { MessagePreset } from "./Messages";
 import { ClientRequests, type BookStart } from "./Requests";
 import type { WsRequest } from "@/app/components/hc/WsRequests";
 import type { RequestAction } from "@/lib/hc/requests";
 import { Adherence, ResultsStep, resultsStatus, seedFromNotes } from "./steps";
+import { isPartner } from "@/lib/hc/referrals";
 
 /* The journey route answers some failures in Icelandic and some with a bare
    code ("bad_event", "update_failed"). A code is not a sentence a nurse can
@@ -115,6 +117,10 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
    * top of Staða until it is answered.
    */
   const [bookStart, setBookStart] = useState<BookStart | null>(null);
+  /* "Biðja um leyfi" opens the message sheet on that template. Cleared when
+     the sheet closes, so the next "Senda SMS" opens on the default again. */
+  const [msgPreset, setMsgPreset] = useState<MessagePreset | null>(null);
+  const [taskErr, setTaskErr] = useState("");
   const [pendingReq, setPendingReq] = useState<string | null>(null);
   const [reqPrefill, setReqPrefill] = useState<{ id: string; text: string; key: number } | null>(null);
   const onRequestAction = useCallback((r: WsRequest, action: RequestAction) => {
@@ -177,26 +183,28 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
 
   const j = d.journey;
   const kt = d.patient.kennitala;
-  const openRefs = (d.referrals ?? []).filter((r) => r.status === "requested").length;
-  const task = nextTask({ ...j, open_referrals: openRefs }, isDoctor);
+  // Vera partner emails that did not go out: the only referral work left
+  // here since the doctor's part moved to Medalia.
+  const partnerFailed = (d.referrals ?? []).filter((r) => isPartner(r.target) && r.status === "failed").length;
+  const task = nextTask({ ...j, partner_failed: partnerFailed });
   const target = taskTarget(task.key);
   const showTask = task.key !== "none" && task.key !== "done";
   const go = (t: PatientNav) => onNav({ tab: t.tab ?? tab, sheet: t.sheet ?? null });
+  /* Most tasks are done where they land. Two are done by the button itself:
+     the doctor interview is ticked (it happened in Medalia), and asking for
+     leave to fetch the report opens the message sheet on that template. */
+  const runTask = () => {
+    if (task.key === "doctor") { void record({ event: "doctor_interview_done" }).then((e) => { if (e) setTaskErr(e); }); return; }
+    if (task.key === "consent") { askConsent(); return; }
+    go(target);
+  };
 
   // The next video appointment, so the call is one click from the top.
   const call = upcomingAppointments(j, null).find((x) => x.video) ?? null;
   const paid = d.orders.some((o) => o.paid_at);
   const code = d.orders.find((o) => o.activation_code);
-  const ivLabel = j.interview_done_at ? "Eftirfylgd" : "Viðtal";
-
-  // The three tests a nurse chases separately: drawn, answered, measured.
-  const tests = [
-    { label: "Blóðprufa", done: !!(j.blood_test_done_at || j.blood_results_at),
-      detail: j.blood_results_at ? day(j.blood_results_at) : j.blood_test_booked_for ? day(j.blood_test_booked_for) : "ekki bókuð" },
-    { label: "Svör", done: !!j.blood_results_at, detail: j.blood_results_at ? day(j.blood_results_at) : "bíður" },
-    { label: "Mælingar", done: !!j.measurements_done_at,
-      detail: j.measurements_done_at ? day(j.measurements_done_at) : j.measurements_booked_for ? day(j.measurements_booked_for) : "ekki bókaðar" },
-  ];
+  const ivLabel = j.interview_done_at ? "Eftirfylgd" : "Áætlunarsamtal";
+  const askConsent = () => { setMsgPreset("import_consent"); onNav({ sheet: "messages" }); };
 
   return (
     <div className="space-y-4">
@@ -233,9 +241,10 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
             <div className="w-full sm:w-auto sm:text-right">
               <p className="text-xs font-semibold uppercase tracking-wide text-hc-ink-2">Næsta verk</p>
               <p className="text-sm text-hc-ink">{task.label}</p>
-              <button type="button" onClick={() => go(target)} className={`${wsBtn.primary} mt-1.5 w-full sm:w-auto`}>
-                {task.cta} <ArrowRight className="h-4 w-4" aria-hidden />
+              <button type="button" onClick={runTask} className={`${wsBtn.primary} mt-1.5 w-full sm:w-auto`}>
+                {task.cta} {task.key === "doctor" ? <Check className="h-4 w-4" aria-hidden /> : <ArrowRight className="h-4 w-4" aria-hidden />}
               </button>
+              {taskErr && <p role="alert" className="mt-1 text-sm font-semibold text-hc-bad-ink">{taskErr}</p>}
             </div>
           )}
         </div>
@@ -267,17 +276,19 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
           )}
           {target.sheet !== "referral" && (
             <button type="button" onClick={() => onNav({ sheet: "referral" })} className={wsBtn.ghost}>
-              <Stethoscope className="h-4 w-4" aria-hidden /> Læknismat og samstarfsaðilar{openRefs ? ` (${openRefs})` : ""}
+              <Users className="h-4 w-4" aria-hidden /> Samstarfsaðilar (Vera){partnerFailed ? ` (${partnerFailed})` : ""}
             </button>
           )}
-          <a href="https://provider.medalia.is" target="_blank" rel="noopener noreferrer" className={wsBtn.secondary}>
-            <ExternalLink className="h-4 w-4" aria-hidden /> Medalia
+          {/* Medalia holds the record: the report, the results of the
+              health check and the doctor interview. */}
+          <a href={MEDALIA_URL} target="_blank" rel="noopener noreferrer" className={wsBtn.secondary}>
+            <ExternalLink className="h-4 w-4" aria-hidden /> Opna í sjúklingagátt (Medalia)
           </a>
         </div>
         {call && (
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-hc-ok-surface px-3 py-2 text-sm ring-1 ring-hc-ok-ink/20">
             <Video className="h-4 w-4 text-hc-ok-ink" aria-hidden />
-            <span className="text-hc-ok-ink">{call.kind === "followup" ? "Eftirfylgd" : "Viðtal"} í myndsímtali {dayTime(call.at)}</span>
+            <span className="text-hc-ok-ink">{call.kind === "followup" ? "Eftirfylgd" : "Áætlunarsamtal"} í myndsímtali {dayTime(call.at)}</span>
             {call.link
               ? <a href={call.link} target="_blank" rel="noopener noreferrer" className={`${wsBtn.primary} ml-auto`}><Video className="h-4 w-4" aria-hidden /> Hefja myndsímtal</a>
               : <span className="ml-auto text-xs text-hc-warn-ink">Hlekkur ekki kominn. Tengdu Google-dagatal eða límdu hlekk í bókunina.</span>}
@@ -302,36 +313,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
         <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
           <div className="min-w-0 space-y-4">
             <ClientRequests journeyId={j.id} onAction={onRequestAction} prefill={reqPrefill} onChanged={onChanged} />
-            {tests.every((c) => c.done) ? (
-              <section className="flex items-center gap-2 rounded-2xl border border-hc-hairline bg-hc-surface px-4 py-3">
-                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-hc-brand-dark text-white">
-                  <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
-                </span>
-                <span className="text-sm font-semibold text-hc-ink">Heilsufarsskoðun búin</span>
-                <span className="text-sm text-hc-ink-2">{tests[2].detail}</span>
-              </section>
-            ) : (
-              <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4">
-                <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Heilsufarsskoðun</h2>
-                <ul>
-                  {tests.map((c) => (
-                    <li key={c.label}>
-                      <button type="button" onClick={() => onNav({ tab: "report" })}
-                        className="flex min-h-11 w-full items-center gap-3 rounded-xl px-1 text-left transition hover:bg-hc-sunken">
-                        <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 ${
-                          c.done ? "border-transparent bg-hc-brand-dark text-white" : "border-hc-control text-transparent"}`}>
-                          <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
-                        </span>
-                        <span className={`min-w-0 flex-1 text-sm font-semibold ${c.done ? "text-hc-ink-2" : "text-hc-ink"}`}>
-                          {c.label}<span className="sr-only">{c.done ? " — lokið" : " — ólokið"}</span>
-                        </span>
-                        {c.detail && <span className="shrink-0 text-xs text-hc-ink-2">{c.detail}</span>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+            <Progress d={d} record={record} />
             {j.plan_published_at && <Adherence d={d} />}
             <div id="ws-bookings" className="scroll-mt-24">
               <CoachBookings api={api} journeyId={j.id} start={bookStart} onBooked={onBooked} />
@@ -358,16 +340,13 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
       {tab === "report" && (
         <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 shadow-hc-card sm:p-5">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hc-brand-dark text-white"><Droplet className="h-4 w-4" aria-hidden /></span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-hc-brand-dark text-white"><FileText className="h-4 w-4" aria-hidden /></span>
             <div className="min-w-0 flex-1">
               <h2 className="font-bold text-hc-ink">Skýrslan</h2>
               <p className="text-xs text-hc-ink-2">{resultsStatus(d)}</p>
             </div>
-            <button type="button" onClick={() => onNav({ sheet: "referral" })} className={wsBtn.secondary}>
-              <Stethoscope className="h-4 w-4" aria-hidden /> Læknismat og samstarfsaðilar{openRefs ? ` (${openRefs})` : ""}
-            </button>
           </div>
-          <ResultsStep d={d} api={api} isDoctor={isDoctor} record={record} reload={load} />
+          <ResultsStep d={d} api={api} reload={load} onAskConsent={askConsent} />
         </section>
       )}
 
@@ -397,8 +376,86 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
       </div>
 
       <PatientSheet sheet={nav.sheet} d={d} api={api} isDoctor={isDoctor} record={record} reload={load}
-        onClose={() => onNav({ sheet: null })}
+        messagePreset={msgPreset}
+        onClose={() => { setMsgPreset(null); onNav({ sheet: null }); }}
         onPlan={() => onNav({ tab: "plan", sheet: null })} />
     </div>
+  );
+}
+
+const MEDALIA_URL = "https://provider.medalia.is";
+
+/*
+ * Where this person is, as plain lines (Mads, 2026-10-16).
+ *
+ * Blóðprufa / Svör / Mælingar used to be a checklist the nurse chased and
+ * ticked. Since the split those belong to Medalia — the blood order, the
+ * measurement results and the doctor interview are recorded there — so
+ * this only reads them back. The one thing ticked here is the doctor
+ * interview, because nothing tells Lifeline it has happened and the
+ * Áætlunarsamtal is booked after it.
+ */
+function Progress({ d, record }: { d: Detail; record: Record_ }) {
+  const j = d.journey;
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const report = reportOnFile(j);
+  const lines: { label: string; done: boolean; detail: string; action?: React.ReactNode }[] = [
+    { label: "Virkjað", done: !!j.protocol_activated_at, detail: j.protocol_activated_at ? day(j.protocol_activated_at) : "ekki enn" },
+    {
+      label: "Mælingartími", done: !!(j.measurements_done_at || j.measurements_booked_for),
+      detail: j.measurements_done_at ? `mælt ${day(j.measurements_done_at)}` : j.measurements_booked_for ? dayTime(j.measurements_booked_for) : "ekki bókaður",
+    },
+    {
+      label: "Skýrsla á skrá", done: report,
+      detail: j.own_report_at ? `frá skjólstæðingi ${day(j.own_report_at)}` : j.report_imported_at ? `sótt ${day(j.report_imported_at)}` : j.report_generated_at ? day(j.report_generated_at) : "ekki komin",
+    },
+    {
+      label: "Læknisviðtal (Medalia)", done: !!j.doctor_interview_done_at,
+      detail: j.doctor_interview_done_at ? day(j.doctor_interview_done_at) : "ekki merkt",
+      action: !j.doctor_interview_done_at ? (
+        <button type="button" disabled={busy} className={wsBtn.secondary}
+          onClick={async () => {
+            setBusy(true); setErr("");
+            const e = await record({ event: "doctor_interview_done" });
+            setBusy(false);
+            if (e) setErr(e);
+          }}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />} Merkja lokið
+        </button>
+      ) : undefined,
+    },
+    {
+      label: "Áætlunarsamtal", done: !!j.interview_done_at,
+      detail: j.interview_done_at ? day(j.interview_done_at) : j.interview_booked_for ? dayTime(j.interview_booked_for) : "ekki bókað",
+    },
+    { label: "Áætlun", done: !!j.plan_published_at, detail: j.plan_published_at ? `birt ${day(j.plan_published_at)}` : d.plan ? "drög" : "ekki hafin" },
+  ];
+  return (
+    <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <h2 className="min-w-0 flex-1 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Staða heilsufarsskoðunar</h2>
+        <a href={MEDALIA_URL} target="_blank" rel="noopener noreferrer" className={wsBtn.ghost}>
+          <ExternalLink className="h-4 w-4" aria-hidden /> Opna í sjúklingagátt (Medalia)
+        </a>
+      </div>
+      <ul>
+        {lines.map((c) => (
+          <li key={c.label} className="flex min-h-11 flex-wrap items-center gap-3 px-1">
+            <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border-2 ${
+              c.done ? "border-transparent bg-hc-brand-dark text-white" : "border-hc-control text-transparent"}`}>
+              <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+            </span>
+            <span className={`min-w-0 flex-1 text-sm font-semibold ${c.done ? "text-hc-ink-2" : "text-hc-ink"}`}>
+              {c.label}<span className="sr-only">{c.done ? " — lokið" : " — ólokið"}</span>
+            </span>
+            <span className="shrink-0 text-xs text-hc-ink-2">{c.detail}</span>
+            {c.action}
+          </li>
+        ))}
+      </ul>
+      {err && <p role="alert" className="mt-1 text-sm font-semibold text-hc-bad-ink">{err}</p>}
+      <p className="mt-2 text-xs text-hc-ink-2">Blóðprufa, niðurstöður mælinga og læknisviðtal eru skráð í Medalia.</p>
+    </section>
   );
 }

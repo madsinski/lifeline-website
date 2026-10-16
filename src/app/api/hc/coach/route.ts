@@ -50,6 +50,23 @@ const refuse = (error: string, message: string, status: number) =>
 
 const WORKER_COLS = "id, name, role, organization, credentials, bio, photo_url, specialties, accepting_clients, active";
 
+/**
+ * Keep hc_journeys.measurements_booked_for in step with the participant's
+ * own measurement bookings: the earliest upcoming one that is not
+ * cancelled, or null. A direct update, not patchJourney: the booking itself
+ * already goes to the calendars, and the journey field would add a second
+ * event for the same visit.
+ */
+async function syncMeasurementBooking(journeyId: string, clientId: string) {
+  const { data } = await supabaseAdmin.from("hc_bookings").select("starts_at")
+    .eq("journey_id", journeyId).eq("client_id", clientId).eq("kind", "measurement")
+    .neq("status", "cancelled").gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true }).limit(1).maybeSingle();
+  await supabaseAdmin.from("hc_journeys")
+    .update({ measurements_booked_for: data?.starts_at ?? null, updated_at: new Date().toISOString() })
+    .eq("id", journeyId).then(() => {}, () => {});
+}
+
 export async function GET(req: NextRequest) {
   const user = await requireUser(req);
   if (user instanceof NextResponse) return user;
@@ -246,6 +263,7 @@ export async function POST(req: NextRequest) {
     }).select("id").maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     await hcAudit("client", "booking_created", journey.id, { kind, starts_at: when.toISOString() });
+    if (kind === "measurement") await syncMeasurementBooking(journey.id, user.id);
     /*
      * Both calendars, after the response.
      *
@@ -298,6 +316,7 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (!moved) return NextResponse.json({ error: "not_found" }, { status: 404 });
     await hcAudit("client", "booking_moved", journey.id, { id: body.move, starts_at: when.toISOString() });
+    if (moved.kind === "measurement") await syncMeasurementBooking(journey.id, user.id);
     /*
      * Coach first, then participant. The order is the whole point.
      *
@@ -321,9 +340,10 @@ export async function POST(req: NextRequest) {
     // the booking does not stay in the diary while the page says it went.
     const { data: gone, error } = await supabaseAdmin.from("hc_bookings")
       .update({ status: "cancelled", updated_at: new Date().toISOString() })
-      .eq("id", body.cancel).eq("client_id", user.id).select("id");
+      .eq("id", body.cancel).eq("client_id", user.id).select("id, kind");
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (!gone?.length) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    if (gone.some((g) => g.kind === "measurement")) await syncMeasurementBooking(journey.id, user.id);
     // A cancelled booking has to leave both calendars, or it sits there
     // looking like it is still happening.
     /*

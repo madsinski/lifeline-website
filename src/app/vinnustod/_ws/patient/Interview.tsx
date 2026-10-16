@@ -1,18 +1,24 @@
 "use client";
 
-// Viðtal and Eftirfylgd: booking, the guided conversation and finishing it.
+// Áætlunarsamtal and Eftirfylgd: booking, the guided conversation and
+// finishing it.
+//
+// The Áætlunarsamtal is Lifeline's own plan session with the nurse or coach
+// (renamed from "Viðtal" in the Medalia split, 2026-10-16). The doctor
+// interview and anything clinical happen in Medalia; what is written here
+// are lifestyle notes for the plan.
 //
 // These lost their mount point when the workspace became four tabs
 // (2026-10-12) — booking, notes, "lokið" and the three-month follow-up all
 // still worked and could not be reached. They live in one sheet now, opened
-// from the client header's "Næsta verk", from the queue ("Bóka viðtal",
-// "Hefja viðtal", "Bóka eftirfylgd") and from the notes on Aðgerðaáætlun.
+// from the client header's "Næsta verk", from the queue ("Bóka
+// áætlunarsamtal", "Hefja samtal", "Bóka eftirfylgd") and from the notes on
+// Aðgerðaáætlun.
 // A sheet rather than a fifth tab, because the four tabs are places and
 // this is an encounter: you open it, have the conversation, close it.
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronRight, ExternalLink, Loader2, Video } from "lucide-react";
-import Referrals from "@/app/components/hc/Referrals";
 import { accountInput, useDialog } from "@/app/components/account/ui";
 import { useWsApi } from "@/app/components/hc/ws-api";
 import { PILLAR_META, type InterviewNotes } from "@/lib/hc/types";
@@ -22,7 +28,7 @@ import type { Detail, Journey, Record_ } from "../tasks";
 // ── The sheet's body ─────────────────────────────────────────────────────
 
 /**
- * Viðtal until it is done, Eftirfylgd after — with both reachable.
+ * Áætlunarsamtal until it is done, Eftirfylgd after — with both reachable.
  *
  * One sheet for both because they are the same act three months apart, and
  * the coach opening it should not have to know which one is current. Which
@@ -30,21 +36,21 @@ import type { Detail, Journey, Record_ } from "../tasks";
  * the interview done from its last step would otherwise swap the sheet out
  * from under the coach mid-sentence, before she books the follow-up there.
  */
-export function InterviewSheet({ d, isDoctor, record, onPlan, onChanged }: {
-  d: Detail; isDoctor: boolean; record: Record_; onPlan: () => void; onChanged: () => void;
+export function InterviewSheet({ d, record, onPlan }: {
+  d: Detail; record: Record_; onPlan: () => void;
 }) {
   const j = d.journey;
   const [which, setWhich] = useState<"interview" | "followup">(() => (j.interview_done_at ? "followup" : "interview"));
-  const props = { d, isDoctor, record, onPlan, onChanged };
+  const props = { d, record, onPlan };
   return (
     <div className="space-y-4">
       {j.interview_done_at && (
         <div className="flex flex-wrap items-center gap-2">
           <p className="flex min-w-0 flex-1 items-center gap-2 text-sm text-hc-ok-ink">
-            <Check className="h-4 w-4 shrink-0" aria-hidden /> Fyrsta viðtali lokið {day(j.interview_done_at)}.
+            <Check className="h-4 w-4 shrink-0" aria-hidden /> Áætlunarsamtali lokið {day(j.interview_done_at)}.
           </p>
-          <div className="flex rounded-hc-element bg-hc-sunken-2 p-1" role="radiogroup" aria-label="Viðtal eða eftirfylgd">
-            {([["interview", "Viðtal"], ["followup", "Eftirfylgd"]] as const).map(([k, l]) => (
+          <div className="flex rounded-hc-element bg-hc-sunken-2 p-1" role="radiogroup" aria-label="Áætlunarsamtal eða eftirfylgd">
+            {([["interview", "Áætlunarsamtal"], ["followup", "Eftirfylgd"]] as const).map(([k, l]) => (
               <button key={k} type="button" role="radio" aria-checked={which === k} onClick={() => setWhich(k)}
                 className={`min-h-11 rounded-lg px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand ${
                   which === k ? "bg-hc-surface text-hc-ink shadow-sm" : "text-hc-ink-2 hover:text-hc-ink"}`}>
@@ -60,7 +66,7 @@ export function InterviewSheet({ d, isDoctor, record, onPlan, onChanged }: {
 }
 
 /** The sheet's title, matching what it holds. */
-export const interviewSheetTitle = (j: Journey) => (j.interview_done_at ? "Viðtal og eftirfylgd" : "Viðtal");
+export const interviewSheetTitle = (j: Journey) => (j.interview_done_at ? "Áætlunarsamtal og eftirfylgd" : "Áætlunarsamtal");
 
 /* A booking's outcome. A failure used to print in the same green as a
    success, and the editor closed either way, so a time that did not save
@@ -85,35 +91,37 @@ function RunMsg({ msg }: { msg: { ok: boolean; text: string } | null }) {
     : <p role="alert" className="text-sm font-semibold text-hc-bad-ink">{msg.text}</p>;
 }
 
-function InterviewStep({ d, isDoctor, record, onPlan, onChanged }: { d: Detail; isDoctor: boolean; record: Record_; onPlan: () => void; onChanged: () => void }) {
+function InterviewStep({ d, record, onPlan }: { d: Detail; record: Record_; onPlan: () => void }) {
   const j = d.journey;
   const { busy, msg, run } = useRun(record);
   return (
     <div className="space-y-4">
-      <Booking label="Viðtal" at={j.interview_booked_for} done={j.interview_done_at} mode={j.interview_mode} meetingUrl={j.meeting_url}
-        disabled={!j.report_generated_at && !j.report_imported_at} disabledText="Hægt að bóka þegar skýrslan er komin inn."
-        onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Viðtal bókað og sett í dagatal.")} busy={busy}
-        onCancel={(noShow) => run({ event: "interview_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Viðtal afbókað.")} />
+      {/* Bookable before the report copy is here: the report and the
+          doctor interview are in Medalia, and the nurse reads them there. */}
+      <Booking label="Áætlunarsamtal" at={j.interview_booked_for} done={j.interview_done_at} mode={j.interview_mode} meetingUrl={j.meeting_url}
+        disabled={false} disabledText=""
+        onBook={(at, mode, meeting_url) => run({ event: "interview_booked", at, mode, meeting_url }, "Áætlunarsamtal bókað og sett í dagatal.")} busy={busy}
+        onCancel={(noShow) => run({ event: "interview_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Áætlunarsamtal afbókað.")} />
       <RunMsg msg={msg} />
-      {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} onChanged={onChanged} mode="interview" />}
+      {(j.interview_booked_for || j.interview_done_at) && <Interview d={d} record={record} onPlan={onPlan} mode="interview" />}
     </div>
   );
 }
 
-function FollowupStep({ d, isDoctor, record, onPlan, onChanged }: { d: Detail; isDoctor: boolean; record: Record_; onPlan: () => void; onChanged: () => void }) {
+function FollowupStep({ d, record, onPlan }: { d: Detail; record: Record_; onPlan: () => void }) {
   const j = d.journey;
   const { busy, msg, run } = useRun(record);
   return (
     <div className="space-y-3">
       <Booking label="Eftirfylgd" at={j.followup_booked_for} done={j.followup_done_at} mode={j.followup_mode ?? (j.followup_booked_for ? j.interview_mode : "video")} meetingUrl={j.followup_meeting_url ?? null}
-        disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir fyrsta viðtal." suggest={90}
+        disabled={!j.interview_done_at} disabledText="Hægt að bóka eftir áætlunarsamtalið." suggest={90}
         onBook={(at, mode, meeting_url) => run({ event: "followup_booked", at, mode, meeting_url }, "Eftirfylgd bókuð og sett í dagatal.")} busy={busy}
         onCancel={(noShow) => run({ event: "followup_cancelled", note: noShow ? "no_show" : null }, noShow ? "Skráð: mætti ekki. Bókaðu nýjan tíma." : "Eftirfylgd afbókuð.")} />
       <RunMsg msg={msg} />
       {/* The follow-up conversation, guided like the first one but with its
           own notes and questions about how it went. Marking it done is the
           wizard's last step. */}
-      {(j.followup_booked_for || j.followup_done_at) && <Interview d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} onChanged={onChanged} mode="followup" />}
+      {(j.followup_booked_for || j.followup_done_at) && <Interview d={d} record={record} onPlan={onPlan} mode="followup" />}
     </div>
   );
 }
@@ -246,13 +254,13 @@ function Booking({ label, at, done, mode, meetingUrl, disabled, disabledText, on
 /** While building the plan: what was said in the conversation, per topic. */
 export function NotesPeek({ j, onOpenInterview }: { j: Journey; onOpenInterview: () => void }) {
   const notes = (j.followup_booked_for && j.interview_done_at ? j.followup_notes : j.interview_notes) ?? {};
-  const rows = TOPICS.filter((t) => (notes[t.key] ?? "").trim());
+  const rows = [...TOPICS, ...LEGACY_TOPICS].filter((t) => (notes[t.key] ?? "").trim());
   return (
     <section className="rounded-xl bg-hc-sunken p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Úr viðtalinu</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Úr áætlunarsamtalinu</h2>
         <button type="button" onClick={onOpenInterview} className={wsBtn.ghost}>
-          Opna viðtalið <ArrowRight className="h-4 w-4" aria-hidden />
+          Opna áætlunarsamtalið <ArrowRight className="h-4 w-4" aria-hidden />
         </button>
       </div>
       {rows.length ? (
@@ -269,20 +277,24 @@ export function NotesPeek({ j, onOpenInterview }: { j: Journey; onOpenInterview:
   );
 }
 
-// ── Viðtal: guided, step by step ─────────────────────────────────────────
+// ── Áætlunarsamtal: guided, step by step ─────────────────────────────────
 
+/*
+ * No clinical reading in the prep (Medalia split, 2026-10-16): interpreting
+ * blood work and measurements is the doctor's, in the doctor interview in
+ * Medalia. The nurse reads what was found and agreed there, and the
+ * Áætlunarsamtal is about how the person wants to live with it.
+ */
 const PREP: string[] = [
-  "Lestu skýrsluna á flipanum „Skýrsla“ og samantekt læknis.",
-  "Skoðaðu blóðprufur: blóðsykur (HbA1c), blóðfitur og annað sem er rautt eða gult.",
-  "Skoðaðu mælingar: blóðþrýsting og líkamssamsetningu.",
+  "Lestu skýrsluna (afritið hér eða í Medalia) og niðurstöður læknisviðtalsins í Medalia.",
   "Lestu svör við spurningalista um svefn, hreyfingu, næringu og andlega líðan.",
-  "Merktu við 1–2 atriði sem standa upp úr til að ræða.",
+  "Merktu við 1–2 atriði í lífsstíl til að ræða.",
 ];
 
 const FOLLOWUP_PREP: string[] = [
   "Skoðaðu framvinduna á flipanum „Staða“: hvað hefur gengið og hvað ekki síðustu vikur.",
   "Lestu hvað skjólstæðingurinn lagði til hliðar og athugasemdir hans.",
-  "Rifjaðu upp markmiðin og minnispunkta úr fyrsta viðtali.",
+  "Rifjaðu upp markmiðin og minnispunkta úr áætlunarsamtalinu.",
   "Veldu 1–2 atriði til að breyta eða bæta við í áætluninni.",
 ];
 
@@ -293,7 +305,6 @@ const FOLLOWUP_PROMPTS: Partial<Record<keyof InterviewNotes, string[]>> = {
   exercise: ["Hvernig hefur æfingaáætlunin gengið?", "Þarf að auka eða minnka álagið?"],
   nutrition: ["Hvaða breytingar hafa haldist?", "Hvað hefur ekki gengið?"],
   mental: ["Hvernig er álagið núna miðað við síðast?", "Hvað hjálpaði?"],
-  measurements: ["Hvað hefur breyst í mælingum, ef mælt var aftur?"],
 };
 
 const TOPICS: { key: keyof InterviewNotes; title: string; color: string; prompts: string[] }[] = [
@@ -302,12 +313,17 @@ const TOPICS: { key: keyof InterviewNotes; title: string; color: string; prompts
   { key: "exercise", title: PILLAR_META.exercise.label, color: "var(--hc-exercise)", prompts: ["Hvernig hreyfingu stundar þú í dag?", "Hvað finnst þér skemmtilegt?", "Verkir eða takmarkanir?"] },
   { key: "nutrition", title: PILLAR_META.nutrition.label, color: "var(--hc-nutrition)", prompts: ["Hvernig lítur venjulegur dagur út?", "Reglulegar máltíðir? Sykraðir drykkir?", "Hver sér um innkaup og eldamennsku?"] },
   { key: "mental", title: PILLAR_META.mental.label, color: "var(--hc-mental)", prompts: ["Hvernig er álagið núna?", "Hvað gefur þér orku?", "Stuðningur, tengsl, hvíld?"] },
-  { key: "measurements", title: "Mælingar og blóðprufur", color: "#475569", prompts: ["Hvað sýna niðurstöðurnar á mannamáli?", "Hvað kom skjólstæðingnum á óvart?"] },
 ];
 
-const STEPS = ["Undirbúningur", "Samtal", "Mat", "Áætlun", "Ljúka"] as const;
+/* Notes written before the split may have a "measurements" topic; they are
+   still shown beside the plan, never asked for again. */
+const LEGACY_TOPICS: typeof TOPICS = [
+  { key: "measurements", title: "Mælingar (eldri punktar)", color: "#475569", prompts: [] },
+];
 
-function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" }: { d: Detail; isDoctor: boolean; record: Record_; onPlan?: () => void; onChanged?: () => void; mode?: "interview" | "followup" }) {
+const STEPS = ["Undirbúningur", "Samtal", "Áætlun", "Ljúka"] as const;
+
+function Interview({ d, record, onPlan, mode = "interview" }: { d: Detail; record: Record_; onPlan?: () => void; mode?: "interview" | "followup" }) {
   const api = useWsApi();
   const j = d.journey;
   const isFollowup = mode === "followup";
@@ -353,15 +369,11 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
     if (pending.current) void saveRef.current(pending.current);
   }, []);
 
-  if (!j.report_generated_at && !j.report_imported_at) {
-    return <p className="rounded-2xl border border-dashed border-hc-control bg-hc-surface p-6 text-center text-sm text-hc-ink-2">Viðtalið opnast þegar skýrslan er komin inn.</p>;
-  }
-
   return (
     <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
       {/* Stepper */}
-      <nav aria-label="Skref viðtals" className="lg:sticky lg:top-0 lg:self-start">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-hc-ink-2">{isFollowup ? "Eftirfylgdarviðtal" : "Viðtal"}</p>
+      <nav aria-label={isFollowup ? "Skref eftirfylgdar" : "Skref áætlunarsamtals"} className="lg:sticky lg:top-0 lg:self-start">
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-hc-ink-2">{isFollowup ? "Eftirfylgdarviðtal" : "Áætlunarsamtal"}</p>
         <ol className="flex gap-2 overflow-x-auto pb-1 lg:flex-col">
           {STEPS.map((s, i) => (
             <li key={s}>
@@ -381,7 +393,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
         {step === 0 && (
           <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 sm:p-5">
             <h3 className="text-lg font-bold text-hc-ink">Undirbúningur</h3>
-            <p className="mb-4 text-sm text-hc-ink-2">Um 10 mínútur fyrir viðtalið.</p>
+            <p className="mb-4 text-sm text-hc-ink-2">{isFollowup ? "Um 10 mínútur fyrir eftirfylgdina." : "Um 10 mínútur fyrir áætlunarsamtalið."}</p>
             <ul className="space-y-2">
               {prep.map((p, i) => (
                 <li key={i}>
@@ -394,7 +406,7 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
               ))}
             </ul>
             <div className="mt-4 flex flex-wrap gap-2">
-              <a href="https://provider.medalia.is" target="_blank" rel="noreferrer" className={wsBtn.secondary}><ExternalLink className="h-4 w-4" aria-hidden /> Opna skýrslu í Medalia</a>
+              <a href="https://provider.medalia.is" target="_blank" rel="noreferrer" className={wsBtn.secondary}><ExternalLink className="h-4 w-4" aria-hidden /> Opna í Medalia</a>
               <span className="flex-1" />
               <button type="button" onClick={() => setStep(1)} className={wsBtn.primary}>Hefja samtal <ChevronRight className="h-4 w-4" aria-hidden /></button>
             </div>
@@ -406,7 +418,8 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
               <div>
                 <h3 className="text-lg font-bold text-hc-ink">Samtal</h3>
-                <p className="text-sm text-hc-ink-2">Byrjaðu á því sem skjólstæðingurinn vill breyta. Punktarnir vistast sjálfkrafa og fylgja í áætlunina.</p>
+                <p className="text-sm text-hc-ink-2">Byrjaðu á því sem skjólstæðingurinn vill breyta. Punktarnir eru um lífsstíl, vistast sjálfkrafa og fylgja í áætlunina.</p>
+                <p className="mt-1 text-xs text-hc-ink-2">Klínísk atriði eru skráð í Medalia, ekki hér.</p>
               </div>
               <span className={`inline-flex items-center gap-1 text-xs font-semibold ${saved === "error" ? "text-hc-bad-ink" : "text-hc-ink-2"}`} role="status">
                 {saved === "saving" ? "Vistar…" : saved === "saved" ? <><Check className="h-3.5 w-3.5" aria-hidden /> Vistað</> : saved === "error" ? (
@@ -426,38 +439,12 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
             </div>
             <div className="mt-4 flex justify-between">
               <button type="button" onClick={() => setStep(0)} className={wsBtn.ghost}><ArrowLeft className="h-4 w-4" aria-hidden /> Undirbúningur</button>
-              <button type="button" onClick={() => setStep(2)} className={wsBtn.primary}>Áfram í mat <ChevronRight className="h-4 w-4" aria-hidden /></button>
+              <button type="button" onClick={() => setStep(2)} className={wsBtn.primary}>Áfram í áætlun <ChevronRight className="h-4 w-4" aria-hidden /></button>
             </div>
           </section>
         )}
 
         {step === 2 && (
-          <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 sm:p-5">
-            <h3 className="text-lg font-bold text-hc-ink">Mat</h3>
-            <p className="mb-4 text-sm text-hc-ink-2">Er eitthvað í niðurstöðum eða samtalinu sem gæti kallað á læknismeðferð?</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-hc-ok-ink/30 bg-hc-ok-surface p-4">
-                <p className="font-semibold text-hc-ok-ink">Nei, lífsstílsáætlun nægir</p>
-                <p className="mt-1 text-sm text-hc-ok-ink">Haltu áfram í áætlunargerð.</p>
-                <button type="button" onClick={() => setStep(3)} className={`${wsBtn.primary} mt-3`}>Áfram í áætlun <ChevronRight className="h-4 w-4" aria-hidden /></button>
-              </div>
-              <div className="rounded-xl border border-hc-warn-ink/30 bg-hc-warn-surface p-4">
-                <p className="font-semibold text-hc-warn-ink">{isDoctor ? "Já, skrá" : "Já eða óviss: læknir metur, ráðlegging eða samstarfsaðili"}</p>
-                <p className="mt-1 text-sm text-hc-warn-ink">Veldu „Læknir Lifeline“ hér að neðan ef læknir á að líta á eitthvað, eða hvert á að vísa. Læknir fær skeyti.</p>
-              </div>
-            </div>
-            {/* The referral catalogue itself, not a button to another sheet:
-                mid-conversation the coach should not lose the wizard to
-                refer someone. The same list is the Tilvísanir sheet. */}
-            <div className="mt-3">
-              <Referrals api={api} journeyId={j.id} referrals={d.referrals ?? []} suggestions={d.ai_referrals ?? []}
-                isDoctor={isDoctor} onChanged={() => onChanged?.()} />
-            </div>
-            <p className="mt-3 text-xs text-hc-ink-2">Lífsstílsáætlunin heldur áfram þótt vísað sé á Heilsugæsluna.</p>
-          </section>
-        )}
-
-        {step === 3 && (
           <section className="rounded-2xl border border-hc-hairline bg-hc-surface p-4 sm:p-5">
             <h3 className="text-lg font-bold text-hc-ink">Aðgerðaáætlun</h3>
             <p className="mt-1 text-sm text-hc-ink-2">Veldu sniðmát sem passar, dragðu inn 2–4 aðgerðir á stoð í mesta lagi og skrifaðu persónulegar athugasemdir. Punktar úr samtalinu fylgja sem samantekt.</p>
@@ -469,16 +456,16 @@ function Interview({ d, isDoctor, record, onPlan, onChanged, mode = "interview" 
               </p>
             )}
             <div className="mt-4 flex flex-wrap justify-between gap-2">
-              <button type="button" onClick={() => setStep(2)} className={wsBtn.ghost}><ArrowLeft className="h-4 w-4" aria-hidden /> Mat</button>
+              <button type="button" onClick={() => setStep(1)} className={wsBtn.ghost}><ArrowLeft className="h-4 w-4" aria-hidden /> Samtal</button>
               <div className="flex flex-wrap gap-2">
                 {onPlan && <button type="button" onClick={onPlan} className={wsBtn.primary}>{d.plan ? "Opna áætlun" : "Búa til áætlun"} <ChevronRight className="h-4 w-4" aria-hidden /></button>}
-                <button type="button" onClick={() => setStep(4)} className={wsBtn.secondary}>Ljúka viðtali</button>
+                <button type="button" onClick={() => setStep(3)} className={wsBtn.secondary}>{isFollowup ? "Ljúka eftirfylgd" : "Ljúka áætlunarsamtali"}</button>
               </div>
             </div>
           </section>
         )}
 
-        {step === 4 && (
+        {step === 3 && (
           <FinishStep j={j} planPublished={d.plan?.status === "published"} busy={busy} run={run} isFollowup={isFollowup} />
         )}
 
@@ -510,9 +497,9 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
       <ol className="mt-4 space-y-3">
         <li className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-3">
           <StepDot done={thisDone} n={1} />
-          <span className="flex-1 text-sm font-semibold text-hc-ink">{isFollowup ? "Merkja eftirfylgd lokið" : "Merkja viðtali lokið"}</span>
+          <span className="flex-1 text-sm font-semibold text-hc-ink">{isFollowup ? "Merkja eftirfylgd lokið" : "Merkja áætlunarsamtali lokið"}</span>
           {!thisDone && (
-            <button type="button" disabled={busy} onClick={() => run({ event: isFollowup ? "followup_done" : "interview_done" }, isFollowup ? "Eftirfylgd merkt lokið." : "Viðtali merkt lokið.")} className={wsBtn.primary}>Merkja lokið</button>
+            <button type="button" disabled={busy} onClick={() => run({ event: isFollowup ? "followup_done" : "interview_done" }, isFollowup ? "Eftirfylgd merkt lokið." : "Áætlunarsamtali merkt lokið.")} className={wsBtn.primary}>Merkja lokið</button>
           )}
         </li>
         <li className="flex flex-wrap items-center gap-3 rounded-xl border border-hc-hairline p-3">
@@ -533,7 +520,7 @@ function FinishStep({ j, planPublished, busy, run, isFollowup }: {
           </li>
         )}
       </ol>
-      {!interviewDone && !isFollowup && <p className="mt-2 text-xs text-hc-ink-2">Eftirfylgd er hægt að bóka þegar viðtali er merkt lokið.</p>}
+      {!interviewDone && !isFollowup && <p className="mt-2 text-xs text-hc-ink-2">Eftirfylgd er hægt að bóka þegar áætlunarsamtali er merkt lokið.</p>}
       <p className="mt-3 text-xs text-hc-ink-2">Skjólstæðingurinn fær tölvupóst þegar áætlunin er birt. Eftirfylgd er greidd sérstaklega á aðgangi hans.</p>
     </section>
   );

@@ -1,3 +1,9 @@
+// DORMANT (2026-10-16): HC_PARTNER_API_KEY is not set in production, so
+// partnerAuthorized() refuses every call and this endpoint answers 401.
+// Activation today is the participant confirming it themselves
+// (POST /api/hc/journey {action:"confirm_activated"}). Kept ready for if/when
+// Medalia integrates. See security-posture.ts ("Partner API").
+//
 // Patient-portal partner API: redeem an activation code.
 //
 // The customer receives the code after payment in their Lifeline account and

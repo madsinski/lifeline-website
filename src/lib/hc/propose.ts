@@ -29,7 +29,10 @@ export function ageOf(dob: string | null): string | null {
   return a > 0 && a < 120 ? `${a} ára` : null;
 }
 
-/** The nurse's interview notes as a short brief for the model. */
+/**
+ * The nurse's notes as a short brief. Not sent to the model any more (see
+ * buildProposal); kept for any on-screen summary.
+ */
 export function notesText(n: InterviewNotes | null): string | null {
   if (!n) return null;
   const parts: string[] = [];
@@ -63,7 +66,7 @@ export async function buildProposal(journeyId: string, actorLabel: string): Prom
 
   const { data: journey } = await supabaseAdmin
     .from("hc_journeys")
-    .select("id, client_id, interview_notes")
+    .select("id, client_id")
     .eq("id", journeyId)
     .maybeSingle();
   if (!journey) return { ok: false, reason: "failed", message: "Heilsuferð fannst ekki." };
@@ -111,7 +114,15 @@ export async function buildProposal(journeyId: string, actorLabel: string): Prom
       modules: (modules || []) as PlanModule[],
       age: ageOf(profile?.date_of_birth ?? null),
       sex,
-      interviewNotes: notesText(journey.interview_notes as InterviewNotes | null),
+      /*
+       * The nurse's notes are NOT sent to the model (Medalia split,
+       * 2026-10-16). Proposals run without any consent step — including in
+       * the background after an import — so free text written about a
+       * person in a conversation has no business leaving for OpenAI. The
+       * notes are lifestyle notes now and stay encrypted in Lifeline; the
+       * nurse reads them beside the proposal.
+       */
+      interviewNotes: null,
     };
     const proposal = await proposePlan(input);
 

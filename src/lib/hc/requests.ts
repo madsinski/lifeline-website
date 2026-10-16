@@ -22,7 +22,7 @@ export const REQUEST_IS: Record<RequestKind, {
   help: {
     label: "Ég er með spurningu", short: "Spurning",
     /* No longer "eitthvað í skýrslunni". Questions about results belong to
-       the medical kind below, which reaches a doctor: a coach reading a
+       the medical kind below, which points to the doctor in Medalia: a coach reading a
        blood test back to somebody is practising medicine, and the old hint
        invited exactly that. */
     hint: "Æfingar, matur, svefn eða áætlunin þín.",
@@ -35,7 +35,7 @@ export const REQUEST_IS: Record<RequestKind, {
      not quietly accept questions it cannot answer. */
   medical: {
     label: "Ég vil ræða heilsufar eða niðurstöður", short: "Læknir",
-    hint: "Blóðprufa, mælingar, einkenni eða lyf. Fer til læknis, ekki þjálfara.",
+    hint: "Blóðprufa, mælingar, einkenni eða lyf. Þjálfarinn vísar þér á lækni í sjúklingagáttinni.",
     prompt: "Hvað viltu að læknirinn viti fyrir fram?",
     cls: "bg-sky-50 text-sky-900 ring-sky-200", dot: "bg-sky-600",
   },
@@ -164,7 +164,7 @@ export const TOPICS: Partial<Record<RequestKind, { q: string; options: { key: st
 export function needsDoctor(kind: RequestKind, topic?: string | null): string | null {
   if (kind === "medical") {
     return topic === "blood" || topic === "measures"
-      ? "Þjálfarinn les ekki úr blóðprufum eða mælingum. Læknir fer yfir niðurstöðurnar með þér."
+      ? "Þjálfarinn les ekki úr blóðprufum eða mælingum. Læknir fer yfir niðurstöðurnar með þér í sjúklingagáttinni (Medalia)."
       : "Þetta á heima hjá lækni frekar en þjálfara.";
   }
   if (kind === "injury" && (topic === "severe" || topic === "worse")) {
@@ -177,10 +177,11 @@ export function needsDoctor(kind: RequestKind, topic?: string | null): string | 
  * The ready-made way to answer each kind, in the workstation.
  *
  * `action` is the thing that actually resolves the request (book the
- * measurement, send it to a doctor, change the plan); the templates are the
+ * measurement, book a call, change the plan); the templates are the
  * reply the participant reads afterwards. A coach can edit any template
  * before sending — they are a starting point, not a form letter.
  */
+/** "referral" is kept in the type for old callers; no kind uses it any more. */
 export type RequestAction = "book-measurement" | "book-video" | "referral" | "plan";
 
 export const REQUEST_RESPONSES: Record<RequestKind, {
@@ -193,10 +194,13 @@ export const REQUEST_RESPONSES: Record<RequestKind, {
       { label: "Svar kemur", text: "Takk fyrir spurninguna. Ég skoða þetta og svara þér á næsta þjónustudegi." },
     ],
   },
+  /* No action since the Medalia split (2026-10-16): Lifeline has no doctor
+     path any more, and the referral sheet is Vera partners only. Clinical
+     questions go to the doctor in Medalia; the reply says where. */
   medical: {
-    action: { key: "referral", label: "Senda til læknis" },
     templates: [
-      { label: "Sent til læknis", text: "Takk. Ég hef sent þetta til læknis, sem svarar þér eins fljótt og hægt er." },
+      { label: "Til læknis í Medalia", text: "Takk fyrir. Spurningar um niðurstöður, einkenni eða lyf á best að ræða við lækni. Þú getur sent lækninum skilaboð eða bókað læknisviðtal í sjúklingagáttinni (Medalia)." },
+      { label: "Heilsugæslan", text: "Takk fyrir. Þetta er best að ræða við heimilislækni á heilsugæslunni þinni, sem getur skoðað þig og fylgt því eftir." },
       { label: "Bráð einkenni", text: "Ef einkennin eru bráð eða versna skaltu hringja í 112 eða hafa samband við heilsugæsluna." },
     ],
   },

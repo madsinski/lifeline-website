@@ -4,7 +4,8 @@
 //
 // Not the same thing as the two-way thread on Staða (hc_chat). This reaches
 // someone who has not opened the app — an activation reminder, a booking
-// prompt, a nudge after a quiet week — over their phone or inbox. It had no
+// prompt, a nudge after a quiet week, asking leave to fetch the report
+// copy — over their phone or inbox. It had no
 // way in after the workspace became four tabs; it opens as a sheet now, from
 // "Senda SMS/tölvupóst" beside the thread and from the queue's "Senda hvatningu".
 
@@ -14,30 +15,52 @@ import { accountInput, Alert, useDialog } from "@/app/components/account/ui";
 import { useWsApi } from "@/app/components/hc/ws-api";
 import { MESSAGE_TEMPLATES, smsSize, type MessageTemplateKey } from "@/lib/hc/message-templates";
 import { cleanName, daysSince, dayTime, wsBtn } from "../format";
-import type { Detail, Journey } from "../tasks";
+import { reportOnFile, type Detail, type Journey } from "../tasks";
 
 const isFutureIso = (iso: string) => new Date(iso).getTime() > Date.now();
 
+/*
+ * Templates that belong to the workstation rather than the shared list.
+ *
+ * "May we fetch your report?" exists because of the Medalia split: the
+ * report copy here is the client's, so staff only import it once the client
+ * has said yes in the app — or the client puts it in themselves.
+ */
+export type MessagePreset = "import_consent";
+type Tpl = MessageTemplateKey | MessagePreset;
+const SIGN = (name: string | null) => (name ? `\n\nKveðja,\n${name}, Lifeline` : "\n\nKveðja,\nLifeline");
+const LOCAL_TEMPLATES: { key: MessagePreset; label: string; subject: string; body: (c: { firstName: string; nurseName: string | null }) => string }[] = [
+  {
+    key: "import_consent", label: "Leyfi til að sækja skýrslu", subject: "Afrit af heilsufarsskýrslunni þinni",
+    body: (c) => `Hæ ${c.firstName}. Til að undirbúa áætlunarsamtalið viljum við hafa afrit af heilsufarsskýrslunni þinni hjá Lifeline. Þú getur leyft okkur að sækja hana í appinu eða sett hana inn sjálf(ur). Frumritið er áfram í sjúklingagáttinni.${SIGN(c.nurseName)}`,
+  },
+];
+
 /** The template that fits where the journey is. */
-function defaultTemplate(j: Journey): MessageTemplateKey {
-  switch (j.stage) {
-    case "protocol": return "activate";
-    case "tests":
-      if (j.blood_test_booked_for && !j.blood_test_done_at && isFutureIso(j.blood_test_booked_for)) return "blood_reminder";
-      if (j.measurements_booked_for && !j.measurements_done_at && isFutureIso(j.measurements_booked_for)) return "measure_reminder";
-      return "book_tests";
-    case "report": return "free";
-    case "interview": return j.interview_booked_for ? "interview_reminder" : "book_interview";
-    case "action":
-      if (j.followup_booked_for && !j.followup_done_at) return "followup_reminder";
-      // A week or more into a published plan with no follow-up booked is
-      // the queue's "Senda hvatningu" — open on the nudge it promised.
-      return daysSince(j.plan_published_at) >= 7 ? "plan_nudge" : "plan_ready";
-    default: return "free";
+function defaultTemplate(j: Journey): Tpl {
+  if (j.plan_published_at) {
+    if (j.followup_booked_for && !j.followup_done_at) return "followup_reminder";
+    // A week or more into a published plan with no follow-up booked is
+    // the queue's "Senda hvatningu" — open on the nudge it promised.
+    return daysSince(j.plan_published_at) >= 7 ? "plan_nudge" : "plan_ready";
   }
+  if (j.interview_done_at) return "free";
+  if (j.interview_booked_for) return "interview_reminder";
+  const report = reportOnFile(j);
+  if (j.paid_at && !j.protocol_activated_at && !report) return "activate";
+  if (!report && !j.doctor_interview_done_at) {
+    if (j.measurements_booked_for && !j.measurements_done_at && isFutureIso(j.measurements_booked_for)) return "measure_reminder";
+    if (!j.staff_import_consent_at) return "import_consent";
+    return "free";
+  }
+  return "book_interview";
 }
 
-export function Messages({ d, reload, onClose }: { d: Detail; reload: () => Promise<void>; onClose: () => void }) {
+export function Messages({ d, reload, onClose, preset }: {
+  d: Detail; reload: () => Promise<void>; onClose: () => void;
+  /** Open on this template rather than the one the journey suggests. */
+  preset?: MessagePreset | null;
+}) {
   const api = useWsApi();
   const dialog = useDialog();
   const j = d.journey;
@@ -50,17 +73,26 @@ export function Messages({ d, reload, onClose }: { d: Detail; reload: () => Prom
     bloodSite: "Heilsugæslunni", measurementSite: d.location?.name ? "Veru" : null, interviewSite: null,
     nurseName: d.actor.name,
   }), [d, j, code]);
-  const [tpl, setTpl] = useState<MessageTemplateKey>(() => defaultTemplate(j));
-  const [text, setText] = useState(() => MESSAGE_TEMPLATES.find((t) => t.key === defaultTemplate(j))!.body(ctx));
-  const [subject, setSubject] = useState(() => MESSAGE_TEMPLATES.find((t) => t.key === defaultTemplate(j))!.subject);
+  const templates = useMemo(
+    () => [
+      ...MESSAGE_TEMPLATES.filter((t) => t.key !== "free").map((t) => ({ key: t.key as Tpl, label: t.label, subject: t.subject, body: () => t.body(ctx) })),
+      ...LOCAL_TEMPLATES.map((t) => ({ key: t.key as Tpl, label: t.label, subject: t.subject, body: () => t.body({ firstName: ctx.firstName, nurseName: ctx.nurseName }) })),
+      ...MESSAGE_TEMPLATES.filter((t) => t.key === "free").map((t) => ({ key: t.key as Tpl, label: t.label, subject: t.subject, body: () => t.body(ctx) })),
+    ],
+    [ctx],
+  );
+  const first = templates.find((t) => t.key === (preset ?? defaultTemplate(j))) ?? templates[templates.length - 1];
+  const [tpl, setTpl] = useState<Tpl>(first.key);
+  const [text, setText] = useState(() => first.body());
+  const [subject, setSubject] = useState(first.subject);
   const [sms, setSms] = useState(!!d.patient.phone);
   const [email, setEmail] = useState(!d.patient.phone && !!d.patient.email);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const pick = (k: MessageTemplateKey) => {
-    const t = MESSAGE_TEMPLATES.find((x) => x.key === k)!;
-    setTpl(k); setText(t.body(ctx)); setSubject(t.subject); setMsg(null);
+  const pick = (k: Tpl) => {
+    const t = templates.find((x) => x.key === k)!;
+    setTpl(k); setText(t.body()); setSubject(t.subject); setMsg(null);
   };
   const size = smsSize(text);
   const send = async () => {
@@ -96,7 +128,7 @@ export function Messages({ d, reload, onClose }: { d: Detail; reload: () => Prom
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-hc-ink-2" id="tpl-label">Sniðmát</p>
           <div className="mt-1 flex flex-wrap gap-1.5" role="radiogroup" aria-labelledby="tpl-label">
-            {MESSAGE_TEMPLATES.map((t) => (
+            {templates.map((t) => (
               <button key={t.key} type="button" role="radio" aria-checked={tpl === t.key} onClick={() => pick(t.key)}
                 className={`min-h-11 rounded-full px-3 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand ${tpl === t.key ? "bg-hc-brand-dark text-white" : "bg-hc-sunken-2 text-hc-ink-2 hover:bg-hc-brand-surface hover:text-hc-brand-text"}`}>
                 {t.label}

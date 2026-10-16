@@ -47,12 +47,12 @@ export const MESSAGE_TEMPLATES: { key: MessageTemplateKey; label: string; subjec
     body: (c) => `Hæ ${c.firstName}. Minnum á mælingarnar ${when(c.measurementsAt)}${c.measurementSite ? ` hjá ${c.measurementSite}` : ""}. Léttur klæðnaður, ekkert málmskart eða úr.${SIGN(c)}`,
   },
   {
-    key: "book_interview", label: "Bóka viðtal", subject: "Skýrslan þín er tilbúin",
-    body: (c) => `Hæ ${c.firstName}. Skýrslan þín er tilbúin og næsta skref er viðtal þar sem við förum saman yfir niðurstöðurnar og gerum áætlun. Svaraðu þessum skilaboðum eða hringdu til að finna tíma.${SIGN(c)}`,
+    key: "book_interview", label: "Bóka áætlunarsamtal", subject: "Bókum áætlunarsamtalið þitt",
+    body: (c) => `Hæ ${c.firstName}. Næsta skref hjá okkur er áætlunarsamtal þar sem við förum yfir lífsstílinn þinn og markmiðin og gerum áætlun saman. Svaraðu þessum skilaboðum eða hringdu til að finna tíma.${SIGN(c)}`,
   },
   {
-    key: "interview_reminder", label: "Áminning um viðtal", subject: "Áminning: viðtal",
-    body: (c) => `Hæ ${c.firstName}. Minnum á viðtalið ${when(c.interviewAt)}${c.interviewMode === "video" ? " í myndsímtali" : c.interviewSite ? ` á ${c.interviewSite}` : ""}. Við förum yfir niðurstöðurnar og gerum áætlun saman.${c.meetingUrl ? `\n\nHlekkur á fjarfundinn: ${c.meetingUrl}` : ""}${SIGN(c)}`,
+    key: "interview_reminder", label: "Áminning um áætlunarsamtal", subject: "Áminning: áætlunarsamtal",
+    body: (c) => `Hæ ${c.firstName}. Minnum á áætlunarsamtalið ${when(c.interviewAt)}${c.interviewMode === "video" ? " í myndsímtali" : c.interviewSite ? ` á ${c.interviewSite}` : ""}. Við förum yfir lífsstílinn og markmiðin og gerum áætlun saman.${c.meetingUrl ? `\n\nHlekkur á fjarfundinn: ${c.meetingUrl}` : ""}${SIGN(c)}`,
   },
   {
     key: "plan_ready", label: "Áætlun tilbúin", subject: "Aðgerðaáætlunin þín er tilbúin",

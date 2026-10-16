@@ -29,8 +29,8 @@ import { Kicker, Shimmer, TestBadge } from "./ui";
 
 // ── Í dag ───────────────────────────────────────────────────────────────────
 
-export function TodayView({ rows, me, isDoctor, onOpen, inbox }: {
-  rows: Row[]; me: Me; isDoctor: boolean; onOpen: OpenClient; inbox: Inbox;
+export function TodayView({ rows, me, onOpen, inbox }: {
+  rows: Row[]; me: Me; onOpen: OpenClient; inbox: Inbox;
 }) {
   const api = useWsApi();
   const [adding, setAdding] = useState(false);
@@ -43,7 +43,7 @@ export function TodayView({ rows, me, isDoctor, onOpen, inbox }: {
   /* Items this actor has cleared. The list is derived from journey state,
      so there is nothing to delete — a dismissal is recorded separately and
      filtered here, keyed by task as well as journey, so clearing "book a
-     follow-up" does not also hide "the report needs confirming". */
+     follow-up" does not also hide "waiting for the report". */
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [dismissErr, setDismissErr] = useState("");
   const toast = useToast();
@@ -91,10 +91,10 @@ export function TodayView({ rows, me, isDoctor, onOpen, inbox }: {
   }, [api, toast]);
 
   const tasks = useMemo(
-    () => rows.map((r) => { const t = nextTask(r, isDoctor); return { r, t, f: rowFlags(r, t) }; })
+    () => rows.map((r) => { const t = nextTask(r); return { r, t, f: rowFlags(r, t) }; })
       .filter((x) => x.f.rank < 2 && !dismissed.has(`${x.r.id}:${x.t.key}`))
       .sort((a, b) => a.f.rank - b.f.rank || b.f.waitingDays - a.f.waitingDays),
-    [rows, isDoctor, dismissed],
+    [rows, dismissed],
   );
   // People who wrote and have not had an answer. Oldest first: whoever has
   // waited longest is next.
@@ -171,7 +171,7 @@ export function TodayView({ rows, me, isDoctor, onOpen, inbox }: {
       {adding && (
         <Sheet title="Nýr skjólstæðingur" onClose={() => setAdding(false)} max="max-w-lg">
           <div className="px-4 pb-6 sm:px-5">
-            <ReportIntake api={api} narrow expanded onOpen={(journeyId) => { setAdding(false); onOpen(journeyId); }} />
+            <ReportIntake api={api} narrow expanded inviteOnly onOpen={(journeyId) => { setAdding(false); onOpen(journeyId); }} />
           </div>
         </Sheet>
       )}
@@ -202,7 +202,7 @@ function TaskRow({ r, t, f, onOpen, onDismiss }: {
       <button type="button" onClick={() => onOpen(r.id)} className="min-w-0 flex-1 rounded-lg text-left hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand">
         <span className="block font-semibold text-hc-ink">{cleanName(r.client_name)} {isTest(r.client_name) && <TestBadge />}</span>
         <span className="block text-sm text-hc-ink-2">
-          <span className={f.reportLate ? "font-semibold text-hc-bad-ink" : ""}>{t.label}</span>
+          <span>{t.label}</span>
           {f.waitingDays > 2 && <span> · {f.waitingDays} d.</span>}
         </span>
       </button>
@@ -226,7 +226,7 @@ interface Ev {
 }
 
 const KIND_IS: Record<string, string> = {
-  interview: "Viðtal", followup: "Eftirfylgd", measure: "Mælingar", video: "Myndsímtal", measurement: "Mæling",
+  interview: "Áætlunarsamtal", followup: "Eftirfylgd", measure: "Mælingartími", video: "Myndsímtal", measurement: "Mæling",
 };
 
 /*
@@ -282,7 +282,7 @@ function TodayAppointments({ onOpen }: { onOpen: OpenClient }) {
                   {e.journey_id && (
                     <button type="button" className={`${wsBtn.secondary} flex-1`}
                       onClick={() => onOpen(e.journey_id, iv ? { tab: "status", sheet: "interview" } : { tab: "status" })}>
-                      {iv ? (e.kind === "followup" ? "Eftirfylgd" : "Viðtal") : "Opna"} <ArrowRight className="h-4 w-4" aria-hidden />
+                      {iv ? (e.kind === "followup" ? "Eftirfylgd" : "Áætlunarsamtal") : "Opna"} <ArrowRight className="h-4 w-4" aria-hidden />
                     </button>
                   )}
                   {e.meeting_url && !e.done && (

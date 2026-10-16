@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { removeReportDerivedResults } from "@/lib/hc/report-store";
 import { currentJourney, hcAudit, requireUser } from "@/lib/hc/server";
 
 export const runtime = "nodejs";
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
     // consultation is not this row, and staff keep their own access; what
     // the person is declining is having it rendered back to them here.
     await supabaseAdmin.from("hc_reports").delete().eq("id", row.id);
+    await removeReportDerivedResults(journey.id);
     await hcAudit(`self:${user.id}`, "report_provenance_declined", journey.id, {
       report_date: row.report_date, requested_by: row.approval_requested_by,
     });

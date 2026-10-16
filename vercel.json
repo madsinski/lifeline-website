@@ -37,10 +37,6 @@
       "schedule": "30 7 * * *"
     },
     {
-      "path": "/api/cron/hc-report-escalation",
-      "schedule": "* * * * *"
-    },
-    {
       "path": "/api/cron/hc-reminders",
       "schedule": "15 * * * *"
     },

@@ -75,7 +75,7 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
             {pending.reportDate ? ` frá ${pending.reportDate}` : ""}.
           </p>
           <p className="mt-1 text-sm text-hc-ink-2">
-            Staðfestu að skýrslan sé þín og að þú hafir beðið um að hún færi hér inn. Þá birtist hún
+            Staðfestu að skýrslan sé þín og að þú hafir leyft að hún færi hér inn. Þá birtist hún
             á þínum síðum og áætlunin þín byggir á henni.
           </p>
           <p className="mt-2 text-xs text-hc-ink-2">
@@ -97,10 +97,12 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
               Nei, taka hana út
             </button>
           </div>
-          {/* Nobody should have to wonder whether saying no costs them care. */}
+          {/* Nobody should have to wonder whether saying no costs them care.
+              "Nei" deletes the row (/api/hc/report/approve), so this must not
+              promise that anybody at Lifeline keeps the results. */}
           <p className="mt-2 text-xs text-hc-ink-2">
-            Þótt þú takir hana út heldur þjónustan áfram. Hjúkrunarfræðingurinn þinn hefur áfram
-            aðgang að niðurstöðunum vegna meðferðarinnar.
+            Þótt þú takir hana út heldur þjónustan áfram. Afritið er þá fjarlægt úr appinu en
+            skýrslan sjálf er áfram í sjúklingagáttinni.
           </p>
         </div>
       </div>

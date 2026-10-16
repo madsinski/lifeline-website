@@ -34,7 +34,7 @@ const schema = z.object({
 
 export type RulesExtraction = z.infer<typeof schema>;
 
-const SYSTEM = `You read Icelandic union health-fund rules (reglur sjúkrasjóðs / styrktarsjóðs) and extract what the fund pays toward a preventive lifestyle health check sold by a licensed provider (blood test, measurements, doctor-confirmed report, nurse interview, 3-month action plan), and toward follow-up nurse consultations.
+const SYSTEM = `You read Icelandic union health-fund rules (reglur sjúkrasjóðs / styrktarsjóðs) and extract what the fund pays toward a preventive lifestyle health check sold by a licensed provider (blood test, measurements, the report and a doctor interview on it, a nurse plan session, 3-month action plan), and toward follow-up nurse consultations.
 Look for categories such as: heilsufarsskoðun, heilsumat, forvarnir, líkamsrækt/heilsurækt (only if a health check is explicitly included), hjartavernd, krabbameinsleit, sálfræðiþjónusta/viðtalsmeðferð, heilsuefling.
 Never invent numbers. If the document does not state something, return null. If no category plausibly covers the service, set applies=false. Quote the source sentence.`;
 

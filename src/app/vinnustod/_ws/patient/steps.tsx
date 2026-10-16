@@ -1,11 +1,10 @@
 "use client";
 
 // The bodies of a client's workspace that are not the interview: the report
-// and its confirmation, payments, plan adherence and the audit trail.
+// copy, payments, plan adherence and the audit trail.
 
 import { useState } from "react";
-import { Bell, Check, Droplet, Loader2, Ruler, Send, Stethoscope } from "lucide-react";
-import { useDialog } from "@/app/components/account/ui";
+import { Bell, Check, ExternalLink, FileText, Loader2, Send } from "lucide-react";
 import ResultsCard, { sexOf } from "@/app/components/hc/ResultsCard";
 import ReportView from "@/app/components/hc/ReportView";
 import BeforeAfter from "@/app/components/hc/BeforeAfter";
@@ -13,8 +12,8 @@ import type { WsApi } from "@/app/components/hc/ws-api";
 import { adherence, NUDGE_IS, nudgeStatus } from "@/lib/hc/adherence";
 import { EVENT_LABELS, type JourneyEvent } from "@/lib/hc/events-labels";
 import { PILLAR_META, type InterviewNotes, type PlanGoal, type Pillar } from "@/lib/hc/types";
-import { day, dayTime, isDate, minutesSince, wsBtn } from "../format";
-import type { Detail, Record_ } from "../tasks";
+import { day, dayTime, isDate, wsBtn } from "../format";
+import { reportOnFile, type Detail, type Record_ } from "../tasks";
 
 /*
  * One action's outcome. These buttons used to print a failure in the same
@@ -45,34 +44,51 @@ const Spin = () => <Loader2 className="h-4 w-4 animate-spin" aria-hidden />;
 /** The report panel's one-line status, under its title on Skýrsla. */
 export function resultsStatus(d: Detail): string {
   const j = d.journey;
-  const hasResults = (d.results ?? []).length > 0;
-  const resultsIn = !!(j.blood_results_at && j.measurements_done_at);
-  if (j.report_generated_at) return `Staðfest ${dayTime(j.report_generated_at)}${j.report_sms_sent_at ? " · deilt með skjólstæðingi" : ""}`;
-  if (d.report) return `Heilsufarsskýrsla ${isDate(d.report.report.reportDate)} · ${d.report.report.items.length} niðurstöður · bíður staðfestingar læknis`;
-  if (hasResults) return `${(d.results ?? []).length} gildi skráð${j.blood_results_at ? ` · blóðprufa ${day(j.blood_results_at)}` : ""}`;
-  return resultsIn ? "Rannsóknir komnar — lestu skýrsluna inn" : "Bíður blóðprufu og mælinga";
+  if (d.report) return `Afrit af skýrslu frá ${isDate(d.report.report.reportDate)} · ${d.report.report.items.length} niðurstöður`;
+  if (reportOnFile(j)) return "Afrit á skrá";
+  return j.staff_import_consent_at ? "Engin skýrsla á skrá · leyfi til að sækja hana" : "Engin skýrsla á skrá";
 }
 
-export function ResultsStep({ d, api, isDoctor, record, reload }: {
-  d: Detail; api: WsApi; isDoctor: boolean; record: Record_; reload: () => Promise<void>;
+/** Follow-up measurements only: the health check's own are entered in Medalia. */
+const FOLLOWUP_CATEGORIES: ("blood" | "body")[] = ["body"];
+
+const MEDALIA_URL = "https://provider.medalia.is";
+
+/*
+ * Skýrsla since the Medalia split (2026-10-16).
+ *
+ * The report is produced and signed in Medalia, and the original lives in
+ * the sjúklingagátt. What is here is the client's copy — their own upload,
+ * or one a member of staff fetched with their leave — so it is shown as a
+ * copy, nobody confirms or shares it from here, and the import is only
+ * offered once the client has said yes (staff_import_consent_at; the route
+ * answers 403 without it).
+ */
+export function ResultsStep({ d, api, reload, onAskConsent }: {
+  d: Detail; api: WsApi; reload: () => Promise<void>;
+  /** Opens the message sheet on the "may we fetch your report?" template. */
+  onAskConsent: () => void;
 }) {
   const j = d.journey;
-  const bloodDone = !!(j.blood_test_done_at || j.blood_results_at);
-  const manual = useAction(record);
+  const consent = j.staff_import_consent_at ?? null;
+  const fromClient = d.reportProvenance?.source === "self" || (!!j.own_report_at && !j.report_imported_at);
   return (
     <div className="space-y-4">
-      {/* Tests recorded by hand when no partner system does it. */}
-      {!d.report && (!bloodDone || !j.measurements_done_at) && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-hc-sunken px-3 py-2 text-sm">
-          <span className="text-hc-ink-2">Skrá handvirkt:</span>
-          {!bloodDone && <button type="button" disabled={!!manual.busy} onClick={() => void manual.run("blood", { event: "blood_test_done" }, "Blóðprufa skráð.")} className={wsBtn.secondary}>{manual.busy === "blood" ? <Spin /> : <Droplet className="h-4 w-4" aria-hidden />} Blóðprufa tekin</button>}
-          {!j.measurements_done_at && <button type="button" disabled={!!manual.busy} onClick={() => void manual.run("measure", { event: "measurements_done" }, "Mælingar skráðar.")} className={wsBtn.secondary}>{manual.busy === "measure" ? <Spin /> : <Ruler className="h-4 w-4" aria-hidden />} Mælingar gerðar</button>}
-        </div>
-      )}
-      <OutcomeLine out={manual.out} />
       {d.compare && <BeforeAfter c={d.compare} />}
-      {d.report && (
+      {d.report ? (
         <>
+          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-hc-sunken px-3 py-2 text-sm">
+            <FileText className="h-4 w-4 shrink-0 text-hc-ink-2" aria-hidden />
+            <span className="min-w-0 flex-1 font-semibold text-hc-ink">
+              Afrit — frumrit í sjúklingagáttinni
+              <span className="block text-xs font-normal text-hc-ink-2">
+                {fromClient ? "Skjólstæðingurinn setti afritið inn sjálfur." : "Sótt af starfsfólki með leyfi skjólstæðingsins."}
+              </span>
+            </span>
+            <a href={MEDALIA_URL} target="_blank" rel="noopener noreferrer" className={wsBtn.secondary}>
+              <ExternalLink className="h-4 w-4" aria-hidden /> Opna í Medalia
+            </a>
+          </div>
           <ReportView report={d.report.report} signals={d.report.signals}
             reference={d.report.reference} sex={d.report.sex} />
           <p className="text-xs text-hc-ink-2">
@@ -80,70 +96,38 @@ export function ResultsStep({ d, api, isDoctor, record, reload }: {
             þeim ber ekki saman birtist orðalag hennar við gildið.
           </p>
         </>
+      ) : (
+        <div className="space-y-2 rounded-xl bg-hc-sunken p-3">
+          <p className="text-sm font-semibold text-hc-ink">Engin skýrsla á skrá hér</p>
+          <p className="text-sm text-hc-ink-2">
+            Skýrslan verður til og er undirrituð í Medalia. Hér er aðeins afrit skjólstæðingsins: hann setur það inn sjálfur í appinu,
+            eða leyfir okkur að sækja það fyrir sig.
+          </p>
+          {consent ? (
+            <p className="flex items-start gap-1.5 text-sm text-hc-ok-ink">
+              <Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              Leyfi til að sækja afritið fékkst {dayTime(consent)}. Sæktu PDF-skýrsluna í sjúklingagáttina og notaðu „Lesa inn skýrslu“ hér fyrir neðan.
+            </p>
+          ) : (
+            <p className="text-sm text-hc-ink-2">Skjólstæðingurinn hefur ekki leyft starfsfólki að sækja afritið.</p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {!consent && (
+              <button type="button" onClick={onAskConsent} className={wsBtn.primary}>
+                <Send className="h-4 w-4" aria-hidden /> Biðja um leyfi
+              </button>
+            )}
+            <a href={MEDALIA_URL} target="_blank" rel="noopener noreferrer" className={wsBtn.secondary}>
+              <ExternalLink className="h-4 w-4" aria-hidden /> Opna í Medalia
+            </a>
+          </div>
+        </div>
       )}
       <ResultsCard api={api} journeyId={j.id} sex={sexOf(d.patient.sex)} results={d.results ?? []}
-        reportShown={!!d.report} onSaved={() => void reload()} />
-      <ReportStep d={d} isDoctor={isDoctor} record={record} />
-    </div>
-  );
-}
-
-function ReportStep({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; record: Record_ }) {
-  const j = d.journey;
-  const { busy, out, run } = useAction(record);
-  const dialog = useDialog();
-  // Confirmed: the remaining question is whether the client has been told it
-  // is there. The report lives on their account, so sharing it is a message
-  // pointing at it rather than an attachment.
-  if (j.report_generated_at) {
-    const shared = j.report_sms_sent_at;
-    return (
-      <div className="space-y-2 rounded-xl bg-hc-sunken p-3">
-        <p className="text-sm text-hc-ink-2">
-          Skýrslan var staðfest {dayTime(j.report_generated_at)}. Hún er í Medalia og á aðgangi skjólstæðingsins.
-        </p>
-        {shared ? (
-          <p className="flex items-center gap-1.5 text-sm text-hc-ok-ink">
-            <Check className="h-4 w-4" aria-hidden /> Deilt með skjólstæðingi {dayTime(shared)}.
-          </p>
-        ) : (
-          <p className="text-sm text-hc-ink-2">Skjólstæðingurinn hefur ekki fengið sérstaka ábendingu um að hún sé tilbúin.</p>
-        )}
-        <button type="button" disabled={!!busy}
-          onClick={() => void run("share", { action: "share_report" }, "Skýrslunni deilt — skjólstæðingurinn fékk skilaboð.")}
-          className={shared ? wsBtn.secondary : wsBtn.primary}>
-          {busy === "share" ? <Spin /> : <Send className="h-4 w-4" aria-hidden />} {shared ? "Senda aftur" : "Deila með skjólstæðingi"}
-        </button>
-        <OutcomeLine out={out} />
-      </div>
-    );
-  }
-  if (!j.blood_results_at && !j.report_imported_at) return <p className="text-sm text-hc-ink-2">Skýrslan er staðfest þegar blóðprufusvörin eru komin.</p>;
-  return (
-    <div className="space-y-2">
-      {isDoctor ? (
-        <>
-          <p className="text-sm text-hc-ink-2">Farðu yfir gildin að ofan og staðfestu skýrsluna. Skjólstæðingurinn fær tölvupóst um leið.</p>
-          <button type="button" disabled={!!busy}
-            onClick={async () => {
-              /* The client is emailed the moment this is pressed. */
-              const ok = await dialog.confirm({
-                title: "Staðfesta skýrsluna?",
-                body: "Skjólstæðingurinn fær tölvupóst um að skýrslan sé tilbúin.",
-                confirmLabel: "Staðfesta",
-              });
-              if (ok) void run("confirm", { event: "report_generated" }, "Skýrsla staðfest.");
-            }}
-            className={`${wsBtn.primary} w-full sm:w-auto`}>{busy === "confirm" ? <Spin /> : <Stethoscope className="h-4 w-4" aria-hidden />} Staðfesta skýrsluna</button>
-        </>
-      ) : (
-        <p className="text-sm text-hc-warn-ink">
-          {j.report_imported_at
-            ? "Skýrslan er komin inn og bíður staðfestingar læknis. Þú getur bókað og undirbúið viðtalið; skjólstæðingurinn sér skýrsluna þegar læknir hefur staðfest hana."
-            : `Svörin komu fyrir ${minutesSince(j.blood_results_at)} mínútum. Læknir fær SMS ef skýrslan er ekki staðfest innan fimm mínútna.`}
-        </p>
-      )}
-      <OutcomeLine out={out} />
+        reportShown={!!d.report} onSaved={() => void reload()}
+        categories={FOLLOWUP_CATEGORIES} title="Eftirfylgdarmælingar (skráðar líka í Medalia)"
+        allowImport={!!consent} importOnBehalf
+        emptyText="Engar eftirfylgdarmælingar skráðar. Mælingar heilsufarsskoðunarinnar eru skráðar í Medalia; hér skráir þú mælingar í eftirfylgd til að nota í þjálfuninni og skráir þær líka í Medalia." />
     </div>
   );
 }
@@ -164,7 +148,8 @@ export function Orders({ d, record }: { d: Detail; record: Record_ }) {
           </li>
         ))}
       </ul>
-      {d.journey.stage === "protocol" && (
+      {/* Paid and not activated: resend the activation code. */}
+      {d.orders.some((o) => o.paid_at) && !d.journey.protocol_activated_at && (
         <button type="button" disabled={!!busy} onClick={() => void run("remind", { action: "remind_client" }, "Áminning send.")}
           className={wsBtn.primary}>{busy ? <Spin /> : <Bell className="h-4 w-4" aria-hidden />} Senda áminningu um virkjun</button>
       )}
@@ -235,7 +220,7 @@ const ACTION_TEXT: Record<string, string> = {
   paid: "Greitt", paid_followup: "Eftirfylgd greidd", profile_complete: "Upplýsingar skráðar", welcome_seen: "Kynning skoðuð",
   plan_published: "Áætlun birt", plan_republished: "Áætlun uppfærð", plan_created: "Drög að áætlun", report_sms_escalation: "SMS til læknis",
   union_claim_sent: "Umsókn send stéttarfélagi", reminder_sent: "Áminning send", message_sent: "Skilaboð send", doctor_review_requested: "Beðið um mat læknis",
-  doctor_reviewed: "Læknir mat", protocol_confirmed_by_client: "Skjólstæðingur staðfesti virkjun", test_patient_seeded: "Prufuskjólstæðingur búinn til", set_booking: "Tími skráður af skjólstæðingi",
+  doctor_reviewed: "Læknir mat", doctor_interview_done: "Læknisviðtal í Medalia merkt lokið", protocol_confirmed_by_client: "Skjólstæðingur staðfesti virkjun", test_patient_seeded: "Prufuskjólstæðingur búinn til", set_booking: "Tími skráður af skjólstæðingi",
 };
 function actionText(a: string) {
   if (a.startsWith("event:")) return EVENT_LABELS[a.slice(6) as JourneyEvent] ?? a;
