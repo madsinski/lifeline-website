@@ -253,15 +253,16 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
       .update({ staff_import_consent_requested_at: now, staff_import_consent_request_seen_at: null }).eq("id", journey.id);
     if (error) return NextResponse.json({ error: "Tókst ekki að vista beiðnina." }, { status: 500 });
     const sent = await notifyClient(journey.client_id, {
-      title: "Má hjúkrunarfræðingur setja skýrsluna inn?",
-      body: "Opnaðu appið til að veita leyfi eða setja skýrsluna inn.",
+      // Generic on the lock screen and at the carrier; the request itself is in the app.
+      title: "Ný beiðni frá Lifeline",
+      body: "Opnaðu appið til að skoða hana.",
       url: "/app?leyfi=1",
       tag: `consent-${journey.id}`,
-      sms: `Lifeline: Hjúkrunarfræðingurinn þinn biður um leyfi til að setja skýrsluna þína úr sjúklingagáttinni inn í appið. Opnaðu ${origin}/app?leyfi=1`,
+      sms: `Lifeline: Beiðni bíður þín í appinu. Opnaðu ${process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.lifelinehealth.is"}/app?leyfi=1`,
       email: {
         subject: "Má hjúkrunarfræðingur setja skýrsluna þína inn?",
         text: "Hjúkrunarfræðingurinn þinn hjá Lifeline biður um leyfi til að sækja skýrsluna þína úr sjúklingagáttinni og setja afrit af henni inn í appið, svo hægt sé að gera áætlunina þína. Þú getur líka sett hana inn í appinu. Þú ræður.",
-        cta: { label: "Opna appið", url: `${origin}/app?leyfi=1` },
+        cta: { label: "Opna appið", url: `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.lifelinehealth.is"}/app?leyfi=1` },
       },
     });
     await hcAudit(actor.label, "staff_import_consent_requested", journey.id, { pushed: sent.pushed, texted: sent.texted, emailed: sent.emailed });

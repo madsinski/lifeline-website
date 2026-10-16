@@ -39,7 +39,8 @@ export async function sendPush(clientId: string, payload: PushPayload, opts: { p
        frá Lifeline" (hc_notify_prefs; no row = on), not by the opt-in
        daily-reminder channels. */
     const { data: np, error } = await supabaseAdmin.from("hc_notify_prefs").select("push").eq("client_id", clientId).maybeSingle();
-    if (!error && np && np.push === false) return 0;
+    // Fail closed: if the choice cannot be read, do not push.
+    if (error || (np && np.push === false)) return 0;
   } else {
     const { data: prefs } = await supabaseAdmin
       .from("hc_nudge_prefs").select("channels").eq("client_id", clientId).maybeSingle();

@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
    */
   const since = new Date(Date.now() - 10 * 60_000).toISOString();
   const { count: tries } = await supabaseAdmin.from("hc_audit").select("id", { count: "exact", head: true })
-    .eq("actor", `self:${user.id}`).eq("action", "subscribe_try").gte("created_at", since);
+    .eq("actor", `self:${user.id}`).eq("action", "subscribe_try").gte("at", since);
   if ((tries ?? 0) >= 10) return NextResponse.json({ error: "Of margar tilraunir. Reyndu aftur eftir smástund." }, { status: 429 });
   await supabaseAdmin.from("hc_audit").insert({ actor: `self:${user.id}`, action: "subscribe_try", journey_id: null, detail: {} });
 

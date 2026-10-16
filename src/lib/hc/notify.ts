@@ -29,15 +29,25 @@ export async function notifyClient(clientId: string, msg: { title: string; body:
   const prefs = await getNotifyPrefs(clientId);
   const pushed = prefs.push ? await sendPush(clientId, { title: msg.title, body: msg.body, url: msg.url, tag: msg.tag }, { purpose: "message" }).catch(() => 0) : 0;
   let texted = false;
-  if (prefs.sms && msg.sms && smsConfigured()) {
+  /* At most three staff-triggered texts per person per day, whoever sends
+     them: a compromised or careless account must not be able to flood a phone. */
+  let smsAllowed = true;
+  if (prefs.sms && msg.sms) {
+    const { count } = await supabaseAdmin.from("hc_audit").select("id", { count: "exact", head: true })
+      .eq("actor", "system:notify").eq("action", "notify_sms").gte("at", new Date(Date.now() - 86_400_000).toISOString())
+      .contains("detail", { client_id: clientId });
+    smsAllowed = (count ?? 0) < 3;
+  }
+  if (prefs.sms && msg.sms && smsAllowed && smsConfigured()) {
     const { data: c } = await supabaseAdmin.from("clients_decrypted").select("phone").eq("id", clientId).maybeSingle();
     if (c?.phone) texted = (await sendSms({ to: c.phone, body: msg.sms }).catch(() => ({ ok: false }))).ok;
+    if (texted) await supabaseAdmin.from("hc_audit").insert({ actor: "system:notify", action: "notify_sms", journey_id: null, detail: { client_id: clientId } });
   }
   let emailed = false;
   if (prefs.email && msg.email) {
     const { data: au } = await supabaseAdmin.auth.admin.getUserById(clientId);
     if (au?.user?.email) {
-      const esc = (x: string) => x.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+      const esc = (x: string) => x.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
       emailed = (await sendEmail({
         to: au.user.email, subject: msg.email.subject, text: msg.email.text,
         html: renderBrandedEmail({
