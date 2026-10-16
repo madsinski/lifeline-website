@@ -1,381 +1,46 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { tenantForHost, isAdminRouteAllowed } from "@/lib/tenant";
+import { fetchMyStaffProfile, type MyStaffProfile } from "@/lib/useStaffGuard";
+import { useScrollLock } from "@/lib/hc/use-scroll-lock";
+import { DialogProvider, Alert } from "@/app/components/account/ui";
+import { ToastProvider } from "@/app/components/hc/Toast";
+import Badge from "@/app/components/hc/Badge";
+import {
+  NAV_GROUPS, navItemForPath, canSeeItem, canOpenPath, homeFor, isAdminLevel, isSystemRoute,
+  breadcrumbsFor, ROLE_LABELS, type BadgeKey, type NavGroup,
+} from "./components/admin-nav";
 
-// Heroicons v2 outline style, stroke 1.5 for a finer professional line.
-// All icons share a single emerald-neutral monochrome palette via currentColor.
-const sidebarLinks = [
-  {
-    href: "/admin",
-    label: "Dashboard",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/coach",
-    label: "Coach",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/heilsuferd",
-    label: "Heilsuferð",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/unions",
-    label: "Stéttarfélög",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/vinnustod",
-    label: "Vinnustöð",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/knowledge",
-    label: "Uppflettirit",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/lectures",
-    label: "Fræðsla",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/clients",
-    label: "Clients",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-      </svg>
-    ),
-    badgeType: "clients" as const,
-  },
-  {
-    href: "/admin/conversations",
-    label: "Conversations",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" />
-      </svg>
-    ),
-    badge: true,
-    badgeType: "feedback" as const,
-  },
-  {
-    href: "/admin/scheduling",
-    label: "Scheduling",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/bookings",
-    label: "Bookings",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
-      </svg>
-    ),
-    badgeType: "refund-requests" as const,
-  },
-  {
-    href: "/admin/content",
-    label: "Content",
-    badgeType: "audit",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/presentations",
-    label: "Presentations",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h12a2.25 2.25 0 002.25-2.25V3M3.75 3h16.5M3.75 3H2.25m18 0h1.5m-18 13.5L12 21m0 0l5.25-4.5M12 21V11.25" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/website",
-    label: "Website",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/research",
-    label: "Research",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/business",
-    label: "Business",
-    badgeType: "business",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/access",
-    label: "Access",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/communication",
-    label: "Communication",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/analytics",
-    label: "Analytics",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/legal",
-    label: "Legal",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/beta",
-    label: "Beta",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/releases",
-    label: "Releases",
-    icon: (
-      // Tag / version icon — Heroicons "tag" outline.
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/station-instructions",
-    label: "Station guide",
-    icon: (
-      // Document / clipboard-list icon.
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/surveys",
-    label: "Surveys",
-    badgeType: "surveys",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/ai-test-bench",
-    label: "AI test bench",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/ai-feedback",
-    label: "AI feedback",
-    badgeType: "ai-feedback",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/errors",
-    label: "Error logs",
-    badgeType: "errors",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/security",
-    label: "Intruder watch",
-    badgeType: "security",
-    icon: (
-      // Shield with an exclamation mark.
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.249-8.25-3.286zm0 13.036h.008v.008H12v-.008z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/wearable-issues",
-    label: "Wearable issues",
-    badgeType: "wearable-issues",
-    icon: (
-      // Smartwatch: rounded face with strap nubs top/bottom and a side button.
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <rect x="6" y="6" width="12" height="12" rx="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 3h6M9 21h6M18.75 10.5v3" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75V12l1.5 1.5" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/action-feedback",
-    label: "Action feedback",
-    badgeType: "action-feedback",
-    icon: (
-      // Circle with a slash — "removed from plan" feedback.
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 1 0 5.636 5.636a9 9 0 0 0 12.728 12.728zM5.636 5.636L18.364 18.364" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/onboarding-bench",
-    label: "Onboarding bench",
-    icon: (
-      // Construct / wrench icon — this is a developer-facing bench
-      // for inspecting + tuning the new-user flow.
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/wellness-pulse-bench",
-    label: "Wellness pulse bench",
-    icon: (
-      // Heartbeat / sparkline — wellness pulse self-assessment
-      // preview. Staff-only test surface; never collects user data.
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h3l3-9 4.5 18 3-9h3.75" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/access-review",
-    label: "Access review",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-      </svg>
-    ),
-    badge: true,
-    badgeType: "access-review" as const,
-  },
-  {
-    href: "/admin/data-requests",
-    label: "Privacy requests",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-      </svg>
-    ),
-    badge: true,
-    badgeType: "data-requests" as const,
-  },
-  {
-    href: "/admin/settings",
-    label: "Settings",
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a6.759 6.759 0 010 .255c-.008.378.137.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
-  },
-];
+// The navigation + access map lives in components/admin-nav.tsx: one table
+// drives both the grouped sidebar and the route guard below, so a role can
+// open by URL exactly what its sidebar shows.
 
-function getBreadcrumbs(pathname: string) {
-  const segments = pathname.split("/").filter(Boolean);
-  const crumbs: { label: string; href: string }[] = [];
-  let path = "";
-  for (const seg of segments) {
-    path += "/" + seg;
-    const label = seg.charAt(0).toUpperCase() + seg.slice(1).replace(/-/g, " ");
-    crumbs.push({ label, href: path });
-  }
-  return crumbs;
+const FOCUS_DARK = "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1F2937]";
+
+function Spinner({ label }: { label: string }) {
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div role="status" aria-label={label} className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10B981]" />
+    </div>
+  );
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<boolean | null>(null);
+  const [staff, setStaff] = useState<MyStaffProfile | null>(null);
+  const [profileError, setProfileError] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [devOpen, setDevOpen] = useState(false);
   const [coachingView, setCoachingView] = useState(false);
+  const [denied, setDenied] = useState<{ label: string; at: string } | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string>("coach");
-  const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [newClientsCount, setNewClientsCount] = useState(0);
   const [unresolvedFeedbackCount, setUnresolvedFeedbackCount] = useState(0);
@@ -385,20 +50,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [openErrorsCount, setOpenErrorsCount] = useState(0);
   const [openSecurityCount, setOpenSecurityCount] = useState(0);
   const [openAiFeedbackCount, setOpenAiFeedbackCount] = useState(0);
-  const [pendingSurveysCount, setPendingSurveysCount] = useState(0);
   const [newSurveyResponsesCount, setNewSurveyResponsesCount] = useState(0);
   const [newBookingsCount, setNewBookingsCount] = useState(0);
   const [newCompaniesCount, setNewCompaniesCount] = useState(0);
   const [untaggedActionsCount, setUntaggedActionsCount] = useState(0);
   const [openWearableIssuesCount, setOpenWearableIssuesCount] = useState(0);
   const [newActionFeedbackCount, setNewActionFeedbackCount] = useState(0);
-  const isAdmin = userRole === "admin" || userPermissions.includes("manage_team");
-  // Medical advisor gets the full sidebar visibility but is read-only on
-  // everything except surveys. Treat them as "view-all" for sidebar
-  // filtering, but the strict isAdmin still blocks the coaching-view
-  // toggle and other admin-only affordances.
-  const canViewAllSections = isAdmin || userRole === "medical_advisor";
-  const isReadOnlyView = userRole === "medical_advisor";
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+
+  const role = staff?.role ?? null;
+  const permissions: readonly string[] = staff?.permissions ?? [];
+  const isAdmin = isAdminLevel(role, permissions);
+  const isReadOnlyView = role === "medical_advisor";
 
   // --- Tenant (multi-host) -------------------------------------------------
   // The same app is served on the Lifeline hosts and a Fjarlækningar host. On
@@ -411,18 +75,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Redirect away from modules this tenant doesn't expose. Fires only on real
   // module routes (or the bare dashboard) once authed — login/mfa/onboard and
-  // other system routes never match a sidebar href, so auth flows are untouched.
+  // other system routes are never modules, so auth flows are untouched.
   useEffect(() => {
     if (!session || !tenant.adminNav) return;
-    const isModule = sidebarLinks.some((l) => l.href !== "/admin" && pathname.startsWith(l.href));
+    const isModule = pathname !== "/admin" && !isSystemRoute(pathname) && navItemForPath(pathname) !== null;
     if (!isModule && pathname !== "/admin") return;
     if (!isAdminRouteAllowed(tenant, pathname)) router.replace(tenant.adminHome);
   }, [session, tenant, pathname, router]);
 
-  // Coaching-view preference is resolved inside loadStaffProfile once
-  // the role is known — we used to read it here on mount, which made
-  // the toggle "stick" for users whose role had changed (e.g. coach
-  // promoted back to admin still saw the coach sidebar).
+  // Role guard. The same map that filters the sidebar decides whether this
+  // route may render at all, so a typed or bookmarked URL is held to the
+  // sidebar. While a redirect is pending the page is not rendered (see the
+  // spinner below), so a disallowed page never mounts or fetches.
+  const routeAllowed = !!staff && canOpenPath(pathname, staff.role, staff.permissions);
+  useEffect(() => {
+    if (!session || !staff || canOpenPath(pathname, staff.role, staff.permissions)) return;
+    const home = homeFor(staff.role);
+    const label = navItemForPath(pathname)?.label;
+    const t = setTimeout(() => {
+      setDenied({ label: label ?? "þessari síðu", at: home });
+      router.replace(home);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [session, staff, pathname, router]);
 
   // Per-tab "last visit" timestamps stored in localStorage. Used as
   // the lower bound for the "new since you last looked" badges so they
@@ -503,16 +178,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .select("*", { count: "exact", head: true })
         .in("status", ["open", "reviewed"]);
       if (!aifbErr && aifbCount !== null) setOpenAiFeedbackCount(aifbCount);
-    } catch {}
-    // Surveys awaiting approval — admin/medical_advisor needs to
-    // review the question structure. Always-on signal (kept for the
-    // hub's own status pills, not the sidebar badge).
-    try {
-      const { count: srvCount, error: srvErr } = await supabase
-        .from("feedback_surveys")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "pending_approval");
-      if (!srvErr && srvCount !== null) setPendingSurveysCount(srvCount);
     } catch {}
     // New survey responses since the user last visited /admin/surveys.
     try {
@@ -608,6 +273,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       "/admin/bookings": "last_seen_bookings",
       "/admin/surveys": "last_seen_surveys",
       "/admin/business": "last_seen_business",
+      "/admin/companies": "last_seen_business",
       "/admin/action-feedback": "last_seen_action_feedback",
     };
     let touched = false;
@@ -616,11 +282,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         try { localStorage.setItem(key, new Date().toISOString()); touched = true; } catch {}
       }
     }
-    if (touched) loadCounts();
+    if (!touched) return;
+    const t = setTimeout(() => void loadCounts(), 0);
+    return () => clearTimeout(t);
   }, [pathname, loadCounts]);
 
   useEffect(() => {
-    loadCounts();
+    const first = setTimeout(() => void loadCounts(), 0);
     const interval = setInterval(loadCounts, 30000);
 
     // Real-time subscription for instant unread count updates
@@ -635,200 +303,144 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .subscribe();
 
     return () => {
+      clearTimeout(first);
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [loadCounts]);
 
-  const loadStaffProfile = async (email: string) => {
-    try {
-      const { data } = await supabase
-        .from("staff")
-        .select("role, permissions")
-        .eq("email", email)
-        .eq("active", true)
-        .maybeSingle();
-      // SECURITY: any auth'd user was previously falling through here
-      // when they had no staff row — they'd see the admin shell with
-      // empty sidebars and "coach" defaults. Sign them out and bounce
-      // to /admin/login.
-      if (!data && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
-        try { await supabase.auth.signOut(); } catch {}
-        router.replace("/admin/login?reason=not_staff");
-        return;
-      }
-      if (data) {
-        setUserRole(data.role || "coach");
-        setUserPermissions((data.permissions as string[]) || []);
-        // External counsel ("lawyer") only ever sees the Legal section.
-        // If they land on anything else, bounce them to the drafts viewer.
-        if (data.role === "lawyer") {
-          setCoachingView(false);
-          try { localStorage.removeItem("admin_coaching_view"); } catch {}
-          if (typeof window !== "undefined" && pathname && !pathname.startsWith("/admin/legal") && pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
-            router.replace("/admin/legal/drafts");
-          }
-          return;
-        }
-        // Medical advisor: read-everything view of the admin. They see
-        // the full sidebar (clients, conversations, scheduling, etc.) but
-        // the only writable surface is surveys (approval workflow). Reads
-        // are enforced by RLS — see migration-medical-advisor-readonly.sql;
-        // writes are blocked at both UI level (read-only banner + button
-        // gating) and DB level (UPDATE/INSERT/DELETE policies still
-        // exclude is_active_medical_advisor()).
-        //
-        // Early return — without it the coaching-view resolver below
-        // was treating them as a non-admin and locking them into the
-        // narrow coach sidebar.
-        if (data.role === "medical_advisor") {
-          setCoachingView(false);
-          try { localStorage.removeItem("admin_coaching_view"); } catch {}
-          return;
-        }
-        // Resolve the coaching-view preference:
-        //   - Non-admins (no manage_team) are locked into coaching view
-        //     and any stale localStorage value is cleared.
-        //   - Admins respect their saved preference (default: admin view).
-        const hasManageTeam = (data.permissions as string[])?.includes("manage_team");
-        const adminLevel = data.role === "admin" || hasManageTeam;
-        if (!adminLevel) {
-          setCoachingView(true);
-          try { localStorage.removeItem("admin_coaching_view"); } catch {}
-        } else {
-          try {
-            const saved = localStorage.getItem("admin_coaching_view");
-            setCoachingView(saved === "true");
-          } catch {
-            setCoachingView(false);
-          }
-        }
-      }
-    } catch {}
-  };
-
   useEffect(() => {
+    let cancelled = false;
     // Server-verify with getUser() so tokens revoked in other tabs
     // (signOut in tab A, this is tab B) don't leave the admin UI
     // falsely rendered. Only fall through to getSession() once the
     // server has confirmed the user is still active.
     (async () => {
       const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+      if (cancelled) return;
       if (!verifiedUser) {
         setSession(false);
         if (pathname !== "/admin/login") router.push("/admin/login");
         return;
       }
       const { data: { session: s } } = await supabase.auth.getSession();
-      if (s) {
-        // NOTE: setSession(true) is deliberately deferred until after the
-        // MFA gate below. Granting render here flashes the full admin UI
-        // for the redirect round-trip to /admin/mfa.
-        setUserEmail(s.user?.email ?? null);
-        if (s.user?.email) loadStaffProfile(s.user.email);
-
-        // Look up role inline before the MFA gate — loadStaffProfile is
-        // async and writes to state, but we need the role *now* to decide
-        // whether to enforce AAL2.
-        let inlineRole: string | null = null;
-        if (s.user?.email) {
-          try {
-            const { data: roleRow } = await supabase
-              .from("staff")
-              .select("role")
-              .eq("email", s.user.email)
-              .eq("active", true)
-              .maybeSingle();
-            inlineRole = (roleRow?.role as string | undefined) ?? null;
-          } catch { /* fall through */ }
-        }
-
-        // Admins get the coming-soon bypass cookie so they can browse the
-        // public marketing site without the splash. The gate is cosmetic
-        // (see src/middleware.ts) — this reuses its existing `site_preview`
-        // bypass, so production stays gated for everyone except logged-in
-        // admins. 30-day cookie; refreshed on every admin page load.
-        if (inlineRole === "admin") {
-          document.cookie = `site_preview=lifelinepreview2026; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`;
-        }
-
-        // MFA gate. Admins/clinicians/coaches handle patient data — they
-        // need a TOTP-verified session (AAL2). External counsel (lawyer)
-        // only ever sees /admin/legal/*, which contains zero patient data,
-        // so we skip MFA for that role to keep the review experience
-        // friction-free. Signoff non-repudiation comes from the
-        // authenticated session + IP + sha256 + PDF certificate stored in
-        // legal_review_signoffs, not from AAL2.
-        //
-        // Medical advisor still requires MFA — they read survey responses
-        // which can include identifying open-text quotes from clients.
-        if (inlineRole !== "lawyer") {
-          try {
-            const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-            const { data: factorsData } = await supabase.auth.mfa.listFactors();
-            const totpFactors = factorsData?.totp || [];
-            const hasFactor = totpFactors.some((f) => f.status === "verified");
-            const needsMfa = pathname !== "/admin/mfa" && pathname !== "/admin/login";
-            if (needsMfa) {
-              if (!hasFactor) {
-                router.replace("/admin/mfa?mode=enroll");
-                return;
-              }
-              if (aalData?.currentLevel !== "aal2") {
-                router.replace("/admin/mfa?mode=challenge");
-                return;
-              }
-            }
-          } catch {
-            // MFA endpoints missing or network blip — fall through to the
-            // rest of the layout so we never hard-lock out a legit admin.
-          }
-        }
-
-        // Only now — after the AAL2/MFA gate has decided no redirect is
-        // needed — is the admin shell allowed to render. The spinner
-        // stays up for sessions that are about to be bounced to MFA.
-        setSession(true);
-
-        // Staff e-signature gate: if this user has any outstanding
-        // required agreement (NDA / þagnarskylda / acceptable use /
-        // data-protection briefing) they land on /admin/onboard until
-        // all of them are signed at the current version. /admin/login
-        // and /admin/onboard itself are exempt so we don't loop.
-        // Lawyer = external counsel — they're the ones reviewing these
-        // documents, so they can't sign them as click-throughs (chicken-
-        // and-egg). Skip the gate entirely for them.
-        // Medical advisor obligations are handled in their engagement
-        // letter, similar to lawyer; skip the in-app gate.
-        if (inlineRole !== "lawyer" && inlineRole !== "medical_advisor" && pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
-          try {
-            const token = s.access_token;
-            const res = await fetch("/api/admin/staff/me/agreements", {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
-            const j = await res.json().catch(() => ({}));
-            if (res.ok && j?.ok && Array.isArray(j.pending) && j.pending.length > 0) {
-              router.replace("/admin/onboard");
-            }
-          } catch {
-            // Gate is best-effort — don't block the page on network blips.
-          }
-        }
-      } else {
+      if (cancelled) return;
+      if (!s) {
         setSession(false);
         if (pathname !== "/admin/login") router.push("/admin/login");
+        return;
+      }
+      // NOTE: setSession(true) is deliberately deferred until after the
+      // MFA gate below. Granting render here flashes the full admin UI
+      // for the redirect round-trip to /admin/mfa.
+      setUserEmail(s.user?.email ?? null);
+
+      // Role + permissions from the get_my_staff_profile() RPC — a raw
+      // `select from staff` returns a null role for invited admins whose
+      // staff.id differs from their auth id.
+      let profile: MyStaffProfile | null;
+      try {
+        profile = await fetchMyStaffProfile(s.user?.email);
+      } catch {
+        // Could not check at all (network / RPC down). Fail closed: no
+        // shell, a retry message instead.
+        if (!cancelled) setProfileError(true);
+        return;
+      }
+      if (cancelled) return;
+      // SECURITY: an authenticated user with no active staff row is signed
+      // out and bounced, never shown an empty shell with defaults.
+      if (!profile) {
+        if (pathname !== "/admin/login" && pathname !== "/admin/mfa") {
+          try { await supabase.auth.signOut(); } catch {}
+          router.replace("/admin/login?reason=not_staff");
+        }
+        return;
+      }
+      setProfileError(false);
+      setStaff(profile);
+      // Coaching view is an admin-only preview of the coach's sidebar;
+      // everybody else always sees their own role's sidebar.
+      if (isAdminLevel(profile.role, profile.permissions)) {
+        try { setCoachingView(localStorage.getItem("admin_coaching_view") === "true"); } catch { setCoachingView(false); }
+      } else {
+        setCoachingView(false);
+        try { localStorage.removeItem("admin_coaching_view"); } catch {}
+      }
+
+      // Admins get the coming-soon bypass cookie so they can browse the
+      // public marketing site without the splash. The gate is cosmetic
+      // (see src/proxy.ts) — this reuses its existing `site_preview`
+      // bypass. 30-day cookie; refreshed on every admin page load.
+      if (profile.role === "admin") {
+        document.cookie = `site_preview=lifelinepreview2026; path=/; max-age=${60 * 60 * 24 * 30}; samesite=lax`;
+      }
+
+      // MFA gate. Admins/clinicians/coaches handle patient data — they
+      // need a TOTP-verified session (AAL2). External counsel (lawyer)
+      // only ever sees /admin/legal/*, which contains zero patient data,
+      // so MFA is skipped for that role. Medical advisor still requires it.
+      //
+      // FAILS CLOSED: if the assurance level or factor list cannot be read
+      // (error result or a throw), the person goes to /admin/mfa rather
+      // than into the shell. A network blip costs a challenge; it never
+      // grants an AAL1 session the admin UI.
+      if (profile.role !== "lawyer" && pathname !== "/admin/mfa" && pathname !== "/admin/login") {
+        try {
+          const [aal, factors] = await Promise.all([
+            supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+            supabase.auth.mfa.listFactors(),
+          ]);
+          if (cancelled) return;
+          if (aal.error || factors.error || !aal.data) {
+            router.replace("/admin/mfa?mode=challenge");
+            return;
+          }
+          const hasFactor = (factors.data?.totp || []).some((f) => f.status === "verified");
+          if (!hasFactor) {
+            router.replace("/admin/mfa?mode=enroll");
+            return;
+          }
+          if (aal.data.currentLevel !== "aal2") {
+            router.replace("/admin/mfa?mode=challenge");
+            return;
+          }
+        } catch {
+          if (!cancelled) router.replace("/admin/mfa?mode=challenge");
+          return;
+        }
+      }
+
+      // Only now — after the AAL2/MFA gate has decided no redirect is
+      // needed — is the admin shell allowed to render.
+      setSession(true);
+
+      // Staff e-signature gate: outstanding required agreements (NDA /
+      // þagnarskylda / acceptable use / data-protection briefing) send the
+      // person to /admin/onboard until signed. Lawyer and medical advisor
+      // are covered by their engagement letters and skip it.
+      if (profile.role !== "lawyer" && profile.role !== "medical_advisor" && pathname !== "/admin/onboard" && pathname !== "/admin/login" && pathname !== "/admin/mfa") {
+        try {
+          const res = await fetch("/api/admin/staff/me/agreements", {
+            headers: s.access_token ? { Authorization: `Bearer ${s.access_token}` } : {},
+          });
+          const j = await res.json().catch(() => ({}));
+          if (!cancelled && res.ok && j?.ok && Array.isArray(j.pending) && j.pending.length > 0) {
+            router.replace("/admin/onboard");
+          }
+        } catch {
+          // Gate is best-effort — don't block the page on network blips.
+        }
       }
     })();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       if (s) {
         // Deliberately NOT setSession(true) here: SIGNED_IN fires before
-        // the AAL2/MFA gate above has run, and granting render here
-        // flashes the admin UI pre-MFA. The pathname-keyed effect above
-        // is the only place that grants render, after the gate. This
-        // handler only keeps profile state fresh.
+        // the AAL2/MFA gate above has run. This handler only keeps the
+        // profile fresh (a role change takes effect without a reload).
         setUserEmail(s.user?.email ?? null);
-        if (s.user?.email) loadStaffProfile(s.user.email);
+        fetchMyStaffProfile(s.user?.email).then((p) => { if (p && !cancelled) setStaff(p); }).catch(() => {});
       } else {
         setSession(false);
         if (pathname !== "/admin/login") {
@@ -837,8 +449,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [pathname, router]);
+
+  // Mobile drawer: Escape closes, Tab stays inside, focus goes back to the
+  // hamburger. The page behind does not scroll.
+  useScrollLock(drawerOpen);
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const panel = drawerRef.current;
+    const opener = hamburgerRef.current;
+    const focusables = () => Array.from(panel?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? []);
+    focusables()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.preventDefault(); setDrawerOpen(false); return; }
+      if (e.key !== "Tab") return;
+      const f = focusables();
+      if (!f.length) return;
+      const a = f[0], z = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === a || !panel?.contains(document.activeElement))) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && (document.activeElement === z || !panel?.contains(document.activeElement))) { e.preventDefault(); a.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      opener?.focus();
+    };
+  }, [drawerOpen]);
 
   // Idle-session timeout. Admins can see patient data, so if the tab
   // is left open and unattended we force a re-auth. Any mouse move /
@@ -869,290 +509,386 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <div className="min-h-screen bg-gray-100">{children}</div>;
   }
 
-  if (session === null || !session) {
+  if (profileError) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#10B981]" />
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="max-w-md">
+          <Alert tone="bad" title="Tókst ekki að staðfesta aðganginn þinn">
+            Ekki náðist samband við netþjóninn til að sækja hlutverkið þitt. Athugaðu nettenginguna og{" "}
+            <button type="button" className="font-semibold underline" onClick={() => window.location.reload()}>reyndu aftur</button>.
+          </Alert>
+        </div>
       </div>
     );
   }
+
+  if (!session || !staff) return <Spinner label="Hleð stjórnborði" />;
+  // A disallowed route: the redirect above is on its way; never mount the page.
+  if (!routeAllowed) return <Spinner label="Færi þig á yfirlitið" />;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/admin/login");
   };
 
-  const breadcrumbs = getBreadcrumbs(pathname);
-  const initials = userEmail
-    ? userEmail.substring(0, 2).toUpperCase()
-    : "AD";
+  const badgeCount = (key?: BadgeKey): number => {
+    switch (key) {
+      case "clients": return newClientsCount;
+      case "feedback": return unresolvedFeedbackCount;
+      // Bookings combines refund-requests + new bookings of any kind in the
+      // last 7 days, since both land on the same page.
+      case "refund-requests": return pendingRefundRequestsCount + newBookingsCount;
+      case "data-requests": return openDsrCount;
+      case "access-review": return overdueAccessReviewCount;
+      case "errors": return openErrorsCount;
+      case "security": return openSecurityCount;
+      case "ai-feedback": return openAiFeedbackCount;
+      // New completed responses since the last visit; pending approval is an
+      // editorial signal shown inside the surveys hub itself.
+      case "surveys": return newSurveyResponsesCount;
+      case "business": return newCompaniesCount;
+      case "audit": return untaggedActionsCount;
+      case "wearable-issues": return openWearableIssuesCount;
+      case "action-feedback": return newActionFeedbackCount;
+      default: return 0;
+    }
+  };
 
-  return (
-    <div className="min-h-screen flex bg-gray-100">
-      {/* Sidebar */}
-      <aside
-        className={`${
-          sidebarCollapsed ? "w-16" : "w-64"
-        } bg-[#1F2937] text-white flex flex-col transition-all duration-200 flex-shrink-0`}
-      >
-        {/* Brand */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700">
-          {!sidebarCollapsed && (
-            <span className="text-lg font-bold tracking-tight">
-              {tenant.id === "fjarlaekningar" ? (
-                <span style={{ color: tenant.accent }}>Fjarlækningar</span>
-              ) : (
-                <>Lifeline <span className="text-[#10B981]">{coachingView ? "Coach" : "Admin"}</span></>
-              )}
-            </span>
-          )}
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1.5 rounded hover:bg-gray-700 transition-colors"
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {sidebarCollapsed ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-              )}
-            </svg>
-          </button>
-        </div>
+  // The sidebar shows the person's own role; an admin with "Þjálfarasýn" on
+  // previews the coach's sidebar (the route guard still uses the real role).
+  const navRole = isAdmin && coachingView ? "coach" : role;
+  const navPerms = isAdmin && coachingView ? [] : permissions;
+  const groups: NavGroup[] = NAV_GROUPS
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) =>
+        canSeeItem(i, navRole, navPerms) && (!tenant.adminNav || tenant.adminNav.includes(i.href))),
+    }))
+    .filter((g) => g.items.length > 0);
+  const activeHref = navItemForPath(pathname)?.href ?? null;
+  const breadcrumbs = breadcrumbsFor(pathname);
+  const initials = userEmail ? userEmail.substring(0, 2).toUpperCase() : "AD";
+  const roleLabel = isAdmin && coachingView ? "Þjálfarasýn" : (role ? ROLE_LABELS[role] ?? role : "");
+  const showDenied = denied && pathname === denied.at;
 
-        {/* User info */}
-        <div className={`px-4 py-3 border-b border-gray-700 flex items-center gap-3 ${sidebarCollapsed ? "justify-center" : ""}`}>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ backgroundColor: tenant.accent }}>
-            {initials}
-          </div>
-          {!sidebarCollapsed && (
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{userEmail ?? "Admin"}</p>
-              <p className="text-xs text-gray-400">{isAdmin ? (coachingView ? "Health Coach" : "Administrator") : userRole.charAt(0).toUpperCase() + userRole.slice(1)}</p>
-            </div>
-          )}
-        </div>
+  const onNavigate = () => { setDrawerOpen(false); setDenied(null); };
 
-        {/* Nav Links */}
-        <nav className="flex-1 py-4 space-y-1 px-2">
-          {(userRole === "lawyer"
-            // External counsel: only Legal section visible. Everything else
-            // hidden — no clients, no messages, no scheduling, no business.
-            ? sidebarLinks.filter((l) => l.href === "/admin/legal" || l.href.startsWith("/admin/legal/"))
-            : coachingView
-            ? sidebarLinks.filter((l) => ["/admin/coach", "/admin/clients", "/admin/conversations", "/admin/scheduling", "/admin/content"].includes(l.href))
-            : sidebarLinks
-          ).filter((link) => {
-            // Tenant gate: on the Fjarlækningar host, only that tenant's
-            // module subset is shown (adminNav is null for Lifeline = all).
-            if (tenant.adminNav && !tenant.adminNav.includes(link.href)) return false;
-            // Admin-only sections are visible to admin OR medical_advisor
-            // (medical_advisor reads everywhere; writes are gated separately).
-            if (link.href === "/admin/settings" && !canViewAllSections) return false;
-            if (link.href === "/admin/business" && !canViewAllSections) return false;
-            if (link.href === "/admin/website" && !canViewAllSections) return false;
-            if (link.href === "/admin/communication" && !canViewAllSections) return false;
-            if (link.href === "/admin/data-requests" && !canViewAllSections) return false;
-            if (link.href === "/admin/access-review" && !canViewAllSections) return false;
-            if (link.href === "/admin/errors" && !canViewAllSections) return false;
-            if (link.href === "/admin/security" && !canViewAllSections) return false;
-            if (link.href === "/admin/wearable-issues" && !canViewAllSections) return false;
-            if (link.href === "/admin/action-feedback" && !canViewAllSections) return false;
-            if (link.href === "/admin/onboarding-bench" && !canViewAllSections) return false;
-            if (link.href === "/admin/wellness-pulse-bench" && !canViewAllSections) return false;
-            if (link.href === "/admin/ai-feedback" && !canViewAllSections) return false;
-            if (link.href === "/admin/ai-test-bench" && !canViewAllSections) return false;
-            if (link.href === "/admin/analytics" && !userPermissions.includes("view_analytics") && !canViewAllSections) return false;
-            if (link.href === "/admin/content" && !userPermissions.includes("manage_programs") && !canViewAllSections) return false;
-            return true;
-          }).map((link) => {
-            const isActive =
-              link.href === "/admin"
-                ? pathname === "/admin"
-                : pathname.startsWith(link.href);
-            const badgeType = (link as any).badgeType as string | undefined;
-            const isMessageBadge = 'badge' in link && (link as any).badge;
-            const badgeCount =
-              badgeType === "clients" ? newClientsCount
-              : badgeType === "feedback" ? unresolvedFeedbackCount
-              // Bookings combines refund-requests + new bookings of any
-              // kind in the last 7 days, since both land on the same page.
-              : badgeType === "refund-requests" ? pendingRefundRequestsCount + newBookingsCount
-              : badgeType === "data-requests" ? openDsrCount
-              : badgeType === "access-review" ? overdueAccessReviewCount
-              : badgeType === "errors" ? openErrorsCount
-              : badgeType === "security" ? openSecurityCount
-              : badgeType === "ai-feedback" ? openAiFeedbackCount
-              // Surveys badge counts only new completed responses in
-              // the last 7 days. Pending-approval state is more of an
-              // editorial signal and gets its own treatment inside the
-              // surveys hub itself.
-              : badgeType === "surveys" ? newSurveyResponsesCount
-              : badgeType === "business" ? newCompaniesCount
-              : badgeType === "audit" ? untaggedActionsCount
-              : badgeType === "wearable-issues" ? openWearableIssuesCount
-              : badgeType === "action-feedback" ? newActionFeedbackCount
-              : isMessageBadge ? unreadCount
-              : 0;
-            const hasBadge = badgeCount > 0;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-white/10 text-white ring-1 ring-white/10 shadow-[inset_3px_0_0_0_#10B981]"
-                    : "text-gray-400 hover:bg-white/5 hover:text-white"
-                }`}
-                title={sidebarCollapsed ? link.label : undefined}
+  // One nav, rendered in the desktop sidebar and in the phone drawer.
+  const renderNav = (collapsed: boolean, idPrefix: string) => (
+    <nav aria-label="Aðalvalmynd" className="flex-1 overflow-y-auto py-3 px-2">
+      {groups.map((g) => {
+        const containsActive = g.items.some((i) => i.href === activeHref);
+        const open = !g.collapsible || devOpen || containsActive;
+        const listId = `${idPrefix}-group-${g.id}`;
+        return (
+          <div key={g.id} className="mb-3">
+            {g.collapsible ? (
+              <button
+                type="button"
+                onClick={() => setDevOpen((v) => !v)}
+                aria-expanded={open}
+                aria-controls={listId}
+                aria-label={collapsed ? g.label : undefined}
+                title={collapsed ? g.label : undefined}
+                className={`flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 hover:text-white ${FOCUS_DARK} ${collapsed ? "justify-center" : "justify-between"}`}
               >
-                {link.icon}
-                {!sidebarCollapsed && (
-                  <span className="flex items-center gap-2">
-                    {link.label}
-                    {hasBadge && (
-                      <span className="bg-[#10B981] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                        {badgeCount}
-                      </span>
-                    )}
-                  </span>
-                )}
-                {sidebarCollapsed && hasBadge && (
-                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-[#10B981] rounded-full" />
-                )}
-              </Link>
-            );
-          })}
-          {/* Divider */}
-          <div className={`my-2 mx-3 border-t border-gray-700`} />
-
-          {/* Coaching view toggle — admin only */}
-          {isAdmin && (
-            <button
-              onClick={() => {
-                const next = !coachingView;
-                setCoachingView(next);
-                try { localStorage.setItem("admin_coaching_view", String(next)); } catch {}
-                if (next && pathname === "/admin") {
-                  router.push("/admin/coach");
-                } else if (!next && pathname === "/admin/coach") {
-                  router.push("/admin");
-                }
-              }}
-              className={`flex items-center w-full px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
-                sidebarCollapsed ? "justify-center" : "justify-between"
-              } ${coachingView ? "bg-[#10B981]/15 text-[#10B981]" : "text-gray-400 hover:bg-gray-700 hover:text-white"}`}
-              title={sidebarCollapsed ? (coachingView ? "Switch to Admin view" : "Switch to Coaching view") : undefined}
-            >
-              {!sidebarCollapsed ? (
-                <span>{coachingView ? "Coaching view" : "Admin view"}</span>
-              ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                {!collapsed && <span>{g.label}</span>}
+                <svg className={`h-4 w-4 transition-transform ${open ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              )}
-              {!sidebarCollapsed && (
-                <span className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${coachingView ? "bg-[#10B981]" : "bg-gray-600"}`}>
-                  <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-5" : "translate-x-0"}`} />
-                </span>
-              )}
-            </button>
-          )}
-
-          {/* Sign out */}
-          <button
-            onClick={handleSignOut}
-            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
-              sidebarCollapsed ? "justify-center" : ""
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            {!sidebarCollapsed && <span>Sign Out</span>}
-          </button>
-        </nav>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-[#1F2937]">
-              {sidebarLinks.find(
-                (l) =>
-                  l.href === "/admin"
-                    ? pathname === "/admin"
-                    : pathname.startsWith(l.href)
-              )?.label || "Admin"}
-            </h1>
-            {/* Breadcrumbs */}
-            {breadcrumbs.length > 1 && (
-              <div className="hidden md:flex items-center gap-1 text-sm text-gray-400 ml-2">
-                {breadcrumbs.map((crumb, i) => (
-                  <span key={crumb.href} className="flex items-center gap-1">
-                    {i > 0 && <span>/</span>}
-                    {i === breadcrumbs.length - 1 ? (
-                      <span className="text-gray-600 font-medium">{crumb.label}</span>
-                    ) : (
-                      <Link href={crumb.href} className="hover:text-[#10B981] transition-colors">
-                        {crumb.label}
+              </button>
+            ) : collapsed ? (
+              <div className="mx-3 mb-1 border-t border-gray-700" aria-hidden="true" />
+            ) : (
+              <p id={`${listId}-label`} className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{g.label}</p>
+            )}
+            {open && (
+              <ul id={listId} aria-labelledby={!g.collapsible && !collapsed ? `${listId}-label` : undefined} className="space-y-0.5">
+                {g.items.map((link) => {
+                  const isActive = link.href === activeHref;
+                  const count = badgeCount(link.badge);
+                  const hasBadge = count > 0;
+                  return (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        onClick={onNavigate}
+                        aria-current={isActive ? "page" : undefined}
+                        aria-label={collapsed || hasBadge ? (hasBadge ? `${link.label} (${count})` : link.label) : undefined}
+                        title={collapsed ? link.label : undefined}
+                        className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all ${FOCUS_DARK} ${
+                          collapsed ? "justify-center" : ""
+                        } ${
+                          isActive
+                            ? "bg-white/10 text-white ring-1 ring-white/10 shadow-[inset_3px_0_0_0_#10B981]"
+                            : "text-gray-300 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        {link.icon}
+                        {!collapsed && (
+                          <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                            <span className="truncate">{link.label}</span>
+                            {hasBadge && <Badge tone="count">{count > 99 ? "99+" : count}</Badge>}
+                          </span>
+                        )}
+                        {collapsed && hasBadge && (
+                          <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-[#10B981]" aria-hidden="true" />
+                        )}
                       </Link>
-                    )}
-                  </span>
-                ))}
-              </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            {/* Notification bell with count */}
-            <Link href="/admin/messages" className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-50" title={unreadCount > 0 ? `${unreadCount} unread messages` : "No new notifications"}>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </Link>
-            <Link
-              href="/"
-              className="text-sm text-gray-500 hover:text-[#1F2937] transition-colors"
-            >
-              View Site
-            </Link>
-          </div>
-        </header>
+        );
+      })}
 
-        {/* Read-only banner for medical_advisor */}
-        {isReadOnlyView && pathname && !pathname.startsWith("/admin/surveys") && (
-          <div className="bg-amber-50 border-b border-amber-200 px-6 py-2 text-xs text-amber-900 flex items-center gap-2">
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" strokeWidth={2} />
-            </svg>
-            <span>
-              <strong>Read-only view.</strong> Edit affordances are disabled. You can browse every section but only edit content under <Link href="/admin/surveys" className="underline font-medium">/admin/surveys</Link>.
-            </span>
-          </div>
-        )}
+      <div className="my-2 mx-3 border-t border-gray-700" aria-hidden="true" />
 
-        {/* Page content. The .readonly-locked class is picked up by
-            globals.css to disable every form-write affordance for
-            medical_advisor outside /admin/surveys — defense in depth
-            on top of the API-level isStaff() role check. */}
-        <main
-          className={`flex-1 overflow-y-auto p-6 ${
-            isReadOnlyView && pathname && !pathname.startsWith("/admin/surveys")
-              ? "readonly-locked"
-              : ""
-          }`}
+      {/* Coaching view — an admin-only preview of the coach's sidebar. */}
+      {isAdmin && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={coachingView}
+          aria-label={collapsed ? "Þjálfarasýn" : undefined}
+          onClick={() => {
+            const next = !coachingView;
+            setCoachingView(next);
+            try { localStorage.setItem("admin_coaching_view", String(next)); } catch {}
+            if (next && pathname === "/admin") router.push("/admin/coach");
+            else if (!next && pathname === "/admin/coach") router.push("/admin");
+          }}
+          className={`flex items-center w-full px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${FOCUS_DARK} ${
+            collapsed ? "justify-center" : "justify-between"
+          } ${coachingView ? "bg-[#10B981]/15 text-[#34D399]" : "text-gray-300 hover:bg-gray-700 hover:text-white"}`}
+          title={collapsed ? "Þjálfarasýn" : undefined}
         >
-          {children}
-        </main>
+          {!collapsed ? (
+            <span>Þjálfarasýn</span>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          )}
+          {!collapsed && (
+            <span aria-hidden="true" className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${coachingView ? "bg-hc-brand-dark" : "bg-gray-600"}`}>
+              <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${coachingView ? "translate-x-5" : "translate-x-0"}`} />
+            </span>
+          )}
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={handleSignOut}
+        aria-label={collapsed ? "Skrá út" : undefined}
+        title={collapsed ? "Skrá út" : undefined}
+        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${FOCUS_DARK} ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+        {!collapsed && <span>Skrá út</span>}
+      </button>
+    </nav>
+  );
+
+  const brand = (collapsed: boolean) => !collapsed && (
+    <span className="text-lg font-bold tracking-tight">
+      {tenant.id === "fjarlaekningar" ? (
+        <span style={{ color: tenant.accent }}>Fjarlækningar</span>
+      ) : (
+        <>Lifeline <span className="text-[#10B981]">{coachingView ? "Coach" : "Admin"}</span></>
+      )}
+    </span>
+  );
+
+  const userBlock = (collapsed: boolean) => (
+    <div className={`px-4 py-3 border-b border-gray-700 flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
+      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ backgroundColor: tenant.accent }} aria-hidden="true">
+        {initials}
       </div>
+      {!collapsed && (
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-white truncate">{userEmail ?? ""}</p>
+          <p className="text-xs text-gray-300">{roleLabel}</p>
+        </div>
+      )}
     </div>
+  );
+
+  return (
+    <ToastProvider dockOffset="env(safe-area-inset-bottom, 0px)">
+      <DialogProvider>
+        <div className="min-h-screen flex bg-gray-100">
+          <a href="#admin-main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-hc-ink focus:shadow-lg">
+            Fara í efni
+          </a>
+
+          {/* Sidebar (md and up) */}
+          <aside
+            className={`${sidebarCollapsed ? "w-16" : "w-64"} hidden md:flex bg-[#1F2937] text-white flex-col transition-all duration-200 flex-shrink-0 sticky top-0 h-screen`}
+          >
+            <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700">
+              {brand(sidebarCollapsed)}
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className={`p-1.5 rounded hover:bg-gray-700 transition-colors ${FOCUS_DARK}`}
+                aria-label={sidebarCollapsed ? "Stækka valmynd" : "Minnka valmynd"}
+                aria-expanded={!sidebarCollapsed}
+                aria-controls="admin-sidebar-nav"
+                title={sidebarCollapsed ? "Stækka valmynd" : "Minnka valmynd"}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  {sidebarCollapsed ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  )}
+                </svg>
+              </button>
+            </div>
+            {userBlock(sidebarCollapsed)}
+            <div id="admin-sidebar-nav" className="flex min-h-0 flex-1 flex-col">
+              {renderNav(sidebarCollapsed, "side")}
+            </div>
+          </aside>
+
+          {/* Drawer (below md) */}
+          {drawerOpen && (
+            <div className="fixed inset-0 z-50 md:hidden">
+              <div className="absolute inset-0 bg-black/50" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
+              <div
+                ref={drawerRef}
+                id="admin-drawer"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Valmynd"
+                className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-[#1F2937] text-white shadow-xl pb-[env(safe-area-inset-bottom)]"
+              >
+                <div className="h-16 flex items-center justify-between px-4 border-b border-gray-700">
+                  {brand(false)}
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOpen(false)}
+                    className={`p-2 rounded hover:bg-gray-700 ${FOCUS_DARK}`}
+                    aria-label="Loka valmynd"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                {userBlock(false)}
+                {renderNav(false, "drawer")}
+              </div>
+            </div>
+          )}
+
+          {/* Main content */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between gap-2 px-3 sm:px-6 flex-shrink-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <button
+                  ref={hamburgerRef}
+                  type="button"
+                  onClick={() => setDrawerOpen(true)}
+                  className="md:hidden -ml-1 p-2 rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand"
+                  aria-label="Opna valmynd"
+                  aria-expanded={drawerOpen}
+                  aria-controls="admin-drawer"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                {/* Breadcrumbs only — the page itself owns the single h1. */}
+                <nav aria-label="Brauðmolar" className="min-w-0">
+                  <ol className="flex min-w-0 items-center gap-1 text-sm text-gray-500">
+                    {breadcrumbs.map((crumb, i) => {
+                      const last = i === breadcrumbs.length - 1;
+                      return (
+                        <li key={`${crumb.label}-${i}`} className={`flex min-w-0 items-center gap-1 ${last ? "" : "hidden sm:flex"}`}>
+                          {i > 0 && <span aria-hidden="true" className="text-gray-300">/</span>}
+                          {last ? (
+                            <span aria-current="page" className="truncate font-semibold text-[#1F2937]">{crumb.label}</span>
+                          ) : crumb.href ? (
+                            <Link href={crumb.href} className="truncate hover:text-hc-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand rounded">
+                              {crumb.label}
+                            </Link>
+                          ) : (
+                            <span className="truncate">{crumb.label}</span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </nav>
+              </div>
+              <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+                {canOpenPath("/admin/conversations", role, permissions) && (
+                  <Link
+                    href="/admin/conversations?tab=messages"
+                    className="relative p-2 text-gray-500 hover:text-gray-700 transition-colors rounded-lg hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand"
+                    aria-label={unreadCount > 0 ? `Skilaboð: ${unreadCount} ólesin` : "Skilaboð: engin ólesin"}
+                    title={unreadCount > 0 ? `${unreadCount} ólesin skilaboð` : "Engin ólesin skilaboð"}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    {unreadCount > 0 && (
+                      <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                )}
+                <Link href="/" className="hidden sm:inline text-sm text-gray-600 hover:text-[#1F2937] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand rounded">
+                  Opna vefinn
+                </Link>
+              </div>
+            </header>
+
+            {/* Read-only banner for medical_advisor */}
+            {isReadOnlyView && !pathname.startsWith("/admin/surveys") && (
+              <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-2 text-xs text-amber-900 flex items-center gap-2">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" strokeWidth={2} />
+                </svg>
+                <span>
+                  <strong>Lesaðgangur.</strong> Breytingar eru óvirkar. Þú getur aðeins breytt efni í <Link href="/admin/surveys" className="underline font-medium">Könnunum</Link>.
+                </span>
+              </div>
+            )}
+
+            {/* Page content. The .readonly-locked class is picked up by
+                globals.css to disable every form-write affordance for
+                medical_advisor outside /admin/surveys — defense in depth
+                on top of the API-level isStaff() role check. */}
+            <main
+              id="admin-main"
+              tabIndex={-1}
+              className={`flex-1 overflow-y-auto p-4 sm:p-6 focus:outline-none ${
+                isReadOnlyView && !pathname.startsWith("/admin/surveys") ? "readonly-locked" : ""
+              }`}
+            >
+              {showDenied && (
+                <div className="mb-4">
+                  <Alert tone="warn" onDismiss={() => setDenied(null)} dismissLabel="Loka">
+                    Þú hefur ekki aðgang að {denied.label === "þessari síðu" ? "þessari síðu" : <>„{denied.label}“</>}. Þér var vísað hingað.
+                  </Alert>
+                </div>
+              )}
+              {children}
+            </main>
+          </div>
+        </div>
+      </DialogProvider>
+    </ToastProvider>
   );
 }

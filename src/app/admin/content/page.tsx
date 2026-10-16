@@ -1,17 +1,20 @@
 "use client";
 
+// Wrapper page: the tab bar mirrors ?tab= (AdminTabs), so
+// /admin/content?tab=education opens that tab directly.
+
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import AdminTabs from "../components/AdminTabs";
 
-const ProgramsContent = dynamic(() => import("../programs/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const ExercisesContent = dynamic(() => import("../exercises/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const EducationContent = dynamic(() => import("../education/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
+const ProgramsContent = dynamic(() => import("../programs/page"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const ExercisesContent = dynamic(() => import("../exercises/page"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const EducationContent = dynamic(() => import("../education/page"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
 
 const tabs = [
-  { key: "programs", label: "Programs" },
-  { key: "exercises", label: "Exercises" },
-  { key: "education", label: "Education" },
+  { key: "programs", label: "Prógrömm" },
+  { key: "exercises", label: "Æfingar" },
+  { key: "education", label: "Fræðsluefni" },
 ];
 
 export default function ContentPage() {
@@ -19,10 +22,10 @@ export default function ContentPage() {
 
   return (
     <div>
-      <div className="px-8 pt-6">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Content</h1>
-        <p className="text-sm text-gray-500 mb-4">Programs, exercises, and education modules</p>
-        <AdminTabs tabs={tabs} active={tab} onChange={setTab} />
+      <div className="px-4 pt-4 sm:px-8 sm:pt-6">
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Appefni</h1>
+        <p className="text-sm text-gray-600 mb-4">Prógrömm, æfingar og fræðsluefni í appinu.</p>
+        <AdminTabs tabs={tabs} active={tab} onChange={setTab} label="Appefni" />
       </div>
       {tab === "programs" && <ProgramsContent />}
       {tab === "exercises" && <ExercisesContent />}

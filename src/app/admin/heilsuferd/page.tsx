@@ -85,7 +85,7 @@ export default function HeilsuferdAdmin() {
           <Link href="/admin/unions" className="rounded-lg border border-slate-200 px-3 py-1.5">Stéttarfélög</Link>
           <Link href="/admin/lectures" className="rounded-lg border border-slate-200 px-3 py-1.5">Fræðsla</Link>
           <Link href="/admin/coach/plans" className="rounded-lg border border-slate-200 px-3 py-1.5">Aðgerðaáætlanir</Link>
-          <a href="/vinnustod" target="_blank" className="rounded-lg border border-slate-200 px-3 py-1.5">Vinnustöð ↗</a>
+          <Link href="/admin/vinnustod" className="rounded-lg border border-slate-200 px-3 py-1.5">Vinnustöð</Link>
         </div>
       </div>
       <AdminTabs tabs={TABS} active={tab} onChange={setTab} />

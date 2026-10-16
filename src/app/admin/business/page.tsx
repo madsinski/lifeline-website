@@ -11,26 +11,26 @@ import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import AdminTabs from "../components/AdminTabs";
 
-const CompaniesContent = dynamic(() => import("../companies/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const PaymentsContent = dynamic(() => import("../payments/page"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const DiscountCodesContent = dynamic(() => import("./DiscountCodes"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const ApprovalsContent = dynamic(() => import("./Approvals"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const AccountingContent = dynamic(() => import("./Accounting"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const PlanContent = dynamic(() => import("./Plan"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const CostIntakeContent = dynamic(() => import("./CostIntake"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const TestingGuideContent = dynamic(() => import("./TestingGuide"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
-const TestFeedbackContent = dynamic(() => import("./TestFeedback"), { loading: () => <p className="p-8 text-gray-400">Loading...</p> });
+const CompaniesContent = dynamic(() => import("../companies/page"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const PaymentsContent = dynamic(() => import("../payments/page"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const DiscountCodesContent = dynamic(() => import("./DiscountCodes"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const ApprovalsContent = dynamic(() => import("./Approvals"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const AccountingContent = dynamic(() => import("./Accounting"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const PlanContent = dynamic(() => import("./Plan"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const CostIntakeContent = dynamic(() => import("./CostIntake"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const TestingGuideContent = dynamic(() => import("./TestingGuide"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
+const TestFeedbackContent = dynamic(() => import("./TestFeedback"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
 
 const tabs = [
-  { key: "companies", label: "Companies" },
-  { key: "approvals", label: "Scheduling" },
-  { key: "payments", label: "Payments" },
-  { key: "cost-intake", label: "Cost" },
-  { key: "discounts", label: "Discount codes" },
-  { key: "accounting", label: "Accounting" },
-  { key: "plan", label: "Plan" },
-  { key: "guide", label: "Testing guide" },
-  { key: "feedback", label: "Test feedback" },
+  { key: "companies", label: "Fyrirtæki" },
+  { key: "approvals", label: "Samþykktir" },
+  { key: "payments", label: "Greiðslur" },
+  { key: "cost-intake", label: "Kostnaður" },
+  { key: "discounts", label: "Afsláttarkóðar" },
+  { key: "accounting", label: "Bókhald" },
+  { key: "plan", label: "Áætlun" },
+  { key: "guide", label: "Prófunarleiðbeiningar" },
+  { key: "feedback", label: "Ábendingar úr prófunum" },
 ];
 
 interface PaydayTestResult {
@@ -198,7 +198,7 @@ export default function BusinessPage() {
       <div className="px-8 pt-6">
         <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900 mb-1">Business</h1>
+            <h1 className="text-xl font-bold text-gray-900 mb-1">Fyrirtækjarekstur</h1>
           </div>
           <div className="flex items-start gap-4">
             <PaydayDiagButton />
@@ -207,7 +207,7 @@ export default function BusinessPage() {
                 href="/admin/legal"
                 className="text-xs font-medium text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
               >
-                Legal documents &amp; agreements →
+                Lögfræðiskjöl og samningar →
               </Link>
             </div>
           </div>
