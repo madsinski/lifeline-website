@@ -3,7 +3,7 @@
 // Participant navigation: five fixed tabs, the same on a phone and on a
 // laptop, on every page of the app.
 //
-//   Í dag · Æfingar · Næring · Þjálfari (or Hjúkrun) · Ég
+//   Í dag · Æfingar · Næring · Þjálfun · Ég
 //
 // Æfingar and Næring only when the plan has them. Everything occasional —
 // the report, the journey map, fræðsla, notifications, settings — lives
@@ -24,7 +24,7 @@ import { useKeyboard } from "@/lib/hc/use-keyboard";
 import { supabase } from "@/lib/supabase";
 import * as cache from "@/lib/hc/client-cache";
 import { badgeClass } from "./Badge";
-import { CircleUserRound, Dumbbell, Stethoscope, Sun, UserRound, Utensils } from "lucide-react";
+import { CircleUserRound, Dumbbell, Sun, Utensils, Zap } from "lucide-react";
 
 type Tab = "today" | "exercise" | "nutrition" | "coach" | "me";
 
@@ -164,16 +164,16 @@ export default function JourneyNav({ active, counts, onSelect }: {
   const own = useNavUnread(!counts);
   const counted = counts ?? own;
   const coachCount = counted.coach;
-  const care = avail.entry !== null && avail.entry !== "coach" && avail.entry !== "app";
   const on: Tab = ME_PLACES.includes(active) ? "me" : (active as Tab);
 
   const items: { key: Tab; label: string; href: string; Icon: typeof Sun; count?: number; dot?: boolean }[] = [
     { key: "today", label: "Í dag", href: avail.hasPlan ? "/app/aaetlun?tab=today" : "/app", Icon: Sun },
     ...(avail.hasPlan && avail.exercise ? [{ key: "exercise" as const, label: "Æfingar", href: "/app/aaetlun?tab=exercise", Icon: Dumbbell }] : []),
     ...(avail.hasPlan && avail.nutrition ? [{ key: "nutrition" as const, label: "Næring", href: "/app/aaetlun?tab=nutrition", Icon: Utensils }] : []),
-    /* A person for the coach; a stethoscope only on the care track, where
-       the person on the other end is a nurse and the label says so. */
-    { key: "coach", label: care ? "Hjúkrun" : "Þjálfari", href: "/app/aaetlun?tab=coach", Icon: care ? Stethoscope : UserRound, count: coachCount },
+    /* "Þjálfun" on both tracks (Mads, 2026-10-16): the tab is the service —
+       messages, bookings, the plan session — not the person's profession.
+       Who is on the other end is named inside (CoachView's role labels). */
+    { key: "coach", label: "Þjálfun", href: "/app/aaetlun?tab=coach", Icon: Zap, count: coachCount },
     { key: "me", label: "Ég", href: "/app/eg", Icon: CircleUserRound, dot: counted.other > 0 },
   ];
 

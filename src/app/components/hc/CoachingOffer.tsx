@@ -1,6 +1,6 @@
 "use client";
 
-// What the Þjálfari tab shows on the app tier alone.
+// What the Þjálfun tab shows on the app tier alone.
 //
 // "Lifeline appið" has nobody on the other end; "Lifeline þjálfun" adds a
 // nurse/health coach, in Vestmannaeyjar only for now. So instead of an empty
