@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDate, fmtDateTime } from "@/app/components/account/ui/dates";
 
 interface FeedbackRow {
   id: string;
@@ -69,7 +70,7 @@ export default function FeedbackPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-[#1F2937]">Beta Feedback</h2>
+          <h2 className="text-lg font-semibold text-hc-ink">Beta Feedback</h2>
           <p className="text-xs text-gray-500">
             {items.length} total · {unresolvedCount} unresolved
           </p>
@@ -91,7 +92,7 @@ export default function FeedbackPage() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                filter === f ? "bg-[#10B981] text-white" : "text-gray-500 hover:bg-gray-100"
+                filter === f ? "bg-hc-brand-dark text-white" : "text-gray-500 hover:bg-gray-100"
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)} ({count})
@@ -122,22 +123,22 @@ export default function FeedbackPage() {
                   className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50/50 transition-colors"
                 >
                   {/* Type badge */}
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${tc.color}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${tc.color}`}>
                     {tc.label}
                   </span>
 
                   {/* Message preview */}
-                  <p className="flex-1 text-sm text-[#1F2937] truncate min-w-0">
+                  <p className="flex-1 text-sm text-hc-ink truncate min-w-0">
                     {item.message}
                   </p>
 
                   {/* Meta */}
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-[10px] text-gray-400 hidden sm:block">
+                    <span className="text-xs text-gray-400 hidden sm:block">
                       {item.page_url}
                     </span>
-                    <span className="text-[10px] text-gray-400">
-                      {new Date(item.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    <span className="text-xs text-gray-400">
+                      {fmtDate(item.created_at, { year: false, month: "short" })}
                     </span>
                     {item.resolved && (
                       <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,9 +162,7 @@ export default function FeedbackPage() {
                       {item.user_email && <span>Email: {item.user_email}</span>}
                       <span>Page: {item.page_url}</span>
                       <span>
-                        {new Date(item.created_at).toLocaleString("en-GB", {
-                          day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-                        })}
+                        {fmtDateTime(item.created_at, { year: true, month: "short" })}
                       </span>
                     </div>
 

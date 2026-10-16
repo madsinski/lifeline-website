@@ -6,6 +6,9 @@
 import { useCallback, useEffect, useState, Fragment, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
+import { useDialog } from "@/app/components/account/ui";
+import { useToast } from "@/app/components/hc/Toast";
+import { adminErrorText } from "../hc-api";
 import { DOMAIN_LABELS, DOMAIN_GROUPS, referenceNote, canonicalUnit, changeIsGood, featureDirection, featureDomain, isConditional, METHODS_VERSION, type Domain } from "@/lib/research/clinical";
 import { sigStars } from "@/lib/research/stats";
 import type { BeforeAfterResult, MetricResult } from "@/lib/research/before-after";
@@ -74,6 +77,10 @@ async function authedFetch(url: string, init?: RequestInit) {
 }
 
 export default function ResearchPage() {
+  const dialog = useDialog();
+  const toast = useToast();
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [deletingCohort, setDeletingCohort] = useState(false);
   const [cohorts, setCohorts] = useState<CohortSummary[]>([]);
   const [detail, setDetail] = useState<CohortDetail | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -158,28 +165,54 @@ export default function ResearchPage() {
   }
 
   async function deleteCohort(id: string) {
-    if (!confirm("Delete this cohort and ALL its timepoints?")) return;
-    const res = await authedFetch(`/api/admin/research/cohorts?id=${id}`, { method: "DELETE" });
-    if (res.ok) { setDetail(null); setSelectedId(null); await loadCohorts(); }
+    const ok = await dialog.confirm({
+      title: "Eyða þessu þýði?",
+      body: "Þýðinu og ÖLLUM mælipunktum þess verður eytt. Ekki er hægt að afturkalla þetta.",
+      confirmLabel: "Eyða þýði", cancelLabel: "Hætta við", tone: "danger",
+    });
+    if (!ok) return;
+    setDeletingCohort(true);
+    try {
+      const res = await authedFetch(`/api/admin/research/cohorts?id=${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.show(`Þýðinu var ekki eytt: ${j.detail || adminErrorText(j.error, `villa ${res.status}`)}`, { tone: "bad" });
+        return;
+      }
+      setDetail(null); setSelectedId(null);
+      toast.show("Þýði eytt.");
+      await loadCohorts();
+    } catch {
+      toast.show("Þýðinu var ekki eytt: netvilla.", { tone: "bad" });
+    } finally {
+      setDeletingCohort(false);
+    }
   }
 
   async function deleteTimepoint(exportId: string, label: string) {
-    if (!confirm(`Delete the "${label}" timepoint? This removes that upload only; other timepoints stay.`)) return;
+    const ok = await dialog.confirm({
+      title: `Eyða mælipunktinum „${label}“?`,
+      body: "Aðeins þessari upphleðslu er eytt; aðrir mælipunktar standa.",
+      confirmLabel: "Eyða mælipunkti", cancelLabel: "Hætta við", tone: "danger",
+    });
+    if (!ok) return;
     const res = await authedFetch(`/api/admin/research/timepoint?id=${exportId}`, { method: "DELETE" });
     const j = await res.json().catch(() => ({}));
-    if (!res.ok) { setMsg(j.detail || j.error || "Delete failed"); return; }
+    if (!res.ok) { setMsg(j.detail || adminErrorText(j.error, "Delete failed")); return; }
     setMsg(`Deleted timepoint "${label}".`);
     await loadCohorts();
     if (selectedId) await loadDetail(selectedId);
   }
 
   async function downloadFile(sheet: string) {
-    if (!selectedId) return;
+    if (!selectedId || downloading) return;
     setMsg(null);
+    setDownloading(sheet);
+    try {
     const res = await authedFetch(`/api/admin/research/export?cohortId=${selectedId}&sheet=${sheet}`);
     if (!res.ok) {
       const j = await res.json().catch(() => ({}));
-      setMsg(j.detail || j.error || "Export failed");
+      setMsg(j.detail || adminErrorText(j.error, "Export failed"));
       return;
     }
     const blob = await res.blob();
@@ -192,6 +225,11 @@ export default function ResearchPage() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    } catch {
+      setMsg("Niðurhal mistókst – netvilla.");
+    } finally {
+      setDownloading(null);
+    }
   }
 
   async function saveExclusions(excludedPatients: string[], excludedFeatures: string[]) {
@@ -308,7 +346,7 @@ export default function ResearchPage() {
       </section>
 
       {/* Detail */}
-      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} onDownload={downloadFile} onDeleteTimepoint={deleteTimepoint} onEmployerReport={openEmployerReport} onLoadFeature={loadFeature} onSaveExclusions={saveExclusions} onLoadCodebook={loadCodebook} />}
+      {detail && <CohortDashboard detail={detail} onAI={runAI} aiBusy={aiBusy} onDelete={() => deleteCohort(detail.cohort.id)} deleting={deletingCohort} onDownload={downloadFile} downloading={downloading} onDeleteTimepoint={deleteTimepoint} onEmployerReport={openEmployerReport} onLoadFeature={loadFeature} onSaveExclusions={saveExclusions} onLoadCodebook={loadCodebook} />}
     </div>
   );
 }
@@ -601,8 +639,8 @@ function deltaTitle(feature: string, delta: number | null): string {
 
 type TabKey = "overview" | "domains" | "longitudinal" | "beforeafter" | "ai" | "quality" | "codebook" | "data";
 
-function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteTimepoint, onEmployerReport, onLoadFeature, onSaveExclusions, onLoadCodebook }: {
-  detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; onDownload: (s: string) => void;
+function CohortDashboard({ detail, onAI, aiBusy, onDelete, deleting, onDownload, downloading, onDeleteTimepoint, onEmployerReport, onLoadFeature, onSaveExclusions, onLoadCodebook }: {
+  detail: CohortDetail; onAI: () => void; aiBusy: boolean; onDelete: () => void; deleting: boolean; onDownload: (s: string) => void; downloading: string | null;
   onDeleteTimepoint: (exportId: string, label: string) => void; onEmployerReport: () => void;
   onLoadFeature: (feature: string) => Promise<FeatureDetail | null>;
   onSaveExclusions: (excludedPatients: string[], excludedFeatures: string[]) => Promise<void>;
@@ -687,7 +725,7 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
             </div>
           </div>
         </div>
-        <button onClick={onDelete} className="text-xs rounded-lg border border-red-200 text-red-600 px-3 py-1.5 hover:bg-red-50">Delete</button>
+        <button onClick={onDelete} disabled={deleting} className="text-xs rounded-lg border border-red-200 text-red-600 px-3 py-1.5 hover:bg-red-50 disabled:opacity-50">{deleting ? "Eyði…" : "Delete"}</button>
       </div>
 
       {/* tabs */}
@@ -1037,9 +1075,9 @@ function CohortDashboard({ detail, onAI, aiBusy, onDelete, onDownload, onDeleteT
           <div className="space-y-5">
             <div className="flex flex-wrap gap-2">
               <button onClick={onEmployerReport} className="text-sm rounded-lg bg-gray-900 text-white px-4 py-2 font-medium hover:bg-gray-800">Employer summary (report)</button>
-              <button onClick={() => onDownload("excel")} className="text-sm rounded-lg bg-emerald-600 text-white px-4 py-2 font-medium hover:bg-emerald-700">Download Excel (.xlsx)</button>
-              <button onClick={() => onDownload("long")} className="text-sm rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50">CSV (long)</button>
-              <button onClick={() => onDownload("answers")} className="text-sm rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50">CSV (answers)</button>
+              <button onClick={() => onDownload("excel")} disabled={!!downloading} aria-busy={downloading === "excel"} className="text-sm rounded-lg bg-emerald-600 text-white px-4 py-2 font-medium hover:bg-emerald-700 disabled:opacity-50">{downloading === "excel" ? "Sæki…" : "Download Excel (.xlsx)"}</button>
+              <button onClick={() => onDownload("long")} disabled={!!downloading} aria-busy={downloading === "long"} className="text-sm rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50 disabled:opacity-50">{downloading === "long" ? "Sæki…" : "CSV (long)"}</button>
+              <button onClick={() => onDownload("answers")} disabled={!!downloading} aria-busy={downloading === "answers"} className="text-sm rounded-lg border border-gray-200 px-4 py-2 hover:bg-gray-50 disabled:opacity-50">{downloading === "answers" ? "Sæki…" : "CSV (answers)"}</button>
             </div>
             <p className="text-xs text-gray-500">
               <span className="font-medium text-gray-600">Employer summary</span> — one A4 page in Icelandic, aggregate-only: what the health check found, what changed by the follow-up, next steps (opens in a new tab; print to PDF to share).

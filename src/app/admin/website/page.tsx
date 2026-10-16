@@ -41,7 +41,7 @@ export default function WebsiteCmsPage() {
 
   return (
     <div className="p-8 max-w-4xl">
-      <div className="text-[11px] font-semibold uppercase tracking-widest text-[#047857] mb-1">Stjórnborð</div>
+      <div className="text-[11px] font-semibold uppercase tracking-widest text-hc-brand-text mb-1">Stjórnborð</div>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Vefsíða</h1>
@@ -54,7 +54,7 @@ export default function WebsiteCmsPage() {
           href="/?preview=lifelinepreview2026"
           target="_blank"
           rel="noopener noreferrer"
-          className="shrink-0 inline-flex items-center gap-2 rounded-md bg-[#10B981] px-4 py-2 text-sm font-medium text-white hover:bg-[#047857]"
+          className="shrink-0 inline-flex items-center gap-2 rounded-md bg-hc-brand-dark px-4 py-2 text-sm font-medium text-white hover:bg-hc-brand-darker"
         >
           Skoða vefinn
         </a>
@@ -68,7 +68,7 @@ export default function WebsiteCmsPage() {
       <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100 mb-8">
         {pages.map((p) => (
           <Link key={p.key} href={`/admin/website/${p.key}`} className="flex items-center gap-3 p-4 hover:bg-gray-50">
-            <svg className="w-5 h-5 text-[#10B981] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <svg className="w-5 h-5 text-hc-brand-text shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
             </svg>
             <div className="min-w-0">
@@ -80,7 +80,7 @@ export default function WebsiteCmsPage() {
         ))}
         {/* What's new — the home-page carousel, managed as its own surface */}
         <Link href="/admin/website/whats-new" className="flex items-center gap-3 p-4 hover:bg-gray-50">
-          <svg className="w-5 h-5 text-[#10B981] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+          <svg className="w-5 h-5 text-hc-brand-text shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
           </svg>
           <div className="min-w-0">

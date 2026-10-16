@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
-import { adminJson } from "../hc-api";
+import { adminJson, adminErrorText } from "../hc-api";
 import { LOW_STOCK_HINT } from "./codes-shared";
 
 interface Stock { kind: string; available: number; issued: number; void: number }
@@ -38,7 +38,7 @@ export default function CodesTab() {
 
   const load = useCallback(async () => {
     const r = await adminJson<{ stock: Stock[]; waiting: number; recent: Recent[] }>("/api/admin/hc/activation-codes");
-    setTimeout(() => { if (r.ok) { setData(r.data); setErr(null); } else setErr(r.error ?? "Villa"); }, 0);
+    setTimeout(() => { if (r.ok) { setData(r.data); setErr(null); } else setErr(adminErrorText(r.error, "Ekki tókst að sækja kóðana.")); }, 0);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -57,7 +57,7 @@ export default function CodesTab() {
       { method: "POST", body: JSON.stringify({ action: "import", codes: file.json, kinds, batch: batch || file.name }) },
     );
     setBusy(null);
-    if (!r.ok) { setMsg(r.error === "mfa_required" ? "Staðfestu með tvíþættri auðkenningu (MFA) og reyndu aftur." : r.error ?? "Innflutningur mistókst."); return; }
+    if (!r.ok) { setMsg(adminErrorText(r.error, "Innflutningur mistókst.")); return; }
     const d = r.data;
     setMsg(`${d.inserted} kóðar fluttir inn${d.duplicates ? `, ${d.duplicates} voru þegar til` : ""}${d.invalid ? `, ${d.invalid} ógildir slepptir` : ""}.`
       + (d.assigned ? ` ${d.assigned} pantanir sem biðu fengu kóða.` : ""));
@@ -72,7 +72,7 @@ export default function CodesTab() {
     const r = await adminJson<{ code: string }>("/api/admin/hc/activation-codes",
       { method: "POST", body: JSON.stringify({ action: "void", order_id: voidOrder.trim(), reason: voidReason }) });
     setBusy(null);
-    if (!r.ok) { setMsg(r.error ?? "Tókst ekki."); return; }
+    if (!r.ok) { setMsg(adminErrorText(r.error, "Tókst ekki.")); return; }
     setVoided(r.data.code); setVoidOrder("");
     void load();
   };

@@ -10,6 +10,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useStaffGuard } from "@/lib/useStaffGuard";
+import { fmtNumericDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 type StaffRole = "coach" | "doctor" | "nurse" | "psychologist" | "admin";
 
@@ -51,6 +53,7 @@ const PERMISSION_OPTIONS = [
 ];
 
 export default function AccessReviewPage() {
+  const toast = useToast();
   const guard = useStaffGuard({ role: "admin" });
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
@@ -152,7 +155,7 @@ export default function AccessReviewPage() {
       setOpenId(null);
       await load();
     } catch (e) {
-      alert("Review save failed: " + (e as Error).message);
+      toast.show("Review save failed: " + (e as Error).message, { tone: "bad" });
     } finally {
       setBusyId(null);
     }
@@ -185,7 +188,7 @@ export default function AccessReviewPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Staff access review</h1>
+          <h1 className="text-2xl font-bold text-hc-ink">Staff access review</h1>
           <p className="text-sm text-gray-500 mt-1">
             Quarterly check that the right people have the right access (GDPR Art. 32 / Lög 90/2018).
             Review cadence: every {REVIEW_CADENCE_DAYS} days per staff member.
@@ -255,7 +258,7 @@ export default function AccessReviewPage() {
                       <td className="px-4 py-3 text-xs">
                         {last ? (
                           <div className={overdue ? "text-amber-700" : "text-gray-600"}>
-                            {new Date(last.reviewed_at).toLocaleDateString("en-GB")}
+                            {fmtNumericDate(last.reviewed_at)}
                             <div className="text-gray-400 capitalize">→ {last.decision.replace("_", " ")}</div>
                           </div>
                         ) : (
@@ -269,7 +272,7 @@ export default function AccessReviewPage() {
                             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
                               overdue
                                 ? "bg-amber-500 text-white hover:bg-amber-600"
-                                : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                : "bg-hc-brand-dark text-white hover:bg-hc-brand-darker"
                             }`}
                           >
                             {overdue ? "Review now" : "Review"}
@@ -361,7 +364,7 @@ export default function AccessReviewPage() {
                             <button
                               onClick={() => submitReview(s)}
                               disabled={busyId === s.id}
-                              className="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                              className="px-4 py-2 bg-hc-brand-dark text-white text-sm font-semibold rounded-lg hover:bg-hc-brand-darker disabled:opacity-50"
                             >
                               {busyId === s.id ? "Saving…" : "Save review"}
                             </button>

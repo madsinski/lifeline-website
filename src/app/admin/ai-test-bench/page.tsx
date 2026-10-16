@@ -706,7 +706,7 @@ export default function AiTestBenchPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-[#1F2937]">AI test bench</h1>
+        <h1 className="text-2xl font-bold text-hc-ink">AI test bench</h1>
         <p className="text-sm text-gray-500 mt-1 max-w-3xl">
           Drive the recommendation engine with synthetic inputs and compare against the
           deterministic filter. Every call uses <code className="bg-gray-100 px-1 rounded">dryRun: true</code> —
@@ -863,11 +863,11 @@ export default function AiTestBenchPage() {
                     <div key={`${r.source}::${r.key}`} className="border border-violet-200 rounded p-2 bg-violet-50/30">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-[11px] font-bold text-violet-800">#{r.rank}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${PILLAR_CHIP[r.category] || PILLAR_CHIP.general}`}>{r.category}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{r.source === "meal" ? "meal" : "habit"}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {r.yield_score}/5</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${PILLAR_CHIP[r.category] || PILLAR_CHIP.general}`}>{r.category}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{r.source === "meal" ? "meal" : "habit"}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {r.yield_score}/5</span>
                         {r.meal?.is_high_protein_keystone && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEYSTONE</span>
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEYSTONE</span>
                         )}
                       </div>
                       <div className="text-sm text-gray-800">
@@ -875,7 +875,7 @@ export default function AiTestBenchPage() {
                           determFiltered.find((a) => a.action_key === r.key)?.label || r.key
                         )}
                         {r.meal && (
-                          <span className="text-[10px] text-gray-500 ml-2">
+                          <span className="text-xs text-gray-500 ml-2">
                             {r.meal.slot} · {r.meal.protein_g}g protein · {r.meal.calories} kcal
                           </span>
                         )}
@@ -922,23 +922,23 @@ export default function AiTestBenchPage() {
                     return (
                       <div key={a.id} className={`border rounded p-2 ${a.is_keystone ? "border-emerald-300 bg-emerald-50/40" : "border-gray-200"}`}>
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${PILLAR_CHIP[a.category] || PILLAR_CHIP.general}`}>
+                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${PILLAR_CHIP[a.category] || PILLAR_CHIP.general}`}>
                             {a.category}
                           </span>
                           {a.is_keystone && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold" title="Pre-vetted as highest-yield in pillar">
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold" title="Pre-vetted as highest-yield in pillar">
                               KEYSTONE
                             </span>
                           )}
-                          {a.intensity && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{a.intensity}</span>}
+                          {a.intensity && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{a.intensity}</span>}
                           {aiRank !== undefined && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800 font-bold">
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-violet-100 text-violet-800 font-bold">
                               AI #{aiRank}
                             </span>
                           )}
                         </div>
                         <div className="text-sm text-gray-800">{a.label}</div>
-                        <div className="text-[10px] text-gray-400 font-mono">{a.action_key}</div>
+                        <div className="text-xs text-gray-400 font-mono">{a.action_key}</div>
                       </div>
                     );
                   })}
@@ -970,9 +970,9 @@ export default function AiTestBenchPage() {
                           <div key={r.key} className="border border-violet-200 rounded p-2 bg-violet-50/30">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-[11px] font-bold text-violet-800">#{r.rank}</span>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {r.yield_score}/5</span>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {r.yield_score}/5</span>
                               {a && (
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${PILLAR_CHIP[a.category] || PILLAR_CHIP.general}`}>
+                                <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${PILLAR_CHIP[a.category] || PILLAR_CHIP.general}`}>
                                   {a.category}
                                 </span>
                               )}
@@ -985,7 +985,7 @@ export default function AiTestBenchPage() {
                     </div>
                     {actionRec.dropped_actions.length > 0 && (
                       <div>
-                        <div className="text-[10px] text-gray-400 uppercase font-semibold tracking-wide mb-1 mt-2">
+                        <div className="text-xs text-gray-400 uppercase font-semibold tracking-wide mb-1 mt-2">
                           Dropped by AI ({actionRec.dropped_actions.length})
                         </div>
                         <div className="space-y-1">
@@ -994,7 +994,7 @@ export default function AiTestBenchPage() {
                             return (
                               <div key={d.key} className="border border-gray-200 rounded p-2 opacity-70">
                                 <div className="text-xs text-gray-700">{a?.label || d.key}</div>
-                                <div className="text-[10px] text-gray-500 italic">{d.reason}</div>
+                                <div className="text-xs text-gray-500 italic">{d.reason}</div>
                               </div>
                             );
                           })}
@@ -1066,24 +1066,24 @@ export default function AiTestBenchPage() {
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-[11px] font-bold text-violet-800">#{m.rank}</span>
                           {m.slot && (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${SLOT_CHIP[m.slot] || "bg-gray-100 text-gray-700"}`}>
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${SLOT_CHIP[m.slot] || "bg-gray-100 text-gray-700"}`}>
                               {m.slot}
                             </span>
                           )}
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {m.yield_score}/5</span>
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-violet-100 text-violet-800">yield {m.yield_score}/5</span>
                           {m.is_high_protein_keystone && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEYSTONE</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEYSTONE</span>
                           )}
                           {m.protein_g !== null && m.protein_g !== undefined && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.protein_g}g protein</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.protein_g}g protein</span>
                           )}
                           {m.calories !== null && m.calories !== undefined && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.calories} kcal</span>
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{m.calories} kcal</span>
                           )}
                           <button
                             onClick={() => runMealSwap(m.id, 3)}
                             disabled={swapBusyId === m.id}
-                            className="ml-auto text-[10px] px-2 py-0.5 rounded border border-violet-300 text-violet-700 hover:bg-violet-100 disabled:opacity-50"
+                            className="ml-auto text-xs px-2 py-0.5 rounded border border-violet-300 text-violet-700 hover:bg-violet-100 disabled:opacity-50"
                             title="Get 3 alternatives for this meal"
                           >
                             {swapBusyId === m.id ? "…" : "Swap (3)"}
@@ -1099,16 +1099,16 @@ export default function AiTestBenchPage() {
                               {swap.alternatives.map((alt) => (
                                 <div key={alt.id} className="border border-gray-200 rounded p-1.5 bg-white">
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-[10px] font-semibold text-gray-600">#{alt.rank}</span>
+                                    <span className="text-xs font-semibold text-gray-600">#{alt.rank}</span>
                                     {alt.is_high_protein_keystone && (
                                       <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">KEY</span>
                                     )}
                                     <span className="text-xs text-gray-800">{alt.name || alt.id}</span>
                                     {alt.protein_g !== null && alt.protein_g !== undefined && (
-                                      <span className="text-[10px] text-gray-500">{alt.protein_g}g protein</span>
+                                      <span className="text-xs text-gray-500">{alt.protein_g}g protein</span>
                                     )}
                                   </div>
-                                  <div className="text-[10px] text-gray-500 italic mt-0.5">{alt.rationale}</div>
+                                  <div className="text-xs text-gray-500 italic mt-0.5">{alt.rationale}</div>
                                 </div>
                               ))}
                             </div>
@@ -1120,14 +1120,14 @@ export default function AiTestBenchPage() {
                 </div>
                 {mealRec.dropped_meals.length > 0 && (
                   <div>
-                    <div className="text-[10px] text-gray-400 uppercase font-semibold tracking-wide mb-1 mt-2">
+                    <div className="text-xs text-gray-400 uppercase font-semibold tracking-wide mb-1 mt-2">
                       Dropped ({mealRec.dropped_meals.length})
                     </div>
                     <div className="space-y-1">
                       {mealRec.dropped_meals.map((d) => (
                         <div key={d.id} className="border border-gray-200 rounded p-2 opacity-70">
                           <div className="text-xs text-gray-700">{d.name}</div>
-                          <div className="text-[10px] text-gray-500 italic">{d.reason}</div>
+                          <div className="text-xs text-gray-500 italic">{d.reason}</div>
                         </div>
                       ))}
                     </div>
@@ -1190,7 +1190,7 @@ export default function AiTestBenchPage() {
                     ));
                   })()}
                 </select>
-                <p className="text-[10px] text-gray-400 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   {exerciseSearch.trim()
                     ? `Filtered: search applies across name + category + equipment`
                     : `Showing first 200 alphabetically — type to filter the full ${exerciseLib.length}`}
@@ -1230,21 +1230,21 @@ export default function AiTestBenchPage() {
                       </div>
                     )}
                     <div className="bg-gray-50 border border-gray-200 rounded p-2">
-                      <div className="text-[10px] text-gray-500 uppercase font-semibold mb-1">Original</div>
+                      <div className="text-xs text-gray-500 uppercase font-semibold mb-1">Original</div>
                       <div className="text-sm text-gray-800">{exerciseSwapResult.current.name}</div>
-                      <div className="text-[10px] text-gray-500">{exerciseSwapResult.current.category} · {exerciseSwapResult.current.equipment} · {exerciseSwapResult.current.difficulty}</div>
+                      <div className="text-xs text-gray-500">{exerciseSwapResult.current.category} · {exerciseSwapResult.current.equipment} · {exerciseSwapResult.current.difficulty}</div>
                     </div>
                     {exerciseSwapResult.alternatives.map((alt) => (
                       <div key={alt.id} className="border border-violet-200 rounded p-2 bg-violet-50/30">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="text-[11px] font-bold text-violet-800">#{alt.rank}</span>
-                          {alt.equipment && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{alt.equipment}</span>}
-                          {alt.difficulty && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{alt.difficulty}</span>}
-                          {alt.has_video && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">video</span>}
+                          {alt.equipment && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{alt.equipment}</span>}
+                          {alt.difficulty && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">{alt.difficulty}</span>}
+                          {alt.has_video && <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">video</span>}
                         </div>
                         <div className="text-sm text-gray-800">{alt.name || alt.id}</div>
                         {alt.muscles_targeted && alt.muscles_targeted.length > 0 && (
-                          <div className="text-[10px] text-gray-500">muscles: {alt.muscles_targeted.slice(0, 5).join(", ")}</div>
+                          <div className="text-xs text-gray-500">muscles: {alt.muscles_targeted.slice(0, 5).join(", ")}</div>
                         )}
                         <div className="text-xs text-gray-600 italic mt-0.5">{alt.rationale}</div>
                       </div>
@@ -1290,7 +1290,7 @@ export default function AiTestBenchPage() {
                     );
                   })}
                 </select>
-                <p className="text-[10px] text-gray-400 mt-1">Showing top {sessionList.length} sessions by exercise count.</p>
+                <p className="text-xs text-gray-400 mt-1">Showing top {sessionList.length} sessions by exercise count.</p>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Target environment</label>
@@ -1333,17 +1333,17 @@ export default function AiTestBenchPage() {
                       {sessionSwapResult.substitutions.map((sub, i) => (
                         <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-2 border border-gray-200 rounded p-2 bg-white">
                           <div>
-                            <div className="text-[10px] text-gray-500 uppercase font-semibold mb-1">From</div>
+                            <div className="text-xs text-gray-500 uppercase font-semibold mb-1">From</div>
                             <div className="text-sm text-gray-800">{sub.current?.name || "?"}</div>
-                            <div className="text-[10px] text-gray-500">{sub.current?.equipment} · {sub.current?.difficulty}</div>
+                            <div className="text-xs text-gray-500">{sub.current?.equipment} · {sub.current?.difficulty}</div>
                           </div>
                           <div className="border-l border-gray-100 md:pl-3">
-                            <div className="text-[10px] text-violet-700 uppercase font-semibold mb-1 flex items-center gap-1">
+                            <div className="text-xs text-violet-700 uppercase font-semibold mb-1 flex items-center gap-1">
                               <span>→ To</span>
                               {sub.alternative?.has_video && <span className="text-[9px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-800">video</span>}
                             </div>
                             <div className="text-sm text-gray-800">{sub.alternative?.name || "?"}</div>
-                            <div className="text-[10px] text-gray-500">{sub.alternative?.equipment} · {sub.alternative?.difficulty}</div>
+                            <div className="text-xs text-gray-500">{sub.alternative?.equipment} · {sub.alternative?.difficulty}</div>
                             <div className="text-[11px] text-gray-600 italic mt-1">{sub.rationale}</div>
                           </div>
                         </div>
@@ -1351,14 +1351,14 @@ export default function AiTestBenchPage() {
                     </div>
                     {sessionSwapResult.no_alternative_for.length > 0 && (
                       <div>
-                        <div className="text-[10px] text-amber-700 uppercase font-semibold mb-1">
+                        <div className="text-xs text-amber-700 uppercase font-semibold mb-1">
                           No safe alternative ({sessionSwapResult.no_alternative_for.length})
                         </div>
                         <div className="space-y-1">
                           {sessionSwapResult.no_alternative_for.map((d) => (
                             <div key={d.id} className="border border-amber-200 rounded p-2 bg-amber-50/40">
                               <div className="text-xs text-gray-700">{d.name}</div>
-                              <div className="text-[10px] text-amber-700 italic">{d.reason}</div>
+                              <div className="text-xs text-amber-700 italic">{d.reason}</div>
                             </div>
                           ))}
                         </div>

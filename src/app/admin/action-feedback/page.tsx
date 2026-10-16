@@ -10,6 +10,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { fmtDateTime, fmtNumericDate } from "@/app/components/account/ui/dates";
 
 // Mirror of DISMISS_REASONS in the RN app (NotForMeSheet.tsx). Order
 // here drives chip rendering. If you add a category, add it in both
@@ -159,7 +160,7 @@ export default function ActionFeedbackPage() {
               key={k}
               onClick={() => setView(k)}
               className={`px-3 py-1.5 rounded-full font-medium ${
-                view === k ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600"
+                view === k ? "bg-hc-brand-dark text-white" : "bg-gray-100 text-gray-600"
               }`}
             >
               {k === "by_action" ? "By action" : "Recent"}
@@ -175,7 +176,7 @@ export default function ActionFeedbackPage() {
           onClick={() => setReasonFilter(null)}
           className={`px-3 py-1.5 rounded-full text-xs font-medium ring-1 ${
             !reasonFilter
-              ? "bg-emerald-600 text-white ring-emerald-600"
+              ? "bg-hc-brand-dark text-white ring-emerald-600"
               : "bg-white text-gray-700 ring-gray-200 hover:bg-gray-50"
           }`}
         >
@@ -189,7 +190,7 @@ export default function ActionFeedbackPage() {
               onClick={() => setReasonFilter(active ? null : k)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium ring-1 ${
                 active
-                  ? "bg-emerald-600 text-white ring-emerald-600"
+                  ? "bg-hc-brand-dark text-white ring-emerald-600"
                   : `${REASON_CHIP[k]} hover:opacity-90`
               }`}
             >
@@ -239,11 +240,11 @@ export default function ActionFeedbackPage() {
                 return (
                   <tr key={d.client_id + d.lib_key} className="border-t border-gray-100">
                     <td className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap">
-                      {new Date(d.dismissed_at).toLocaleString()}
+                      {fmtDateTime(d.dismissed_at, { year: true, month: "short" })}
                     </td>
                     <td className="px-4 py-2">
                       <div className="font-medium text-gray-900">{lib?.label || d.lib_key}</div>
-                      <div className="text-[10px] font-mono text-gray-400">{d.lib_key}</div>
+                      <div className="text-xs font-mono text-gray-400">{d.lib_key}</div>
                     </td>
                     <td className="px-4 py-2">
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ring-1 ${REASON_CHIP[d.reason_category] ?? REASON_CHIP.other}`}>
@@ -289,12 +290,12 @@ function AggregatedCard({
             <div className="flex items-center gap-2 mb-1">
               <span className="text-sm font-semibold text-gray-900">{row.label}</span>
               {row.pillar && (
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                <span className="text-xs font-bold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                   {row.pillar}
                 </span>
               )}
             </div>
-            <div className="text-[10px] font-mono text-gray-400 mb-2">{row.lib_key}</div>
+            <div className="text-xs font-mono text-gray-400 mb-2">{row.lib_key}</div>
             <div className="flex flex-wrap gap-1.5">
               {Object.entries(row.byReason)
                 .sort((a, b) => b[1] - a[1])
@@ -310,14 +311,14 @@ function AggregatedCard({
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold text-gray-900 leading-none">{row.count}</div>
-            <div className="text-[10px] text-gray-400 uppercase tracking-wide">dismissals</div>
+            <div className="text-xs text-gray-400 uppercase tracking-wide">dismissals</div>
           </div>
         </div>
       </button>
       {expanded && (
         <div className="border-t border-gray-100 bg-gray-50/50">
           <table className="w-full text-xs">
-            <thead className="text-[10px] uppercase tracking-wide text-gray-500">
+            <thead className="text-xs uppercase tracking-wide text-gray-500">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">When</th>
                 <th className="text-left px-4 py-2 font-medium">Reason</th>
@@ -331,7 +332,7 @@ function AggregatedCard({
                 return (
                   <tr key={d.client_id + d.lib_key} className="border-t border-gray-100">
                     <td className="px-4 py-2 text-gray-500 whitespace-nowrap">
-                      {new Date(d.dismissed_at).toLocaleDateString()}
+                      {fmtNumericDate(d.dismissed_at)}
                     </td>
                     <td className="px-4 py-2">
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ring-1 ${REASON_CHIP[d.reason_category] ?? REASON_CHIP.other}`}>

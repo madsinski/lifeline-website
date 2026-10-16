@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useDialog } from "@/app/components/account/ui";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 
 // Scoped version of /admin/biody/bulk-create — a modal on the companies
 // tab that is pre-bound to the row's company. Same parse + validate +
@@ -71,6 +73,7 @@ export default function BulkBiodyButton({
   parentName?: string | null;
   hasChildren?: boolean;
 }) {
+  const dialog = useDialog();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -82,14 +85,13 @@ export default function BulkBiodyButton({
   const invalid = rows.filter((r) => !!rowErrors(r));
 
   const reset = () => { setInput(""); setErr(""); setSummary(null); };
+  const panelRef = useDialogA11y(open, () => { setOpen(false); reset(); });
 
   async function submit() {
     if (valid.length === 0) { setErr("Engar gildar línur í listanum."); return; }
     if (valid.length > 200) { setErr("Hámark er 200 í einu."); return; }
-    if (!confirm(
-      `Þetta mun stofna ${valid.length} Biody-sjúklinga undir ${companyName} með bráðabirgðagildum ` +
-      `(hæð 170 cm, hreyfingarstig moderate, kyn karlkyn nema annað sé tilgreint). Halda áfram?`,
-    )) return;
+    if (!(await dialog.confirm({ title: "Halda áfram?", body: `Þetta mun stofna ${valid.length} Biody-sjúklinga undir ${companyName} með bráðabirgðagildum ` +
+      `(hæð 170 cm, hreyfingarstig moderate, kyn karlkyn nema annað sé tilgreint).` }))) return;
     setSubmitting(true);
     setErr("");
     setSummary(null);
@@ -146,7 +148,7 @@ export default function BulkBiodyButton({
           onClick={() => { setOpen(false); reset(); }}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8"
+            ref={panelRef} role="dialog" aria-modal="true" aria-label="Biody fjölda-stofnun" className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -157,7 +159,7 @@ export default function BulkBiodyButton({
                   Stofnar Biody-sjúklinga fyrir hóp starfsmanna með bráðabirgðagildum (hæð 170 cm, hreyfingarstig moderate, kyn karlkyn sjálfgefið).
                 </p>
               </div>
-              <button onClick={() => { setOpen(false); reset(); }} className="p-1 rounded hover:bg-gray-100 text-gray-400 shrink-0">
+              <button aria-label="Loka" onClick={() => { setOpen(false); reset(); }} className="p-1 rounded hover:bg-gray-100 text-gray-400 shrink-0">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -249,7 +251,7 @@ export default function BulkBiodyButton({
                   </div>
                   <div className="max-h-[220px] overflow-y-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 sticky top-0">
+                      <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 sticky top-0">
                         <tr>
                           <th className="px-3 py-1.5 text-left">Nafn</th>
                           <th className="px-3 py-1.5 text-left">Kennitala</th>
@@ -267,8 +269,8 @@ export default function BulkBiodyButton({
                               <td className="px-3 py-1.5 text-gray-700 font-mono text-[11px] truncate max-w-[180px]">{r.email || <span className="text-gray-400">—</span>}</td>
                               <td className="px-3 py-1.5">
                                 {v
-                                  ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border bg-red-50 text-red-700 border-red-100">{v}</span>
-                                  : <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-100">Tilbúið</span>}
+                                  ? <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full border bg-red-50 text-red-700 border-red-100">{v}</span>
+                                  : <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-100">Tilbúið</span>}
                               </td>
                             </tr>
                           );
@@ -295,7 +297,7 @@ export default function BulkBiodyButton({
                   </div>
                   <div className="max-h-[260px] overflow-y-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 sticky top-0">
+                      <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 sticky top-0">
                         <tr>
                           <th className="px-3 py-1.5 text-left">Netfang</th>
                           <th className="px-3 py-1.5 text-left">Staða</th>
@@ -317,7 +319,7 @@ export default function BulkBiodyButton({
                             <tr key={i}>
                               <td className="px-3 py-1.5 text-gray-800 font-mono text-[11px] truncate max-w-[180px]">{r.email}</td>
                               <td className="px-3 py-1.5">
-                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${pill}`}>{label}</span>
+                                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full border ${pill}`}>{label}</span>
                               </td>
                               <td className="px-3 py-1.5 text-[11px] text-gray-600 font-mono">{r.biody_patient_id ?? ""}</td>
                               <td className="px-3 py-1.5 text-[11px] text-gray-600">{r.error || ""}</td>

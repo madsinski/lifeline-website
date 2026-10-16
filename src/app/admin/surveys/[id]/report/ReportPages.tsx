@@ -279,7 +279,7 @@ export function ReportPages({
 function A4({ children, demo, page }: { children: React.ReactNode; demo: boolean; page: number }) {
   return (
     <div
-      className="a4 relative bg-white shadow-lg overflow-hidden flex flex-col text-[#1F2937]"
+      className="a4 relative bg-white shadow-lg overflow-hidden flex flex-col text-hc-ink"
       style={{ width: "210mm", height: "297mm", padding: "12mm 14mm 10mm", fontFamily: "var(--font-inter), system-ui, sans-serif" }}
       data-page={page}
     >
@@ -316,7 +316,7 @@ function Footer({ children, page, total }: { children: React.ReactNode; page: nu
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-[11pt] font-bold text-[#1F2937] mb-[2mm]">{children}</h2>;
+  return <h2 className="text-[11pt] font-bold text-hc-ink mb-[2mm]">{children}</h2>;
 }
 
 function DivergingLegend({ labels }: { labels: string[] }) {

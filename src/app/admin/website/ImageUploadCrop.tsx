@@ -4,6 +4,8 @@ import { useCallback, useState } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import { supabase } from "@/lib/supabase";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { X } from "lucide-react";
 
 // Upload + crop control for CMS image fields (the phone/laptop mockup
 // screenshots). Pick a file → crop to the mockup's aspect ratio → upload the
@@ -52,6 +54,7 @@ export default function ImageUploadCrop({
   const [zoom, setZoom] = useState(1);
   const [area, setArea] = useState<Area | null>(null);
   const [busy, setBusy] = useState(false);
+  const cropRef = useDialogA11y(!!cropImage, () => setCropImage(null), { dismissable: !busy });
   const [err, setErr] = useState<string | null>(null);
 
   const shown = value.trim() || fallback;
@@ -109,7 +112,7 @@ export default function ImageUploadCrop({
         </div>
         <div className="flex-1 space-y-1.5">
           <div className="flex flex-wrap gap-2">
-            <label className={`rounded-md px-3 py-1.5 text-sm font-medium ${disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-[#10B981] text-white hover:bg-[#047857] cursor-pointer"}`}>
+            <label className={`rounded-md px-3 py-1.5 text-sm font-medium ${disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-hc-brand-dark text-white hover:bg-hc-brand-darker cursor-pointer"}`}>
               Hlaða upp & skera til
               <input
                 type="file"
@@ -138,10 +141,10 @@ export default function ImageUploadCrop({
       {/* Crop modal */}
       {cropImage && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-4" onClick={() => !busy && setCropImage(null)}>
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div ref={cropRef} role="dialog" aria-modal="true" aria-label="Skera til mynd" className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
               <h3 className="text-lg font-semibold text-gray-900">Skera til mynd</h3>
-              <button onClick={() => !busy && setCropImage(null)} className="text-gray-400 hover:text-gray-600" aria-label="Loka">✕</button>
+              <button onClick={() => !busy && setCropImage(null)} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Loka"><X className="h-5 w-5" aria-hidden /></button>
             </div>
             <div className="relative bg-gray-900" style={{ height: "60vh" }}>
               <Cropper
@@ -161,7 +164,7 @@ export default function ImageUploadCrop({
             </div>
             <div className="flex justify-end gap-2 border-t border-gray-100 p-4">
               <button onClick={() => setCropImage(null)} disabled={busy} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50">Hætta við</button>
-              <button onClick={confirm} disabled={busy} className="flex items-center gap-2 rounded-lg bg-[#10B981] px-5 py-2 text-sm font-semibold text-white hover:bg-[#047857] disabled:opacity-50">
+              <button onClick={confirm} disabled={busy} className="flex items-center gap-2 rounded-lg bg-hc-brand-dark px-5 py-2 text-sm font-semibold text-white hover:bg-hc-brand-darker disabled:opacity-50">
                 {busy && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
                 {busy ? "Hleð upp…" : "Vista mynd"}
               </button>

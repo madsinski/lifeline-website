@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import { fmtDate } from "@/app/components/account/ui/dates";
 
 type Inquiry = {
   id: string;
@@ -103,7 +104,7 @@ export default function CompanyInquiriesPage() {
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-[#1F2937]">Company inquiries</h1>
+        <h1 className="text-2xl font-semibold text-hc-ink">Company inquiries</h1>
         <p className="text-sm text-[#6B7280]">Incoming B2B inquiries from the public /business page.</p>
       </header>
 
@@ -169,7 +170,7 @@ export default function CompanyInquiriesPage() {
                     )}
                   </div>
                   <div className="text-xs text-gray-500 whitespace-nowrap">
-                    {new Date(r.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    {fmtDate(r.created_at, { month: "short" })}
                   </div>
                 </button>
                 {isOpen && (

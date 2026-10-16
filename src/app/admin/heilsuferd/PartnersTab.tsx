@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
-import { adminJson } from "../hc-api";
+import { adminJson, adminErrorText } from "../hc-api";
 
 interface Partner {
   id: string; name: string; profession: "physio" | "psychologist" | "nutritionist";
@@ -32,11 +32,11 @@ export default function PartnersTab() {
 
   const load = useCallback(async () => {
     const r = await adminJson<{ partners: Partner[] }>("/api/admin/hc/partners");
-    setTimeout(() => { if (r.ok) setRows(r.data.partners); else setMsg({ ok: false, text: r.error ?? "Villa" }); }, 0);
+    setTimeout(() => { if (r.ok) setRows(r.data.partners); else setMsg({ ok: false, text: adminErrorText(r.error, "Ekki tókst að sækja samstarfsaðila.") }); }, 0);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const errText = (e?: string) => e === "mfa_required" ? "Staðfestu með tvíþættri auðkenningu (MFA) og reyndu aftur." : e ?? "Tókst ekki að vista.";
+  const errText = (e?: string) => adminErrorText(e, "Tókst ekki að vista.");
 
   const save = async () => {
     if (busy) return;

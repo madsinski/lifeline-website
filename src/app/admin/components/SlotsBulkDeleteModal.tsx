@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Modal, Button, Alert, accountInput, accountLabel } from "@/app/components/account/ui";
 import { verifyAdminPassword } from "./DeleteConfirmModal";
+import { fmtDate, fmtTime } from "@/app/components/account/ui/dates";
 
 // Bulk-delete modal shared between admin/doctor-slots and
 // admin/station-slots. Filters by date range, weekday, optional
@@ -98,8 +99,8 @@ export default function SlotsBulkDeleteModal({
         slot_at: r.slot_at as string,
         client_id: (r.client_id as string | null) ?? null,
         company_id: (r.company_id as string | null) ?? null,
-        day: at.toLocaleDateString("is-IS", { weekday: "short", day: "numeric", month: "short" }),
-        time: at.toLocaleTimeString("is-IS", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        day: fmtDate(at, { weekday: "short", year: false, month: "short" }),
+        time: fmtTime(at),
       };
     })
       // Client-side filters for weekday + time range

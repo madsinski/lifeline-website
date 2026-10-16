@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
 import { NAV_ITEMS } from "@/lib/site-content/nav";
 import { resolveOrder, resolveHidden, type Locale, type SiteContentBlob, type SiteSection } from "@/lib/site-content/types";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
 
 const SECTIONS: SiteSection[] = NAV_ITEMS.map((n) => ({ id: n.id, label: n.fallback }));
 
@@ -117,9 +118,9 @@ export default function NavbarEditor() {
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="text-xs text-gray-500">
           {saveState === "saving" && <span>Vistar…</span>}
-          {saveState === "saved" && <span className="text-emerald-600">✓ Vistað og birt</span>}
+          {saveState === "saved" && <span className="text-hc-brand-text">✓ Vistað og birt</span>}
           {saveState === "error" && <span className="text-red-600">Vistun mistókst</span>}
-          {publishedAt && <span> · Síðast birt {new Date(publishedAt).toLocaleString("is-IS")}</span>}
+          {publishedAt && <span> · Síðast birt {fmtDateTime(publishedAt, { year: true, month: "short" })}</span>}
         </div>
         {isAdmin && (
           <button onClick={publish} disabled={busy} title="Birta núverandi stöðu strax" className="py-1.5 px-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium disabled:opacity-50">
@@ -149,7 +150,7 @@ export default function NavbarEditor() {
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 pl-7">
                 {(["is", "en"] as Locale[]).map((loc) => (
                   <label key={loc} className="block">
-                    <span className="text-[10px] uppercase tracking-wide text-gray-400">{loc === "is" ? "Heiti (íslenska)" : "Heiti (enska)"}</span>
+                    <span className="text-xs uppercase tracking-wide text-gray-400">{loc === "is" ? "Heiti (íslenska)" : "Heiti (enska)"}</span>
                     <input
                       value={draft[loc]?.[id] ?? ""}
                       disabled={!isAdmin}

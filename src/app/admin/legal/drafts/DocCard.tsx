@@ -25,6 +25,8 @@ import CopyButton from "./CopyButton";
 import DocReviewPanel from "./DocReviewPanel";
 import { supabase } from "@/lib/supabase";
 import { LOCATION_BADGE, type DocLocation } from "./locationBadge";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 
 export type DocLanguage = "is" | "en";
 
@@ -67,6 +69,7 @@ export default function DocCard(p: DocCardProps) {
   const [lang, setLang] = useState<DocLanguage>(p.sourceLanguage);
   const [isAdmin, setIsAdmin] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const editorRef = useDialogA11y(editorOpen, () => setEditorOpen(false));
   const [editorText, setEditorText] = useState("");
   const [editorVersion, setEditorVersion] = useState("");
   const [editorNote, setEditorNote] = useState("");
@@ -147,14 +150,14 @@ This document is currently maintained in ${LANG_LABEL[p.sourceLanguage]} only. T
     <section id={p.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <header className="border-b border-gray-100 px-5 py-4 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="text-base font-semibold text-[#1F2937]">
+          <h3 className="text-base font-semibold text-hc-ink">
             {p.approved && (
-              <svg className="inline-block w-4 h-4 text-emerald-600 mr-1.5 align-middle" viewBox="0 0 20 20" fill="currentColor" aria-label="Approved">
+              <svg className="inline-block w-4 h-4 text-hc-brand-text mr-1.5 align-middle" viewBox="0 0 20 20" fill="currentColor" aria-label="Approved">
                 <path fillRule="evenodd" d="M16.704 5.29a1 1 0 010 1.415l-7.5 7.5a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 111.414-1.414l2.793 2.793 6.793-6.793a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
             )}
             {p.location && (
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold mr-1.5 align-middle ${LOCATION_BADGE[p.location].className}`}>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold mr-1.5 align-middle ${LOCATION_BADGE[p.location].className}`}>
                 {LOCATION_BADGE[p.location].label}
               </span>
             )}
@@ -181,7 +184,7 @@ This document is currently maintained in ${LANG_LABEL[p.sourceLanguage]} only. T
                   onClick={() => setLang(l)}
                   className={`px-3 py-1.5 transition-colors ${
                     active
-                      ? "bg-[#1F2937] text-white"
+                      ? "bg-hc-ink text-white"
                       : missing
                       ? "bg-white text-gray-400 hover:text-gray-600"
                       : "bg-white text-gray-700 hover:bg-gray-50"
@@ -189,7 +192,7 @@ This document is currently maintained in ${LANG_LABEL[p.sourceLanguage]} only. T
                   title={missing ? `${LANG_LABEL[l]} translation pending` : LANG_LABEL[l]}
                 >
                   {LANG_LABEL[l]}
-                  {missing && <span className="ml-1 text-[10px] align-top">·</span>}
+                  {missing && <span className="ml-1 text-xs align-top">·</span>}
                 </button>
               );
             })}
@@ -226,7 +229,7 @@ This document is currently maintained in ${LANG_LABEL[p.sourceLanguage]} only. T
           <span className="font-semibold">Draft {draftMeta.proposed_version}</span>{" "}
           shown — pasted by {draftMeta.edited_by_name || draftMeta.edited_by_email}
           {" · "}
-          {new Date(draftMeta.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+          {fmtDateTime(draftMeta.created_at, { year: true, month: "short" })}
           {draftMeta.source_note && <> · <em>{draftMeta.source_note}</em></>}
           . The click-through acceptance hash still uses the source-code text until this draft is ported into <code className="font-mono">src/lib/*-content.ts</code>.
         </div>
@@ -249,9 +252,9 @@ This document is currently maintained in ${LANG_LABEL[p.sourceLanguage]} only. T
       {/* Inline editor modal */}
       {editorOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setEditorOpen(false); }}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+          <div ref={editorRef} role="dialog" aria-modal="true" aria-label={`Edit — ${p.title}`} className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
             <header className="px-5 py-4 border-b border-gray-100">
-              <h4 className="text-base font-semibold text-[#1F2937]">
+              <h4 className="text-base font-semibold text-hc-ink">
                 Edit — {p.title} <span className="text-sm font-normal text-gray-400 ml-1">({LANG_LABEL[lang]})</span>
               </h4>
               <p className="text-xs text-gray-500 mt-1">

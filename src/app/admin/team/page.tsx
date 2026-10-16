@@ -7,6 +7,10 @@ import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import StaffLegalButton from "./StaffLegalButton";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
+import { X } from "lucide-react";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 
 /*
   SQL to create the staff table (also in /supabase/staff.sql):
@@ -150,6 +154,8 @@ ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow all staff operations" ON staff USING (true) WITH CHECK (true);`;
 
 export default function TeamPage() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -165,6 +171,8 @@ export default function TeamPage() {
 
   // Crop state
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const cropRef = useDialogA11y(!!cropImage, () => setCropImage(null));
+  const addRef = useDialogA11y(showAddModal, () => setShowAddModal(false));
   const [cropMemberId, setCropMemberId] = useState<string | null>(null);
   const [cropPos, setCropPos] = useState({ x: 0, y: 0 });
   const [cropZoom, setCropZoom] = useState(1);
@@ -498,14 +506,14 @@ export default function TeamPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold text-[#1F2937]">Team Management</h2>
+            <h2 className="text-2xl font-bold text-hc-ink">Team Management</h2>
             {/* This page is the `staff` table — who may use the admin app and
                 what they may do in it. The heilsuferð coach profile a
                 participant reads lives on `hc_workers`, a different table
                 with its own login, so it is edited where those are. Said here
                 because this is the page somebody looks on first. */}
             <a href="/admin/heilsuferd?tab=workers"
-              className="text-sm font-semibold text-[#047857] hover:underline">
+              className="text-sm font-semibold text-hc-brand-text hover:underline">
               Þjálfaraprófílar (kynning, mynd, sérsvið) →
             </a>
             {/* Connection status indicator */}
@@ -560,7 +568,7 @@ export default function TeamPage() {
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -582,7 +590,7 @@ export default function TeamPage() {
             {inviteSending && <span className="inline-block w-3 h-3 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />}
             {inviteStatus}
           </span>
-          {!inviteSending && <button onClick={() => setInviteStatus(null)} className="text-gray-400 hover:text-gray-600 ml-2">&times;</button>}
+          {!inviteSending && <button onClick={() => setInviteStatus(null)} aria-label="Loka" className="ml-2 inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"><X className="h-4 w-4" aria-hidden /></button>}
         </div>
       )}
 
@@ -623,7 +631,7 @@ export default function TeamPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-2xl font-bold text-[#1F2937]">{team.length}</p>
+          <p className="text-2xl font-bold text-hc-ink">{team.length}</p>
           <p className="text-xs text-gray-500">Total members</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
@@ -635,7 +643,7 @@ export default function TeamPage() {
           <p className="text-xs text-gray-500">Inactive</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <p className="text-2xl font-bold text-[#1F2937]">{new Set(team.map((m) => m.role)).size}</p>
+          <p className="text-2xl font-bold text-hc-ink">{new Set(team.map((m) => m.role)).size}</p>
           <p className="text-xs text-gray-500">Roles</p>
         </div>
       </div>
@@ -674,10 +682,10 @@ export default function TeamPage() {
                             type="text"
                             value={editValues.name ?? ""}
                             onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 w-40"
+                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none text-gray-900 w-40"
                           />
                         ) : (
-                          <span className="text-sm font-medium text-[#1F2937]">{member.name}</span>
+                          <span className="text-sm font-medium text-hc-ink">{member.name}</span>
                         )}
                       </div>
                     </td>
@@ -687,7 +695,7 @@ export default function TeamPage() {
                           type="email"
                           value={editValues.email ?? ""}
                           onChange={(e) => setEditValues({ ...editValues, email: e.target.value })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 w-48"
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none text-gray-900 w-48"
                         />
                       ) : (
                         <span className="text-sm text-gray-600">{member.email}</span>
@@ -699,7 +707,7 @@ export default function TeamPage() {
                           type="tel"
                           value={editValues.phone ?? ""}
                           onChange={(e) => setEditValues({ ...editValues, phone: e.target.value })}
-                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 w-36"
+                          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none text-gray-900 w-36"
                         />
                       ) : (
                         <span className="text-sm text-gray-600">{member.phone || "Not set"}</span>
@@ -711,7 +719,7 @@ export default function TeamPage() {
                           <select
                             value={editValues.role ?? member.role}
                             onChange={(e) => setEditValues({ ...editValues, role: e.target.value as StaffRole })}
-                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
+                            className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none text-gray-900"
                           >
                             {roleOptions.map((r) => (
                               <option key={r} value={r}>{roleLabels[r]}</option>
@@ -720,7 +728,7 @@ export default function TeamPage() {
                           <select
                             value={editValues.employment_type ?? member.employment_type ?? defaultEmploymentTypeFor(editValues.role ?? member.role)}
                             onChange={(e) => setEditValues({ ...editValues, employment_type: e.target.value as EmploymentType })}
-                            className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
+                            className="px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-hc-brand-dark outline-none text-gray-900"
                             title="Drives which contract doc they sign at onboarding"
                           >
                             <option value="salaried">Salaried</option>
@@ -736,11 +744,11 @@ export default function TeamPage() {
                               {roleLabels[member.role]}
                             </span>
                             {member.specialty && (
-                              <span className="text-[10px] text-gray-400">{member.specialty}</span>
+                              <span className="text-xs text-gray-400">{member.specialty}</span>
                             )}
                           </div>
                           {member.employment_type && (
-                            <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${EMPLOYMENT_COLORS[member.employment_type]}`}>
+                            <span className={`inline-flex items-center text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${EMPLOYMENT_COLORS[member.employment_type]}`}>
                               {EMPLOYMENT_LABELS[member.employment_type]}
                             </span>
                           )}
@@ -766,7 +774,7 @@ export default function TeamPage() {
                           <>
                             <button
                               onClick={() => saveEdit(member.id)}
-                              className="px-3 py-1 text-xs font-medium text-white bg-[#10B981] rounded hover:bg-[#10B981] transition-colors"
+                              className="px-3 py-1 text-xs font-medium text-white bg-hc-brand-dark rounded hover:bg-hc-brand-darker transition-colors"
                             >
                               Save
                             </button>
@@ -797,21 +805,19 @@ export default function TeamPage() {
                                 // password-reset emails. The recipient's
                                 // email is shown so the admin can't
                                 // mis-click on the wrong row.
-                                const ok = window.confirm(
-                                  `Send a password-reset / login email to ${member.email}?\n\nThis will be visible in their inbox immediately. Only do this if they asked for it — duplicate sends look suspicious.`,
-                                );
+                                const ok = (await dialog.confirm({ title: `Send a password-reset / login email to ${member.email}?`, body: "This will be visible in their inbox immediately. Only do this if they asked for it — duplicate sends look suspicious." }));
                                 if (!ok) return;
                                 try {
                                   const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
                                     redirectTo: `${window.location.origin}/admin/login`,
                                   });
                                   if (error) {
-                                    alert(`Failed: ${error.message}`);
+                                    toast.show(`Failed: ${error.message}`, { tone: "bad" });
                                   } else {
-                                    alert(`Password reset email sent to ${member.email}`);
+                                    toast.show(`Password reset email sent to ${member.email}`, { tone: "ok" });
                                   }
                                 } catch {
-                                  alert("Failed to send reset email");
+                                  toast.show("Failed to send reset email", { tone: "bad" });
                                 }
                               }}
                               className="p-1.5 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors"
@@ -853,7 +859,7 @@ export default function TeamPage() {
                                     : [...current, perm.key];
                                   setEditValues({ ...editValues, permissions: updated });
                                 }}
-                                className="w-3.5 h-3.5 text-[#10B981] border-gray-300 rounded focus:ring-[#10B981]"
+                                className="w-3.5 h-3.5 text-hc-brand-text border-gray-300 rounded focus:ring-hc-brand-dark"
                               />
                               <span className="text-xs font-medium text-gray-700">{perm.label}</span>
                             </label>
@@ -876,7 +882,7 @@ export default function TeamPage() {
                                   </div>
                                 )}
                                 <div className="flex flex-col gap-1">
-                                  <label className="cursor-pointer px-3 py-1.5 text-xs font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#0b7e73] transition-colors inline-flex items-center gap-1.5">
+                                  <label className="cursor-pointer px-3 py-1.5 text-xs font-medium text-white bg-hc-brand-dark rounded-lg hover:bg-[#0b7e73] transition-colors inline-flex items-center gap-1.5">
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                     Upload photo
                                     <input
@@ -902,7 +908,7 @@ export default function TeamPage() {
                                     <button
                                       type="button"
                                       onClick={() => setEditValues({ ...editValues, avatar_url: null })}
-                                      className="text-[10px] text-red-400 hover:text-red-600 text-left"
+                                      className="text-xs text-red-400 hover:text-red-600 text-left"
                                     >
                                       Remove photo
                                     </button>
@@ -918,7 +924,7 @@ export default function TeamPage() {
                                 value={editValues.specialty ?? ""}
                                 onChange={(e) => setEditValues({ ...editValues, specialty: e.target.value })}
                                 placeholder="e.g. Nutrition, Exercise Science, Mental Health"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none text-gray-900"
                               />
                             </div>
                             {/* Bio */}
@@ -929,7 +935,7 @@ export default function TeamPage() {
                                 onChange={(e) => setEditValues({ ...editValues, bio: e.target.value })}
                                 placeholder="Short bio about the coach..."
                                 rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 resize-none"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none text-gray-900 resize-none"
                               />
                             </div>
                             {/* Years Experience */}
@@ -940,7 +946,7 @@ export default function TeamPage() {
                                 value={editValues.years_experience ?? ""}
                                 onChange={(e) => setEditValues({ ...editValues, years_experience: e.target.value ? parseInt(e.target.value) : null })}
                                 placeholder="e.g. 5"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none text-gray-900"
                               />
                             </div>
                             {/* Qualifications */}
@@ -951,7 +957,7 @@ export default function TeamPage() {
                                 onChange={(e) => setEditValues({ ...editValues, qualifications: e.target.value.split("\n").filter(s => s.trim()) })}
                                 placeholder={"e.g.\nMSc Exercise Science\nCertified Personal Trainer\nNutrition Coach Level 3"}
                                 rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none text-gray-900 resize-none"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none text-gray-900 resize-none"
                               />
                             </div>
                           </div>
@@ -992,10 +998,10 @@ export default function TeamPage() {
       {/* Crop modal */}
       {cropImage && (
         <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+          <div ref={cropRef} role="dialog" aria-modal="true" aria-label="Crop profile photo" className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-900">Crop profile photo</h3>
-              <button onClick={() => setCropImage(null)} className="text-gray-400 hover:text-gray-600">
+              <button aria-label="Loka" onClick={() => setCropImage(null)} className="text-gray-400 hover:text-gray-600">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -1013,7 +1019,7 @@ export default function TeamPage() {
               />
             </div>
             <div className="px-5 py-2">
-              <label className="text-[10px] text-gray-400 uppercase tracking-wider">Zoom</label>
+              <label className="text-xs text-gray-400 uppercase tracking-wider">Zoom</label>
               <input
                 type="range"
                 min={1}
@@ -1039,16 +1045,16 @@ export default function TeamPage() {
                     const path = `${cropMemberId}.jpg`;
                     await supabase.storage.from("staff-avatars").remove([path]);
                     const { error: uploadErr } = await supabase.storage.from("staff-avatars").upload(path, blob, { upsert: true, contentType: "image/jpeg" });
-                    if (uploadErr) { alert(`Upload failed: ${uploadErr.message}`); return; }
+                    if (uploadErr) { toast.show(`Upload failed: ${uploadErr.message}`, { tone: "bad" }); return; }
                     const { data: urlData } = supabase.storage.from("staff-avatars").getPublicUrl(path);
                     const publicUrl = urlData.publicUrl + "?t=" + Date.now();
                     setEditValues((prev) => ({ ...prev, avatar_url: publicUrl }));
                     setCropImage(null);
                   } catch (err) {
-                    alert("Crop failed. Try again.");
+                    toast.show("Crop failed. Try again.", { tone: "bad" });
                   }
                 }}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#0b7e73] transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-hc-brand-dark rounded-lg hover:bg-[#0b7e73] transition-colors"
               >
                 Save photo
               </button>
@@ -1060,10 +1066,10 @@ export default function TeamPage() {
       {/* Add member modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md my-8 max-h-[calc(100vh-4rem)] flex flex-col">
+          <div ref={addRef} role="dialog" aria-modal="true" aria-label="Add team member" className="bg-white rounded-2xl shadow-xl w-full max-w-md my-8 max-h-[calc(100vh-4rem)] flex flex-col">
             <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100 flex-shrink-0">
-              <h3 className="text-lg font-semibold text-[#1F2937]">Add team member</h3>
-              <button
+              <h3 className="text-lg font-semibold text-hc-ink">Add team member</h3>
+              <button aria-label="Loka"
                 onClick={() => setShowAddModal(false)}
                 className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -1080,7 +1086,7 @@ export default function TeamPage() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Full name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none text-gray-900"
                 />
               </div>
               <div>
@@ -1090,7 +1096,7 @@ export default function TeamPage() {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="email@lifeline.is"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none text-gray-900"
                 />
               </div>
               <div>
@@ -1100,7 +1106,7 @@ export default function TeamPage() {
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
                   placeholder="+354 555 0000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none text-gray-900"
                 />
               </div>
               <div>
@@ -1108,7 +1114,7 @@ export default function TeamPage() {
                 <select
                   value={newRole}
                   onChange={(e) => handleRoleChange(e.target.value as StaffRole)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none text-gray-900"
                 >
                   {roleOptions.map((r) => (
                     <option key={r} value={r}>{roleLabels[r]}</option>
@@ -1120,7 +1126,7 @@ export default function TeamPage() {
                 <select
                   value={newEmployment}
                   onChange={(e) => setNewEmployment(e.target.value as EmploymentType)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none text-gray-900"
                 >
                   <option value="salaried">Salaried — fixed monthly wage (ráðningarsamningur uploaded as bespoke PDF)</option>
                   <option value="piece_rate">Piece-rate — 2 000 ISK per measurement (lausráðningarsamningur, click-through)</option>
@@ -1140,7 +1146,7 @@ export default function TeamPage() {
                         type="checkbox"
                         checked={newPermissions.includes(perm.key)}
                         onChange={() => togglePermission(perm.key)}
-                        className="mt-0.5 w-4 h-4 text-[#10B981] border-gray-300 rounded focus:ring-[#10B981]"
+                        className="mt-0.5 w-4 h-4 text-hc-brand-text border-gray-300 rounded focus:ring-hc-brand-dark"
                       />
                       <div>
                         <span className="text-sm font-medium text-gray-700">{perm.label}</span>
@@ -1156,7 +1162,7 @@ export default function TeamPage() {
                     type="checkbox"
                     checked={sendInvite}
                     onChange={(e) => setSendInvite(e.target.checked)}
-                    className="w-4 h-4 text-[#10B981] border-gray-300 rounded focus:ring-[#10B981]"
+                    className="w-4 h-4 text-hc-brand-text border-gray-300 rounded focus:ring-hc-brand-dark"
                   />
                   <span className="text-sm font-medium text-gray-700">Send invite email</span>
                 </label>
@@ -1173,7 +1179,7 @@ export default function TeamPage() {
               <button
                 onClick={handleAdd}
                 disabled={!newName.trim() || !newEmail.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {sendInvite ? "Add & Send Invite" : "Add Member"}
               </button>

@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useStaffGuard } from "@/lib/useStaffGuard";
+import { useDialog } from "@/app/components/account/ui";
 
 interface SecurityFinding {
   id: string;
@@ -48,6 +49,7 @@ function formatWhen(iso: string | null | undefined): string {
 }
 
 export default function SecurityPage() {
+  const dialog = useDialog();
   const guard = useStaffGuard({ role: "admin" });
   const [rows, setRows] = useState<SecurityFinding[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,7 +107,7 @@ export default function SecurityPage() {
   };
 
   const act = async (f: SecurityFinding, action: "dismiss" | "reopen" | "ban" | "unban" | "delete") => {
-    if (action === "delete" && !confirm(`Delete the account ${f.email} and everything it owns? This cannot be undone.`)) return;
+    if (action === "delete" && !(await dialog.confirm({ title: `Delete the account ${f.email} and everything it owns?`, body: `This cannot be undone.`, tone: "danger" }))) return;
     setBusy(f.id);
     setMessage(null);
     try {
@@ -136,7 +138,7 @@ export default function SecurityPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-[#1F2937]">Intruder watch</h1>
+        <h1 className="text-2xl font-bold text-hc-ink">Intruder watch</h1>
         <p className="text-sm text-gray-500 mt-1 max-w-3xl">
           Every hour all accounts are checked for scanner-generated signups, injection probes,
           accounts that claim staff rights, new staff accounts and signup bursts. Accounts on
@@ -167,7 +169,7 @@ export default function SecurityPage() {
         <button
           onClick={scanNow}
           disabled={busy === "scan"}
-          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-hc-brand-dark text-white hover:bg-hc-brand-darker disabled:opacity-50"
         >
           {busy === "scan" ? "Scanning…" : "Scan now"}
         </button>
@@ -203,7 +205,7 @@ export default function SecurityPage() {
                     {f.severity}
                   </span>
                   <div className="flex-1 min-w-[240px]">
-                    <div className="text-sm font-semibold text-[#1F2937] break-all">
+                    <div className="text-sm font-semibold text-hc-ink break-all">
                       {f.email || RULE_LABELS[f.rule] || f.rule}
                     </div>
                     <div className="text-sm text-gray-700 mt-0.5">{f.summary}</div>

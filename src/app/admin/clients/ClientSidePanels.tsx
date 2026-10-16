@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useDialog } from "@/app/components/account/ui";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -62,6 +63,7 @@ const CONSULTATIONS_PER_TIER: Record<string, number> = {
 };
 
 export function AppointmentsCard({ clientId }: { clientId: string }) {
+  const dialog = useDialog();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [consultationQuota, setConsultationQuota] = useState<{ used: number; total: number; tier: string } | null>(null);
@@ -110,7 +112,7 @@ export function AppointmentsCard({ clientId }: { clientId: string }) {
   }, [clientId]);
 
   const handleCancel = async (id: string) => {
-    if (!confirm("Cancel this appointment?")) return;
+    if (!(await dialog.confirm({ title: "Cancel this appointment?", tone: "danger" }))) return;
     await supabase.from("appointments").update({ status: "cancelled" }).eq("id", id);
     setAppointments(prev => prev.filter(a => a.id !== id));
   };
@@ -126,7 +128,7 @@ export function AppointmentsCard({ clientId }: { clientId: string }) {
         <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Upcoming appointments</h4>
         <div className="flex items-center gap-2">
           {consultationQuota && consultationQuota.total > 0 && (
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+            <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
               consultationQuota.total - consultationQuota.used <= 0
                 ? "text-red-600 bg-red-50"
                 : consultationQuota.total - consultationQuota.used <= 1
@@ -137,7 +139,7 @@ export function AppointmentsCard({ clientId }: { clientId: string }) {
             </span>
           )}
           {consultationQuota && consultationQuota.total === 0 && (
-            <span className="text-[10px] font-medium text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded-full">
+            <span className="text-xs font-medium text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded-full">
               No consultations incl.
             </span>
           )}
@@ -182,7 +184,7 @@ export function AppointmentsCard({ clientId }: { clientId: string }) {
                 <div className="flex items-center gap-2">
                   {apt.video_room_url && (
                     <a href={apt.video_room_url} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors">
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
@@ -391,7 +393,7 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
         <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Chat with {clientName.split(" ")[0]}</h4>
         {messages.length > 0 && (
-          <span className="text-[10px] text-gray-300">{messages.length} messages</span>
+          <span className="text-xs text-gray-300">{messages.length} messages</span>
         )}
       </div>
 
@@ -426,16 +428,16 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
       {showNudges && (
         <div className="border-t border-gray-100 flex-shrink-0">
           <div className="px-3 pt-2 pb-1 flex items-center justify-between">
-            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Nudge templates</span>
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nudge templates</span>
             <div className="flex items-center gap-2">
               {editingNudges && (
                 <button onClick={() => { saveNudges([...nudgeTemplates, "New template — use {name} for client name"]); }}
-                  className="text-[10px] font-medium text-emerald-600 hover:text-emerald-700">+ Add</button>
+                  className="text-xs font-medium text-hc-brand-text hover:text-emerald-700">+ Add</button>
               )}
               <button onClick={() => {
                 if (editingNudges) saveNudges(nudgeTemplates);
                 setEditingNudges(!editingNudges);
-              }} className="text-[10px] font-medium text-gray-500 hover:text-gray-700">
+              }} className="text-xs font-medium text-gray-500 hover:text-gray-700">
                 {editingNudges ? "Done" : "Edit"}
               </button>
             </div>
@@ -450,7 +452,7 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
                     rows={2}
                     className="flex-1 px-2.5 py-1.5 text-[11px] text-gray-700 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-300 outline-none resize-none leading-snug"
                   />
-                  <button onClick={() => { const next = nudgeTemplates.filter((_, j) => j !== i); saveNudges(next); }}
+                  <button aria-label="Fjarlægja" onClick={() => { const next = nudgeTemplates.filter((_, j) => j !== i); saveNudges(next); }}
                     className="p-1 text-gray-300 hover:text-red-500 flex-shrink-0 mt-0.5">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -470,7 +472,7 @@ export function MessagesCard({ clientId, clientName, staffMembers }: {
           {editingNudges && (
             <div className="px-3 pb-2">
               <button onClick={() => { saveNudges(defaultNudges); }}
-                className="text-[10px] text-gray-400 hover:text-gray-600">Reset to defaults</button>
+                className="text-xs text-gray-400 hover:text-gray-600">Reset to defaults</button>
             </div>
           )}
         </div>

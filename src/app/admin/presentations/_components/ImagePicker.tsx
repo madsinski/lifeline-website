@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { EXISTING_IMAGES } from "@/lib/presentations/existing-images";
 import type { ImageRole } from "@/lib/presentations/types";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { X } from "lucide-react";
 
 const ROLE_CATEGORIES: Record<ImageRole, string[]> = {
   background: ["Backgrounds", "Editorial"],
@@ -24,6 +26,7 @@ export function ImagePicker({
   const [urlInput, setUrlInput] = useState(value || "");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const panelRef = useDialogA11y(true, onClose);
 
   const preferred = ROLE_CATEGORIES[role];
   const images = useMemo(
@@ -53,10 +56,10 @@ export function ImagePicker({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-2xl rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Choose image" className="w-full max-w-2xl rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
           <h3 className="font-semibold text-gray-800">Choose image</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+          <button onClick={onClose} aria-label="Loka" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"><X className="h-5 w-5" aria-hidden /></button>
         </div>
 
         <div className="flex gap-1 px-5 pt-3">
@@ -64,7 +67,7 @@ export function ImagePicker({
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize ${tab === t ? "bg-emerald-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium capitalize ${tab === t ? "bg-hc-brand-dark text-white" : "text-gray-600 hover:bg-gray-100"}`}
             >
               {t === "existing" ? "Pick existing" : t === "upload" ? "Upload" : "Paste URL"}
             </button>
@@ -91,7 +94,7 @@ export function ImagePicker({
 
           {tab === "upload" && (
             <div className="flex flex-col items-center gap-3 py-6">
-              <label className="cursor-pointer rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+              <label className="cursor-pointer rounded-md bg-hc-brand-dark px-4 py-2 text-sm font-medium text-white hover:bg-hc-brand-darker">
                 {uploading ? "Uploading…" : "Select an image"}
                 <input
                   type="file"
@@ -120,7 +123,7 @@ export function ImagePicker({
               )}
               <div className="flex justify-end gap-2">
                 {value && <button onClick={() => { onChange(""); onClose(); }} className="rounded-md px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100">Clear</button>}
-                <button onClick={() => { onChange(urlInput.trim()); onClose(); }} className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700">Use this URL</button>
+                <button onClick={() => { onChange(urlInput.trim()); onClose(); }} className="rounded-md bg-hc-brand-dark px-3 py-1.5 text-sm font-medium text-white hover:bg-hc-brand-darker">Use this URL</button>
               </div>
             </div>
           )}

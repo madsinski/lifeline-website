@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDate, fmtDateTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
 
 interface RecentErrorSig {
   id?: string;
@@ -42,6 +45,8 @@ const TYPE_PILL: Record<FeedbackRow["feedback_type"], { label: string; cls: stri
 type Filter = "unresolved" | "all" | "bug" | "feature" | "general";
 
 export default function FeedbackTab() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [items, setItems] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("unresolved");
@@ -91,7 +96,7 @@ export default function FeedbackTab() {
 
   const resolveWithNote = async (id: string) => {
     if (!replyNote.trim()) {
-      alert("Add a short reply note so the tester sees what was done.");
+      toast.show("Add a short reply note so the tester sees what was done.", { tone: "bad" });
       return;
     }
     setSubmitting(true);
@@ -107,7 +112,7 @@ export default function FeedbackTab() {
         })
         .eq("id", id);
       if (error) {
-        alert(`Resolve failed: ${error.message}`);
+        toast.show(`Resolve failed: ${error.message}`, { tone: "bad" });
         return;
       }
       await load();
@@ -119,7 +124,7 @@ export default function FeedbackTab() {
   };
 
   const reopen = async (id: string) => {
-    if (!confirm("Reopen this feedback item? The tester's banner will disappear.")) return;
+    if (!(await dialog.confirm({ title: "Reopen this feedback item?", body: "The tester's banner will disappear." }))) return;
     const { error } = await supabase
       .from("beta_feedback")
       .update({
@@ -130,7 +135,7 @@ export default function FeedbackTab() {
       })
       .eq("id", id);
     if (error) {
-      alert(`Reopen failed: ${error.message}`);
+      toast.show(`Reopen failed: ${error.message}`, { tone: "bad" });
       return;
     }
     load();
@@ -159,7 +164,7 @@ export default function FeedbackTab() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                filter === f ? "bg-emerald-600 text-white" : "text-gray-500 hover:bg-gray-100"
+                filter === f ? "bg-hc-brand-dark text-white" : "text-gray-500 hover:bg-gray-100"
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)} ({counts[f]})
@@ -196,29 +201,29 @@ export default function FeedbackTab() {
                   onClick={() => expand(item.id, item)}
                   className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50/50 transition-colors"
                 >
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${tc.cls}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${tc.cls}`}>
                     {tc.label}
                   </span>
                   <p className={`flex-1 text-sm text-gray-900 truncate min-w-0 ${isResolved ? "opacity-60" : ""}`}>
                     {item.message}
                   </p>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-[10px] text-gray-400 hidden sm:block">
+                    <span className="text-xs text-gray-400 hidden sm:block">
                       {item.user_email ?? "(no email)"}
                     </span>
-                    <span className="text-[10px] text-gray-400">
-                      {new Date(item.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    <span className="text-xs text-gray-400">
+                      {fmtDate(item.created_at, { year: false, month: "short" })}
                     </span>
                     {isResolved && (
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                           item.viewed_by_user_at
                             ? "bg-green-100 text-green-700"
                             : "bg-amber-100 text-amber-700"
                         }`}
                         title={
                           item.viewed_by_user_at
-                            ? `Tester saw the reply on ${new Date(item.viewed_by_user_at).toLocaleString()}`
+                            ? `Tester saw the reply on ${fmtDateTime(item.viewed_by_user_at, { year: true, month: "short" })}`
                             : "Tester hasn't opened the feedback bubble since you resolved this"
                         }
                       >
@@ -258,14 +263,14 @@ export default function FeedbackTab() {
                               Loading…
                             </div>
                           )}
-                          <p className="text-[10px] text-gray-400 mt-1">Click for full size · signed URL expires in 5 min</p>
+                          <p className="text-xs text-gray-400 mt-1">Click for full size · signed URL expires in 5 min</p>
                         </div>
                       )}
                     </div>
                     <div className="flex flex-wrap gap-x-6 gap-y-1 text-[11px] text-gray-500">
                       {item.user_email && <span>Email: {item.user_email}</span>}
                       <span>Screen: {item.page_url}</span>
-                      <span>Submitted: {new Date(item.created_at).toLocaleString("en-GB")}</span>
+                      <span>Submitted: {fmtDateTime(item.created_at, { year: true, month: "short" })}</span>
                       {item.app_version && <span>App: <span className="font-mono">v{item.app_version}</span></span>}
                       {item.user_agent && <span>UA: {item.user_agent}</span>}
                     </div>
@@ -284,10 +289,10 @@ export default function FeedbackTab() {
                           {item.recent_error_signatures.map((sig, idx) => (
                             <li key={sig.id ?? `${idx}-${sig.message}`} className="text-[11px] text-red-900">
                               <div className="font-mono break-all">{sig.message}</div>
-                              <div className="text-red-700 text-[10px] mt-0.5">
+                              <div className="text-red-700 text-xs mt-0.5">
                                 {sig.runtime && <>{sig.runtime} · </>}
                                 {sig.level && <>{sig.level} · </>}
-                                {sig.occurred_at && new Date(sig.occurred_at).toLocaleString("en-GB")}
+                                {sig.occurred_at && fmtDateTime(sig.occurred_at, { year: true, month: "short" })}
                                 {sig.id && (
                                   <> · <a
                                     href={`/admin/errors?focus=${sig.id}`}
@@ -300,7 +305,7 @@ export default function FeedbackTab() {
                             </li>
                           ))}
                         </ul>
-                        <div className="text-[10px] text-red-600 mt-2 italic">
+                        <div className="text-xs text-red-600 mt-2 italic">
                           Captured at submit time. Use this to triage whether the user's complaint matches a known error pattern.
                         </div>
                       </div>
@@ -309,7 +314,7 @@ export default function FeedbackTab() {
                     {isResolved && (
                       <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-md">
                         <div className="text-[11px] uppercase font-semibold text-emerald-700 tracking-wide mb-1">
-                          Resolved {new Date(item.resolved_at!).toLocaleString("en-GB")}
+                          Resolved {fmtDateTime(item.resolved_at!, { year: true, month: "short" })}
                         </div>
                         <p className="text-sm text-emerald-900 whitespace-pre-wrap">{item.resolution_note}</p>
                       </div>
@@ -332,7 +337,7 @@ export default function FeedbackTab() {
                       <button
                         onClick={() => resolveWithNote(item.id)}
                         disabled={submitting || !replyNote.trim()}
-                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-hc-brand-dark text-white hover:bg-hc-brand-darker disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {submitting
                           ? "Saving…"

@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtNumericDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { X } from "lucide-react";
 
 type Segment = "marketing" | "research" | "both" | "all";
 
@@ -45,6 +49,7 @@ const segmentInfo: Record<Segment, { label: string; desc: string; color: string 
 };
 
 export default function OutreachPage() {
+  const toast = useToast();
   const [segment, setSegment] = useState<Segment>("marketing");
   const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
@@ -57,6 +62,7 @@ export default function OutreachPage() {
   const [sendSubject, setSendSubject] = useState("");
   const [senderName, setSenderName] = useState("");
   const [sending, setSending] = useState(false);
+  const sendRef = useDialogA11y(showSendModal, () => setShowSendModal(false), { dismissable: !sending });
   const [sendResult, setSendResult] = useState<{ sent: number; skipped_opted_out: number; skipped_no_email: number; failures: Array<{ email: string; error: string }> } | null>(null);
 
   useEffect(() => {
@@ -110,7 +116,7 @@ export default function OutreachPage() {
       setCopiedCount(filtered.length);
       setTimeout(() => setCopiedCount(null), 2500);
     } catch {
-      alert("Clipboard copy failed — use export CSV.");
+      toast.show("Clipboard copy failed — use export CSV.", { tone: "bad" });
     }
   };
 
@@ -191,12 +197,12 @@ export default function OutreachPage() {
       });
       const j = await res.json();
       if (!res.ok) {
-        alert(`Send failed: ${j.detail || j.error || "unknown"}`);
+        toast.show(`Send failed: ${j.detail || j.error || "unknown"}`, { tone: "bad" });
       } else {
         setSendResult(j);
       }
     } catch (e) {
-      alert(`Send error: ${(e as Error).message}`);
+      toast.show(`Send error: ${(e as Error).message}`, { tone: "bad" });
     } finally {
       setSending(false);
     }
@@ -333,7 +339,7 @@ export default function OutreachPage() {
                       {!c.research_opt_out && <Badge color="blue">Research</Badge>}
                       {c.marketing_opt_out && c.research_opt_out && <Badge color="gray">Opted out</Badge>}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{new Date(c.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{fmtNumericDate(c.created_at)}</td>
                   </tr>
                   );
                 })}
@@ -346,10 +352,10 @@ export default function OutreachPage() {
       {/* Send B2B intro modal */}
       {showSendModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !sending && setShowSendModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div ref={sendRef} role="dialog" aria-modal="true" aria-label="Send B2B intro" className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Send B2B intro</h2>
-              <button onClick={() => !sending && setShowSendModal(false)} className="text-gray-400 hover:text-gray-600" disabled={sending}>✕</button>
+              <button onClick={() => !sending && setShowSendModal(false)} aria-label="Loka" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600" disabled={sending}><X className="h-5 w-5" aria-hidden /></button>
             </div>
             {sendResult ? (
               <div className="space-y-3">

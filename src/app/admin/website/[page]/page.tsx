@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useDialog } from "@/app/components/account/ui";
 import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
 import HomeView from "@/app/HomeView";
@@ -14,7 +15,8 @@ import ImageUploadCrop from "../ImageUploadCrop";
 import { getSitePage, resolveContent, resolveSections } from "@/lib/site-content/registry";
 import type { Locale, SiteContentBlob, SiteField } from "@/lib/site-content/types";
 
-type SaveState = "idle" | "saving" | "saved" | "error";
+// pending = edited, waiting out the debounce; saving = PUT in flight.
+type SaveState = "idle" | "pending" | "saving" | "saved" | "error";
 
 function Preview({ pageKey, blob, locale }: { pageKey: string; blob: SiteContentBlob; locale: Locale }) {
   const c = resolveContent(pageKey, blob, locale);
@@ -166,10 +168,20 @@ function ListEditor({
   );
 }
 
+function errorText(code: unknown, status: number): string {
+  if (code === "mfa_required") return "krefst tveggja þrepa auðkenningar (MFA) – skráðu þig inn aftur með MFA.";
+  if (code === "forbidden") return "þú hefur ekki heimild til þess.";
+  if (code === "unauthorized") return "innskráning er útrunnin – skráðu þig inn aftur.";
+  if (typeof code === "string" && code) return code;
+  return `villa ${status}`;
+}
+
 export default function SiteContentEditor() {
   const params = useParams<{ page: string }>();
   const pageKey = params?.page ?? "home";
   const page = getSitePage(pageKey);
+  const router = useRouter();
+  const dialog = useDialog();
 
   const [draft, setDraft] = useState<SiteContentBlob>({ is: {}, en: {} });
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
@@ -180,8 +192,17 @@ export default function SiteContentEditor() {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const skipSave = useRef(true);
+  // The draft as the server last confirmed it (JSON). Autosave compares the
+  // live draft against it, so a draft that came from the server (load,
+  // translate) is never PUT back, and "dirty" means exactly "not on the
+  // server yet".
+  const savedJson = useRef<string | null>(null);
+  const draftRef = useRef(draft);
+  const inflight = useRef<Promise<boolean> | null>(null);
 
   const authHeaders = async (): Promise<Record<string, string>> => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -193,46 +214,101 @@ export default function SiteContentEditor() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const role = await getMyStaffRole(user.email);
-      setIsAdmin(role === "admin");
+    setLoadError(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const role = await getMyStaffRole(user.email);
+        setIsAdmin(role === "admin");
+      }
+      const res = await fetch(`/api/admin/site-content/${pageKey}`, { headers: await authHeaders() });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && j.ok) {
+        const d = (j.content?.draft as SiteContentBlob) ?? {};
+        const next: SiteContentBlob = { is: d.is ?? {}, en: d.en ?? {}, order: d.order, hidden: d.hidden };
+        savedJson.current = JSON.stringify(next);
+        draftRef.current = next;
+        setDraft(next);
+        setPublishedAt(j.content?.published_at ?? null);
+        setSaveState("idle");
+      } else {
+        // Never fall back to an empty draft: the first keystroke would
+        // autosave it over the real one.
+        setLoadError(errorText(j.error, res.status));
+      }
+    } catch {
+      setLoadError("Netvilla – tókst ekki að sækja drögin.");
     }
-    const res = await fetch(`/api/admin/site-content/${pageKey}`, { headers: await authHeaders() });
-    const j = await res.json().catch(() => ({}));
-    if (j.ok) {
-      const d = (j.content?.draft as SiteContentBlob) ?? {};
-      setDraft({ is: d.is ?? {}, en: d.en ?? {}, order: d.order, hidden: d.hidden });
-      setPublishedAt(j.content?.published_at ?? null);
-    } else {
-      setDraft({ is: {}, en: {} });
-    }
-    skipSave.current = true;
     setLoading(false);
   }, [pageKey]);
 
+  // PUT the current draft unless the server already has it. Serialised: a
+  // save that starts while one is in flight waits for it, then sends the
+  // newest draft. Resolves true when the server has the draft as it is now.
+  const saveNow = useCallback(async (): Promise<boolean> => {
+    clearTimeout(saveTimer.current);
+    if (inflight.current) await inflight.current.catch(() => false);
+    const snapshot = draftRef.current;
+    const json = JSON.stringify(snapshot);
+    if (json === savedJson.current) {
+      setSaveState((s) => (s === "idle" ? "idle" : "saved"));
+      return true;
+    }
+    setSaveState("saving");
+    const run = (async () => {
+      try {
+        const res = await fetch(`/api/admin/site-content/${pageKey}`, {
+          method: "PUT",
+          headers: await authHeaders(),
+          body: JSON.stringify({ draft: snapshot }),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (!res.ok || j.ok === false) {
+          setSaveError(errorText(j.error, res.status));
+          setSaveState("error");
+          return false;
+        }
+        savedJson.current = json;
+        setSaveError(null);
+        // Edited again while this was in flight: the debounce has it.
+        setSaveState(JSON.stringify(draftRef.current) === json ? "saved" : "pending");
+        return true;
+      } catch {
+        setSaveError("Netvilla – drögin vistuðust ekki.");
+        setSaveState("error");
+        return false;
+      }
+    })();
+    inflight.current = run;
+    const ok = await run;
+    if (inflight.current === run) inflight.current = null;
+    return ok && JSON.stringify(draftRef.current) === json;
+  }, [pageKey]);
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 
   // Debounced autosave of the draft (admin only).
   useEffect(() => {
-    if (loading || !isAdmin) return;
-    if (skipSave.current) { skipSave.current = false; return; }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSaveState("saving");
+    draftRef.current = draft;
+    if (loading || !isAdmin || savedJson.current === null) return;
+    if (JSON.stringify(draft) === savedJson.current) return;
+    setSaveState((s) => (s === "saving" ? s : "pending"));
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      const res = await fetch(`/api/admin/site-content/${pageKey}`, {
-        method: "PUT",
-        headers: await authHeaders(),
-        body: JSON.stringify({ draft }),
-      });
-      setSaveState(res.ok ? "saved" : "error");
-    }, 800);
+    saveTimer.current = setTimeout(() => { void saveNow(); }, 800);
     return () => clearTimeout(saveTimer.current);
-  }, [draft, loading, isAdmin, pageKey]);
+  }, [draft, loading, isAdmin, saveNow]);
+
+  const unsaved = saveState === "pending" || saveState === "saving" || saveState === "error";
+
+  // Leaving with edits the server does not have yet loses them.
+  useEffect(() => {
+    if (!unsaved) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [unsaved]);
 
   const setField = (locale: Locale, key: string, value: string) => {
     setDraft((prev) => ({ ...prev, [locale]: { ...(prev[locale] ?? {}), [key]: value } }));
@@ -287,35 +363,74 @@ export default function SiteContentEditor() {
     return seen.map((g) => ({ group: g, fields: visible.filter((f) => f.group === g) }));
   })();
 
+  // Publish copies the server's draft live, so the server must have the
+  // draft on screen first: flush any pending autosave and stop if it fails.
   const publish = async () => {
     setBusy("publish");
     setMsg(null);
-    const res = await fetch(`/api/admin/site-content/${pageKey}/publish`, { method: "POST", headers: await authHeaders() });
-    const j = await res.json().catch(() => ({}));
-    setBusy(null);
-    if (res.ok && j.ok) {
-      setPublishedAt(j.published_at);
-      setMsg({ type: "ok", text: "Birt! Breytingar eru nú í loftinu." });
-    } else setMsg({ type: "err", text: j.error || "Ekki tókst að birta." });
+    try {
+      if (!(await saveNow())) {
+        setMsg({ type: "err", text: "Ekki birt: nýjustu breytingarnar vistuðust ekki. Reyndu að vista aftur og birtu svo." });
+        return;
+      }
+      const res = await fetch(`/api/admin/site-content/${pageKey}/publish`, { method: "POST", headers: await authHeaders() });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && j.ok) {
+        setPublishedAt(j.published_at);
+        setMsg({ type: "ok", text: "Birt! Breytingar eru nú í loftinu." });
+      } else setMsg({ type: "err", text: `Ekki tókst að birta: ${errorText(j.error, res.status)}` });
+    } catch {
+      setMsg({ type: "err", text: "Netvilla – ekki tókst að birta." });
+    } finally {
+      setBusy(null);
+    }
   };
 
   const translate = async (from: Locale, to: Locale) => {
     setBusy(`tr-${to}`);
     setMsg(null);
-    const res = await fetch(`/api/admin/site-content/${pageKey}/translate`, {
-      method: "POST",
-      headers: await authHeaders(),
-      body: JSON.stringify({ from, to }),
-    });
-    const j = await res.json().catch(() => ({}));
-    setBusy(null);
-    if (res.ok && j.ok) {
-      skipSave.current = true; // server already saved
-      setDraft((prev) => ({ is: j.draft.is ?? {}, en: j.draft.en ?? {}, order: j.draft.order ?? prev.order, hidden: j.draft.hidden ?? prev.hidden }));
-      setMsg({ type: "ok", text: `Þýddi ${j.count} reiti → ${to === "en" ? "ensku" : "íslensku"}.` });
-    } else {
-      setMsg({ type: "err", text: j.error === "mfa_required" ? "Þýðing krefst MFA (tveggja þrepa auðkenningar)." : j.error || "Þýðing mistókst." });
+    try {
+      // The server translates its own copy of the draft: send ours first.
+      if (!(await saveNow())) {
+        setMsg({ type: "err", text: "Ekki þýtt: nýjustu breytingarnar vistuðust ekki. Reyndu að vista aftur." });
+        return;
+      }
+      const res = await fetch(`/api/admin/site-content/${pageKey}/translate`, {
+        method: "POST",
+        headers: await authHeaders(),
+        body: JSON.stringify({ from, to }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && j.ok) {
+        const prev = draftRef.current;
+        const next: SiteContentBlob = { is: j.draft.is ?? {}, en: j.draft.en ?? {}, order: j.draft.order ?? prev.order, hidden: j.draft.hidden ?? prev.hidden };
+        savedJson.current = JSON.stringify(next); // server already saved it
+        draftRef.current = next;
+        setDraft(next);
+        setSaveState("saved");
+        setMsg({ type: "ok", text: `Þýddi ${j.count} reiti → ${to === "en" ? "ensku" : "íslensku"}.` });
+      } else {
+        setMsg({ type: "err", text: `Þýðing mistókst: ${errorText(j.error, res.status)}` });
+      }
+    } catch {
+      setMsg({ type: "err", text: "Netvilla – þýðing mistókst." });
+    } finally {
+      setBusy(null);
     }
+  };
+
+  // In-app navigation does not fire beforeunload: save first, and ask
+  // before leaving if the save fails.
+  const leave = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!unsaved) return;
+    e.preventDefault();
+    if (await saveNow()) { router.push("/admin/website"); return; }
+    const ok = await dialog.confirm({
+      title: "Fara án þess að vista?",
+      body: "Nýjustu breytingarnar á drögunum vistuðust ekki og tapast ef þú ferð.",
+      confirmLabel: "Fara samt", cancelLabel: "Vera áfram", tone: "danger",
+    });
+    if (ok) router.push("/admin/website");
   };
 
   if (!page) {
@@ -327,19 +442,38 @@ export default function SiteContentEditor() {
     );
   }
   if (loading) return <div className="p-8 text-sm text-gray-500">Hleð…</div>;
+  if (loadError) {
+    return (
+      <div className="p-8">
+        <Link href="/admin/website" className="text-sm text-gray-500 hover:text-gray-700">← Vefsíða</Link>
+        <div role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <p>Ekki tókst að sækja drögin: {loadError}</p>
+          <button onClick={() => void load()} className="mt-2 font-semibold underline">Reyna aftur</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto">
-      <Link href="/admin/website" className="text-sm text-gray-500 hover:text-gray-700">← Vefsíða</Link>
+      <Link href="/admin/website" onClick={leave} className="text-sm text-gray-500 hover:text-gray-700">← Vefsíða</Link>
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4 mt-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{page.label}</h1>
           <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
-            {saveState === "saving" && <span>Vistar…</span>}
-            {saveState === "saved" && <span className="text-emerald-600">✓ Vistað (drög)</span>}
-            {saveState === "error" && <span className="text-red-600">Vistun mistókst</span>}
+            <span aria-live="polite" className="contents">
+              {saveState === "pending" && <span>Óvistaðar breytingar…</span>}
+              {saveState === "saving" && <span>Vistar…</span>}
+              {saveState === "saved" && <span className="text-emerald-600">✓ Vistað (drög)</span>}
+              {saveState === "error" && (
+                <span className="text-red-600">
+                  Vistun mistókst{saveError ? `: ${saveError}` : ""}{" "}
+                  <button onClick={() => void saveNow()} className="font-semibold underline">Reyna aftur</button>
+                </span>
+              )}
+            </span>
             {publishedAt && <span>· Síðast birt {new Date(publishedAt).toLocaleString("is-IS")}</span>}
             <a href={`${page.path}?preview=lifelinepreview2026`} target="_blank" rel="noreferrer" className="text-emerald-700 hover:text-emerald-900">Skoða síðuna ↗</a>
           </div>
@@ -352,8 +486,10 @@ export default function SiteContentEditor() {
             <button onClick={() => translate("en", "is")} disabled={!!busy} className="py-2 px-3 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
               {busy === "tr-is" ? "Þýði…" : "Þýða → íslenska"}
             </button>
-            <button onClick={publish} disabled={!!busy} className="py-2 px-4 rounded-lg bg-[#10B981] hover:bg-[#047857] text-white text-sm font-semibold disabled:opacity-50">
-              {busy === "publish" ? "Birti…" : "Birta"}
+            <button onClick={publish} disabled={!!busy || saveState === "saving" || saveState === "error"}
+              title={saveState === "error" ? "Vistaðu drögin fyrst" : saveState === "saving" ? "Bíð eftir vistun" : undefined}
+              className="py-2 px-4 rounded-lg bg-[#10B981] hover:bg-[#047857] text-white text-sm font-semibold disabled:opacity-50">
+              {busy === "publish" ? "Birti…" : saveState === "saving" ? "Vistar…" : "Birta"}
             </button>
           </div>
         )}

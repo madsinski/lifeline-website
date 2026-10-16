@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtNumericDate } from "@/app/components/account/ui/dates";
 
 const STEP_CATALOG_VERIFIED = "2026-05-16";  // Phase 2-6 onboarding additions
 
@@ -229,7 +230,7 @@ export default function OnboardingBenchPage() {
           {ONBOARDING_CATALOG.map((s) => (
             <div key={s.step} className="bg-white border border-gray-200 rounded-xl p-4">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-7 h-7 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center">
+                <div className="w-7 h-7 rounded-full bg-hc-brand-dark text-white text-xs font-bold flex items-center justify-center">
                   {s.step}
                 </div>
                 <h3 className="text-sm font-bold text-gray-900">{s.name}</h3>
@@ -243,8 +244,8 @@ export default function OnboardingBenchPage() {
                       <span className={`font-medium ${f.required ? "text-gray-900" : "text-gray-500"}`}>{f.label}</span>
                       {f.required && <span className="text-red-500">*</span>}
                       <span className="text-gray-400">·</span>
-                      <span className="font-mono text-[10px] text-gray-500">{f.type}</span>
-                      {f.notes && <span className="text-gray-400 text-[10px] italic">— {f.notes}</span>}
+                      <span className="font-mono text-xs text-gray-500">{f.type}</span>
+                      {f.notes && <span className="text-gray-400 text-xs italic">— {f.notes}</span>}
                     </div>
                   ))}
                 </div>
@@ -284,7 +285,7 @@ export default function OnboardingBenchPage() {
             <div className="flex items-start justify-between mb-3">
               <div>
                 <div className="text-sm font-bold text-gray-900">{selectedClient.full_name || "(no name)"}</div>
-                <div className="text-xs text-gray-500">{selectedClient.email} · joined {new Date(selectedClient.created_at).toLocaleDateString()}</div>
+                <div className="text-xs text-gray-500">{selectedClient.email} · joined {fmtNumericDate(selectedClient.created_at)}</div>
               </div>
               <button
                 onClick={() => { setSelectedClient(null); setSearchQuery(""); setSearchResults([]); setPillarLevels(null); }}
@@ -304,7 +305,7 @@ export default function OnboardingBenchPage() {
                     <div key={p.pillar} className="border border-gray-200 rounded-lg p-2.5 text-xs">
                       <div className="flex items-baseline gap-2">
                         <span className="font-bold text-gray-900 capitalize">{p.pillar}</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 uppercase">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 uppercase">
                           {p.level}
                         </span>
                       </div>
@@ -319,7 +320,7 @@ export default function OnboardingBenchPage() {
             {selectedClient.onboarding_data && (
               <div className="mt-4">
                 <div className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">onboarding_data</div>
-                <pre className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-[10px] overflow-x-auto leading-relaxed">
+                <pre className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs overflow-x-auto leading-relaxed">
                   {JSON.stringify(selectedClient.onboarding_data, null, 2)}
                 </pre>
               </div>
@@ -327,7 +328,7 @@ export default function OnboardingBenchPage() {
             {selectedClient.exercise_profile && (
               <div className="mt-4">
                 <div className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">exercise_profile</div>
-                <pre className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-[10px] overflow-x-auto leading-relaxed">
+                <pre className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs overflow-x-auto leading-relaxed">
                   {JSON.stringify(selectedClient.exercise_profile, null, 2)}
                 </pre>
               </div>

@@ -15,6 +15,8 @@ import {
   renderTemplate,
   type WearableIssueTemplate,
 } from "@/lib/wearable-issue-templates";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 interface IssueRow {
   id: string;
@@ -62,6 +64,7 @@ const STEP_LABELS: Record<number, string> = {
 };
 
 export default function WearableIssuesPage() {
+  const toast = useToast();
   const [rows, setRows] = useState<IssueRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"open" | "all" | "auto">("open");
@@ -111,7 +114,7 @@ export default function WearableIssuesPage() {
       .upsert({ key: "wearable_auto_reply_enabled", value: next, updated_at: new Date().toISOString() });
     if (error) {
       setAutoReplyEnabled(!next); // revert on failure
-      alert("Couldn't save setting: " + error.message);
+      toast.show("Couldn't save setting: " + error.message, { tone: "bad" });
     }
   };
 
@@ -147,7 +150,7 @@ export default function WearableIssuesPage() {
               key={k}
               onClick={() => setFilter(k)}
               className={`px-3 py-1.5 rounded-full font-medium capitalize ${
-                filter === k ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600"
+                filter === k ? "bg-hc-brand-dark text-white" : "bg-gray-100 text-gray-600"
               }`}
             >
               {k === "auto" ? "Auto-replied" : k}
@@ -163,7 +166,7 @@ export default function WearableIssuesPage() {
             <div className="flex items-center gap-2 mb-1">
               <h2 className="text-sm font-semibold text-gray-900">Automatic AI reply</h2>
               <span
-                className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                className={`text-xs font-bold uppercase px-2 py-0.5 rounded-full ${
                   autoReplyEnabled ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"
                 }`}
               >
@@ -238,6 +241,7 @@ function IssueCard({
   onStatus: (id: string, status: IssueRow["status"], note?: string) => Promise<void>;
   onReload: () => void;
 }) {
+  const toast = useToast();
   const [note, setNote] = useState("");
   const [showResolve, setShowResolve] = useState(false);
   const [draft, setDraft] = useState<string>("");
@@ -281,7 +285,7 @@ function IssueCard({
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        alert("AI suggest failed: " + (json.error || res.statusText));
+        toast.show("AI suggest failed: " + (json.error || res.statusText), { tone: "bad" });
       } else {
         const s = json.suggestion as {
           template_id: string | null;
@@ -306,7 +310,7 @@ function IssueCard({
   };
 
   const sendReply = async () => {
-    if (!draft.trim()) { alert("Reply body is empty."); return; }
+    if (!draft.trim()) { toast.show("Reply body is empty.", { tone: "bad" }); return; }
     setBusy("sending");
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -325,7 +329,7 @@ function IssueCard({
       });
       const json = await res.json();
       if (!res.ok || !json.ok) {
-        alert("Send failed: " + (json.error || res.statusText));
+        toast.show("Send failed: " + (json.error || res.statusText), { tone: "bad" });
       } else {
         setComposer("closed");
         setDraft("");
@@ -354,18 +358,18 @@ function IssueCard({
             <span className="text-xs text-gray-500">
               stuck at {STEP_LABELS[row.step] ?? `step ${row.step}`}
             </span>
-            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${statusBg[row.status]}`}>
+            <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded-full ${statusBg[row.status]}`}>
               {row.status}
             </span>
             {row.auto_replied && (
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+              <span className="text-xs font-bold uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
                 auto-replied
               </span>
             )}
           </div>
           <p className="text-sm text-gray-700 whitespace-pre-wrap mb-2">{row.message}</p>
           <div className="flex items-center gap-3 text-[11px] text-gray-400 flex-wrap">
-            <span>{new Date(row.created_at).toLocaleString()}</span>
+            <span>{fmtDateTime(row.created_at, { year: true, month: "short" })}</span>
             {row.device_platform && (
               <>
                 <span>·</span>
@@ -389,7 +393,7 @@ function IssueCard({
             {row.replied_at && (
               <>
                 <span>·</span>
-                <span className="text-emerald-700">replied {new Date(row.replied_at).toLocaleString()}</span>
+                <span className="text-emerald-700">replied {fmtDateTime(row.replied_at, { year: true, month: "short" })}</span>
               </>
             )}
           </div>
@@ -503,7 +507,7 @@ function IssueCard({
                 <button
                   onClick={sendReply}
                   disabled={busy === "sending"}
-                  className="px-3 py-1.5 rounded-full bg-emerald-600 text-white font-medium disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-full bg-hc-brand-dark text-white font-medium disabled:opacity-50"
                 >
                   {busy === "sending" ? "Sending…" : "Send reply + resolve"}
                 </button>
@@ -529,7 +533,7 @@ function IssueCard({
               <div className="mt-2 flex items-center gap-2 text-xs">
                 <button
                   onClick={async () => { await onStatus(row.id, "resolved", note); setShowResolve(false); setNote(""); }}
-                  className="px-3 py-1.5 rounded-full bg-emerald-600 text-white font-medium"
+                  className="px-3 py-1.5 rounded-full bg-hc-brand-dark text-white font-medium"
                 >
                   Save resolution
                 </button>
@@ -576,7 +580,7 @@ function TemplatePicker({
                 className="block w-full text-left px-3 py-2 text-xs hover:bg-amber-50 border-b border-gray-100 last:border-b-0"
               >
                 <div className="font-medium text-gray-800">{t.title}</div>
-                <div className="text-[10px] text-gray-400 font-mono">{t.id}</div>
+                <div className="text-xs text-gray-400 font-mono">{t.id}</div>
               </button>
             ))}
           </div>

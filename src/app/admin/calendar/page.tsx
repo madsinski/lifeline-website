@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import AdminLocationPicker from "@/components/AdminLocationPicker";
+import { useDialog } from "@/app/components/account/ui";
+import { useToast } from "@/app/components/hc/Toast";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -146,7 +148,23 @@ const emptyAppointment: NewAppointment = {
   coachName: "",
 };
 
+interface AvailableSlot {
+  id: string;
+  appointment_type: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  station: string | null;
+  provider_name: string | null;
+  max_bookings: number;
+  current_bookings: number | null;
+  status: string;
+  notes: string | null;
+}
+
 export default function CalendarPage() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -171,7 +189,7 @@ export default function CalendarPage() {
   const [uploadingEventImg, setUploadingEventImg] = useState(false);
 
   // Available slots state
-  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [showSlotForm, setShowSlotForm] = useState(false);
   const [newSlot, setNewSlot] = useState({ appointment_type: 'body_composition' as string, date: '', start_time: '09:00', end_time: '09:30', station: '', provider_name: '', max_bookings: '1', notes: '' });
@@ -272,7 +290,7 @@ export default function CalendarPage() {
     setSlotsLoading(true);
     try {
       const { data } = await supabase.from("available_slots").select("*").order("date").order("start_time");
-      if (data) setAvailableSlots(data);
+      if (data) setAvailableSlots(data as AvailableSlot[]);
     } catch {}
     setSlotsLoading(false);
   }, []);
@@ -390,19 +408,19 @@ export default function CalendarPage() {
         staff_created: true,
         creator_id: null,
       });
-      if (error) { alert(`Failed: ${error.message}`); return; }
-      alert(`Event "${newEvent.name}" created!`);
+      if (error) { toast.show(`Viðburður vistaðist ekki: ${error.message}`, { tone: "bad" }); return; }
+      toast.show(`Viðburðurinn „${newEvent.name}“ var stofnaður.`);
       setNewEvent({ name: "", date: "", time: "09:00", location: "", location_lat: null, location_lng: null, description: "", type: "Outdoor run", cost: "Free", reward: "", max_participants: "", image_url: "" });
       setShowEventForm(false);
       loadCommunityEvents();
-    } catch { alert("Failed to create event"); }
-    setCreatingEvent(false);
+    } catch { toast.show("Tókst ekki að stofna viðburð. Reyndu aftur.", { tone: "bad" }); }
+    finally { setCreatingEvent(false); }
   };
 
   const saveEventEdit = async () => {
     if (!editingEventId) return;
     try {
-      const { error } = await supabase.from("community_events").update({
+      const { data, error } = await supabase.from("community_events").update({
         name: editEvent.name,
         type: editEvent.type,
         date: editEvent.date,
@@ -415,11 +433,80 @@ export default function CalendarPage() {
         cost: editEvent.cost || "Free",
         reward: editEvent.reward || null,
         max_participants: editEvent.max_participants ? parseInt(editEvent.max_participants) : null,
-      }).eq("id", editingEventId);
-      if (error) { alert(`Failed: ${error.message}`); return; }
+      }).eq("id", editingEventId).select("id");
+      if (error) { toast.show(`Vistaðist ekki: ${error.message}`, { tone: "bad" }); return; }
+      if (!data?.length) { toast.show("Vistaðist ekki – þú hefur ekki heimild eða viðburðinum var eytt.", { tone: "bad" }); return; }
       setEditingEventId(null);
+      toast.show("Viðburður vistaður.");
       loadCommunityEvents();
-    } catch { alert("Failed to save"); }
+    } catch { toast.show("Tókst ekki að vista. Reyndu aftur.", { tone: "bad" }); }
+  };
+
+  // Writes through the anon client are RLS-checked: a blocked update or
+  // delete returns no error and no rows, so every one asks for the rows back.
+  const cancelEvent = async (evt: { id: string; name: string }) => {
+    const ok = await dialog.confirm({
+      title: `Aflýsa „${evt.name}“?`,
+      body: "Viðburðurinn birtist sem aflýstur í appinu hjá þeim sem hafa skráð sig.",
+      confirmLabel: "Aflýsa viðburði", cancelLabel: "Hætta við", tone: "danger",
+    });
+    if (!ok) return;
+    const { data, error } = await supabase.from("community_events").update({ cancelled: true, cancel_reason: "Cancelled by admin" }).eq("id", evt.id).select("id");
+    if (error || !data?.length) { toast.show(`Tókst ekki að aflýsa: ${error?.message || "engin heimild eða viðburðurinn er horfinn"}`, { tone: "bad" }); return; }
+    toast.show(`„${evt.name}“ aflýst.`);
+    loadCommunityEvents();
+  };
+
+  const deleteEvent = async (evt: { id: string; name: string }) => {
+    const { count, error: countErr } = await supabase.from("event_participants").select("event_id", { count: "exact", head: true }).eq("event_id", evt.id);
+    if (!countErr && (count ?? 0) > 0) {
+      await dialog.alert({
+        title: "Ekki hægt að eyða viðburðinum",
+        body: `${count} ${count === 1 ? "hefur" : "hafa"} skráð sig á „${evt.name}“. Ef honum er eytt hverfur hann úr appinu án þess að neinn fái að vita af því. Aflýstu honum frekar – þá sjá þátttakendur að hann fellur niður.`,
+      });
+      return;
+    }
+    const ok = await dialog.confirm({
+      title: `Eyða „${evt.name}“ varanlega?`,
+      body: countErr ? "Ekki tókst að athuga hvort einhver hefur skráð sig. Ef svo er sjá þátttakendur ekki að viðburðurinn falli niður – aflýstu honum þá frekar." : "Ekki er hægt að afturkalla þetta.",
+      confirmLabel: "Eyða", cancelLabel: "Hætta við", tone: "danger",
+    });
+    if (!ok) return;
+    const { data, error } = await supabase.from("community_events").delete().eq("id", evt.id).select("id");
+    if (error || !data?.length) { toast.show(`Tókst ekki að eyða: ${error?.message || "engin heimild eða viðburðurinn er horfinn"}`, { tone: "bad" }); return; }
+    toast.show(`„${evt.name}“ eytt.`);
+    loadCommunityEvents();
+  };
+
+  // No server route tells booked clients that their slot is gone, so a slot
+  // with bookings can be neither cancelled nor deleted from here. The
+  // .eq("current_bookings", 0) guard also catches a booking that lands
+  // between loading the list and pressing the button.
+  const refuseBookedSlot = (what: "afboða" | "eyða", n: number) => dialog.alert({
+    title: `Ekki hægt að ${what} tímanum`,
+    body: `${n} ${n === 1 ? "bókun er" : "bókanir eru"} á þessum tíma og kerfið getur ekki enn látið bókaða skjólstæðinga vita sjálfkrafa. Hafðu samband við þá og færðu eða afbókaðu bókanirnar fyrst; þá er hægt að ${what} tímanum.`,
+  });
+
+  const cancelSlot = async (slot: { id: string; current_bookings: number | null }) => {
+    if ((slot.current_bookings || 0) > 0) { await refuseBookedSlot("afboða", slot.current_bookings || 0); return; }
+    const ok = await dialog.confirm({ title: "Afboða þennan tíma?", body: "Tíminn verður ekki lengur bókanlegur.", confirmLabel: "Afboða tíma", cancelLabel: "Hætta við", tone: "danger" });
+    if (!ok) return;
+    const { data, error } = await supabase.from("available_slots").update({ status: "cancelled" }).eq("id", slot.id).eq("current_bookings", 0).select("id");
+    if (error) { toast.show(`Tókst ekki að afboða: ${error.message}`, { tone: "bad" }); return; }
+    if (!data?.length) { toast.show("Tíminn var ekki afboðaður – hann hefur verið bókaður í millitíðinni eða þú hefur ekki heimild.", { tone: "bad" }); loadSlots(); return; }
+    toast.show("Tími afboðaður.");
+    loadSlots();
+  };
+
+  const deleteSlot = async (slot: { id: string; current_bookings: number | null }) => {
+    if ((slot.current_bookings || 0) > 0) { await refuseBookedSlot("eyða", slot.current_bookings || 0); return; }
+    const ok = await dialog.confirm({ title: "Eyða þessum tíma varanlega?", body: "Ekki er hægt að afturkalla þetta.", confirmLabel: "Eyða", cancelLabel: "Hætta við", tone: "danger" });
+    if (!ok) return;
+    const { data, error } = await supabase.from("available_slots").delete().eq("id", slot.id).eq("current_bookings", 0).select("id");
+    if (error) { toast.show(`Tókst ekki að eyða: ${error.message}`, { tone: "bad" }); return; }
+    if (!data?.length) { toast.show("Tímanum var ekki eytt – hann hefur verið bókaður í millitíðinni eða þú hefur ekki heimild.", { tone: "bad" }); loadSlots(); return; }
+    toast.show("Tíma eytt.");
+    loadSlots();
   };
 
   const uploadEventImage = async (file: File, eventId: string): Promise<string | null> => {
@@ -429,10 +516,10 @@ export default function CalendarPage() {
       const path = `event-${eventId}.${ext}`;
       await supabase.storage.from("event-images").remove([path]);
       const { error } = await supabase.storage.from("event-images").upload(path, file, { upsert: true, contentType: file.type });
-      if (error) { alert(`Upload failed: ${error.message}`); return null; }
+      if (error) { toast.show(`Myndin hlóðst ekki upp: ${error.message}`, { tone: "bad" }); return null; }
       const { data } = supabase.storage.from("event-images").getPublicUrl(path);
       return data.publicUrl + "?t=" + Date.now();
-    } catch { return null; }
+    } catch { toast.show("Myndin hlóðst ekki upp. Reyndu aftur.", { tone: "bad" }); return null; }
     finally { setUploadingEventImg(false); }
   };
 
@@ -863,13 +950,13 @@ export default function CalendarPage() {
                       {evt.description && <p className="text-xs text-gray-400 mt-1 line-clamp-1">{evt.description}</p>}
                     </div>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => { setEditingEventId(isEditing ? null : evt.id); setEditEvent({ name: evt.name, date: evt.date, time: evt.time, location: evt.location || "", location_lat: (evt as any).location_lat ?? null, location_lng: (evt as any).location_lng ?? null, description: evt.description || "", type: evt.type, cost: evt.cost || "Free", reward: evt.reward || "", max_participants: evt.max_participants ? String(evt.max_participants) : "", image_url: evt.image_url || "" }); }} className="p-1.5 rounded hover:bg-cyan-50 text-gray-300 hover:text-cyan-600 transition-colors" title="Edit">
+                      <button onClick={() => { setEditingEventId(isEditing ? null : evt.id); setEditEvent({ name: evt.name, date: evt.date, time: evt.time, location: evt.location || "", location_lat: (evt as { location_lat?: number | null }).location_lat ?? null, location_lng: (evt as { location_lng?: number | null }).location_lng ?? null, description: evt.description || "", type: evt.type, cost: evt.cost || "Free", reward: evt.reward || "", max_participants: evt.max_participants ? String(evt.max_participants) : "", image_url: evt.image_url || "" }); }} className="p-1.5 rounded hover:bg-cyan-50 text-gray-300 hover:text-cyan-600 transition-colors" title="Edit">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
-                      <button onClick={async () => { if (!confirm(`Cancel "${evt.name}"?`)) return; await supabase.from("community_events").update({ cancelled: true, cancel_reason: "Cancelled by admin" }).eq("id", evt.id); loadCommunityEvents(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Cancel">
+                      <button onClick={() => void cancelEvent(evt)} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Cancel">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                       </button>
-                      <button onClick={async () => { if (!confirm(`Delete "${evt.name}" permanently?`)) return; await supabase.from("community_events").delete().eq("id", evt.id); loadCommunityEvents(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Delete">
+                      <button onClick={() => void deleteEvent(evt)} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Delete">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
@@ -1061,14 +1148,14 @@ export default function CalendarPage() {
                         notes: newSlot.notes || null,
                       }));
                       const { error } = await supabase.from("available_slots").insert(rows);
-                      if (error) { alert(`Failed: ${error.message}`); return; }
-                      alert(`Created ${rows.length} slot${rows.length !== 1 ? "s" : ""}!`);
+                      if (error) { toast.show(`Tímar vistuðust ekki: ${error.message}`, { tone: "bad" }); return; }
+                      toast.show(rows.length === 1 ? "Tími stofnaður." : `${rows.length} tímar stofnaðir.`);
                       setNewSlot({ appointment_type: 'body_composition', date: '', start_time: '09:00', end_time: '09:30', station: '', provider_name: '', max_bookings: '1', notes: '' });
                       setBulkSlotDays([]);
                       setShowSlotForm(false);
                       loadSlots();
-                    } catch { alert("Failed to create slot"); }
-                    setCreatingSlot(false);
+                    } catch { toast.show("Tókst ekki að stofna tíma. Reyndu aftur.", { tone: "bad" }); }
+                    finally { setCreatingSlot(false); }
                   }}
                   className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
                 >
@@ -1103,11 +1190,11 @@ export default function CalendarPage() {
                     {new Date(date).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                   </p>
                   <div className="space-y-2">
-                    {slots.map((slot: any) => {
+                    {slots.map((slot) => {
                       const borderColor = slot.appointment_type === "body_composition" ? "bg-teal-500" : slot.appointment_type === "health_assessment" ? "bg-emerald-500" : "bg-purple-500";
                       const typeBg = slot.appointment_type === "body_composition" ? "bg-teal-50 text-teal-700" : slot.appointment_type === "health_assessment" ? "bg-emerald-50 text-emerald-700" : "bg-purple-50 text-purple-700";
                       const typeLabel = slot.appointment_type === "body_composition" ? "Body Composition" : slot.appointment_type === "health_assessment" ? "Health Assessment" : "Coach Consultation";
-                      const isFull = slot.current_bookings >= slot.max_bookings;
+                      const isFull = (slot.current_bookings || 0) >= slot.max_bookings;
                       const isCancelled = slot.status === "cancelled";
                       return (
                         <div key={slot.id} className={`bg-white rounded-xl border shadow-sm ${isCancelled ? "border-red-200 bg-red-50/30 opacity-60" : isFull ? "border-amber-200" : "border-gray-200"}`}>
@@ -1136,11 +1223,11 @@ export default function CalendarPage() {
                             </div>
                             <div className="flex items-center gap-1">
                               {!isCancelled && (
-                                <button onClick={async () => { if (!confirm("Cancel this slot?")) return; await supabase.from("available_slots").update({ status: "cancelled" }).eq("id", slot.id); loadSlots(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Cancel">
+                                <button onClick={() => void cancelSlot(slot)} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Cancel">
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                               )}
-                              <button onClick={async () => { if (!confirm("Delete this slot permanently?")) return; await supabase.from("available_slots").delete().eq("id", slot.id); loadSlots(); }} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Delete">
+                              <button onClick={() => void deleteSlot(slot)} className="p-1.5 rounded hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors" title="Delete">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                               </button>
                             </div>

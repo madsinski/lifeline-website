@@ -20,6 +20,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
 import type { FeedbackSurvey, FeedbackQuestion, QuestionType } from "@/lib/feedback-survey-types";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 interface AssignmentRow {
   id: string;
@@ -56,6 +58,7 @@ interface AISummary {
 }
 
 export default function SurveyResultsPage() {
+  const toast = useToast();
   const params = useParams<{ id: string }>();
   const surveyId = params?.id;
   const [role, setRole] = useState<string | null>(null);
@@ -209,7 +212,7 @@ export default function SurveyResultsPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
-      alert((e as Error).message);
+      toast.show((e as Error).message, { tone: "bad" });
     } finally {
       setExporting(false);
     }
@@ -251,7 +254,7 @@ export default function SurveyResultsPage() {
 
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">{survey.title_is}</h1>
+          <h1 className="text-2xl font-bold text-hc-ink">{survey.title_is}</h1>
           <p className="text-sm text-gray-500 mt-1">
             <span className="font-mono">{survey.key} v{survey.version}</span> · Results &amp; analytics
           </p>
@@ -268,7 +271,7 @@ export default function SurveyResultsPage() {
             type="button"
             onClick={handleExport}
             disabled={exporting || totals.completed === 0}
-            className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors disabled:opacity-50"
           >
             {exporting ? "Exporting…" : "Export CSV"}
           </button>
@@ -330,7 +333,7 @@ export default function SurveyResultsPage() {
 }
 
 function Metric({ label, value, subtext, tone }: { label: string; value: string | number; subtext?: string; tone?: "good" | "neutral" | "bad" }) {
-  const toneClass = tone === "good" ? "text-emerald-700" : tone === "bad" ? "text-red-700" : "text-[#1F2937]";
+  const toneClass = tone === "good" ? "text-emerald-700" : tone === "bad" ? "text-red-700" : "text-hc-ink";
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
       <p className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold mb-1">{label}</p>
@@ -357,7 +360,7 @@ function ChapterBlock({
         <span className="text-[11px] font-mono uppercase tracking-widest text-emerald-700">
           Kafli {index} / {total}
         </span>
-        {title && <h2 className="text-lg font-bold text-[#1F2937]">{title}</h2>}
+        {title && <h2 className="text-lg font-bold text-hc-ink">{title}</h2>}
       </header>
       <div className="space-y-3">
         {questions.map((q, i) => (
@@ -518,7 +521,7 @@ function DistributionRenderer({ q, responses }: { q: FeedbackQuestion; responses
           </div>
           <div className="flex gap-1 mt-1">
             {counts.map((_, i) => (
-              <div key={i} className="flex-1 text-center text-[10px] text-gray-400">{i}</div>
+              <div key={i} className="flex-1 text-center text-xs text-gray-400">{i}</div>
             ))}
           </div>
           <div className="flex justify-between text-[11px] text-gray-400 mt-2">
@@ -628,12 +631,12 @@ function AIInsightPanel({
           <p className="text-[11px] font-semibold uppercase tracking-widest text-indigo-700 mb-1">
             AI insights
           </p>
-          <h2 className="text-base font-bold text-[#1F2937]">
+          <h2 className="text-base font-bold text-hc-ink">
             Samantekt og aðgerðir út frá svörum
           </h2>
           {summary && (
             <p className="text-[11px] text-gray-500 mt-1">
-              Síðast keyrt {new Date(summary.generated_at).toLocaleString("is-IS")}
+              Síðast keyrt {fmtDateTime(summary.generated_at, { year: true, month: "short" })}
               {summary.generated_by_name && <> af {summary.generated_by_name}</>}
               {" · "}{summary.responses_count} svör
               {summary.model && <> · {summary.model}</>}
@@ -754,7 +757,7 @@ function InsightList({
               <div className="flex items-start gap-2">
                 <span className="font-semibold text-gray-900 flex-1 leading-snug">{it.title}</span>
                 {it.badge && (
-                  <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${it.badgeTone || "bg-gray-100 text-gray-600"}`}>
+                  <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium uppercase ${it.badgeTone || "bg-gray-100 text-gray-600"}`}>
                     {it.badge}
                   </span>
                 )}

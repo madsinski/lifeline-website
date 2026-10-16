@@ -15,6 +15,12 @@ import {
   STATUS_LABEL,
   STATUS_BADGE_CLASS,
 } from "@/lib/feedback-survey-types";
+import { fmtDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
+import { X } from "lucide-react";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { usePromptForm } from "@/app/admin/components/PromptForm";
 
 interface SendClient {
   id: string;
@@ -35,6 +41,9 @@ interface SendResultRow {
 }
 
 export default function SurveysHubPage() {
+  const dialog = useDialog();
+  const [promptNode, askPrompt] = usePromptForm();
+  const toast = useToast();
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
   const [surveys, setSurveys] = useState<FeedbackSurvey[]>([]);
@@ -70,7 +79,7 @@ export default function SurveysHubPage() {
   const [sending, setSending] = useState(false);
 
   const cloneSurvey = async (sourceId: string) => {
-    if (!confirm("Clone this survey into a new draft (next version)? You'll edit the new copy without affecting the current version.")) return;
+    if (!(await dialog.confirm({ title: "Clone this survey into a new draft (next version)?", body: "You'll edit the new copy without affecting the current version." }))) return;
     setBusy(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -85,7 +94,7 @@ export default function SurveysHubPage() {
       if (!res.ok || !j.ok) throw new Error(j.error || "Clone failed");
       router.push(`/admin/surveys/${j.new_id}`);
     } catch (e) {
-      alert((e as Error).message);
+      toast.show((e as Error).message, { tone: "bad" });
       setBusy(false);
     }
   };
@@ -106,7 +115,7 @@ export default function SurveysHubPage() {
       const j = await res.json();
       setEmailPreview({ subject: j.subject, html: j.html, title: s.title_is });
     } catch (e) {
-      alert(`Could not load email preview: ${(e as Error).message}`);
+      toast.show(`Could not load email preview: ${(e as Error).message}`, { tone: "bad" });
     } finally {
       setPreviewLoadingId(null);
     }
@@ -131,7 +140,7 @@ export default function SurveysHubPage() {
       setSurveys((prev) => prev.filter((x) => x.id !== deletedId));
       setDeleteTarget(null);
     } catch (e) {
-      alert(`Delete failed: ${(e as Error).message}`);
+      toast.show(`Delete failed: ${(e as Error).message}`, { tone: "bad" });
     } finally {
       setDeleting(false);
     }
@@ -142,13 +151,14 @@ export default function SurveysHubPage() {
   // rather than versioning the same key.
   const duplicateSurvey = async (source: FeedbackSurvey) => {
     const defaultKey = `${source.key}-copy`;
-    const newKeyRaw = prompt(
-      "New key (slug) for the duplicate. Leave blank to cancel.",
-      defaultKey,
-    );
-    if (newKeyRaw === null) return;
-    const newKeyClean = newKeyRaw.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
-    if (!newKeyClean) { alert("Key required."); return; }
+    const v = await askPrompt({
+      title: `Afrita „${source.key}“ sem nýja könnun`,
+      fields: [{ name: "key", label: "Lykill (slóð) nýju könnunarinnar", initial: defaultKey, hint: "Litlir stafir, tölur og bandstrik." }],
+      submitLabel: "Afrita",
+    });
+    if (!v) return;
+    const newKeyClean = String(v.key).trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    if (!newKeyClean.replace(/-/g, "")) { toast.show("Lykill má ekki vera tómur.", { tone: "bad" }); return; }
     setBusy(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -163,14 +173,14 @@ export default function SurveysHubPage() {
       if (!res.ok || !j.ok) throw new Error(j.error || "Duplicate failed");
       router.push(`/admin/surveys/${j.new_id}`);
     } catch (e) {
-      alert((e as Error).message);
+      toast.show((e as Error).message, { tone: "bad" });
       setBusy(false);
     }
   };
 
   const openSend = async (s: FeedbackSurvey) => {
     if (s.status !== "approved") {
-      alert("Only approved surveys can be sent. Get medical-advisor approval first.");
+      toast.show("Only approved surveys can be sent. Get medical-advisor approval first.", { tone: "bad" });
       return;
     }
     setSendSurvey(s);
@@ -227,6 +237,10 @@ export default function SurveysHubPage() {
     setSendError(null);
     setSendSummary(null);
   };
+  const previewRef = useDialogA11y(!!emailPreview, () => setEmailPreview(null));
+  const deleteRef = useDialogA11y(!!deleteTarget, () => setDeleteTarget(null), { dismissable: !deleting });
+  const newRef = useDialogA11y(newOpen, () => setNewOpen(false));
+  const sendRef = useDialogA11y(!!sendSurvey, closeSend, { dismissable: !sending });
 
   const toggleClient = (id: string) => {
     setSelectedClientIds((prev) => {
@@ -273,7 +287,7 @@ export default function SurveysHubPage() {
       setSendError("Pick at least one client or company.");
       return;
     }
-    if (!confirm(`Send "${sendSurvey.title_is}" to ~${recipientPreview} recipient${recipientPreview === 1 ? "" : "s"} now?`)) return;
+    if (!(await dialog.confirm({ title: `Send "${sendSurvey.title_is}" to ~${recipientPreview} recipient${recipientPreview === 1 ? "" : "s"} now?` }))) return;
     setSending(true);
     setSendError(null);
     try {
@@ -381,9 +395,10 @@ export default function SurveysHubPage() {
 
   return (
     <div className="px-8 pt-6 pb-12 space-y-6">
+      {promptNode}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Surveys</h1>
+          <h1 className="text-2xl font-bold text-hc-ink">Surveys</h1>
           <p className="text-sm text-gray-500 mt-1 max-w-3xl leading-relaxed">
             Client surveys initiated by admin after each assessment. The medical advisor approves
             the question structure before any survey can be sent. Once approved, admin sends the
@@ -394,7 +409,7 @@ export default function SurveysHubPage() {
           <button
             type="button"
             onClick={() => { setNewOpen(true); setNewError(null); setNewKey(""); setNewTitle(""); }}
-            className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+            className="px-4 py-2 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors"
           >
             + New survey
           </button>
@@ -420,7 +435,7 @@ export default function SurveysHubPage() {
               <div className="px-5 py-4 flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base font-semibold text-[#1F2937] truncate">{s.title_is}</h3>
+                    <h3 className="text-base font-semibold text-hc-ink truncate">{s.title_is}</h3>
                     <span className="text-xs font-mono text-gray-400">{s.key} v{s.version}</span>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS_BADGE_CLASS[s.status]}`}>
                       {STATUS_LABEL[s.status]}
@@ -437,7 +452,7 @@ export default function SurveysHubPage() {
                       <>
                         {" · "}
                         approved by {s.approved_by_name || "—"}{" "}
-                        {new Date(s.approved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        {fmtDate(s.approved_at, { month: "short" })}
                       </>
                     )}
                   </p>
@@ -478,7 +493,7 @@ export default function SurveysHubPage() {
                       type="button"
                       disabled={busy}
                       onClick={() => openSend(s)}
-                      className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors disabled:opacity-50"
                     >
                       Send to clients
                     </button>
@@ -581,7 +596,7 @@ export default function SurveysHubPage() {
           onClick={() => setEmailPreview(null)}
         >
           <div
-            className="my-4 w-full max-w-3xl rounded-xl bg-white shadow-2xl"
+            ref={previewRef} role="dialog" aria-modal="true" aria-label="Email preview" className="my-4 w-full max-w-3xl rounded-xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 px-5 py-3 bg-white rounded-t-xl">
@@ -592,9 +607,10 @@ export default function SurveysHubPage() {
               <button
                 type="button"
                 onClick={() => setEmailPreview(null)}
-                className="text-gray-400 hover:text-gray-700 text-2xl leading-none px-2 shrink-0"
+                aria-label="Loka"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700"
               >
-                &times;
+                <X className="h-5 w-5" aria-hidden />
               </button>
             </div>
             <div className="p-4">
@@ -618,7 +634,7 @@ export default function SurveysHubPage() {
           onClick={() => !deleting && setDeleteTarget(null)}
         >
           <div
-            className="my-4 w-full max-w-md rounded-xl bg-white shadow-2xl"
+            ref={deleteRef} role="dialog" aria-modal="true" aria-label="Delete survey" className="my-4 w-full max-w-md rounded-xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 py-4 border-b border-gray-200">
@@ -667,9 +683,9 @@ export default function SurveysHubPage() {
           className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setNewOpen(false); }}
         >
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+          <div ref={newRef} role="dialog" aria-modal="true" aria-label="New survey" className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <header className="px-5 py-4 border-b border-gray-100">
-              <h4 className="text-base font-semibold text-[#1F2937]">New survey</h4>
+              <h4 className="text-base font-semibold text-hc-ink">New survey</h4>
               <p className="text-xs text-gray-500 mt-1">
                 Creates an empty draft. You&apos;ll add questions on the next screen, then submit it for medical-advisor approval.
               </p>
@@ -714,7 +730,7 @@ export default function SurveysHubPage() {
                 type="button"
                 onClick={createNewSurvey}
                 disabled={busy}
-                className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                className="px-4 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors disabled:opacity-50"
               >
                 {busy ? "Creating…" : "Create draft"}
               </button>
@@ -729,9 +745,9 @@ export default function SurveysHubPage() {
           className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
           onClick={(e) => { if (e.target === e.currentTarget && !sending) closeSend(); }}
         >
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div ref={sendRef} role="dialog" aria-modal="true" aria-label="Send survey" className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             <header className="px-5 py-4 border-b border-gray-100">
-              <h4 className="text-base font-semibold text-[#1F2937]">
+              <h4 className="text-base font-semibold text-hc-ink">
                 Send &ldquo;{sendSurvey.title_is}&rdquo;
               </h4>
               <p className="text-xs text-gray-500 mt-1">
@@ -767,7 +783,7 @@ export default function SurveysHubPage() {
                       {sendSummary.results.filter((r) => r.status !== "sent").map((r) => (
                         <li key={r.client_id} className="px-3 py-2 text-xs flex items-center justify-between gap-2">
                           <span className="truncate text-gray-700">{r.email || r.client_id}</span>
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
                             r.status === "failed" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
                           }`}>
                             {r.reason || r.status}
@@ -930,7 +946,7 @@ export default function SurveysHubPage() {
                       type="button"
                       onClick={submitSend}
                       disabled={sending || (selectedClientIds.size === 0 && selectedCompanyIds.size === 0)}
-                      className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                      className="px-4 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors disabled:opacity-50"
                     >
                       {sending ? "Sending…" : `Send invites${recipientPreview > 0 ? ` (${recipientPreview})` : ""}`}
                     </button>
@@ -951,7 +967,7 @@ export default function SurveysHubPage() {
                 <button
                   type="button"
                   onClick={closeSend}
-                  className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                  className="px-4 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors"
                 >
                   Done
                 </button>

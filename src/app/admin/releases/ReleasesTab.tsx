@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import AdminAppendNote from "../components/AdminAppendNote";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 interface ReleaseRow {
   id: string;
@@ -38,6 +40,7 @@ const CHANNEL_PILL: Record<ReleaseRow["channel"], string> = {
 type RepoFilter = "all" | "app" | "website";
 
 export default function ReleasesTab() {
+  const toast = useToast();
   const [rows, setRows] = useState<ReleaseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +73,7 @@ export default function ReleasesTab() {
         .from("app-releases-sbom")
         .createSignedUrl(row.sbom_storage_path, 60);
       if (error || !data?.signedUrl) {
-        alert(`Could not generate SBOM URL: ${error?.message ?? "unknown"}`);
+        toast.show(`Could not generate SBOM URL: ${error?.message ?? "unknown"}`, { tone: "bad" });
         return;
       }
       window.open(data.signedUrl, "_blank");
@@ -88,7 +91,7 @@ export default function ReleasesTab() {
               key={f}
               onClick={() => setRepoFilter(f)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                repoFilter === f ? "bg-emerald-600 text-white" : "text-gray-500 hover:bg-gray-100"
+                repoFilter === f ? "bg-hc-brand-dark text-white" : "text-gray-500 hover:bg-gray-100"
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -140,12 +143,10 @@ export default function ReleasesTab() {
                   onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
                 >
                   <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                    {new Date(r.released_at).toLocaleString("en-GB", {
-                      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-                    })}
+                    {fmtDateTime(r.released_at, { year: true, month: "short" })}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${REPO_PILL[r.repo]}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${REPO_PILL[r.repo]}`}>
                       {r.repo}
                     </span>
                   </td>
@@ -153,7 +154,7 @@ export default function ReleasesTab() {
                     v{r.version}{r.build_number ? ` (${r.build_number})` : ""}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${CHANNEL_PILL[r.channel]}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${CHANNEL_PILL[r.channel]}`}>
                       {r.channel}
                     </span>
                   </td>
@@ -206,7 +207,7 @@ export default function ReleasesTab() {
                             </a>
                           )}
                           {r.sbom_sha256 && (
-                            <div className="mt-2 text-[10px] text-gray-400 font-mono break-all">
+                            <div className="mt-2 text-xs text-gray-400 font-mono break-all">
                               SBOM sha256: {r.sbom_sha256}
                             </div>
                           )}

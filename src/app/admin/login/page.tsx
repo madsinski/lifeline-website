@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { X } from "lucide-react";
 
 // Three flows live on this page:
 //
@@ -281,7 +282,7 @@ export default function AdminLoginPage() {
                   value={mfaCode}
                   onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="123456"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-base font-mono tracking-[0.4em] text-center text-gray-900 focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-base font-mono tracking-[0.4em] text-center text-gray-900 focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none transition-all"
                   autoFocus
                 />
               </div>
@@ -293,7 +294,7 @@ export default function AdminLoginPage() {
               <button
                 type="submit"
                 disabled={mfaBusy || mfaCode.length !== 6}
-                className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-hc-brand-dark hover:bg-hc-brand-darker text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {mfaBusy ? "Verifying..." : "Verify & continue"}
               </button>
@@ -325,7 +326,7 @@ export default function AdminLoginPage() {
                   minLength={12}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none transition-all text-gray-900"
                   placeholder="At least 12 characters"
                 />
               </div>
@@ -337,7 +338,7 @@ export default function AdminLoginPage() {
               <button
                 type="submit"
                 disabled={savingPassword}
-                className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-hc-brand-dark hover:bg-hc-brand-darker text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {savingPassword ? "Saving..." : "Save password & continue"}
               </button>
@@ -358,10 +359,10 @@ export default function AdminLoginPage() {
               <button
                 type="button"
                 onClick={() => { setForgotOpen(false); setForgotMsg(null); }}
-                className="text-gray-400 hover:text-gray-600 text-sm"
-                aria-label="Close"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Loka"
               >
-                ×
+                <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
             <form onSubmit={handleForgotPassword} className="space-y-4">
@@ -375,7 +376,7 @@ export default function AdminLoginPage() {
                   required
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none transition-all text-gray-900"
                   placeholder="admin@lifeline.is"
                 />
               </div>
@@ -391,7 +392,7 @@ export default function AdminLoginPage() {
               <button
                 type="submit"
                 disabled={forgotSending}
-                className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-hc-brand-dark hover:bg-hc-brand-darker text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {forgotSending ? "Sending..." : "Send recovery email"}
               </button>
@@ -415,7 +416,7 @@ export default function AdminLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none transition-all text-gray-900"
                 placeholder="admin@lifeline.is"
               />
             </div>
@@ -430,7 +431,7 @@ export default function AdminLoginPage() {
                 <button
                   type="button"
                   onClick={() => { setForgotOpen(true); setForgotEmail(email); setForgotMsg(null); }}
-                  className="text-xs text-[#10B981] hover:text-[#047857] font-medium"
+                  className="text-xs text-hc-brand-text hover:text-hc-brand-text font-medium"
                 >
                   Forgot password?
                 </button>
@@ -441,7 +442,7 @@ export default function AdminLoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] focus:border-transparent outline-none transition-all text-gray-900"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark focus:border-hc-brand-dark outline-none transition-all text-gray-900"
                 placeholder="Enter your password"
               />
             </div>
@@ -455,7 +456,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#10B981] hover:bg-[#047857] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-hc-brand-dark hover:bg-hc-brand-darker text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>

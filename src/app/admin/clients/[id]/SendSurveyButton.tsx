@@ -8,6 +8,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { FeedbackSurvey } from "@/lib/feedback-survey-types";
+import { fmtDate, fmtNumericDate } from "@/app/components/account/ui/dates";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 
 interface Props {
   clientId: string;
@@ -16,6 +18,7 @@ interface Props {
 
 export default function SendSurveyButton({ clientId, clientEmail }: Props) {
   const [open, setOpen] = useState(false);
+  const panelRef = useDialogA11y(open, () => setOpen(false));
   const [surveys, setSurveys] = useState<FeedbackSurvey[]>([]);
   const [loading, setLoading] = useState(false);
   const [chosenId, setChosenId] = useState<string | null>(null);
@@ -68,7 +71,7 @@ export default function SendSurveyButton({ clientId, clientEmail }: Props) {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.ok) throw new Error(j.error || "Send failed");
-      setMsg({ type: "ok", text: `Sent to ${j.sent_to}. Link expires ${new Date(j.expires_at).toLocaleDateString("en-GB")}.` });
+      setMsg({ type: "ok", text: `Sent to ${j.sent_to}. Link expires ${fmtNumericDate(j.expires_at)}.` });
       // Refresh recent list so the new send shows up.
       const { data: recent } = await supabase
         .from("feedback_assignments")
@@ -100,9 +103,9 @@ export default function SendSurveyButton({ clientId, clientEmail }: Props) {
           className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
         >
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+          <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Send survey" className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
             <header className="px-5 py-4 border-b border-gray-100">
-              <h4 className="text-base font-semibold text-[#1F2937]">Send a survey</h4>
+              <h4 className="text-base font-semibold text-hc-ink">Send a survey</h4>
               <p className="text-xs text-gray-500 mt-1">
                 Recipient: <span className="font-medium text-gray-700">{clientEmail}</span>. The link in the email is single-use and expires in 30 days.
               </p>
@@ -135,7 +138,7 @@ export default function SendSurveyButton({ clientId, clientEmail }: Props) {
                         <p className="text-xs text-gray-500 mt-0.5">
                           {s.key} v{s.version} · {s.estimated_minutes} mín
                           {s.approved_at && (
-                            <> · approved {new Date(s.approved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</>
+                            <> · approved {fmtDate(s.approved_at, { month: "short" })}</>
                           )}
                         </p>
                       </div>
@@ -150,9 +153,9 @@ export default function SendSurveyButton({ clientId, clientEmail }: Props) {
                   <ul className="space-y-1">
                     {recentSent.map((r) => (
                       <li key={r.id} className="text-xs text-gray-600">
-                        {new Date(r.sent_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        {fmtDate(r.sent_at, { month: "short" })}
                         {" · "}
-                        {r.completed_at ? <span className="text-emerald-700">completed {new Date(r.completed_at).toLocaleDateString("en-GB")}</span> : <span className="text-gray-400">pending</span>}
+                        {r.completed_at ? <span className="text-emerald-700">completed {fmtNumericDate(r.completed_at)}</span> : <span className="text-gray-400">pending</span>}
                       </li>
                     ))}
                   </ul>
@@ -177,7 +180,7 @@ export default function SendSurveyButton({ clientId, clientEmail }: Props) {
                 type="button"
                 onClick={send}
                 disabled={busy || !chosenId || surveys.length === 0}
-                className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {busy ? "Sending…" : "Send invite email"}
               </button>

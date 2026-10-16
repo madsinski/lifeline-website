@@ -14,6 +14,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import BackButton from "@/app/components/BackButton";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
 
 interface SignatureFields {
   key: string;
@@ -160,6 +162,8 @@ function escapeHtml(s: string): string {
 }
 
 export default function SignaturesPage() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [sigs, setSigs] = useState<SignatureFields[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -249,14 +253,14 @@ export default function SignaturesPage() {
       const j = await res.json();
       if (j.signature) setSigs((prev) => [...prev, j.signature as SignatureFields]);
     } catch {
-      alert("Could not add signature.");
+      toast.show("Could not add signature.", { tone: "bad" });
     } finally {
       setAdding(false);
     }
   };
 
   const removeSignature = async (key: string) => {
-    if (!confirm("Remove this signature? This cannot be undone.")) return;
+    if (!(await dialog.confirm({ title: "Remove this signature?", body: "This cannot be undone.", tone: "danger" }))) return;
     try {
       const res = await fetch(`/api/admin/signatures?key=${encodeURIComponent(key)}`, {
         method: "DELETE",
@@ -265,7 +269,7 @@ export default function SignaturesPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setSigs((prev) => prev.filter((s) => s.key !== key));
     } catch {
-      alert("Could not remove signature.");
+      toast.show("Could not remove signature.", { tone: "bad" });
     }
   };
 
@@ -299,7 +303,7 @@ export default function SignaturesPage() {
           type="button"
           onClick={addSignature}
           disabled={adding}
-          className="shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+          className="shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors shadow-sm disabled:opacity-50"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -378,7 +382,7 @@ function SignatureCard({
         <div className="flex items-center gap-3">
           <div className="text-[11px] text-gray-400 min-h-[14px]">
             {saveState === "saving" && "Saving…"}
-            {saveState === "saved" && <span className="text-emerald-600">Saved</span>}
+            {saveState === "saved" && <span className="text-hc-brand-text">Saved</span>}
             {saveState === "error" && <span className="text-amber-600">Save failed</span>}
           </div>
           <button
@@ -403,7 +407,7 @@ function SignatureCard({
             <button
               type="button"
               onClick={copyFormatted}
-              className="text-xs font-semibold px-3 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
+              className="text-xs font-semibold px-3 py-2 rounded-md bg-hc-brand-dark text-white hover:bg-hc-brand-darker"
             >
               {copiedType === "formatted" ? "Copied — paste in Gmail" : "Copy formatted (for Gmail)"}
             </button>
@@ -435,7 +439,7 @@ function SignatureCard({
                     type="button"
                     onClick={() => setDesign(k)}
                     className={`text-[11px] font-semibold px-2.5 py-1 rounded ${
-                      active ? "bg-emerald-600 text-white" : "text-gray-600 hover:bg-gray-50"
+                      active ? "bg-hc-brand-dark text-white" : "text-gray-600 hover:bg-gray-50"
                     }`}
                   >
                     {DESIGN_LABELS[k]}

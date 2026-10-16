@@ -120,7 +120,7 @@ export default function AdminBulkInvitePage() {
         <div className="text-xs text-gray-500 mb-1">
           <Link href="/admin/clients" className="hover:underline">Viðskiptavinir</Link> · Fjölda-boð
         </div>
-        <h1 className="text-2xl font-semibold text-[#1F2937]">Fjölda-boð fyrir einkaaðganga</h1>
+        <h1 className="text-2xl font-semibold text-hc-ink">Fjölda-boð fyrir einkaaðganga</h1>
         <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
           Stofnar aðganga fyrir einstaklinga og sendir þeim íslenskan velkomin-póst með hlekk til að klára skráninguna. Engin tengsl við fyrirtækjaaðgang — þetta eru B2C-aðgangar.
           Biody-prófíll er ekki stofnaður hér — hann verður virkjaður þegar viðtakandinn klárar skráningu sína og skráir kyn / hæð / hreyfingarstig.
@@ -219,8 +219,8 @@ export default function AdminBulkInvitePage() {
                     <td className="px-4 py-2 text-gray-600">{r.sex || <span className="text-gray-400">—</span>}</td>
                     <td className="px-4 py-2">
                       {v
-                        ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-red-50 text-red-700 border-red-100">{v}</span>
-                        : <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-100">Tilbúið</span>}
+                        ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-red-50 text-red-700 border-red-100">{v}</span>
+                        : <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-100">Tilbúið</span>}
                     </td>
                   </tr>
                 );
@@ -267,7 +267,7 @@ export default function AdminBulkInvitePage() {
                   <tr key={i}>
                     <td className="px-4 py-2 text-gray-800 font-mono text-[12px]">{r.email}</td>
                     <td className="px-4 py-2">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${pill}`}>{label}</span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${pill}`}>{label}</span>
                     </td>
                     <td className="px-4 py-2 text-xs text-gray-600">{r.error || ""}</td>
                   </tr>

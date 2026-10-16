@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import SendSurveyButton from "./SendSurveyButton";
+import { useDialog } from "@/app/components/account/ui";
+import { useToast } from "@/app/components/hc/Toast";
 
 const TIER_LABELS: Record<string, string> = {
   "free-trial": "Free Plan",
@@ -63,6 +65,8 @@ interface Conversation {
 }
 
 function ClientDetailsEditor({ client, onSaved }: { client: Client; onSaved: () => void }) {
+  const dialog = useDialog();
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
@@ -84,47 +88,77 @@ function ClientDetailsEditor({ client, onSaved }: { client: Client; onSaved: () 
     setMsg(null);
   };
 
+  // Profile fields and the login email are two writes with two outcomes,
+  // and each is reported on its own: a profile that saved must not hide an
+  // email change that did not.
   const save = async () => {
+    const newEmail = email.trim();
+    const emailChanged = !!newEmail && newEmail !== client.email;
+    if (emailChanged) {
+      const ok = await dialog.confirm({
+        title: "Breyta innskráningarnetfangi?",
+        body: `${client.full_name || "Skjólstæðingurinn"} skráir sig þá inn með ${newEmail} í stað ${client.email || "núverandi netfangs"}. Gamla netfangið hættir að virka við innskráningu.`,
+        confirmLabel: "Breyta netfangi", cancelLabel: "Hætta við",
+      });
+      if (!ok) return;
+    }
     setSaving(true);
     setMsg(null);
     try {
-      // Update clients table
-      const { error: clientErr } = await supabase.from("clients_decrypted").update({
+      const { data: updated, error: clientErr } = await supabase.from("clients_decrypted").update({
         full_name: fullName.trim() || client.full_name,
         phone: phone.trim() || null,
         address: address.trim() || null,
         date_of_birth: dateOfBirth || null,
         sex: sex || null,
-      }).eq("id", client.id);
+      }).eq("id", client.id).select("id");
 
-      if (clientErr) throw new Error(clientErr.message);
+      if (clientErr || !updated?.length) {
+        const why = clientErr?.message || "engin heimild til að breyta skjólstæðingnum";
+        setMsg({ type: "err", text: `Prófíll vistaðist ekki: ${why}${emailChanged ? " · netfangi ekki breytt" : ""}` });
+        return;
+      }
 
-      // Update auth email if changed
-      if (email.trim() && email.trim() !== client.email) {
+      let emailErr: string | null = null;
+      if (emailChanged) {
         const { data: s } = await supabase.auth.getSession();
         const token = s.session?.access_token;
-        if (token) {
-          const res = await fetch(`/api/admin/clients/${client.id}/update-email`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ email: email.trim() }),
-          });
-          if (!res.ok) {
-            const j = await res.json().catch(() => ({}));
-            throw new Error(j.error === "mfa_required" ? "Staðfestu með MFA til að breyta netfangi."
-              : j.error === "forbidden" ? "Aðeins stjórnandi getur breytt innskráningarnetfangi."
-              : j.error || "Ekki tókst að breyta netfanginu.");
+        if (!token) {
+          emailErr = "innskráningin þín er útrunnin – skráðu þig inn aftur";
+        } else {
+          try {
+            const res = await fetch(`/api/admin/clients/${client.id}/update-email`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ email: newEmail }),
+            });
+            if (!res.ok) {
+              const j = await res.json().catch(() => ({}));
+              emailErr = j.error === "mfa_required" ? "staðfestu með MFA til að breyta netfangi"
+                : j.error === "forbidden" ? "aðeins stjórnandi getur breytt innskráningarnetfangi"
+                : j.error === "unauthorized" ? "innskráningin þín er útrunnin – skráðu þig inn aftur"
+                : j.error || `villa ${res.status}`;
+            }
+          } catch {
+            emailErr = "netvilla";
           }
         }
       }
 
-      setMsg({ type: "ok", text: "Saved" });
+      // onSaved() reloads the page, which remounts this editor, so the
+      // outcome goes in a toast rather than the inline message.
+      if (emailErr) {
+        toast.show(`Prófíll vistaður · netfangi ekki breytt: ${emailErr}`, { tone: "bad", ms: 10000 });
+      } else {
+        toast.show(emailChanged ? `Prófíll vistaður · netfangi breytt í ${newEmail}` : "Prófíll vistaður");
+      }
       setEditing(false);
       onSaved();
     } catch (e) {
-      setMsg({ type: "err", text: (e as Error).message });
+      setMsg({ type: "err", text: `Prófíll vistaðist ekki: ${(e as Error).message}` });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (!editing) {

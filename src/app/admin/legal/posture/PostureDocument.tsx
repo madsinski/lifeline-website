@@ -64,7 +64,7 @@ export default function PostureDocument({
               className={
                 "px-3 py-1.5 text-xs font-semibold transition-colors " +
                 (doc === t.key
-                  ? "bg-emerald-600 text-white"
+                  ? "bg-hc-brand-dark text-white"
                   : "bg-white text-gray-600 hover:bg-gray-50")
               }
             >
@@ -91,7 +91,7 @@ export default function PostureDocument({
           <button
             type="button"
             onClick={() => window.print()}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+            className="px-3 py-1.5 text-xs font-medium text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors"
           >
             Print / Save as PDF
           </button>

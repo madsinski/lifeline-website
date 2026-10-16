@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { useDialog } from "@/app/components/account/ui";
 
 type Kind = "user" | "company" | "group";
 
@@ -135,6 +137,7 @@ function AvailabilityTab() {
 // ─── GRANTS ─────────────────────────────────────────────────────
 
 function GrantsTab() {
+  const dialog = useDialog();
   const [grants, setGrants] = useState<Grant[]>([]);
   const [loading, setLoading] = useState(true);
   const [companies, setCompanies] = useState<CompanyOpt[]>([]);
@@ -209,7 +212,7 @@ function GrantsTab() {
   };
 
   const revoke = async (id: string) => {
-    if (!confirm("Revoke this grant?")) return;
+    if (!(await dialog.confirm({ title: "Revoke this grant?", tone: "danger" }))) return;
     await supabase.from("access_grants").update({ active: false }).eq("id", id);
     load();
   };
@@ -283,7 +286,7 @@ function GrantsTab() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button type="submit" disabled={saving}
-          className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+          className="px-4 py-2 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker disabled:opacity-50">
           {saving ? "Saving…" : "Add grant"}
         </button>
       </form>
@@ -303,7 +306,7 @@ function GrantsTab() {
                   <td className="py-2 px-4 capitalize">{g.kind}</td>
                   <td className="py-2 px-4">{renderTarget(g)}</td>
                   <td className="py-2 px-4 text-gray-500">{g.label || "—"}</td>
-                  <td className="py-2 px-4 text-gray-500">{g.expires_at ? new Date(g.expires_at).toLocaleString("en-GB") : "—"}</td>
+                  <td className="py-2 px-4 text-gray-500">{g.expires_at ? fmtDateTime(g.expires_at, { year: true, month: "short" }) : "—"}</td>
                   <td className="py-2 px-4">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${g.active ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
                       {g.active ? "Active" : "Revoked"}
@@ -325,6 +328,7 @@ function GrantsTab() {
 // ─── TOKENS ─────────────────────────────────────────────────────
 
 function TokensTab() {
+  const dialog = useDialog();
   const [tokens, setTokens] = useState<TokenRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [label, setLabel] = useState("");
@@ -369,7 +373,7 @@ function TokensTab() {
   };
 
   const revoke = async (id: string) => {
-    if (!confirm("Revoke this token? Anyone already using it will be kicked out.")) return;
+    if (!(await dialog.confirm({ title: "Revoke this token?", body: "Anyone already using it will be kicked out.", tone: "danger" }))) return;
     await supabase.from("access_invite_tokens").update({ active: false }).eq("id", id);
     load();
   };
@@ -404,7 +408,7 @@ function TokensTab() {
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button type="submit" disabled={saving}
-          className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+          className="px-4 py-2 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker disabled:opacity-50">
           {saving ? "Minting…" : "Mint link"}
         </button>
 
@@ -415,7 +419,7 @@ function TokensTab() {
               <input readOnly value={newUrl}
                 className="flex-1 px-3 py-2 border border-emerald-200 rounded-lg text-xs font-mono text-gray-800 bg-white" />
               <button type="button" onClick={copy}
-                className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+                className="px-4 py-2 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker">
                 {copied ? "Copied ✓" : "Copy"}
               </button>
             </div>
@@ -436,8 +440,8 @@ function TokensTab() {
                 <tr key={t.id} className="border-b border-gray-100 last:border-0">
                   <td className="py-2 px-4">{t.label || <span className="text-gray-400">(no label)</span>}</td>
                   <td className="py-2 px-4">{t.used_count}{t.max_uses != null ? ` / ${t.max_uses}` : ""}</td>
-                  <td className="py-2 px-4 text-gray-500">{t.expires_at ? new Date(t.expires_at).toLocaleString("en-GB") : "—"}</td>
-                  <td className="py-2 px-4 text-gray-500">{t.last_used_at ? new Date(t.last_used_at).toLocaleString("en-GB") : "—"}</td>
+                  <td className="py-2 px-4 text-gray-500">{t.expires_at ? fmtDateTime(t.expires_at, { year: true, month: "short" }) : "—"}</td>
+                  <td className="py-2 px-4 text-gray-500">{t.last_used_at ? fmtDateTime(t.last_used_at, { year: true, month: "short" }) : "—"}</td>
                   <td className="py-2 px-4">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${t.active ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
                       {t.active ? "Active" : "Revoked"}
@@ -459,6 +463,7 @@ function TokensTab() {
 // ─── GROUPS ─────────────────────────────────────────────────────
 
 function GroupsTab() {
+  const dialog = useDialog();
   const [tag, setTag] = useState("investors");
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [emailInput, setEmailInput] = useState("");
@@ -499,7 +504,7 @@ function GroupsTab() {
   };
 
   const remove = async (userId: string) => {
-    if (!confirm(`Remove user from group "${tag}"?`)) return;
+    if (!(await dialog.confirm({ title: `Remove user from group "${tag}"?`, tone: "danger" }))) return;
     await supabase.from("user_access_groups").delete().eq("user_id", userId).eq("group_tag", tag);
     load();
   };
@@ -519,7 +524,7 @@ function GroupsTab() {
           <input value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="user@example.com"
             className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900" />
           <button type="button" onClick={addByEmail} disabled={saving || !tag}
-            className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+            className="px-4 py-2 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker disabled:opacity-50">
             {saving ? "Adding…" : "Add to group"}
           </button>
         </div>
@@ -537,7 +542,7 @@ function GroupsTab() {
               {members.map((m) => (
                 <tr key={m.user_id} className="border-b border-gray-100 last:border-0">
                   <td className="py-2 px-4 font-mono text-xs text-gray-700">{m.user_id}</td>
-                  <td className="py-2 px-4 text-gray-500">{new Date(m.added_at).toLocaleString("en-GB")}</td>
+                  <td className="py-2 px-4 text-gray-500">{fmtDateTime(m.added_at, { year: true, month: "short" })}</td>
                   <td className="py-2 px-4 text-right">
                     <button onClick={() => remove(m.user_id)} className="text-xs font-medium text-red-600 hover:underline">Remove</button>
                   </td>

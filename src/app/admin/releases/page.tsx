@@ -27,7 +27,7 @@ export default function AdminReleasesPage() {
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              tab === t ? "bg-emerald-600 text-white" : "text-gray-500 hover:bg-gray-100"
+              tab === t ? "bg-hc-brand-dark text-white" : "text-gray-500 hover:bg-gray-100"
             }`}
           >
             {t === "releases" ? "Release log" : "Risk register"}

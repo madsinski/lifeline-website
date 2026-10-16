@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import AdminAppendNote from "../components/AdminAppendNote";
+import { fmtDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 type Severity = "low" | "medium" | "high" | "critical";
 type Likelihood = "rare" | "unlikely" | "possible" | "likely" | "almost_certain";
@@ -56,6 +58,7 @@ const LIKELIHOODS: Likelihood[] = ["rare", "unlikely", "possible", "likely", "al
 type StatusFilter = "open" | "all" | Status;
 
 export default function RiskRegisterTab() {
+  const toast = useToast();
   const [rows, setRows] = useState<RiskRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +93,7 @@ export default function RiskRegisterTab() {
 
   const createRow = async () => {
     if (!draft.title || !draft.description) {
-      alert("Title and description are required.");
+      toast.show("Title and description are required.", { tone: "bad" });
       return;
     }
     setCreating(true);
@@ -113,7 +116,7 @@ export default function RiskRegisterTab() {
         notes: draft.notes ?? null,
       });
       if (error) {
-        alert(`Insert failed: ${error.message}`);
+        toast.show(`Insert failed: ${error.message}`, { tone: "bad" });
         return;
       }
       setDraft({ category: "other", severity: "medium", status: "open" });
@@ -133,7 +136,7 @@ export default function RiskRegisterTab() {
     }
     const { error } = await supabase.from("risk_register").update(cleanPatch).eq("id", id);
     if (error) {
-      alert(`Update failed: ${error.message}`);
+      toast.show(`Update failed: ${error.message}`, { tone: "bad" });
       return;
     }
     load();
@@ -148,7 +151,7 @@ export default function RiskRegisterTab() {
               key={f}
               onClick={() => setStatusFilter(f)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                statusFilter === f ? "bg-emerald-600 text-white" : "text-gray-500 hover:bg-gray-100"
+                statusFilter === f ? "bg-hc-brand-dark text-white" : "text-gray-500 hover:bg-gray-100"
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -157,7 +160,7 @@ export default function RiskRegisterTab() {
         </div>
         <button
           onClick={() => setShowNew((v) => !v)}
-          className="px-3 py-2 text-sm font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
+          className="px-3 py-2 text-sm font-medium rounded-md bg-hc-brand-dark text-white hover:bg-hc-brand-darker"
         >
           {showNew ? "Cancel" : "+ New risk"}
         </button>
@@ -264,7 +267,7 @@ export default function RiskRegisterTab() {
             <button
               onClick={createRow}
               disabled={creating || !draft.title || !draft.description}
-              className="px-3 py-2 text-sm font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="px-3 py-2 text-sm font-medium rounded-md bg-hc-brand-dark text-white hover:bg-hc-brand-darker disabled:opacity-50"
             >
               {creating ? "Saving…" : "Save risk"}
             </button>
@@ -306,17 +309,17 @@ export default function RiskRegisterTab() {
                   <td className="px-4 py-3 font-medium text-gray-900">{r.title}</td>
                   <td className="px-4 py-3 text-xs text-gray-600">{r.category}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${SEVERITY_PILL[r.severity]}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SEVERITY_PILL[r.severity]}`}>
                       {r.severity}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_PILL[r.status]}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_PILL[r.status]}`}>
                       {r.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {new Date(r.opened_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    {fmtDate(r.opened_at, { month: "short" })}
                   </td>
                 </tr>
                 {expandedId === r.id && (

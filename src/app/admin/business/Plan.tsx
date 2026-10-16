@@ -9,6 +9,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtIsk } from "@/app/components/account/ui/dates";
+import { fmtNum } from "@/app/admin/components/ui/format";
+import { usePromptForm } from "../components/PromptForm";
+import { adminErrorText } from "../hc-api";
 
 interface Pace {
   annual_target: number;
@@ -52,8 +56,8 @@ interface PlanData {
   };
 }
 
-const isk = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
-const mkr = (n: number) => `${(n / 1_000_000).toLocaleString("is-IS", { maximumFractionDigits: 1 })} mkr.`;
+const isk = (n: number) => fmtIsk(n);
+const mkr = (n: number) => `${fmtNum(n / 1_000_000, { max: 1 })} mkr.`;
 
 const btn = "text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50";
 
@@ -76,8 +80,8 @@ function PaceCard({ title, hint, p, unit, extra }: {
   return (
     <Card title={title} hint={hint}>
       <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-2xl font-bold text-gray-900">{p.actual.toLocaleString("is-IS")}</span>
-        <span className="text-sm text-gray-500">of {p.annual_target.toLocaleString("is-IS")} {unit} planned this year</span>
+        <span className="text-2xl font-bold text-gray-900">{fmtNum(p.actual)}</span>
+        <span className="text-sm text-gray-500">of {fmtNum(p.annual_target)} {unit} planned this year</span>
       </div>
       {/* Progress vs annual target, with a marker where YTD pace should be */}
       <div className="relative h-2.5 rounded-full bg-gray-100 mt-3 mb-1.5 overflow-hidden">
@@ -86,17 +90,17 @@ function PaceCard({ title, hint, p, unit, extra }: {
       </div>
       <div className="text-xs text-gray-600 space-y-0.5">
         <div>
-          YTD target <b>{p.ytd_target.toLocaleString("is-IS")}</b> ·{" "}
+          YTD target <b>{fmtNum(p.ytd_target)}</b> ·{" "}
           {p.lacking > 0 ? (
-            <span className="text-amber-600 font-semibold">lacking {p.lacking.toLocaleString("is-IS")} {unit}</span>
+            <span className="text-amber-600 font-semibold">lacking {fmtNum(p.lacking)} {unit}</span>
           ) : (
-            <span className="text-emerald-700 font-semibold">ahead by {Math.abs(p.lacking).toLocaleString("is-IS")} {unit}</span>
+            <span className="text-emerald-700 font-semibold">ahead by {fmtNum(Math.abs(p.lacking))} {unit}</span>
           )}
           {p.attainment_pct != null ? <span className="text-gray-400"> · {pct}% of pace</span> : null}
         </div>
         <div>
-          Plan pace {p.monthly_target.toLocaleString("is-IS")}/month · need{" "}
-          <b>{p.required_per_month_rest_of_year.toLocaleString("is-IS")}/month</b> for the remaining {12 - p.months_elapsed} months to hit the year.
+          Plan pace {fmtNum(p.monthly_target)}/month · need{" "}
+          <b>{fmtNum(p.required_per_month_rest_of_year)}/month</b> for the remaining {12 - p.months_elapsed} months to hit the year.
         </div>
         {extra}
       </div>
@@ -105,6 +109,7 @@ function PaceCard({ title, hint, p, unit, extra }: {
 }
 
 export default function Plan() {
+  const [promptNode, askPrompt] = usePromptForm();
   const [data, setData] = useState<PlanData | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -132,25 +137,32 @@ export default function Plan() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Money settings are typed the Icelandic way ("1.250.000", "12,5"); keys
+  // ending in _isk are rounded to whole krónur.
   const editSetting = async (key: string, label: string, current: number) => {
-    const v = prompt(`${label}:`, String(current));
-    if (v === null) return;
-    const value = Number(v.replace(/[. ]/g, "").replace(",", "."));
-    if (!Number.isFinite(value)) { setErr("Not a number."); return; }
-    setBusy(true);
-    try {
-      const res = await authedFetch("/api/admin/accounting/plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
-      await load();
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    const isMoney = key.endsWith("_isk");
+    await askPrompt({
+      title: label,
+      fields: [{ name: "value", label: isMoney ? "Upphæð (kr.)" : "Gildi", kind: isMoney ? "amount" : "number", initial: current, allowNegative: true,
+        hint: isMoney ? "T.d. 1.250.000" : "T.d. 12 eða 12,5" }],
+      onSubmit: async ({ value }) => {
+        setBusy(true);
+        try {
+          const res = await authedFetch("/api/admin/accounting/plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key, value }),
+          });
+          if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            return adminErrorText((j as { error?: string }).error, `Villa ${res.status}`);
+          }
+          await load();
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   if (err) return <div className="px-8 py-6 text-sm text-red-600">{err}</div>;
@@ -161,6 +173,7 @@ export default function Plan() {
 
   return (
     <div className="px-8 pb-10 space-y-4">
+      {promptNode}
       <p className="text-xs text-gray-400">
         Business plan {data.plan_version} · year {data.year} · targets from the Excel workbook (health check + coaching sheets, Snorri valuation, DCF).
       </p>
@@ -228,7 +241,7 @@ export default function Plan() {
           </div>
           <button className={btn} disabled={busy}
             onClick={() => editSetting("total_shares", "Total issued shares (for per-share pricing)", v.total_shares)}>
-            {v.total_shares > 0 ? `Shares: ${v.total_shares.toLocaleString("is-IS")} — edit` : "Set share count for per-share pricing"}
+            {v.total_shares > 0 ? `Shares: ${fmtNum(v.total_shares)} — edit` : "Set share count for per-share pricing"}
           </button>
         </Card>
 
@@ -275,7 +288,7 @@ export default function Plan() {
             </div>
             <div className="text-[11px] text-gray-500">
               Overhead burn {isk(inv.monthly_overhead_burn_isk)}/month
-              {inv.runway_months != null ? ` → ~${inv.runway_months.toLocaleString("is-IS")} months runway at zero income` : ""}.
+              {inv.runway_months != null ? ` → ~${fmtNum(inv.runway_months)} months runway at zero income` : ""}.
             </div>
           </div>
         </Card>

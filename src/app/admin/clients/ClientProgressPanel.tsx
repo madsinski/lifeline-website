@@ -93,7 +93,7 @@ function ProgressBar({ percentage, color, label, subtitle, trend }: {
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-gray-800">{Math.round(percentage)}%</span>
           {trend !== null && trend !== 0 && (
-            <span className={`text-[10px] font-medium ${trend > 0 ? "text-emerald-600" : "text-red-500"}`}>
+            <span className={`text-xs font-medium ${trend > 0 ? "text-hc-brand-text" : "text-red-500"}`}>
               {trend > 0 ? "+" : ""}{Math.round(trend)}%
             </span>
           )}
@@ -103,7 +103,7 @@ function ProgressBar({ percentage, color, label, subtitle, trend }: {
         <div className="h-full rounded-full transition-all duration-500 ease-out"
           style={{ width: `${Math.min(percentage, 100)}%`, backgroundColor: color }} />
       </div>
-      <p className="text-[10px] text-gray-400">{subtitle}</p>
+      <p className="text-xs text-gray-400">{subtitle}</p>
     </div>
   );
 }
@@ -576,8 +576,8 @@ export function useAllClientsProgress(clientIds: string[]): {
 // ─── Inline progress indicator (collapsed row) ─────────────
 
 export function ProgressIndicator({ progress, loading }: { progress: ClientProgressData | null; loading: boolean }) {
-  if (loading) return <span className="text-[10px] text-gray-300">...</span>;
-  if (!progress || progress.programs.length === 0) return <span className="text-[10px] text-gray-300">—</span>;
+  if (loading) return <span className="text-xs text-gray-300">...</span>;
+  if (!progress || progress.programs.length === 0) return <span className="text-xs text-gray-300">—</span>;
 
   const status = getNudgeStatus(progress);
   const config = nudgeConfig[status];
@@ -595,7 +595,7 @@ export function ProgressIndicator({ progress, loading }: { progress: ClientProgr
           {Math.round(progress.totalPercentage)}
         </span>
       </div>
-      <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${config.color} ${config.bgColor}`}>
+      <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${config.color} ${config.bgColor}`}>
         <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
         {config.label}
       </div>
@@ -652,10 +652,10 @@ export function ClientProgressPanel({ clientId }: { clientId: string }) {
         </div>
         <div className="text-right space-y-1">
           {progress.streak > 0 && (
-            <p className="text-xs font-medium text-emerald-600">{progress.streak} day streak</p>
+            <p className="text-xs font-medium text-hc-brand-text">{progress.streak} day streak</p>
           )}
           {progress.lastActiveDate && (
-            <p className="text-[10px] text-gray-400">
+            <p className="text-xs text-gray-400">
               Last active: {progress.daysSinceActive === 0 ? "today" : progress.daysSinceActive === 1 ? "yesterday" : `${progress.daysSinceActive}d ago`}
             </p>
           )}

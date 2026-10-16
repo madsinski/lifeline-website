@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
 
 interface ReviewLink {
   id: string;
@@ -24,7 +25,7 @@ interface ReviewLink {
 
 function fmt(ts: string | null): string {
   if (!ts) return "—";
-  return new Date(ts).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  return fmtDateTime(ts, { year: true, month: "short" });
 }
 
 export default function ReviewLinkManager() {
@@ -143,7 +144,7 @@ export default function ReviewLinkManager() {
     <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-base font-semibold text-[#1F2937]">Lawyer review links (no login)</h2>
+          <h2 className="text-base font-semibold text-hc-ink">Lawyer review links (no login)</h2>
           <p className="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
             Generate a unique link external counsel can open without a Lifeline account to view, redline
             and approve every document here. The lawyer identifies themselves by name + email; each edit
@@ -187,7 +188,7 @@ export default function ReviewLinkManager() {
           type="button"
           onClick={generate}
           disabled={busy}
-          className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors disabled:opacity-50"
         >
           {busy ? "Working…" : "Generate link"}
         </button>

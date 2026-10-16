@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { fmtNumericDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 // Staff onboarding — e-signature of required legal documents.
 // Staff members who have any outstanding agreements land here. They
@@ -29,6 +31,7 @@ type SignedDoc = {
 };
 
 export default function StaffOnboardPage() {
+  const toast = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -82,8 +85,8 @@ export default function StaffOnboardPage() {
 
   const sign = async (doc: PendingDoc) => {
     const typed = (signatures[doc.key] || "").trim();
-    if (!typed) { alert("Please type your full name to sign."); return; }
-    if (!accepted[doc.key]) { alert("Please tick the acceptance box first."); return; }
+    if (!typed) { toast.show("Please type your full name to sign.", { tone: "bad" }); return; }
+    if (!accepted[doc.key]) { toast.show("Please tick the acceptance box first.", { tone: "bad" }); return; }
     setSubmitting(doc.key);
     setErr(null);
     try {
@@ -210,7 +213,7 @@ export default function StaffOnboardPage() {
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-gray-900 leading-tight">{d.title}</div>
                         <div className="text-[11px] text-gray-500 mt-0.5">
-                          {sig ? `Signed ${new Date(sig.accepted_at).toLocaleDateString("en-GB")}` : "Needs signature"}
+                          {sig ? `Signed ${fmtNumericDate(sig.accepted_at)}` : "Needs signature"}
                         </div>
                       </div>
                     </div>
@@ -232,7 +235,7 @@ export default function StaffOnboardPage() {
               {allDone ? (
                 <div className="text-center py-12">
                   <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
-                    <svg className="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <svg className="w-7 h-7 text-hc-brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>

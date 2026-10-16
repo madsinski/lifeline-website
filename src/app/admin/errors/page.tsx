@@ -7,6 +7,11 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useStaffGuard } from "@/lib/useStaffGuard";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { usePromptForm } from "@/app/admin/components/PromptForm";
 
 interface AppError {
   id: string;
@@ -101,6 +106,9 @@ function windowToCutoff(w: Window): Date | null {
 }
 
 export default function ErrorsPage() {
+  const dialog = useDialog();
+  const [promptNode, askPrompt] = usePromptForm();
+  const toast = useToast();
   const guard = useStaffGuard({ role: "admin" });
   const [rows, setRows] = useState<AppError[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,6 +125,7 @@ export default function ErrorsPage() {
   const [resolveSeverity, setResolveSeverity] = useState<AppError["triage_severity"]>(null);
   const [resolveCategory, setResolveCategory] = useState<string>("");
   const [resolveBusy, setResolveBusy] = useState(false);
+  const resolveRef = useDialogA11y(!!resolveTarget, () => setResolveTarget(null), { dismissable: !resolveBusy });
   const [latestRelease, setLatestRelease] = useState<AppRelease | null>(null);
   // History viewer state (per-row, lazy fetch).
   const [historyFor, setHistoryFor] = useState<string | null>(null);
@@ -269,9 +278,9 @@ export default function ErrorsPage() {
     if (sample.pathname) q = q.eq("pathname", sample.pathname);
     else q = q.is("pathname", null);
     const { data, error } = await q.select("id");
-    if (error) { alert(`Could not update: ${error.message}`); return; }
+    if (error) { toast.show(`Could not update: ${error.message}`, { tone: "bad" }); return; }
     if (!data || data.length === 0) {
-      alert("0 rows updated — RLS may be blocking the change. Run migration-app-errors-resolution.sql to add the admin UPDATE policy.");
+      toast.show("0 rows updated — RLS may be blocking the change. Run migration-app-errors-resolution.sql to add the admin UPDATE policy.", { tone: "bad" });
       return;
     }
     await load();
@@ -292,7 +301,7 @@ export default function ErrorsPage() {
   const confirmResolve = async () => {
     if (!resolveTarget) return;
     if (!resolveNote.trim()) {
-      alert("Resolution note is required — capture the why / fix / commit for the MDR audit trail.");
+      toast.show("Resolution note is required — capture the why / fix / commit for the MDR audit trail.", { tone: "bad" });
       return;
     }
     setResolveBusy(true);
@@ -316,9 +325,9 @@ export default function ErrorsPage() {
       if (sample.pathname) q = q.eq("pathname", sample.pathname);
       else q = q.is("pathname", null);
       const { data, error } = await q.select("id");
-      if (error) { alert(`Could not update: ${error.message}`); return; }
+      if (error) { toast.show(`Could not update: ${error.message}`, { tone: "bad" }); return; }
       if (!data || data.length === 0) {
-        alert("0 rows updated — RLS may be blocking the change. Run migration-app-errors-resolution.sql to add the admin UPDATE policy.");
+        toast.show("0 rows updated — RLS may be blocking the change. Run migration-app-errors-resolution.sql to add the admin UPDATE policy.", { tone: "bad" });
         return;
       }
       setResolveTarget(null);
@@ -341,7 +350,7 @@ export default function ErrorsPage() {
     if (sample.pathname) q = q.eq("pathname", sample.pathname);
     else q = q.is("pathname", null);
     const { error } = await q;
-    if (error) { alert(`Could not update: ${error.message}`); return; }
+    if (error) { toast.show(`Could not update: ${error.message}`, { tone: "bad" }); return; }
     await load();
   };
 
@@ -372,9 +381,14 @@ export default function ErrorsPage() {
     if (targets.length === 0) return;
     // Shared note is required even for bulk — the history trigger
     // captures it per row so the audit trail stays defensible.
-    const note = prompt(`Mark ${targets.length} open group${targets.length === 1 ? "" : "s"} as resolved.\n\nShared resolution note (required — pasted into every row's resolution_note for MDR audit):`);
-    if (note === null) return;
-    if (!note.trim()) { alert("Resolution note is required."); return; }
+    const v = await askPrompt({
+      title: `Merkja ${targets.length} ${targets.length === 1 ? "opinn hóp" : "opna hópa"} leysta`,
+      description: "Sameiginleg skýring fer í resolution_note á hverri línu vegna MDR-rekjanleika.",
+      fields: [{ name: "note", label: "Skýring á lausn", hint: "Skylda." }],
+      submitLabel: "Merkja leyst",
+    });
+    if (!v) return;
+    const note = String(v.note);
     setBulkBusy(true);
     try {
       const resolverName = await resolverDisplayName();
@@ -403,19 +417,19 @@ export default function ErrorsPage() {
       }));
       const totalUpdated = updates.reduce((a, b) => a + b, 0);
       if (totalUpdated === 0) {
-        alert("0 rows updated — RLS may be blocking the change. Run migration-app-errors-resolution.sql to add the admin UPDATE policy.");
+        toast.show("0 rows updated — RLS may be blocking the change. Run migration-app-errors-resolution.sql to add the admin UPDATE policy.", { tone: "bad" });
         return;
       }
       await load();
     } catch (e) {
-      alert(`Bulk resolve failed: ${(e as Error).message}`);
+      toast.show(`Bulk resolve failed: ${(e as Error).message}`, { tone: "bad" });
     } finally {
       setBulkBusy(false);
     }
   };
 
   const deleteOne = async (id: string) => {
-    if (!confirm("Delete this error row?")) return;
+    if (!(await dialog.confirm({ title: "Delete this error row?", tone: "danger" }))) return;
     await supabase.from("app_errors").delete().eq("id", id);
     await load();
   };
@@ -464,8 +478,9 @@ export default function ErrorsPage() {
 
   return (
     <div className="space-y-5">
+      {promptNode}
       <div>
-        <h1 className="text-2xl font-bold text-[#1F2937]">Error logs</h1>
+        <h1 className="text-2xl font-bold text-hc-ink">Error logs</h1>
         <p className="text-sm text-gray-500 mt-1 max-w-3xl">
           Mirrored from Sentry into our DB so you can triage here.
           Grouped by message + pathname so a recurring error counts as one row.
@@ -482,7 +497,7 @@ export default function ErrorsPage() {
               key={w}
               onClick={() => setWindowSel(w)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                windowSel === w ? "bg-emerald-600 text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                windowSel === w ? "bg-hc-brand-dark text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
               }`}
             >
               {WINDOW_LABELS[w]}
@@ -580,7 +595,7 @@ export default function ErrorsPage() {
                   <Fragment key={e.id}>
                     <tr className={`hover:bg-gray-50/50 ${expanded ? "bg-emerald-50/30" : ""} ${g.status === "resolved" ? "opacity-60" : ""}`}>
                       <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                        {new Date(g.lastSeen).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        {fmtDateTime(g.lastSeen, { month: "short" })}
                       </td>
                       <td className="px-4 py-3">
                         {g.status === "resolved" && (
@@ -662,12 +677,12 @@ export default function ErrorsPage() {
                               </div>
                               <div>
                                 <div className="text-gray-400 uppercase font-semibold tracking-wide mb-1">First in this group</div>
-                                <div className="text-gray-700">{new Date(e.occurred_at).toLocaleString("en-GB")}</div>
+                                <div className="text-gray-700">{fmtDateTime(e.occurred_at, { year: true, month: "short" })}</div>
                               </div>
                             </div>
                             {(g.status === "resolved" || g.status === "regression") && g.lastResolvedAt && (
                               <div className="text-[11px] text-gray-500">
-                                Marked resolved {new Date(g.lastResolvedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                Marked resolved {fmtDateTime(g.lastResolvedAt, { month: "short" })}
                                 {g.resolvedBy && <> by {g.resolvedBy}</>}
                                 {g.status === "regression" && <> · {g.count - g.resolvedCount} new event{g.count - g.resolvedCount === 1 ? "" : "s"} since</>}
                               </div>
@@ -718,7 +733,7 @@ export default function ErrorsPage() {
                                             <span className="font-semibold">{verb}</span>
                                             {" "}
                                             <span className="text-gray-500">
-                                              {new Date(h.changed_at).toLocaleString("en-GB")}
+                                              {fmtDateTime(h.changed_at, { year: true, month: "short" })}
                                               {h.changed_by_name && <> · {h.changed_by_name}</>}
                                             </span>
                                             {h.new_resolution_note && h.new_resolution_note !== h.prev_resolution_note && (
@@ -727,7 +742,7 @@ export default function ErrorsPage() {
                                               </div>
                                             )}
                                             {h.new_resolved_in_version && (
-                                              <div className="text-[10px] text-gray-500 mt-0.5 pl-3">
+                                              <div className="text-xs text-gray-500 mt-0.5 pl-3">
                                                 Fixed in <span className="font-mono">v{h.new_resolved_in_version}</span>
                                                 {h.new_resolved_in_commit_sha && <> · <span className="font-mono">{h.new_resolved_in_commit_sha.slice(0, 7)}</span></>}
                                               </div>
@@ -811,7 +826,7 @@ export default function ErrorsPage() {
           app_releases row. */}
       {resolveTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !resolveBusy && setResolveTarget(null)}>
-          <div className="bg-white rounded-xl shadow-xl border border-gray-200 max-w-xl w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div ref={resolveRef} role="dialog" aria-modal="true" aria-label="Resolve error group" className="bg-white rounded-xl shadow-xl border border-gray-200 max-w-xl w-full p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3">
               <h3 className="text-base font-semibold text-gray-900">Resolve error group</h3>
               <p className="text-xs text-gray-500 mt-1 line-clamp-2">{resolveTarget.sample.message}</p>
@@ -832,7 +847,7 @@ export default function ErrorsPage() {
                   placeholder="What was the root cause + the fix. e.g. 'Null guard at ConsistencyCard:212; deeper fix tracked in R-2026-007.'"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Becomes the audit-trail entry. Searchable by other admins + auditors.</p>
+                <p className="text-xs text-gray-400 mt-1">Becomes the audit-trail entry. Searchable by other admins + auditors.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -858,7 +873,7 @@ export default function ErrorsPage() {
                 </div>
               </div>
               {latestRelease && (
-                <div className="text-[10px] text-gray-500 -mt-1">
+                <div className="text-xs text-gray-500 -mt-1">
                   Pre-filled from latest release: v{latestRelease.version} · {latestRelease.git_sha.slice(0, 12)}. Override if you've cut a newer one.
                 </div>
               )}
@@ -906,7 +921,7 @@ export default function ErrorsPage() {
               <button
                 onClick={confirmResolve}
                 disabled={resolveBusy || !resolveNote.trim()}
-                className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded disabled:opacity-50"
+                className="px-3 py-1.5 text-xs font-medium text-white bg-hc-brand-dark hover:bg-hc-brand-darker rounded disabled:opacity-50"
               >
                 {resolveBusy ? "Saving…" : "Resolve + audit"}
               </button>

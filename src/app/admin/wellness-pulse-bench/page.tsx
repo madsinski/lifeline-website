@@ -134,7 +134,7 @@ export default function WellnessPulseBenchPage() {
                 <li>· Lifeline-authored (no validated screens): <strong>{WELLNESS_PULSE_QUESTIONS.filter((q) => q.source === "lifeline").length}</strong> qs</li>
                 <li>· Total: <strong>{WELLNESS_PULSE_QUESTIONS.length}</strong> qs across 5 pillars</li>
               </ul>
-              <p className="text-[10px] text-gray-400 mt-3 leading-snug">
+              <p className="text-xs text-gray-400 mt-3 leading-snug">
                 No PHQ-9 · No GAD-7 · No PSS-10 · No WHO-5 · No AUDIT · No Fagerström.
                 Clinical scores stay in Medalia (regulated platform); the app is wellness-only.
               </p>
@@ -170,7 +170,7 @@ function QuestionCard({
         <p className="text-xs text-gray-500 mt-0.5 italic">{question.hint}</p>
       )}
       {showMeta && (
-        <p className="text-[10px] text-gray-400 mt-1 font-mono">
+        <p className="text-xs text-gray-400 mt-1 font-mono">
           {question.id} · source: {question.source}
           {question.heilsumatLinkId ? ` · heilsumat: ${question.heilsumatLinkId}` : ""}
         </p>
@@ -188,12 +188,12 @@ function QuestionCard({
                   onClick={() => onAnswer({ type: "choice", code })}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                     active
-                      ? "bg-emerald-600 text-white border-emerald-600"
+                      ? "bg-hc-brand-dark text-white border-emerald-600"
                       : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   {opt.label}
-                  <span className={`ml-2 text-[10px] ${active ? "text-emerald-100" : "text-gray-400"}`}>
+                  <span className={`ml-2 text-xs ${active ? "text-emerald-100" : "text-gray-400"}`}>
                     {opt.score}
                   </span>
                 </button>
@@ -212,7 +212,7 @@ function QuestionCard({
                   onClick={() => onAnswer({ type: "slider1to10", value: n })}
                   className={`flex-1 py-2 rounded-md text-xs font-bold border transition-colors ${
                     active
-                      ? "bg-emerald-600 text-white border-emerald-600"
+                      ? "bg-hc-brand-dark text-white border-emerald-600"
                       : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                   }`}
                 >

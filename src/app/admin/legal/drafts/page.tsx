@@ -61,7 +61,7 @@ export default async function LegalDraftsPage() {
       <LegalTabBar />
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Documents</h1>
+          <h1 className="text-2xl font-bold text-hc-ink">Documents</h1>
           <p className="text-sm text-gray-500 mt-1 max-w-3xl leading-relaxed">
             Every legal document Lifeline maintains, grouped by where it lives. Each card shows the{" "}
             <span className="font-medium">location</span> and the{" "}
@@ -84,7 +84,7 @@ export default async function LegalDraftsPage() {
       {/* Approval progress — how many docs have counsel sign-off */}
       <div className="bg-white border border-gray-200 rounded-xl p-4">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold text-[#1F2937]">Counsel-approved documents</span>
+          <span className="font-semibold text-hc-ink">Counsel-approved documents</span>
           <span className="text-gray-600">
             <span className="text-emerald-700 font-semibold">{approvedCount}</span> of {allDocs.length}
           </span>
@@ -122,7 +122,7 @@ export default async function LegalDraftsPage() {
               {LOCATION_BADGE[group.location].label}
             </span>
             <div className="min-w-0">
-              <h2 className="text-lg font-semibold text-[#1F2937]">{group.title}</h2>
+              <h2 className="text-lg font-semibold text-hc-ink">{group.title}</h2>
               <p className="text-xs text-gray-500 mt-0.5 max-w-3xl">{group.blurb}</p>
             </div>
           </div>

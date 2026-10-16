@@ -26,4 +26,6 @@ export { default as Sheet } from "@/app/components/hc/Sheet";
 export { default as AdminTabs } from "../AdminTabs";
 export { default as DeleteConfirmModal, verifyAdminPassword } from "../DeleteConfirmModal";
 export { AdminPage } from "./AdminPage";
+export { fmtNum } from "./format";
+export { useDialogA11y } from "./useDialogA11y";
 export { AdminTable, type AdminColumn } from "./AdminTable";

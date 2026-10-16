@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDateTime, fmtNumericDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 
 // Per-staff legal panel — opened from the team table as a modal.
 // Two sections: signed click-through agreements (with PDF downloads)
@@ -53,7 +57,10 @@ export default function StaffLegalButton({
   staffId: string;
   staffName: string;
 }) {
+  const dialog = useDialog();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
+  const panelRef = useDialogA11y(open, () => setOpen(false));
   const [tab, setTab] = useState<"agreements" | "documents">("agreements");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -135,7 +142,7 @@ export default function StaffLegalButton({
   };
 
   const deleteDocument = async (docId: string) => {
-    if (!confirm("Delete this document? This cannot be undone.")) return;
+    if (!(await dialog.confirm({ title: "Delete this document?", body: "This cannot be undone.", tone: "danger" }))) return;
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     const res = await fetch(`/api/admin/staff/${staffId}/documents/${docId}`, {
@@ -144,7 +151,7 @@ export default function StaffLegalButton({
     });
     const j = await res.json().catch(() => ({}));
     if (!res.ok || !j?.ok) {
-      alert(`Delete failed: ${j?.detail || j?.error || "unknown"}`);
+      toast.show(`Delete failed: ${j?.detail || j?.error || "unknown"}`, { tone: "bad" });
       return;
     }
     await load();
@@ -171,7 +178,7 @@ export default function StaffLegalButton({
           onClick={() => setOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-8"
+            ref={panelRef} role="dialog" aria-modal="true" aria-label={`Legal — ${staffName}`} className="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-8"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -179,7 +186,7 @@ export default function StaffLegalButton({
                 <h3 className="text-lg font-semibold text-gray-900">Legal — {staffName}</h3>
                 <p className="text-xs text-gray-500 mt-0.5">Signed agreements + uploaded documents</p>
               </div>
-              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
+              <button aria-label="Loka" onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -231,7 +238,7 @@ export default function StaffLegalButton({
                             {a.document_title || a.document_key}
                           </div>
                           <div className="text-[11px] text-gray-500 mt-0.5 font-mono">
-                            {a.document_key} · {a.document_version} · {new Date(a.accepted_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            {a.document_key} · {a.document_version} · {fmtDateTime(a.accepted_at, { year: true, month: "short" })}
                           </div>
                           <div className="text-[11px] text-gray-400 mt-0.5 font-mono truncate">
                             IP {a.ip || "—"} · hash {a.text_hash.slice(0, 20)}…
@@ -254,7 +261,7 @@ export default function StaffLegalButton({
                               PDF
                             </a>
                           ) : (
-                            <span className="text-[10px] text-gray-400 italic">No PDF</span>
+                            <span className="text-xs text-gray-400 italic">No PDF</span>
                           )}
                         </div>
                       </div>
@@ -307,7 +314,7 @@ export default function StaffLegalButton({
                       <button
                         onClick={submitUpload}
                         disabled={!file || uploading}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                        className="text-xs font-semibold px-3 py-1.5 rounded-md bg-hc-brand-dark text-white hover:bg-hc-brand-darker disabled:opacity-50"
                       >
                         {uploading ? "Uploading…" : "Upload"}
                       </button>
@@ -321,7 +328,7 @@ export default function StaffLegalButton({
                     <div className="space-y-2">
                       {documents.map((d) => (
                         <div key={d.id} className="rounded-lg border border-gray-200 p-3 flex items-start gap-3">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border bg-blue-50 text-blue-700 border-blue-100 shrink-0">
+                          <span className="text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border bg-blue-50 text-blue-700 border-blue-100 shrink-0">
                             {KIND_LABELS[d.kind]}
                           </span>
                           <div className="min-w-0 flex-1">
@@ -329,11 +336,11 @@ export default function StaffLegalButton({
                               {d.title || d.filename}
                             </div>
                             <div className="text-[11px] text-gray-500 mt-0.5 font-mono truncate">
-                              {d.filename} · {prettySize(d.size_bytes)} · {new Date(d.uploaded_at).toLocaleDateString("en-GB")}
+                              {d.filename} · {prettySize(d.size_bytes)} · {fmtNumericDate(d.uploaded_at)}
                             </div>
                             {(d.signer_name || d.signed_at) && (
                               <div className="text-[11px] text-gray-500 mt-0.5">
-                                {d.signer_name || "—"}{d.signed_at ? ` · signed ${new Date(d.signed_at).toLocaleDateString("en-GB")}` : ""}
+                                {d.signer_name || "—"}{d.signed_at ? ` · signed ${fmtNumericDate(d.signed_at)}` : ""}
                               </div>
                             )}
                             {d.note && <div className="text-[11px] text-gray-500 mt-0.5 italic">“{d.note}”</div>}

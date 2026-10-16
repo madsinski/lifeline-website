@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/app/components/hc/Toast";
 
 // Inline append-note widget. Drop into any admin row that has a free-
 // form text column you want to grow over time (risk_register.notes,
@@ -59,6 +60,7 @@ async function getDisplayName(): Promise<string> {
 export default function AdminAppendNote({
   table, rowId, column, currentValue, label, onSaved,
 }: Props) {
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -80,7 +82,7 @@ export default function AdminAppendNote({
         : newEntry;
       const { error } = await supabase.from(table).update({ [column]: next }).eq("id", rowId);
       if (error) {
-        alert(`Could not save note: ${error.message}`);
+        toast.show(`Could not save note: ${error.message}`, { tone: "bad" });
         return;
       }
       setText("");
@@ -120,7 +122,7 @@ export default function AdminAppendNote({
             <button
               onClick={save}
               disabled={saving || !text.trim()}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-medium text-white bg-hc-brand-dark hover:bg-hc-brand-darker rounded disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save note"}
             </button>

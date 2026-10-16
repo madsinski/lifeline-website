@@ -197,7 +197,7 @@ export default function SurveyPreviewPage() {
         <div className="flex items-center justify-center px-4 py-16">
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 max-w-md w-full p-8">
             <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-7 h-7 text-hc-brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -273,7 +273,7 @@ export default function SurveyPreviewPage() {
                         <button
                           type="button"
                           onClick={handlePreviewSubmit}
-                          className="px-6 py-3 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                          className="px-6 py-3 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors"
                         >
                           Senda svör (preview)
                         </button>
@@ -281,7 +281,7 @@ export default function SurveyPreviewPage() {
                         <button
                           type="button"
                           onClick={handleContinue}
-                          className="px-6 py-3 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
+                          className="px-6 py-3 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors"
                         >
                           Áfram →
                         </button>
@@ -323,7 +323,7 @@ function PreviewBanner({
           <span className="text-amber-900">
             <span className="font-mono">{survey.key} v{survey.version}</span>
             {" · "}
-            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] ${STATUS_BADGE_CLASS[survey.status]}`}>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs ${STATUS_BADGE_CLASS[survey.status]}`}>
               {STATUS_LABEL[survey.status]}
             </span>
           </span>

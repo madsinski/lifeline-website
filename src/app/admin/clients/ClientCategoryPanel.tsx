@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useClientProgress, ProgressRing, type ClientProgressData, getNudgeStatus } from "./ClientProgressPanel";
+import { fmtDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
+import { usePromptForm } from "../components/PromptForm";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -34,6 +38,9 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
   address?: string;
   joined?: string;
 }) {
+  const dialog = useDialog();
+  const toast = useToast();
+  const [promptNode, askPrompt] = usePromptForm();
   const router = useRouter();
   const { progress, loading: progressLoading } = useClientProgress(clientId);
   const [programs, setPrograms] = useState<Record<string, ProgramInfo>>({});
@@ -195,7 +202,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
       }, { onConflict: "client_id,category_key" }).select("id").single();
 
       if (insertError) {
-        alert(`Failed to create custom program: ${insertError.message}`);
+        toast.show(`Failed to create custom program: ${insertError.message}`, { tone: "bad" });
         setSaving(false);
         return;
       }
@@ -245,13 +252,13 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
       // Navigate to the editor for the newly created custom program
       router.push(`/admin/clients/${clientId}/program/${categoryKey}`);
     } catch (e) {
-      alert(`Failed to create custom program: ${e instanceof Error ? e.message : "Unknown error"}`);
+      toast.show(`Failed to create custom program: ${e instanceof Error ? e.message : "Unknown error"}`, { tone: "bad" });
     }
     setSaving(false);
   };
 
   const handleRemoveCustom = async (categoryKey: string) => {
-    if (!confirm("Remove custom program and revert to the general program?")) return;
+    if (!(await dialog.confirm({ title: "Remove custom program and revert to the general program?", tone: "danger" }))) return;
     setSaving(true);
     try {
       // Get the original program key from created_from_program before deleting
@@ -269,19 +276,24 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
       }
 
       await loadPrograms();
-    } catch { alert("Failed to remove custom program"); }
+    } catch { toast.show("Failed to remove custom program", { tone: "bad" }); }
     setSaving(false);
   };
 
   const handleSaveAsTemplate = async (categoryKey: string) => {
     const custom = customPrograms[categoryKey];
     if (!custom) return;
+    const v = await askPrompt({
+      title: "Vista sem sniðmát",
+      fields: [{ name: "name", label: "Heiti sniðmáts", initial: (custom.program_name as string) || "" }],
+      submitLabel: "Vista sniðmát",
+    });
+    const name = v?.name as string | undefined;
+    if (!name) return;
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const name = prompt("Template name:", (custom.program_name as string) || "");
-      if (!name) { setSaving(false); return; }
-      await supabase.from("program_templates").insert({
+      const { error: tmplErr } = await supabase.from("program_templates").insert({
         name, category_key: categoryKey, description: (custom.description as string) || "",
         tagline: (custom.tagline as string) || null, level: (custom.level as string) || null,
         exercise_type: (custom.exercise_type as string) || null,
@@ -290,10 +302,11 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
         duration: (custom.duration as number) || 8, actions: custom.actions || [],
         created_by: user?.id || null,
       });
+      if (tmplErr) { toast.show(`Sniðmát vistaðist ekki: ${tmplErr.message}`, { tone: "bad" }); return; }
       await loadPrograms();
-      alert(`Template "${name}" saved`);
-    } catch { alert("Failed to save template"); }
-    setSaving(false);
+      toast.show(`Sniðmátið „${name}“ var vistað.`, { tone: "ok" });
+    } catch { toast.show("Sniðmát vistaðist ekki – netvilla.", { tone: "bad" }); }
+    finally { setSaving(false); }
   };
 
   const handleLoadTemplate = async (categoryKey: string, templateId: string) => {
@@ -315,7 +328,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
         }, { onConflict: "client_id,category_key" });
       }
       await loadPrograms();
-    } catch { alert("Failed to load template"); }
+    } catch { toast.show("Failed to load template", { tone: "bad" }); }
     setSaving(false);
   };
 
@@ -332,6 +345,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
+      {promptNode}
       {/* Profile + weekly progress side by side */}
       <div className="flex items-start gap-4 mb-5 pb-5 border-b border-gray-200/60">
         {/* Left: avatar + details */}
@@ -380,12 +394,12 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
               <div className="flex items-center gap-2">
                 {progress.streak > 0 && (
                   <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 rounded-full">
-                    <span className="text-[10px]">🔥</span>
-                    <span className="text-[10px] font-bold text-emerald-700">{progress.streak}d streak</span>
+                    <span className="text-xs">🔥</span>
+                    <span className="text-xs font-bold text-emerald-700">{progress.streak}d streak</span>
                   </div>
                 )}
                 {progress.lastActiveDate && (
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-xs text-gray-400">
                     {progress.daysSinceActive === 0 ? "Today" : progress.daysSinceActive === 1 ? "Yesterday" : `${progress.daysSinceActive}d ago`}
                   </span>
                 )}
@@ -503,7 +517,7 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
 
         {/* Trend */}
         {progress?.trend !== null && progress?.trend !== undefined && progress.trend !== 0 && (
-          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0 ${
+          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded flex-shrink-0 ${
             progress.trend > 0 ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"
           }`}>
             {progress.trend > 0 ? "+" : ""}{Math.round(progress.trend)}%
@@ -512,15 +526,15 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
 
         {/* Start date */}
         {program?.startedAt && (
-          <span className="text-[10px] text-gray-400 flex-shrink-0">
-            Started {new Date(program.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+          <span className="text-xs text-gray-400 flex-shrink-0">
+            Started {fmtDate(program.startedAt, { year: false, month: "short" })}
           </span>
         )}
 
         {/* Week selector */}
         {program && (
           <div className="flex items-center gap-1 flex-shrink-0">
-            <span className="text-[10px] text-gray-400">Wk</span>
+            <span className="text-xs text-gray-400">Wk</span>
             <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
               <button onClick={() => onChangeWeek(Math.max(1, program.week - 1))}
                 className="w-6 h-6 text-gray-400 hover:text-gray-700 hover:bg-gray-50 flex items-center justify-center text-xs font-bold transition-colors">−</button>
@@ -545,7 +559,7 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                 </svg>
               </button>
-              <button onClick={onRemoveCustom} disabled={saving}
+              <button aria-label="Fjarlægja" onClick={onRemoveCustom} disabled={saving}
                 className="p-1.5 text-gray-300 hover:text-red-500 border border-gray-200 rounded-lg hover:border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50" title="Remove custom">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -591,7 +605,7 @@ function CategoryCard({ category, program, isCustom, progress, templates, availa
             <span className="text-xs text-gray-600 flex-1">
               Switch to <span className="font-semibold text-gray-900">{availablePrograms.find(p => p.key === pendingProgram)?.name}</span>
             </span>
-            <button onClick={() => { setPendingProgram(null); setPendingDuration(8); }}
+            <button aria-label="Loka" onClick={() => { setPendingProgram(null); setPendingDuration(8); }}
               className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
