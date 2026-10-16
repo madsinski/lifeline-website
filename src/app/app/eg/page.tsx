@@ -11,7 +11,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, BookOpen, ChevronRight, Compass, ExternalLink, FileHeart, History, Settings, type LucideIcon } from "lucide-react";
+import { Bell, BookOpen, ChevronRight, Compass, ExternalLink, FileHeart, History, Settings, ShoppingBag, type LucideIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import { useNotifications } from "@/app/components/hc/Notifications";
@@ -99,6 +99,8 @@ function Eg() {
                   body="Æfingar, máltíðir og venjur sem þú hefur skráð síðustu 14 daga." />
                 <Row href="/app?ferd=1" Icon={Compass} title="Heilsuferðin"
                   body="Skrefin, fyrri áætlanir, virkjunarkóði og umsóknir til stéttarfélags." />
+                <Row href="/app/eg/thjonusta" Icon={ShoppingBag} title="Þjónusta"
+                  body="Heilsufarsskoðun, mæling, blóðprufa og læknisviðtal. Kaup, kóðar og bókanir." />
                 <Row href="/app/fraedsla" Icon={BookOpen} title="Fræðsla"
                   body="Fyrirlestrarnir í áætluninni þinni og allt safnið." />
                 <Row href="/app/tilkynningar" Icon={Bell} title="Tilkynningar" count={unread}

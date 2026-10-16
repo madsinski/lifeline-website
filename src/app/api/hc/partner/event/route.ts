@@ -19,7 +19,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { normalizeCode } from "@/lib/hc/codes";
 import { applyJourneyEvent, isJourneyEvent } from "@/lib/hc/events";
-import { partnerAuthorized, siteOrigin } from "@/lib/hc/server";
+import { hcAudit, partnerAuthorized, siteOrigin } from "@/lib/hc/server";
+import { isStandaloneKind } from "@/lib/hc/shop";
 import type { HcJourney } from "@/lib/hc/types";
 
 export const runtime = "nodejs";
@@ -37,7 +38,14 @@ export async function POST(req: NextRequest) {
        pool codes are stored as Medalia wrote them, so try those as typed. */
     const raw = String(body.code).trim();
     const candidates = Array.from(new Set([normalizeCode(raw), raw, raw.toUpperCase()].filter(Boolean)));
-    const { data } = await supabaseAdmin.from("hc_orders").select("journey_id").in("activation_code", candidates).limit(1).maybeSingle();
+    const { data } = await supabaseAdmin.from("hc_orders").select("id, journey_id, kind").in("activation_code", candidates).limit(1).maybeSingle();
+    /* A code for a product bought on its own (shop: measurement, blood test,
+       doctor interview) is not the journey's health check: its events must
+       not move the journey's stage. Recorded, nothing else. */
+    if (data && isStandaloneKind(data.kind)) {
+      await hcAudit("partner:portal", `standalone_event:${body.event}`, data.journey_id, { order_id: data.id, kind: data.kind, at: body.at ?? null });
+      return NextResponse.json({ ok: true, standalone: true, stage: null });
+    }
     journeyId = data?.journey_id ?? null;
   }
   if (!journeyId) return NextResponse.json({ error: "journey_not_found" }, { status: 404 });

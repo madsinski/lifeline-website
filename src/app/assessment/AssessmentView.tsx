@@ -10,6 +10,8 @@ import { resolveContent, resolveSections, resolveHiddenSections } from "@/lib/si
 import { parseListField } from "@/lib/site-content/home";
 import { layoutBands } from "@/lib/site-content/layout";
 import type { Locale, LocaleContent, SiteContentBlob } from "@/lib/site-content/types";
+import { SHOP_FALLBACK_PRICES, bundleBreakdown } from "@/lib/hc/shop";
+import { fmtIsk } from "@/app/components/account/ui/dates";
 
 export interface AssessmentViewProps {
   c?: LocaleContent;
@@ -18,7 +20,11 @@ export interface AssessmentViewProps {
   locale?: Locale;
   /** Published blob loaded on the server (SSR), so no flash of defaults. */
   initialBlob?: SiteContentBlob | null;
+  /** Live prices from hc_packages, by kind (page.tsx). Missing = shop.ts fallbacks. */
+  prices?: ShopPrices;
 }
+
+export type ShopPrices = Partial<Record<"health_check" | "measurement" | "blood_test" | "doctor_interview", number>>;
 
 // Emerald ==word== highlight for heading fields.
 function Highlight({ text }: { text: string }) {
@@ -94,7 +100,11 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
+/** "59.900 kr." by hand (fmtIsk): a browser without Icelandic locale data
+ *  would print "59,900" and not match the server-rendered text. */
+const kr = fmtIsk;
+
+function renderBand(id: string, c: LocaleContent, bg: string, prices: ShopPrices): ReactNode {
   switch (id) {
     case "process":
       return (
@@ -203,7 +213,21 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
       );
     }
 
-    case "packages":
+    case "packages": {
+      /*
+       * The shop, as Mads priced it (2026-10-16). The bundle first, with what
+       * it is worth said plainly: the three parts bought separately, plus
+       * what only the bundle has. Then the three parts on their own. Prices
+       * come from hc_packages (page.tsx), so this is the checkout price.
+       */
+      const { parts, separateTotal } = bundleBreakdown(prices);
+      const extras = parseListField(c.bundle_extras).map((r) => r[0]).filter(Boolean);
+      const href = c.shop_cta_href || "/byrja?leid=check&next=%2Fapp%2Feg%2Fthjonusta";
+      const singles = [
+        { key: "measurement", kind: "measurement" as const },
+        { key: "blood", kind: "blood_test" as const },
+        { key: "doctor", kind: "doctor_interview" as const },
+      ];
       return (
         <section className="py-24 sm:py-28" style={{ backgroundColor: bg }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -211,46 +235,68 @@ function renderBand(id: string, c: LocaleContent, bg: string): ReactNode {
               <h2 className="text-3xl sm:text-4xl font-bold text-[#1F2937]">{c.packages_title}</h2>
               <p className="mt-4 text-lg text-[#6B7280] max-w-2xl mx-auto">{c.packages_subtitle}</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {[1, 2, 3].map((n, i) => {
-                const color = packageColors[i];
-                const includes = parseListField(c[`pkg${n}_includes`]).map((r) => r[0]);
-                return (
-                  <div key={n} className={`bg-[#e6ecf4] rounded-2xl p-8 flex flex-col shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-200 ${color.accent}`}>
-                    <div className={`w-14 h-14 rounded-xl ${color.iconBg} ${color.iconText} flex items-center justify-center mb-4`}>{packageIcons[i]}</div>
-                    <h3 className="text-xl font-semibold text-[#1F2937] mb-1">{c[`pkg${n}_name`]}</h3>
-                    <p className="text-sm text-[#6B7280] mb-4">{c[`pkg${n}_desc`]}</p>
-                    <div className="mb-6">
-                      {n === 3 ? (
-                        <span className="text-3xl font-bold text-[#1F2937]">{c.price_free_label}</span>
-                      ) : (
-                        <span className="text-xl font-bold text-[#1F2937]">{c.price_soon_label}</span>
-                      )}
-                    </div>
-                    <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-[#1F2937] mb-3">{c.packages_includes_label}</h4>
-                      <ul className="space-y-2">
-                        {includes.map((item) => (
-                          <li key={item} className="flex items-start gap-3">
-                            <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                            <span className="text-sm text-[#6B7280]">{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="bg-white/60 rounded-xl p-4 mb-6">
-                      <p className="text-xs text-[#6B7280]"><span className="font-semibold text-[#1F2937]">{c.packages_ideal_label} </span>{c[`pkg${n}_ideal`]}</p>
-                    </div>
-                    <div className="mt-auto">
-                      <CtaLink href={c.packages_cta_href || "/account/login?mode=signup"} className="inline-flex items-center justify-center w-full px-7 py-3 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.packages_cta}</CtaLink>
-                    </div>
+
+            <div className={`max-w-4xl mx-auto bg-[#e6ecf4] rounded-2xl p-6 sm:p-8 shadow-sm ${packageColors[0].accent}`}>
+              <div className="flex flex-wrap items-start gap-4">
+                <div className={`w-14 h-14 rounded-xl ${packageColors[0].iconBg} ${packageColors[0].iconText} flex items-center justify-center shrink-0`}>{packageIcons[0]}</div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-2xl font-semibold text-[#1F2937]">{c.pkg1_name}</h3>
+                  <p className="mt-1 text-sm text-[#6B7280]">{c.pkg1_desc}</p>
+                </div>
+                <span className="text-3xl font-bold text-[#1F2937] tabular-nums">{kr(prices.health_check ?? SHOP_FALLBACK_PRICES.health_check)}</span>
+              </div>
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                <div className="bg-white/70 rounded-xl p-5">
+                  <h4 className="text-sm font-semibold text-[#1F2937]">{c.bundle_separate_label}: {kr(separateTotal)} <span className="font-normal text-[#6B7280]">{c.bundle_extra_label}</span></h4>
+                  <ul className="mt-3 space-y-2">
+                    {parts.map((x) => (
+                      <li key={x.kind} className="flex justify-between gap-3 text-sm text-[#6B7280]">
+                        <span>{c[`single_${x.kind === "blood_test" ? "blood" : x.kind === "doctor_interview" ? "doctor" : "measurement"}_name`] || x.label}</span>
+                        <span className="tabular-nums">{kr(x.price)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="bg-white/70 rounded-xl p-5">
+                  <h4 className="text-sm font-semibold text-[#1F2937]">{c.bundle_only_label}</h4>
+                  <ul className="mt-3 space-y-2">
+                    {extras.map((item) => (
+                      <li key={item} className="flex items-start gap-3">
+                        <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        <span className="text-sm text-[#6B7280]">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              {c.pkg1_ideal && (
+                <p className="mt-4 text-xs text-[#6B7280]"><span className="font-semibold text-[#1F2937]">{c.packages_ideal_label} </span>{c.pkg1_ideal}</p>
+              )}
+              <div className="mt-6">
+                <CtaLink href={href} className="inline-flex items-center justify-center w-full sm:w-auto px-8 py-3 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.bundle_cta}</CtaLink>
+              </div>
+            </div>
+
+            <div className="text-center mt-16 mb-8">
+              <h3 className="text-2xl font-bold text-[#1F2937]">{c.singles_title}</h3>
+              <p className="mt-2 text-[#6B7280]">{c.singles_subtitle}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {singles.map((x, i) => (
+                <div key={x.key} className={`bg-[#e6ecf4] rounded-2xl p-6 flex flex-col shadow-sm ${packageColors[(i % 2) + 1].accent}`}>
+                  <h4 className="text-lg font-semibold text-[#1F2937]">{c[`single_${x.key}_name`]}</h4>
+                  <p className="mt-1 text-2xl font-bold text-[#1F2937] tabular-nums">{kr(prices[x.kind] ?? SHOP_FALLBACK_PRICES[x.kind])}</p>
+                  <p className="mt-3 mb-6 text-sm text-[#6B7280] leading-relaxed">{c[`single_${x.key}_desc`]}</p>
+                  <div className="mt-auto">
+                    <CtaLink href={href} className="inline-flex items-center justify-center w-full px-6 py-2.5 text-sm font-semibold text-[#047857] bg-white rounded-full ring-1 ring-[#10B981]/40 hover:bg-[#ECFDF5] transition-all duration-200">{c.singles_cta}</CtaLink>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         </section>
       );
+    }
 
     case "locations": {
       const lifelineStations = parseListField(c.loc_lifeline_stations).map(([name = "", address = "", hours = ""]) => ({ name, address, hours }));
@@ -356,6 +402,7 @@ export default function AssessmentView(props: AssessmentViewProps) {
   const hidden = useMemo(() => (controlled ? new Set(props.hidden ?? []) : resolveHiddenSections("assessment", blob)), [controlled, props.hidden, blob]);
 
   const visible = order.filter((id) => !hidden.has(id));
+  const prices = props.prices ?? {};
 
   return (
     <div>
@@ -375,7 +422,7 @@ export default function AssessmentView(props: AssessmentViewProps) {
       {layoutBands(visible, DARK_IDS).map((b) => (
         <Fragment key={b.id}>
           {b.wave && <WaveSeparator from={b.wave.from} to={b.wave.to} />}
-          {renderBand(b.id, c, b.bg)}
+          {renderBand(b.id, c, b.bg, prices)}
         </Fragment>
       ))}
     </div>

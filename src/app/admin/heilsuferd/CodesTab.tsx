@@ -12,15 +12,14 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
 import { adminJson, adminErrorText } from "../hc-api";
 import { LOW_STOCK_HINT } from "./codes-shared";
+import { CODE_POOL_KINDS, KIND_IS as SHOP_KIND_IS } from "@/lib/hc/shop";
 
 interface Stock { kind: string; available: number; issued: number; void: number }
 interface Recent { order_id: string | null; kinds: string[] | null; batch: string | null; status: string; issued_at: string | null; voided_at: string | null; void_reason: string | null }
 
-const KIND_IS: Record<string, string> = {
-  "*": "Allar tegundir", health_check: "Heilsufarsskoðun", reevaluation: "Endurmat",
-  followup_3m: "Eftirfylgd", extra_followup: "Auka eftirfylgd",
-};
-const KINDS = ["health_check", "reevaluation", "followup_3m", "extra_followup"];
+/* Shared with the import endpoint, so the shop's products get pools too. */
+const KIND_IS: Record<string, string> = { "*": "Allar tegundir", ...SHOP_KIND_IS };
+const KINDS = CODE_POOL_KINDS;
 
 const when = (s: string | null) => (s ? new Date(s).toISOString().slice(0, 16).replace("T", " ") : "—");
 

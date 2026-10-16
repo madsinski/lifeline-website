@@ -1,6 +1,15 @@
 // Checkout for every journey purchase (health check, 3-month follow-up,
-// extra follow-up, re-evaluation). Server-side end to end: the browser never
-// writes an order or a payment status.
+// extra follow-up, re-evaluation) and the single shop's standalone products
+// (measurement, blood test, doctor interview — src/lib/hc/shop.ts).
+// Server-side end to end: the browser never writes an order or a payment
+// status.
+//
+// Standalone products can be bought any time by a signed-in client; they
+// attach to the current journey (one is created if there is none) and do not
+// move its stage. Employer and union contributions apply only to the
+// journey packages, never to a standalone product. A company code keeps the
+// company's agreed health-check price while it is locked
+// (companies.hc_price_isk, supabase/migration-single-shop.sql).
 //
 // GET  ?package=<key>&code=<company code>  → price, approved unions with the
 //                                            computed reimbursement, code check
@@ -19,9 +28,11 @@ import { normalizeCode } from "@/lib/hc/codes";
 import { claimActivationCode, codeEmail } from "@/lib/hc/code-pool";
 import { quote as buildQuote, computeReimbursement, type UnionRules } from "@/lib/hc/reimbursement";
 import {
-  approvedUnions, currentJourney, getClientProfile, hcAudit, isProfileComplete, patchJourney,
+  approvedUnions, currentJourney, getClientProfile, getOrCreateJourney, hcAudit, isProfileComplete, patchJourney,
   refreshStage, requireUser, siteOrigin, type ClientProfile,
 } from "@/lib/hc/server";
+import { AFTER_PURCHASE, isStandaloneKind } from "@/lib/hc/shop";
+import { companyLockedPrice } from "@/lib/hc/shop-server";
 import type { HcJourney, HcPackage, PaymentRoute } from "@/lib/hc/types";
 import { recordWaiver, requireWaiver } from "@/lib/hc/waiver";
 
@@ -78,9 +89,12 @@ const REEVAL_OPENS_DAYS = 60;
 
 /** Which journey this purchase belongs to, and whether it is allowed now. */
 function eligibility(pkg: HcPackage, journey: HcJourney | null): string | null {
-  if (!journey) return "Engin heilsuferð fannst.";
   /* Subscriptions start a period, they do not settle a bill: /api/hc/subscribe. */
   if ((pkg.kind as string) === "subscription") return "Áskrift er keypt undir Stillingar og áskrift.";
+  /* The shop's standalone products can be bought any time, again and again. */
+  if (isStandaloneKind(pkg.kind)) return null;
+  /* The health check starts a journey if there is none (POST creates it). */
+  if (!journey) return pkg.kind === "health_check" ? null : "Engin heilsuferð fannst.";
   if (pkg.kind === "health_check" && journey.paid_at) return "Heilsufarsskoðunin er þegar greidd.";
   if ((pkg.kind === "followup_3m" || pkg.kind === "extra_followup") && !journey.interview_done_at) {
     return "Eftirfylgd opnast eftir fyrsta viðtalið.";
@@ -101,7 +115,9 @@ export async function GET(req: NextRequest) {
   const profile = await getClientProfile(user.id);
   const journey = await currentJourney(user.id);
 
-  const unions = (await approvedUnions()).map((u) => {
+  /* Unions and employers take part in the journey packages only. */
+  const contributions = !isStandaloneKind(pkg.kind);
+  const unions = (contributions ? await approvedUnions() : []).map((u) => {
     const r = computeReimbursement(u.rules, pkg.union_category, pkg.price_isk);
     return {
       id: u.id, name: u.name, settlement: u.settlement, rules_summary: u.rules_summary, rules: u.rules,
@@ -109,11 +125,16 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  const codeParam = req.nextUrl.searchParams.get("code");
-  const code = codeParam ? await checkCompanyCode(codeParam, user.id, user.email ?? null, profile) : null;
+  const codeParam = contributions ? req.nextUrl.searchParams.get("code") : null;
+  const checked = codeParam ? await checkCompanyCode(codeParam, user.id, user.email ?? null, profile) : null;
+  /* The company's agreed price, so the page's quote matches the charge. */
+  const code = checked?.ok
+    ? { ...checked, price_isk: (await companyLockedPrice(checked.company_id, pkg.kind)) ?? pkg.price_isk }
+    : checked;
 
   return NextResponse.json({
     package: pkg,
+    contributions,
     unions,
     eligibility_error: eligibility(pkg, journey),
     // Strict on purpose, whatever the track: this is buying the health
@@ -152,12 +173,19 @@ export async function POST(req: NextRequest) {
 
   const pkg = await loadPackage(String(b.package_key || ""));
   if (!pkg) return NextResponse.json({ error: "package_not_found" }, { status: 404 });
+  const standalone = isStandaloneKind(pkg.kind);
+  if (standalone && (useCompany || useUnion)) {
+    return NextResponse.json({ error: "Vinnuveitandi og stéttarfélag taka aðeins þátt í heilsufarsskoðuninni." }, { status: 400 });
+  }
   const profile = await getClientProfile(user.id);
   if (!isProfileComplete(profile)) return NextResponse.json({ error: "Kláraðu upplýsingar um þig fyrst." }, { status: 409 });
 
   let journey = await currentJourney(user.id);
   const notEligible = eligibility(pkg, journey);
-  if (notEligible || !journey) return NextResponse.json({ error: notEligible }, { status: 409 });
+  if (notEligible) return NextResponse.json({ error: notEligible }, { status: 409 });
+  /* A shop purchase by somebody with no journey yet: the order needs one to
+     hang off. Created as b2c/b2b by getOrCreateJourney, never 'coach'. */
+  if (!journey) journey = await getOrCreateJourney(user.id);
   const actor = `client:${user.id}`;
 
   // Pricing
@@ -177,8 +205,10 @@ export async function POST(req: NextRequest) {
     if (c.package_key !== pkg.key) return NextResponse.json({ error: "Kóðinn gildir ekki fyrir þennan pakka." }, { status: 400 });
     companyCode = c;
   }
+  /* The company's agreed price while it is locked, else the list price. */
+  const priceIsk = (companyCode ? await companyLockedPrice(companyCode.company_id, pkg.kind) : null) ?? pkg.price_isk;
   const q = buildQuote({
-    priceIsk: pkg.price_isk,
+    priceIsk,
     employer: companyCode ? { percent: companyCode.contribution_percent, fixed_isk: companyCode.contribution_isk } : null,
     union: unionRow ? { settlement: unionRow.settlement, rules: unionRow.rules } : null,
     unionCategory: pkg.union_category,
@@ -225,7 +255,7 @@ export async function POST(req: NextRequest) {
       reference: journey.id,
       description: pkg.name,
       customer: { name: profile!.full_name || user.email || "", email: user.email || "", phone: profile!.phone },
-      returnUrl: `${siteOrigin(req)}/app`,
+      returnUrl: `${siteOrigin(req)}${standalone ? "/app/eg/thjonusta" : "/app"}`,
     });
     if (!charge.ok) {
       if (companyCode) await supabaseAdmin.from("company_hc_codes").update({ redeemed_by: null, redeemed_at: null }).eq("id", companyCode.id);
@@ -247,7 +277,7 @@ export async function POST(req: NextRequest) {
         client_id: user.id,
         package_key: pkg.key,
         kind: pkg.kind,
-        price_isk: pkg.price_isk,
+        price_isk: priceIsk,
         payment_route: route,
         union_id: unionRow?.id ?? null,
         union_reimbursement_isk: q.reimbursementIsk,
@@ -291,10 +321,16 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  if (pkg.kind === "health_check" || pkg.kind === "reevaluation") {
+  if (standalone) {
+    /* A product on its own: the journey's stage does not move. */
+    await hcAudit(actor, "paid_product", journey.id, { order_id: order.id, kind: pkg.kind, ...waiver });
+  } else if (pkg.kind === "health_check" || pkg.kind === "reevaluation") {
     journey = (await patchJourney(journey.id, {
       paid_at: now,
-      ...(companyCode ? { entry: "b2b" as const, company_id: companyCode.company_id } : {}),
+      ...(companyCode ? { entry: "b2b" as const, company_id: companyCode.company_id }
+        /* Bought from the shop on the coaching/app track: paying for the
+           check is choosing it, same as choose_track 'check'. */
+        : journey.entry === "coach" || journey.entry === "app" ? { entry: "b2c" as const } : {}),
     }, actor, "paid", { order_id: order.id, route, ...waiver })) ?? journey;
   } else {
     await hcAudit(actor, "paid_followup", journey.id, { order_id: order.id, kind: pkg.kind, ...waiver });
@@ -304,20 +340,21 @@ export async function POST(req: NextRequest) {
   // Confirmation email: the code, or word that it is on its way.
   const origin = siteOrigin(req);
   const code = order.activation_code as string | null;
+  const next = standalone ? AFTER_PURCHASE[pkg.kind] ?? null : null;
   if (code) {
     await sendEmail({ to: user.email!, ...codeEmail({ pkgName: pkg.name, kind: pkg.kind, code, origin }) });
   } else {
     await sendEmail({
       to: user.email!,
-      subject: `${pkg.name} er greidd`,
+      subject: `Greiðsla móttekin: ${pkg.name}`,
       html: renderBrandedEmail({
-        title: `${pkg.name} er greidd`,
+        title: `Greiðsla móttekin: ${pkg.name}`,
         accentLabel: "Næsta skref",
-        bodyHtml: `<p style="margin:0 0 12px;">Takk fyrir. Virkjunarkóðinn fyrir sjúklingagáttina (Medalia) berst þér í tölvupósti innan eins virks dags. Þú sérð hann líka í heilsuferðinni í appinu um leið og hann er tilbúinn.</p>`,
-        ctaLabel: "Opna heilsuferðina",
-        ctaUrl: `${origin}/app`,
+        bodyHtml: `<p style="margin:0 0 12px;">Takk fyrir. Virkjunarkóðinn fyrir sjúklingagáttina (Medalia) berst þér í tölvupósti innan eins virks dags. Þú sérð hann líka ${standalone ? "undir Þjónusta" : "í heilsuferðinni"} í appinu um leið og hann er tilbúinn.</p>${next ? `<p style="margin:0;">${next}</p>` : ""}`,
+        ctaLabel: standalone ? "Opna Þjónustu" : "Opna heilsuferðina",
+        ctaUrl: `${origin}${standalone ? "/app/eg/thjonusta" : "/app"}`,
       }),
-      text: `${pkg.name} er greidd. Virkjunarkóðinn berst þér í tölvupósti innan eins virks dags. ${origin}/app`,
+      text: `Greiðsla móttekin: ${pkg.name}. Virkjunarkóðinn berst þér í tölvupósti innan eins virks dags.${next ? ` ${next}` : ""} ${origin}${standalone ? "/app/eg/thjonusta" : "/app"}`,
     });
   }
 

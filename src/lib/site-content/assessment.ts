@@ -2,10 +2,16 @@
 //
 // Same approach as home.ts/coaching.ts. The Sameind station list is data-driven
 // from @/lib/sameind-locations and is NOT edited here; the Lifeline station list
-// IS editable. Prices stay hidden (only the "Free"/"coming soon" labels are
-// editable) — pricing strategy is deliberately not published yet.
+// IS editable.
+//
+// Prices are published (Mads, 2026-10-16: Lifeline is the single shop). They
+// are NOT CMS text: the page reads them from hc_packages (src/lib/hc/shop.ts),
+// so the price on the page is the price at checkout. The CMS holds the words
+// around them: the bundle, what is extra in it, and the three parts sold on
+// their own.
 
 import type { SiteField, SiteSection, LocaleContent } from "./types";
+import { BUNDLE_EXTRAS } from "@/lib/hc/shop";
 
 export const ASSESSMENT_SECTIONS: SiteSection[] = [
   { id: "process", label: "Ferlið" },
@@ -82,16 +88,22 @@ export const ASSESSMENT_FIELDS: SiteField[] = [
   { key: "packages_subtitle", label: "Undirtexti", group: G_PACKAGES, type: "text" },
   { key: "packages_includes_label", label: "Merki — innifalið", group: G_PACKAGES, type: "text" },
   { key: "packages_ideal_label", label: "Merki — hentar", group: G_PACKAGES, type: "text" },
-  { key: "packages_cta", label: "Hnappur", group: G_PACKAGES, type: "text" },
-  { key: "packages_cta_href", label: "Hnappur — hlekkur", group: G_PACKAGES, type: "link" },
-  { key: "price_free_label", label: "Verð — ókeypis", group: G_PACKAGES, type: "text" },
-  { key: "price_soon_label", label: "Verð — væntanlegt", group: G_PACKAGES, type: "text" },
-  ...[1, 2, 3].flatMap((n) => [
-    { key: `pkg${n}_name`, label: `Pakki ${n} — heiti`, group: G_PACKAGES, type: "text" as const },
-    { key: `pkg${n}_desc`, label: `Pakki ${n} — lýsing`, group: G_PACKAGES, type: "text" as const },
-    { key: `pkg${n}_includes`, label: `Pakki ${n} — innifalið`, group: G_PACKAGES, type: "list" as const, help: "Eitt atriði í hverri línu.", columns: includesCol },
-    { key: `pkg${n}_ideal`, label: `Pakki ${n} — hentar fyrir`, group: G_PACKAGES, type: "textarea" as const },
+  { key: "pkg1_name", label: "Pakkinn — heiti", group: G_PACKAGES, type: "text" },
+  { key: "pkg1_desc", label: "Pakkinn — lýsing", group: G_PACKAGES, type: "textarea" },
+  { key: "pkg1_ideal", label: "Pakkinn — hentar fyrir", group: G_PACKAGES, type: "textarea" },
+  { key: "bundle_separate_label", label: "Pakkinn — „Ef keypt sér“", group: G_PACKAGES, type: "text" },
+  { key: "bundle_extra_label", label: "Pakkinn — það sem bætist við", group: G_PACKAGES, type: "text" },
+  { key: "bundle_only_label", label: "Pakkinn — „Aðeins í pakkanum“", group: G_PACKAGES, type: "text" },
+  { key: "bundle_extras", label: "Pakkinn — aðeins í pakkanum", group: G_PACKAGES, type: "list", help: "Eitt atriði í hverri línu.", columns: includesCol },
+  { key: "bundle_cta", label: "Pakkinn — hnappur", group: G_PACKAGES, type: "text" },
+  { key: "singles_title", label: "Stakir hlutar — fyrirsögn", group: G_PACKAGES, type: "text" },
+  { key: "singles_subtitle", label: "Stakir hlutar — undirtexti", group: G_PACKAGES, type: "text" },
+  ...(["measurement", "blood", "doctor"] as const).flatMap((k) => [
+    { key: `single_${k}_name`, label: `${k === "measurement" ? "Mæling" : k === "blood" ? "Blóðprufa" : "Læknisviðtal"} — heiti`, group: G_PACKAGES, type: "text" as const },
+    { key: `single_${k}_desc`, label: `${k === "measurement" ? "Mæling" : k === "blood" ? "Blóðprufa" : "Læknisviðtal"} — lýsing`, group: G_PACKAGES, type: "textarea" as const },
   ]),
+  { key: "singles_cta", label: "Stakir hlutar — hnappur", group: G_PACKAGES, type: "text" },
+  { key: "shop_cta_href", label: "Kaupa — hlekkur", group: G_PACKAGES, type: "link", help: "Innskráðir fara beint á Þjónustu í appinu." },
 
   // Locations
   { key: "locations_title", label: "Fyrirsögn", group: G_LOCATIONS, type: "text" },
@@ -124,18 +136,20 @@ export const ASSESSMENT_FIELDS: SiteField[] = [
 const SHARED = {
   hero_cta: "Create your Lifeline account",
   hero_cta_href: "/byrja?leid=check",
-  packages_cta_href: "/byrja?leid=check",
   cta_button_href: "/byrja?leid=check",
+  /* Signed in → straight to Þjónusta; otherwise /byrja makes the account
+     first and lands there (byrja honours ?next= for both). */
+  shop_cta_href: "/byrja?leid=check&next=%2Fapp%2Feg%2Fthjonusta",
   results_device: "phone",
   results_screenshot: "/app-screenshot-health-static.png",
   track_device: "phone",
   track_screenshot: "/app-screenshot-blood-static.png",
 
-  s1_title: "Book your assessment", s1_desc: "Open the patient portal and choose the Foundational Health or Check-in package. Pick a time that suits you.",
+  s1_title: "Buy your assessment", s1_desc: "Create a Lifeline account and buy the full assessment or a single part. You get an activation code for the patient portal straight after payment.",
   s2_title: "Visit our station", s2_desc: "Come to our Lagmula 5 station in Reykjavik for your body composition scan and measurements. Takes about 20 minutes.",
   s3_title: "Blood test at Sameind", s3_desc: "Visit any Sameind blood collection station for your blood panel. Results are sent directly to Lifeline.",
   s4_title: "Results reviewed", s4_desc: "A Lifeline physician reviews all your results and prepares your personalised health report.",
-  s5_title: "Doctor interview", s5_desc: "Meet with your doctor (in-person or video) to discuss your results, health score, and personalised recommendations.",
+  s5_title: "Doctor interview", s5_desc: "Book the doctor interview in the Lifeline app on the doctor's day. The doctor goes over your results with you, and the interview is recorded in the patient portal.",
 
   results_title: "Your results, ==explained==",
   results_body: "After your assessment, receive a comprehensive health report with scores across all key health categories. Your doctor reviews every result and meets with you to discuss findings and next steps.",
@@ -149,18 +163,19 @@ const SHARED = {
 
   packages_includes_label: "What's included:",
   packages_ideal_label: "Ideal for:",
-  packages_cta: "Create your Lifeline account",
-  price_free_label: "Free",
-  price_soon_label: "Pricing coming soon",
-  pkg1_name: "Foundational Health", pkg1_desc: "Our foundational health screening for new members",
-  pkg1_includes: ["Body composition analysis with clinical accuracy", "Targeted blood panel for metabolic health", "Blood pressure screening", "Lifestyle and nutrition questionnaire", "Doctor-reviewed health report", "30-minute personal consultation with physician", "Personalised health score and recommendations", "Access to patient portal for results"].join("\n"),
-  pkg1_ideal: "First-time members who want a complete picture of their health",
-  pkg2_name: "Check-in", pkg2_desc: "Track your progress with repeat measurements",
-  pkg2_includes: ["Body composition analysis", "Progress comparison with previous results", "Updated health score", "Brief physician review", "Updated recommendations"].join("\n"),
-  pkg2_ideal: "Existing members who want to measure improvement after 3-6 months of coaching",
-  pkg3_name: "Self Check-in", pkg3_desc: "Complete a health questionnaire from home",
-  pkg3_includes: ["Comprehensive online health questionnaire", "Self-reported health metrics", "Basic health score calculation", "Lifestyle and habit tracking", "No visit to station required"].join("\n"),
-  pkg3_ideal: "Anyone who wants to start tracking their health before committing to a full assessment",
+  pkg1_name: "Health assessment", pkg1_desc: "Measurement, blood test and doctor interview, plus the report, a planning session and your personal plan.",
+  pkg1_ideal: "Anyone who wants the full picture and a plan to act on",
+  bundle_separate_label: "Bought separately",
+  bundle_extra_label: "+ report, planning session and plan",
+  bundle_only_label: "Only in the assessment",
+  bundle_extras: ["Questionnaire on sleep, exercise, nutrition and mental wellbeing", "Baseline health report reviewed by a doctor", "Planning session with a nurse (assessment only)", "Personal three-month plan"].join("\n"),
+  bundle_cta: "Buy the health assessment",
+  singles_title: "Single parts",
+  singles_subtitle: "Need just one part? Each comes with an activation code for the patient portal.",
+  single_measurement_name: "Measurement", single_measurement_desc: "Body composition and blood pressure at a Lifeline station. Book your time in the app.",
+  single_blood_name: "Blood test", single_blood_desc: "Ordered in the patient portal once you activate your code. Walk in to the lab, fasting.",
+  single_doctor_name: "Doctor interview", single_doctor_desc: "Book a time on the doctor's day in the app. Held and recorded in the patient portal.",
+  singles_cta: "Buy",
 
   loc_lifeline_heading: "Lifeline Station",
   loc_lifeline_desc: "Visit our station for body composition analysis and measurements.",
@@ -176,7 +191,7 @@ const SHARED = {
   q3_q: "How quickly will I get my results?",
   q3_a: "Body composition results are available immediately. Blood test results typically take 3-5 business days. Once all results are in, your doctor will review them within 2 business days and schedule your consultation.",
   q4_q: "Can I do the blood test at any Sameind station?",
-  q4_a: "Yes. After booking your assessment through our patient portal, your referral is valid at every Sameind station — see the list above for addresses and opening hours.",
+  q4_a: "Yes. Once you have activated your code in the patient portal, your referral is valid at every Sameind station — see the list above for addresses and opening hours.",
   q5_q: "What does the blood panel include?",
   q5_a: "We select only the markers that matter for assessing metabolic health — no unnecessary tests. You get the most relevant insights for the best value, covering key areas like lipids, blood sugar, thyroid function, and essential vitamins.",
   q6_q: "How often should I do a Check-in?",
@@ -197,11 +212,11 @@ export const ASSESSMENT_DEFAULTS_IS: LocaleContent = {
   process_subtitle: "Frá bókun til persónulegra ráðlegginga — í fimm einföldum skrefum",
   process_medalia_title: "Geymt á öruggan hátt í Medalia",
   process_medalia_desc: "Öll heilsugögnin þín — niðurstöður heilsumats, blóðprufur og spurningalistar — eru geymd á öruggan hátt í persónulegu sjúklingagáttinni þinni sem knúin er af Medalia.is.",
-  s1_title: "Bókaðu heilsumatið þitt", s1_desc: "Opnaðu sjúklingagáttina og veldu Grunnstoð heilsu eða Endurmat. Veldu tíma sem hentar þér.",
+  s1_title: "Keyptu heilsufarsskoðunina", s1_desc: "Stofnaðu Lifeline-aðgang og keyptu skoðunina í heild eða stakan hluta. Þú færð virkjunarkóða fyrir sjúklingagáttina strax eftir greiðslu.",
   s2_title: "Heimsæktu stöðina okkar", s2_desc: "Komdu á stöðina okkar að Lágmúla 5 í Reykjavík fyrir líkamssamsetningarmælingu og aðrar mælingar. Tekur um 20 mínútur.",
   s3_title: "Blóðprufa hjá Sameind", s3_desc: "Farðu á hvaða blóðprufustöð Sameindar sem er fyrir blóðprufupakkann þinn. Niðurstöður berast beint til Lifeline.",
   s4_title: "Niðurstöður yfirfarnar", s4_desc: "Lifeline-læknir fer yfir allar niðurstöðurnar þínar og útbýr persónulega heilsuskýrslu.",
-  s5_title: "Læknisviðtal", s5_desc: "Hittu lækninn þinn (í eigin persónu eða í fjarfundi) til að fara yfir niðurstöðurnar, heilsueinkunnina og persónulegar ráðleggingar.",
+  s5_title: "Læknisviðtal", s5_desc: "Bókaðu læknisviðtal í Lifeline-appinu á læknadegi vikunnar. Læknirinn fer yfir niðurstöðurnar með þér og viðtalið er skráð í sjúklingagáttinni.",
 
   results_title: "Niðurstöðurnar þínar, ==útskýrðar==",
   results_body: "Að heilsumati loknu færðu ítarlega heilsuskýrslu með einkunnum þvert á alla helstu heilsuflokka. Læknirinn þinn fer yfir hverja niðurstöðu og hittir þig til að ræða þær og næstu skref.",
@@ -215,18 +230,19 @@ export const ASSESSMENT_DEFAULTS_IS: LocaleContent = {
 
   packages_includes_label: "Það sem er innifalið:",
   packages_ideal_label: "Hentar fyrir:",
-  packages_cta: "Stofnaðu Lifeline-aðgang",
-  price_free_label: "Ókeypis",
-  price_soon_label: "Verð væntanlegt",
-  pkg1_name: "Grunnstoð heilsu", pkg1_desc: "Grunnheilsuskoðun okkar fyrir nýja meðlimi",
-  pkg1_includes: ["Nákvæm mæling á líkamssamsetningu", "Markviss blóðprufupakki fyrir efnaskiptaheilsu", "Blóðþrýstingsmæling", "Spurningalisti um lífsstíl og næringu", "Heilsuskýrsla yfirfarin af lækni", "30 mínútna persónuleg ráðgjöf hjá lækni", "Persónuleg heilsueinkunn og ráðleggingar", "Aðgangur að sjúklingagátt fyrir niðurstöður"].join("\n"),
-  pkg1_ideal: "Nýir meðlimir sem vilja fá heildarmynd af heilsu sinni",
-  pkg2_name: "Endurmat", pkg2_desc: "Fylgstu með framförum með endurteknum mælingum",
-  pkg2_includes: ["Mæling á líkamssamsetningu", "Samanburður við fyrri niðurstöður", "Uppfærð heilsueinkunn", "Stutt yfirferð læknis", "Uppfærðar ráðleggingar"].join("\n"),
-  pkg2_ideal: "Núverandi meðlimir sem vilja mæla árangur eftir 3–6 mánaða þjálfun",
-  pkg3_name: "Sjálfsmat", pkg3_desc: "Fylltu út heilsuspurningalista heiman frá þér",
-  pkg3_includes: ["Ítarlegur heilsuspurningalisti á netinu", "Sjálfskráðar heilsutölur", "Grunnútreikningur á heilsueinkunn", "Eftirfylgni með lífsstíl og venjum", "Engin heimsókn á stöð nauðsynleg"].join("\n"),
-  pkg3_ideal: "Öll sem vilja byrja að fylgjast með heilsu sinni áður en þau skuldbinda sig til fulls heilsumats",
+  pkg1_name: "Heilsufarsskoðun", pkg1_desc: "Mæling, blóðprufa og læknisviðtal ásamt skýrslu, áætlunarsamtali og persónulegri áætlun.",
+  pkg1_ideal: "Öll sem vilja heildarmynd af stöðunni og áætlun til að vinna eftir",
+  bundle_separate_label: "Ef keypt sér",
+  bundle_extra_label: "+ skýrsla, áætlunarsamtal og áætlun",
+  bundle_only_label: "Aðeins í pakkanum",
+  bundle_extras: BUNDLE_EXTRAS.join("\n"),
+  bundle_cta: "Kaupa heilsufarsskoðun",
+  singles_title: "Stakir hlutar",
+  singles_subtitle: "Þarftu aðeins einn hluta? Hverjum þeirra fylgir virkjunarkóði fyrir sjúklingagáttina.",
+  single_measurement_name: "Mæling", single_measurement_desc: "Líkamssamsetning og blóðþrýstingur á stöð Lifeline. Þú bókar tímann í appinu.",
+  single_blood_name: "Blóðprufa", single_blood_desc: "Pöntuð í sjúklingagáttinni þegar þú hefur virkjað kóðann. Þú mætir fastandi á rannsóknarstofu.",
+  single_doctor_name: "Læknisviðtal", single_doctor_desc: "Þú bókar tíma á læknadegi vikunnar í appinu. Viðtalið er haldið og skráð í sjúklingagáttinni.",
+  singles_cta: "Kaupa",
 
   loc_lifeline_heading: "Lifeline stöð",
   loc_lifeline_desc: "Heimsæktu stöðina okkar fyrir líkamssamsetningarmælingu og aðrar mælingar.",
@@ -234,21 +250,21 @@ export const ASSESSMENT_DEFAULTS_IS: LocaleContent = {
   loc_sameind_heading: "Blóðprufustöðvar Sameindar",
   loc_sameind_desc: "Komdu við á hvaða Sameindarstöð sem er á höfuðborgarsvæðinu eða í Reykjanesbæ. Tilvísunin þín gildir á öllum stöðvum.",
 
-  packages_title: "Heilsumatspakkar",
-  packages_subtitle: "Veldu heilsumatið sem hentar þínum þörfum",
+  packages_title: "Heilsufarsskoðun og stakir hlutar",
+  packages_subtitle: "Keyptu skoðunina í heild eða aðeins þann hluta sem þú þarft",
   locations_title: "Prófunarstaðir",
   locations_subtitle: "Hvar þú getur lokið heilsumatinu þínu",
 
   faq_title: "Algengar spurningar",
   faq_subtitle: "Allt sem þú þarft að vita um heilsumat",
-  q1_q: "Hversu langan tíma tekur Grunnstoð heilsu?",
+  q1_q: "Hversu langan tíma tekur heilsufarsskoðunin?",
   q1_a: "Heimsóknin á stöðina tekur um 20 mínútur. Blóðprufan hjá Sameind tekur 10–15 mínútur. Læknisviðtalið er 30 mínútur. Alls má gera ráð fyrir um klukkustund sem dreifist á tvær heimsóknir auk viðtalsins.",
   q2_q: "Þarf ég að fasta fyrir blóðprufuna?",
   q2_a: "Já, við mælum með föstu í 10–12 klukkustundir fyrir blóðprufuna til að fá sem nákvæmastar niðurstöður. Vatn og svart kaffi eru í lagi.",
   q3_q: "Hversu fljótt fæ ég niðurstöðurnar?",
   q3_a: "Niðurstöður líkamssamsetningar eru tilbúnar strax. Blóðprufuniðurstöður taka yfirleitt 3–5 virka daga. Þegar allar niðurstöður liggja fyrir fer læknirinn yfir þær innan 2 virkra daga og bókar viðtalið þitt.",
   q4_q: "Get ég farið í blóðprufu á hvaða Sameindarstöð sem er?",
-  q4_a: "Já. Eftir að þú bókar heilsumatið í gegnum sjúklingagáttina gildir tilvísunin þín á öllum Sameindarstöðvum — sjá listann hér að ofan með heimilisföngum og opnunartímum.",
+  q4_a: "Já. Þegar þú hefur virkjað kóðann í sjúklingagáttinni gildir tilvísunin þín á öllum Sameindarstöðvum — sjá listann hér að ofan með heimilisföngum og opnunartímum.",
   q5_q: "Hvað er innifalið í blóðprufupakkanum?",
   q5_a: "Við veljum aðeins þá þætti sem skipta máli fyrir mat á efnaskiptaheilsu — engar óþarfa rannsóknir. Þú færð mikilvægustu innsýnina fyrir besta verðgildið, sem nær yfir lykilsvið á borð við blóðfitu, blóðsykur, skjaldkirtilsstarfsemi og nauðsynleg vítamín.",
   q6_q: "Hversu oft ætti ég að fara í endurmat?",
@@ -268,8 +284,8 @@ export const ASSESSMENT_DEFAULTS_EN: LocaleContent = {
   process_subtitle: "From booking to personalised recommendations — in five simple steps",
   process_medalia_title: "Securely stored in Medalia",
   process_medalia_desc: "All your health data, assessment results, blood tests and questionnaires are stored securely in your personal patient portal powered by Medalia.is.",
-  packages_title: "Assessment Packages",
-  packages_subtitle: "Choose the assessment that fits your needs",
+  packages_title: "Health assessment and single parts",
+  packages_subtitle: "Buy the full assessment or just the part you need",
   locations_title: "Test locations",
   locations_subtitle: "Where to complete your assessment",
   faq_title: "Frequently asked questions",

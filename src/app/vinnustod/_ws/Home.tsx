@@ -227,6 +227,7 @@ interface Ev {
 
 const KIND_IS: Record<string, string> = {
   interview: "Áætlunarsamtal", followup: "Eftirfylgd", measure: "Mælingartími", video: "Myndsímtal", measurement: "Mæling",
+  doctor: "Læknisviðtal",
 };
 
 /*
@@ -321,6 +322,9 @@ export function CalendarTab({ onOpen }: { onOpen: OpenClient }) {
       {/* Beside the week, because the week you are looking at is the week
           you open times for. The participant's "Pick a time" reads the same table. */}
       <StationSlots api={api} />
+      {/* The doctor's day: times a participant who paid for a doctor
+          interview or the health check books under Þjónusta. */}
+      <StationSlots api={api} variant="doctor" />
     </div>
   );
 }

@@ -220,6 +220,8 @@ export async function measurementBlockedUntil(clientId: string, when: Date, ever
   const to = addMonths(when, everyMonths).toISOString();
   const { data } = await supabaseAdmin.from("hc_bookings").select("starts_at")
     .eq("client_id", clientId).eq("kind", "measurement").neq("status", "cancelled")
+    /* A measurement bought on its own in the shop is not the tier's. */
+    .is("order_id", null)
     .gt("starts_at", from).lt("starts_at", to).order("starts_at", { ascending: false });
   const rows = (data ?? []) as { starts_at: string }[];
   if (!rows.length) return null;

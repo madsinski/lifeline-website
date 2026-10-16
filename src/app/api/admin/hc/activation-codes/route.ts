@@ -18,10 +18,12 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { adminGate } from "@/lib/hc/admin-gate";
 import { hcAudit, siteOrigin } from "@/lib/hc/server";
 import { assignPendingCodes, codeStock, voidActivationCode } from "@/lib/hc/code-pool";
+import { CODE_POOL_KINDS } from "@/lib/hc/shop";
 
 export const runtime = "nodejs";
 
-const KINDS = ["health_check", "reevaluation", "followup_3m", "extra_followup"];
+/* Every product sold in Lifeline has its own pool (src/lib/hc/shop.ts). */
+const KINDS: readonly string[] = CODE_POOL_KINDS;
 const CODE_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{3,63}$/;
 const MAX_IMPORT = 5000;
 

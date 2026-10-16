@@ -2,7 +2,9 @@
 // server imports. Schema: supabase/migration-health-journey.sql.
 
 export type Pillar = "sleep" | "exercise" | "nutrition" | "mental";
-export type PackageKind = "health_check" | "followup_3m" | "reevaluation" | "extra_followup";
+export type PackageKind = "health_check" | "followup_3m" | "reevaluation" | "extra_followup"
+  /* Sold on their own in the shop (src/lib/hc/shop.ts). */
+  | "measurement" | "blood_test" | "doctor_interview";
 export type PaymentRoute = "self" | "union" | "company" | "company_union";
 
 export const PILLARS: Pillar[] = ["sleep", "exercise", "nutrition", "mental"];
