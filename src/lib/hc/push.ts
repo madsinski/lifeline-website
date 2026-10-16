@@ -32,12 +32,21 @@ export interface PushPayload { title: string; body: string; url?: string; tag?: 
  * reminder, and a message from a coach or a partner is a person, not a
  * schedule. The cron checks it for its own sends.
  */
-export async function sendPush(clientId: string, payload: PushPayload): Promise<number> {
+export async function sendPush(clientId: string, payload: PushPayload, opts: { purpose?: "reminder" | "message" } = {}): Promise<number> {
   if (!pushConfigured()) return 0;
-  const { data: prefs } = await supabaseAdmin
-    .from("hc_nudge_prefs").select("channels").eq("client_id", clientId).maybeSingle();
-  const channels = (prefs?.channels as string[] | null) ?? [];
-  if (!channels.includes("push")) return 0;
+  if (opts.purpose === "message") {
+    /* A person from Lifeline (message, request): governed by "Tilkynningar
+       frá Lifeline" (hc_notify_prefs; no row = on), not by the opt-in
+       daily-reminder channels. */
+    const { data: np, error } = await supabaseAdmin.from("hc_notify_prefs").select("push").eq("client_id", clientId).maybeSingle();
+    // Fail closed: if the choice cannot be read, do not push.
+    if (error || (np && np.push === false)) return 0;
+  } else {
+    const { data: prefs } = await supabaseAdmin
+      .from("hc_nudge_prefs").select("channels").eq("client_id", clientId).maybeSingle();
+    const channels = (prefs?.channels as string[] | null) ?? [];
+    if (!channels.includes("push")) return 0;
+  }
   const { data: subs } = await supabaseAdmin.from("hc_push_subscriptions").select("id, endpoint, p256dh, auth").eq("client_id", clientId);
   let ok = 0;
   for (const s of subs || []) {

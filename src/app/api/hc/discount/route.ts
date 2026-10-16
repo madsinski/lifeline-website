@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const { count } = await supabaseAdmin.from("hc_audit")
     .select("id", { count: "exact", head: true })
     .eq("actor", `self:${user.id}`).eq("action", "discount_try")
-    .gte("created_at", since);
+    .gte("at", since); /* hc_audit's time column is "at"; created_at silently counted nothing */
   if ((count ?? 0) >= ATTEMPT_LIMIT) {
     return NextResponse.json({ ok: false, slow_down: true }, { status: 429 });
   }

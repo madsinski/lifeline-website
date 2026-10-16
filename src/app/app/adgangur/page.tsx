@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import SettingsCard from "@/app/components/hc/SettingsCard";
 import SetupFlow from "@/app/components/hc/SetupFlow";
+import NotifyPrefsCard from "@/app/components/hc/NotifyPrefsCard";
 import TrackChoice from "@/app/components/hc/TrackChoice";
 import InstallGuide from "@/app/components/hc/InstallGuide";
 import ReportUpload from "@/app/components/hc/ReportUpload";
@@ -114,6 +115,10 @@ function Adgangur() {
             this page further down; they are inside this card now rather than
             on it twice, which also takes three full-width cards off a page
             that was the longest in the app. */}
+        <SectionCard id="tilkynningar" title="Tilkynningar frá Lifeline">
+          <NotifyPrefsCard api={api} />
+        </SectionCard>
+
         <SetupFlow api={api} place="settings" />
 
         {route && !route.paid && route.entry !== "b2b" && (

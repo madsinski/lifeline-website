@@ -1398,7 +1398,8 @@ function ReportStep({ data, reload, portal }: { data: JourneyData; reload: () =>
           <ReportUpload api={api} onDone={() => void reload()}
             heading="Settu afritið þitt inn"
             blurb="Sæktu skýrsluna (PDF) í sjúklingagáttina og settu hana hér inn." />
-          <StaffImportConsent consentAt={consentAt} onFile={false} reload={reload} />
+          <StaffImportConsent consentAt={consentAt} onFile={false} reload={reload}
+            requestedAt={(j as { staff_import_consent_requested_at?: string | null }).staff_import_consent_requested_at ?? null} />
         </>
       )}
     </div>
@@ -1412,7 +1413,18 @@ function ReportStep({ data, reload, portal }: { data: JourneyData; reload: () =>
  * allow_staff_import), revocable here (revoke_staff_import). Says what is
  * kept, for what and for how long before the box, not after it.
  */
-function StaffImportConsent({ consentAt, onFile, reload }: { consentAt: string | null; onFile: boolean; reload: () => Promise<void> }) {
+function StaffImportConsent({ consentAt, onFile, reload, requestedAt = null }: { consentAt: string | null; onFile: boolean; reload: () => Promise<void>; requestedAt?: string | null }) {
+  /* The nurse asked (push / SMS / the red dot led here with ?leyfi=1): bring
+     the card into view once and mark it, so the request is answered where it
+     points. */
+  const ref = useRef<HTMLDivElement>(null);
+  const params = useSearchParams();
+  const asked = !!requestedAt && !consentAt;
+  useEffect(() => {
+    if (params.get("leyfi") !== "1" || !ref.current) return;
+    const t = setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 200);
+    return () => clearTimeout(t);
+  }, [params]);
   const [checked, setChecked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -1462,7 +1474,16 @@ function StaffImportConsent({ consentAt, onFile, reload }: { consentAt: string |
   }
 
   return (
-    <div className={`${hcCard.base} p-5`}>
+    <div ref={ref} id="leyfi" className={`${hcCard.base} p-5 ${asked ? "ring-2 ring-hc-bad-ink/40" : ""}`}>
+      {asked && (
+        <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-hc-bad-ink">
+          <span className="relative inline-flex h-2.5 w-2.5" aria-hidden>
+            <span className="absolute inset-0 rounded-full bg-hc-bad-ink/60 motion-safe:animate-ping" />
+            <span className="relative h-2.5 w-2.5 rounded-full bg-hc-bad-ink" />
+          </span>
+          Hjúkrunarfræðingurinn þinn bað um þetta {fmtDate(requestedAt!)}
+        </p>
+      )}
       <p className="font-semibold text-hc-ink">Eða láttu hjúkrunarfræðing setja hana inn</p>
       <ul className="mt-2 list-disc space-y-1 pl-5">
         <li>Hjúkrunarfræðingur Lifeline sækir skýrsluna þína í sjúklingagáttina og setur hana inn í appið.</li>

@@ -71,6 +71,7 @@ export function ResultsStep({ d, api, reload, onAskConsent }: {
 }) {
   const j = d.journey;
   const consent = j.staff_import_consent_at ?? null;
+  const requestedAt = (j as { staff_import_consent_requested_at?: string | null }).staff_import_consent_requested_at ?? null;
   const fromClient = d.reportProvenance?.source === "self" || (!!j.own_report_at && !j.report_imported_at);
   return (
     <div className="space-y-4">
@@ -112,9 +113,12 @@ export function ResultsStep({ d, api, reload, onAskConsent }: {
             <p className="text-sm text-hc-ink-2">Skjólstæðingurinn hefur ekki leyft starfsfólki að sækja afritið.</p>
           )}
           <div className="flex flex-wrap gap-2">
+            {!consent && requestedAt && (
+              <p className="w-full text-sm text-hc-ink-2">Beiðni send {dayTime(requestedAt)}.</p>
+            )}
             {!consent && (
               <button type="button" onClick={onAskConsent} className={wsBtn.primary}>
-                <Send className="h-4 w-4" aria-hidden /> Biðja um leyfi
+                <Send className="h-4 w-4" aria-hidden /> {requestedAt ? "Senda beiðni aftur" : "Biðja um leyfi"}
               </button>
             )}
             <a href={MEDALIA_URL} target="_blank" rel="noopener noreferrer" className={wsBtn.secondary}>

@@ -24,7 +24,7 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.19";
+export const SECURITY_POSTURE_VERSION = "v1.20";
 export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-16";
 
 export function renderSecurityPosture(): string {
@@ -593,6 +593,16 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.20 (2026-10-16)
+  Tilkynningar frá Lifeline. Ný tafla hc_notify_prefs: skjólstæðingur velur
+  undir Stillingar hvort skilaboð og beiðnir starfsfólks berist með
+  ýtitilkynningu, SMS og tölvupósti (sjálfgefið kveikt; daglegar áminningar
+  eru áfram valfrjálsar). Tilkynningar í appinu birtast alltaf. Á læsta skjáinn
+  og í SMS fer ekkert efni: aðeins „Þú ert með ný skilaboð“ / „Ný beiðni frá
+  Lifeline“. Starfsfólk getur beðið um leyfi til að setja skýrslu inn (mest
+  einu sinni á sólarhring); SMS frá starfsfólki takmarkað við 3 á sólarhring
+  á hvern einstakling.
 
 v1.19 (2026-10-16)
   Skipting Lifeline og Medalia. Medalia (sjúkraskráin) annast klíníska
@@ -1396,6 +1406,15 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.20 (2026-10-16)
+  Notifications from Lifeline. New table hc_notify_prefs: under Settings the
+  client chooses whether messages and requests from staff arrive by push,
+  SMS and email (default on; daily reminders stay opt-in). In-app
+  notifications always show. Nothing of the content goes to a lock screen or
+  SMS: only "you have a new message" / "a new request from Lifeline". Staff
+  may ask for leave to import a report (at most once a day); staff-triggered
+  SMS capped at 3 per person per day.
 
 v1.19 (2026-10-16)
   The Lifeline / Medalia split. Medalia (the medical record) runs the

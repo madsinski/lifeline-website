@@ -17,7 +17,7 @@ import { isMissingSchema } from "@/lib/hc/subscription";
 
 export const runtime = "nodejs";
 
-export type NoteKind = "coach" | "partner" | "appointment" | "report" | "retention" | "trial";
+export type NoteKind = "coach" | "partner" | "appointment" | "report" | "retention" | "trial" | "consent";
 
 export interface Note {
   id: string;
@@ -203,6 +203,26 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  /*
+   * The nurse asked for leave to put the report in. Listed until it is
+   * answered (leave given, or the report is in by the person's own hand);
+   * the dot clears once it has been seen, like everything else here.
+   */
+  const jx = journey as (typeof journey & {
+    staff_import_consent_requested_at?: string | null; staff_import_consent_request_seen_at?: string | null;
+    staff_import_consent_at?: string | null; own_report_at?: string | null; report_imported_at?: string | null;
+  }) | null;
+  if (jx?.staff_import_consent_requested_at && !jx.staff_import_consent_at && !jx.own_report_at && !jx.report_imported_at) {
+    items.push({
+      id: `consent:${jx.id}`, kind: "consent",
+      title: "Má hjúkrunarfræðingur setja skýrsluna þína inn?",
+      body: "Veittu leyfi í skrefinu „Skýrslan þín“, eða settu skýrsluna inn í appinu. Þú ræður.",
+      at: jx.staff_import_consent_requested_at,
+      unread: !jx.staff_import_consent_request_seen_at,
+      href: "/app?leyfi=1",
+    });
+  }
+
   items.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   return NextResponse.json({ items, unread: items.filter((i) => i.unread).length });
 }
@@ -230,6 +250,12 @@ export async function POST(req: NextRequest) {
     convo
       ? supabaseAdmin.from("messages_decrypted").update({ read: true })
           .eq("conversation_id", convo.id).neq("sender_id", user.id).eq("read", false)
+      : Promise.resolve(null),
+    // The consent request: seen once the list is open (still listed until answered).
+    journey
+      ? supabaseAdmin.from("hc_journeys").update({ staff_import_consent_request_seen_at: new Date().toISOString() })
+          .eq("id", journey.id).not("staff_import_consent_requested_at", "is", null).is("staff_import_consent_request_seen_at", null)
+          .then(() => null, () => null)
       : Promise.resolve(null),
     // Trial reminders: seen once the list is open. A missing table is ignored.
     supabaseAdmin.from("hc_trial_notices").update({ seen_at: new Date().toISOString() })

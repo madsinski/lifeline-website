@@ -180,8 +180,20 @@ export default function JourneyNav({ active, counts, onSelect }: {
   const item = (i: (typeof items)[number], mobile: boolean) => {
     const current = i.key === on;
     const badge = i.count && i.count > 0
-      ? <span className={`${badgeClass("count")} absolute -right-2.5 -top-1.5 ring-2 ring-hc-surface`} aria-hidden>{i.count > 9 ? "9+" : i.count}</span>
-      : i.dot ? <span className="absolute -right-1 -top-0.5 h-2.5 w-2.5 rounded-full bg-hc-bad-ink ring-2 ring-hc-surface" aria-hidden /> : null;
+      ? (
+        <span className="absolute -right-2.5 -top-1.5" aria-hidden>
+          {/* A ring that pulses out from the badge, so something new is seen
+              from the corner of the eye; motion-safe only. */}
+          <span className="absolute inset-0 rounded-full bg-hc-bad-ink/60 motion-safe:animate-ping" />
+          <span className={`${badgeClass("count")} relative ring-2 ring-hc-surface`}>{i.count > 9 ? "9+" : i.count}</span>
+        </span>
+      )
+      : i.dot ? (
+        <span className="absolute -right-1 -top-0.5 h-2.5 w-2.5" aria-hidden>
+          <span className="absolute inset-0 rounded-full bg-hc-bad-ink/70 motion-safe:animate-ping" />
+          <span className="relative block h-2.5 w-2.5 rounded-full bg-hc-bad-ink ring-2 ring-hc-surface" />
+        </span>
+      ) : null;
     const sr = i.count && i.count > 0 ? `, ${i.count} ólesin skilaboð` : i.dot ? ", nýjar tilkynningar" : "";
     return (
       <Link key={i.key} href={i.href} aria-current={current ? "page" : undefined}

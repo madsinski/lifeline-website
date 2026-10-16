@@ -134,10 +134,12 @@ export async function POST(req: NextRequest) {
       // The first line only. A notification is a knock on the door, not the
       // conversation, and a health message does not belong on a lock screen
       // in full.
-      body: text.length > 90 ? `${text.slice(0, 90)}…` : text,
+      // Nothing of the message itself: a lock screen is not private, and a
+      // nurse's words can be clinical. The app shows the message.
+      body: "Þú ert með ný skilaboð í appinu.",
       url: "/app/aaetlun?tab=coach",
       tag: `chat-${journeyId}`,
-    }).catch(() => {});
+    }, { purpose: "message" }).catch(() => {});
   });
   return NextResponse.json({ ok: true });
 }
