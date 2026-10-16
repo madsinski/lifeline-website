@@ -19,7 +19,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { aalFromToken } from "@/lib/auth-helpers";
+import { gateError, requireStaffAAL2 } from "@/lib/auth-helpers";
 import { clientIp, throttle } from "@/lib/hc/secrets";
 
 export const runtime = "nodejs";
@@ -31,21 +31,12 @@ const ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmbmliZnh6bHR4aXJpcXh2dnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NzQxMDgsImV4cCI6MjA5MDQ1MDEwOH0.LHBADsUdW7SBtrxZ9KikTmAl5brBGPb3gFTMuPYrmD8";
 
 export async function POST(req: NextRequest) {
-  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!token) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const { data: auth } = await supabaseAdmin.auth.getUser(token);
-  const user = auth.user;
-  if (!user?.email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (aalFromToken(token) !== "aal2") return NextResponse.json({ error: "mfa_required" }, { status: 403 });
-
-  // Active staff, matched by id or by email (invited staff can have a
-  // staff.id that differs from their auth id).
-  const byId = await supabaseAdmin.from("staff").select("role").eq("id", user.id).eq("active", true).maybeSingle();
-  const staff = byId.data
-    ?? (await supabaseAdmin.from("staff").select("role").ilike("email", user.email).eq("active", true).maybeSingle()).data;
-  if (!staff || staff.role === "lawyer" || staff.role === "medical_advisor") {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  // Active write staff at AAL2, looked up by auth id (every staff.id matches
+  // its auth user id; no email fallback).
+  const gate = await requireStaffAAL2(req);
+  if (typeof gate === "string") return gateError(gate);
+  const user = gate;
+  if (!user.email) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   if (!(await throttle(`admin-reauth:${user.id}`, 5, 900)) || !(await throttle(`admin-reauth-ip:${clientIp(req)}`, 20, 900))) {
     return NextResponse.json({ error: "Of margar tilraunir. Bíddu í korter og reyndu aftur." }, { status: 429 });

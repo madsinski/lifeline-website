@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { requireAdminAAL2 } from "@/lib/auth-helpers";
+import { gateError, requireStaffAAL2 } from "@/lib/auth-helpers";
 import { renderBrandedEmail, sendEmail } from "@/lib/email";
 import { hcAudit } from "@/lib/hc/server";
 
@@ -17,10 +17,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> },
 ) {
-  const gate = await requireAdminAAL2(req);
-  if (typeof gate === "string") {
-    return NextResponse.json({ error: gate }, { status: gate === "unauthorized" ? 401 : 403 });
-  }
+  // Admin, or a staff manager (manage_team), at AAL2 — not every coach.
+  const gate = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof gate === "string") return gateError(gate);
   const { clientId } = await params;
 
   const { email } = await req.json().catch(() => ({ email: "" }));
