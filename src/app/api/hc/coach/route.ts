@@ -103,8 +103,10 @@ export async function GET(req: NextRequest) {
       .eq("active", true).eq("accepting_clients", true).order("name"),
     supabaseAdmin.from("hc_chat_decrypted").select("*")
       .eq("journey_id", journey.id).order("created_at", { ascending: true }).limit(200),
+    /* Shop bookings (hc_bookings.order_id: a bought measurement or the
+       doctor's interview) are managed on Þjónusta, /api/hc/shop/book. */
     supabaseAdmin.from("hc_bookings").select("*")
-      .eq("client_id", user.id).neq("status", "cancelled")
+      .eq("client_id", user.id).neq("status", "cancelled").is("order_id", null)
       .gte("starts_at", new Date().toISOString()).order("starts_at").limit(20),
     // The allowance is per calendar month and counts what was booked in it,
     // kept or not — a call someone booked and did not attend has been spent.
@@ -312,6 +314,8 @@ export async function POST(req: NextRequest) {
     const { data: moved, error } = await supabaseAdmin.from("hc_bookings")
       .update({ starts_at: when.toISOString(), updated_at: new Date().toISOString() })
       .eq("id", body.move).eq("client_id", user.id).neq("status", "cancelled")
+      /* A shop booking holds a published slot; it is moved by rebooking there. */
+      .is("order_id", null)
       .select("id, kind").maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (!moved) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -340,7 +344,7 @@ export async function POST(req: NextRequest) {
     // the booking does not stay in the diary while the page says it went.
     const { data: gone, error } = await supabaseAdmin.from("hc_bookings")
       .update({ status: "cancelled", updated_at: new Date().toISOString() })
-      .eq("id", body.cancel).eq("client_id", user.id).select("id, kind");
+      .eq("id", body.cancel).eq("client_id", user.id).is("order_id", null).select("id, kind");
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     if (!gone?.length) return NextResponse.json({ error: "not_found" }, { status: 404 });
     if (gone.some((g) => g.kind === "measurement")) await syncMeasurementBooking(journey.id, user.id);

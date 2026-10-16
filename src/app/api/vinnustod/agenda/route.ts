@@ -68,6 +68,8 @@ export async function GET(req: NextRequest) {
         minutes: (b.minutes as number) ?? 30,
         what: b.kind === "video"
           ? "Myndsímtal"
+          : b.kind === "doctor"
+          ? "Læknisviðtal"
           /* Lowercased because it sits mid-phrase after "Mæling:". The
              shared table holds them capitalised, which is right standalone
              and wrong here. */

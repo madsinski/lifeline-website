@@ -23,6 +23,7 @@ import { hcAudit } from "@/lib/hc/server";
 import { syncOwner } from "@/lib/hc/calendar-sync";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
 import { bookingItems, bookingMinutes, isBookingKind } from "@/lib/hc/bookings";
+import { releaseSlot } from "@/lib/hc/shop-server";
 
 export const runtime = "nodejs";
 
@@ -129,9 +130,12 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   /* Scoped to this journey, so a booking id from elsewhere cannot be moved
      by someone who happens to be allowed to see this client. */
   const { data: existing } = await supabaseAdmin.from("hc_bookings")
-    .select("id, kind, items, starts_at, status")
+    .select("id, kind, items, starts_at, status, slot_id, client_id")
     .eq("id", bookingId).eq("journey_id", journey.id).maybeSingle<{
       id: string; kind: string; items: unknown; starts_at: string; status: string;
+      /* Set for shop bookings (a bought measurement, the doctor's interview):
+         the published station/doctor slot it holds. */
+      slot_id: string | null; client_id: string;
     }>();
   if (!existing) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
@@ -148,6 +152,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     /* Reviving a cancelled booking by moving it would be a surprise; moving
        a live one is the ordinary case. */
     if (existing.status === "cancelled") return NextResponse.json({ error: "cancelled" }, { status: 409 });
+    /* A shop booking holds a published slot: moving the booking alone would
+       leave the slot and the diary disagreeing. Cancel, and they rebook. */
+    if (existing.slot_id) {
+      return NextResponse.json({ error: "Þessi tími var bókaður á útgefinn tíma. Afbókaðu hann og skjólstæðingurinn velur nýjan undir Þjónusta." }, { status: 409 });
+    }
     action = "coach_booking_moved";
   } else if (typeof body.note === "string") {
     patch.note = body.note.slice(0, 500) || null;
@@ -159,6 +168,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     .update(patch).eq("id", bookingId).eq("journey_id", journey.id)
     .select("id, kind, items, starts_at, minutes, status, meeting_url, note").maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (body.cancel === true) await releaseSlot(existing.kind, existing.slot_id, existing.client_id);
 
   await hcAudit(who, action, journey.id, { booking_id: bookingId, from: existing.starts_at, to: patch.starts_at ?? null });
   syncBoth(journey.coach_id, journey.client_id);

@@ -59,7 +59,26 @@ function when(iso: string) {
 /** "14. okt." for a local Date (the week's columns are built in local time). */
 const dayMonth = (d: Date) => fmtDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, { year: false, month: "short" });
 
-export default function StationSlots({ api }: { api: Api }) {
+/*
+ * The same card for the doctor's day (variant "doctor"): doctor_slots via
+ * /api/vinnustod/doctor-slots, only on the doctor's weekday, which a
+ * participant who paid for a doctor interview or the health check books
+ * under Þjónusta (/api/hc/shop/book).
+ */
+const WEEKDAY_PL = ["sunnudagar", "mánudagar", "þriðjudagar", "miðvikudagar", "fimmtudagar", "föstudagar", "laugardagar"];
+
+/** The next date (YYYY-MM-DD, UTC = Iceland) falling on `weekday`, today included. */
+function nextWeekday(weekday: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + ((weekday - d.getUTCDay() + 7) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
+export default function StationSlots({ api, variant = "station" }: { api: Api; variant?: "station" | "doctor" }) {
+  const doctor = variant === "doctor";
+  const endpoint = doctor ? "/api/vinnustod/doctor-slots" : "/api/vinnustod/slots";
+  const personLabel = doctor ? "Læknir" : "Hver mælir";
+  const [weekday, setWeekday] = useState<number | null>(null);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [free, setFree] = useState(0);
@@ -82,7 +101,7 @@ export default function StationSlots({ api }: { api: Api }) {
 
   const load = useCallback(async () => {
     /* 90 days so paging back and forth does not refetch; a rota is small. */
-    const r = await api("/api/vinnustod/slots?days=90").catch(() => null);
+    const r = await api(`${endpoint}?days=90`).catch(() => null);
     const j = r?.ok ? await r.json().catch(() => null) : null;
     setTimeout(() => {
       /* A failed load is not "no free times": saying zero when the list
@@ -91,14 +110,20 @@ export default function StationSlots({ api }: { api: Api }) {
       setSlots(Array.isArray(j?.slots) ? j.slots : []);
       setStaff(Array.isArray(j?.staff) ? j.staff : []);
       setFree(Number(j?.freeAhead ?? 0));
+      if (typeof j?.weekday === "number") {
+        setWeekday(j.weekday);
+        /* Open on the doctor's day rather than on a day the server refuses. */
+        setDate((d) => (new Date(`${d}T00:00:00Z`).getUTCDay() === j.weekday ? d : nextWeekday(j.weekday)));
+        if (typeof j?.slot_minutes === "number") setMinutes(j.slot_minutes);
+      }
     }, 0);
-  }, [api]);
+  }, [api, endpoint]);
   useEffect(() => { void load(); }, [load]);
 
   const create = async () => {
     if (busy) return;
     setBusy(true); setMsg("");
-    const r = await api("/api/vinnustod/slots", {
+    const r = await api(endpoint, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date, from, to, minutes, measurerId: measurerId || undefined }),
     }).catch(() => null);
@@ -118,7 +143,7 @@ export default function StationSlots({ api }: { api: Api }) {
        name you just picked reads as broken. */
     setSlots((xs) => xs?.map((x) => x.id === slot.id
       ? { ...x, measurer_id: id || null, measurer_name: staff.find((w) => w.id === id)?.name ?? null } : x) ?? xs);
-    const r = await api("/api/vinnustod/slots", {
+    const r = await api(endpoint, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: slot.id, measurerId: id || null }),
     }).catch(() => null);
@@ -127,14 +152,14 @@ export default function StationSlots({ api }: { api: Api }) {
     if (!r?.ok) {
       setSlots((xs) => xs?.map((x) => x.id === slot.id
         ? { ...x, measurer_id: slot.measurer_id, measurer_name: slot.measurer_name } : x) ?? xs);
-      setMsg(`Ekki tókst að skrá hver mælir ${when(slot.slot_at)}. Reyndu aftur.`, true);
+      setMsg(`Ekki tókst að skrá ${doctor ? "lækni" : "hver mælir"} ${when(slot.slot_at)}. Reyndu aftur.`, true);
     }
   };
 
   const remove = async (s: Slot) => {
     if (removing) return;
     setRemoving(s.id);
-    const r = await api(`/api/vinnustod/slots?id=${encodeURIComponent(s.id)}`, { method: "DELETE" }).catch(() => null);
+    const r = await api(`${endpoint}?id=${encodeURIComponent(s.id)}`, { method: "DELETE" }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     if (!r?.ok) {
       setRemoving(null);
@@ -154,13 +179,18 @@ export default function StationSlots({ api }: { api: Api }) {
     <section className={`${hcCard.base} p-4`}>
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="min-w-0 flex-1 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
-          Lausir mælingatímar
+          {doctor ? "Læknistímar á læknadegi" : "Lausir mælingatímar"}
         </h3>
         <button type="button" onClick={() => setOpen((v) => !v)} className={hcBtn.primary}>
           <CalendarPlus className="h-4 w-4" aria-hidden /> Opna tíma
         </button>
       </div>
 
+      {doctor && weekday !== null && (
+        <p className="mt-1 text-xs text-hc-ink-3">
+          Læknadagur: {WEEKDAY_PL[weekday]}. Viðtalið er haldið og skráð í sjúklingagáttinni; hér er aðeins tíminn.
+        </p>
+      )}
       {/* Zero is the headline, not a footnote. */}
       <p className="mt-1 text-sm text-hc-ink-2">
         {slots === null ? "Hleð…" : loadErr ? (
@@ -202,7 +232,7 @@ export default function StationSlots({ api }: { api: Api }) {
               <input type="time" value={from} onChange={(e) => setFrom(e.target.value)}
                 className={`mt-1 min-h-11 font-normal ${hcInput}`} />
             </label>
-            <label className="block text-xs font-semibold text-hc-ink-2">Hver mælir
+            <label className="block text-xs font-semibold text-hc-ink-2">{personLabel}
               <select value={measurerId} onChange={(e) => setMeasurerId(e.target.value)}
                 className={`mt-1 min-h-11 font-normal ${hcInput}`}>
                 <option value="">Ákveða síðar</option>
@@ -310,7 +340,7 @@ export default function StationSlots({ api }: { api: Api }) {
                   {x.client_name ?? <span className="text-hc-ok-ink">laus</span>}
                 </span>
                 <select value={x.measurer_id ?? ""} onChange={(e) => void assign(x, e.target.value)}
-                  aria-label="Hver mælir" className="min-h-11 min-w-0 flex-1 rounded-hc-element border border-hc-control bg-hc-surface px-2 text-xs text-hc-ink">
+                  aria-label={personLabel} className="min-h-11 min-w-0 flex-1 rounded-hc-element border border-hc-control bg-hc-surface px-2 text-xs text-hc-ink">
                   <option value="">Enginn skráður</option>
                   {staff.map((w) => <option key={w.id} value={w.id}>{w.name ?? w.id.slice(0, 8)}</option>)}
                 </select>

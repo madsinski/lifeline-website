@@ -7,7 +7,7 @@
 
 import * as cache from "@/lib/hc/client-cache";
 import { hcBtn, hcCard, hcKicker, hcPage } from "@/app/components/hc/ui";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -24,13 +24,13 @@ import StepDot from "@/app/components/hc/StepDot";
 import { Alert, Button, ButtonLink, fmtDate as fmtDay, useDialog } from "@/app/components/account/ui";
 import { Check } from "lucide-react";
 import ProfileForm, { ConsentBox } from "@/app/components/hc/ProfileForm";
-import { WEB_CLIENT_HEADER, WITHDRAWAL_WAIVER_LABEL } from "@/app/components/hc/Paywall";
 import NextStepCard from "@/app/components/hc/NextStepCard";
+import Checkout, { CodeBox } from "@/app/components/hc/Checkout";
+import SlotBooking from "@/app/components/hc/SlotBooking";
 import StepHeader from "@/app/components/hc/StepHeader";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { SAVE_FAILED, useToast } from "@/app/components/hc/Toast";
 import { formatIsk, type HcJourney, type HcLocation, type HcOrder, type HcPackage } from "@/lib/hc/types";
-import { quote, type UnionRules } from "@/lib/hc/reimbursement";
 import { portalFor } from "@/lib/hc/portal";
 
 /**
@@ -504,6 +504,12 @@ function Heilsuferd() {
             </div>
           )}
           {!coaching && <WhereCard portal={portalFor(data.location?.patient_portal_url)} />}
+          {/* Lifeline sells every part on its own as well (src/lib/hc/shop.ts). */}
+          <Link href="/app/eg/thjonusta"
+            className="block rounded-2xl border border-hc-hairline bg-hc-surface p-5 shadow-sm transition hover:bg-hc-sunken">
+            <p className="font-bold text-hc-ink">Þjónusta</p>
+            <p className="mt-1 text-sm text-hc-ink-2">Mæling, blóðprufa eða læknisviðtal ein og sér, og heilsufarsskoðunin í heild.</p>
+          </Link>
           {/* Fræðsla had its own card here. It has its own page in the
               navbar, and this page is for keeping track of the health
               check — which lectures are not a step of. */}
@@ -598,11 +604,11 @@ function WhereCard({ portal }: { portal: string }) {
       <dl className="mt-2 space-y-2 text-sm">
         <div>
           <dt className="font-semibold text-hc-ink">Lifeline appið</dt>
-          <dd className="text-hc-ink-2">Bókanir, áætlunin þín, þjálfun og skilaboð.</dd>
+          <dd className="text-hc-ink-2">Bókanir (líka læknisviðtalið), áætlunin þín, þjálfun og skilaboð.</dd>
         </div>
         <div>
           <dt className="font-semibold text-hc-ink">Sjúklingagáttin (Medalia)</dt>
-          <dd className="text-hc-ink-2">Virkja kóðann, blóðprufan, skýrslan og læknisviðtalið.</dd>
+          <dd className="text-hc-ink-2">Virkja kóðann, blóðprufan, skýrslan og læknisviðtalið sjálft.</dd>
         </div>
       </dl>
       <a href={portal} target="_blank" rel="noopener noreferrer"
@@ -831,6 +837,12 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
             eftirfylgd — er sjálfstæð mánaðarleg áskrift og er ekki innifalin í þessu verði.{" "}
             <Link href="/app/adgangur#askrift" className="font-semibold underline">Sjá áskriftina</Link>.
           </p>
+          {!j.paid_at && (
+            <p className="px-1 text-xs text-hc-ink-2">
+              Viltu aðeins einn hluta, til dæmis mælingu eða blóðprufu?{" "}
+              <Link href="/app/eg/thjonusta" className="font-semibold underline">Sjá Þjónustu</Link>.
+            </p>
+          )}
         </div>
       );
     case "tests":
@@ -912,14 +924,18 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
     case "report":
       return <ReportStep data={data} reload={reload} portal={portal} />;
     case "doctor":
-      /* The doctor's interview: booked and held in the sjúklingagátt. Lifeline
-         only marks it done (the nurse ticks it, or Medalia tells us). */
+      /* The doctor's interview: booked HERE on the doctor's day (a published
+         doctor_slots time, /api/hc/shop/book against the paid health-check
+         order), held and recorded in the sjúklingagátt. Lifeline marks it
+         done (the nurse ticks it, or Medalia tells us). */
       return (
         <div className="space-y-3 text-sm text-hc-ink-2">
-          <p>Læknir fer yfir niðurstöðurnar með þér. Viðtalið er bókað og haldið í gegnum sjúklingagáttina, á staðnum.</p>
+          <p>Læknir fer yfir niðurstöðurnar með þér. Þú bókar viðtalið hér, á læknadegi vikunnar. Það er haldið og skráð í sjúklingagáttinni (Medalia).</p>
           {split(j).doctor_interview_done_at
             ? <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">Læknisviðtali lokið.</p>
-            : <a href={portal} target="_blank" rel="noopener noreferrer" className={hcBtn.cta}>Bóka í sjúklingagátt</a>}
+            : healthOrder
+              ? <SlotBooking orderId={healthOrder.id} kind="doctor" />
+              : <p className="rounded-xl bg-hc-sunken px-3 py-2">Viðtalið er bókað þegar heilsufarsskoðunin hefur verið greidd.</p>}
         </div>
       );
     case "interview":
@@ -937,12 +953,10 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           {/* The doctor's interview is its own step now ("doctor"); only the
               steps list without it (older server) shows it here too. */}
           {!data.steps.some((st) => st.key === "doctor") && (
-            <TestTask n={1} title="Læknisviðtal í sjúklingagáttinni" done={!!split(j).doctor_interview_done_at}>
-              <p>Læknir fer yfir niðurstöðurnar með þér. Viðtalið er bókað og haldið í gegnum sjúklingagáttina.</p>
-              {!split(j).doctor_interview_done_at && (
-                <a href={portal} target="_blank" rel="noopener noreferrer" className={`${hcBtn.cta} mt-2`}>
-                  Bóka í sjúklingagátt
-                </a>
+            <TestTask n={1} title="Læknisviðtal" done={!!split(j).doctor_interview_done_at}>
+              <p>Læknir fer yfir niðurstöðurnar með þér. Þú bókar viðtalið hér, á læknadegi vikunnar. Það er haldið og skráð í sjúklingagáttinni.</p>
+              {!split(j).doctor_interview_done_at && healthOrder && (
+                <div className="mt-2"><SlotBooking orderId={healthOrder.id} kind="doctor" /></div>
               )}
             </TestTask>
           )}
@@ -1050,29 +1064,6 @@ function CompleteButton({ label, action, onDone }: { label: string; action: stri
   );
 }
 
-function CodeBox({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
-  const toast = useToast();
-  return (
-    <div className="mt-2 flex items-center gap-2">
-      <span className="flex-1 select-all rounded-xl bg-hc-ok-surface px-4 py-3 text-center font-mono text-xl font-bold tracking-[0.15em] text-hc-ok-ink">{code}</span>
-      <button type="button"
-        onClick={async () => {
-          // The clipboard is refused outside a secure context and on some
-          // in-app browsers; say so rather than doing nothing.
-          try { await navigator.clipboard.writeText(code); } catch {
-            toast.show("Ekki tókst að afrita – veldu kóðann og afritaðu hann", { tone: "bad" });
-            return;
-          }
-          setCopied(true); setTimeout(() => setCopied(false), 1500);
-        }}
-        className="min-h-11 rounded-xl border border-hc-control px-3 text-xs font-semibold text-hc-ink-2 hover:bg-hc-sunken"
-      >
-        {copied ? "Afritað" : "Afrita"}
-      </button>
-    </div>
-  );
-}
 
 // ── Profile ────────────────────────────────────────────────────────────────
 
@@ -1122,225 +1113,6 @@ function WelcomeStep({ data }: { data: JourneyData }) {
   );
 }
 
-// ── Checkout ───────────────────────────────────────────────────────────────
-
-interface CheckoutInfo {
-  package: HcPackage;
-  unions: { id: string; name: string; settlement: "reimbursement" | "direct"; rules_summary: string | null; rules: UnionRules; reimbursement_isk: number; explanation: string; can_email: boolean }[];
-  eligibility_error: string | null;
-  profile_complete: boolean;
-  company_code: { ok: true; company_name: string | null; package_key: string; contribution_percent: number; contribution_isk: number | null } | { ok: false; error: string } | null;
-}
-
-/** A card that toggles a payment contribution on or off. Real button, aria-pressed. */
-function ContributionToggle({ on, onToggle, title, hint, disabled, children }: {
-  on: boolean; onToggle: () => void; title: string; hint: string; disabled?: boolean; children?: React.ReactNode;
-}) {
-  return (
-    <div className={`rounded-2xl border transition ${on ? "border-hc-brand bg-hc-brand-surface ring-2 ring-hc-brand/20" : "border-hc-hairline bg-hc-surface"} ${disabled ? "opacity-50" : ""}`}>
-      <button type="button" aria-pressed={on} disabled={disabled} onClick={onToggle} className="flex w-full items-start gap-3 p-4 text-left disabled:cursor-not-allowed">
-        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${on ? "border-hc-brand-dark bg-hc-brand-dark text-white" : "border-hc-control bg-hc-surface"}`}>
-          {on && <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden><path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-        </span>
-        <span><span className="block text-sm font-semibold text-hc-ink-2">{title}</span><span className="block text-xs text-hc-ink-3">{hint}</span></span>
-      </button>
-      {on && children && <div className="border-t border-hc-hairline px-4 pb-4 pt-3">{children}</div>}
-    </div>
-  );
-}
-
-function Checkout({ packages, profileComplete, reload }: { packages: HcPackage[]; profileComplete: boolean; reload: () => Promise<void> }) {
-  const [pkgKey, setPkgKey] = useState(packages[0]?.key ?? "");
-  const [info, setInfo] = useState<CheckoutInfo | null>(null);
-  const [useCompany, setUseCompany] = useState(false);
-  const [useUnion, setUseUnion] = useState(false);
-  const [unionId, setUnionId] = useState("");
-  const [code, setCode] = useState("");
-  const [codeState, setCodeState] = useState<CheckoutInfo["company_code"]>(null);
-  const [consent, setConsent] = useState(false);
-  const [terms, setTerms] = useState(false);
-  /** §8 söluskilmála / d-liður 1. mgr. 18. gr. laga nr. 16/2016: asked for, never assumed. */
-  const [waiver, setWaiver] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const toast = useToast();
-
-  useEffect(() => {
-    if (!pkgKey) return;
-    let alive = true;
-    (async () => {
-      const r = await api(`/api/hc/checkout?package=${encodeURIComponent(pkgKey)}`).catch(() => null);
-      if (!alive) return;
-      if (r?.ok) { setInfo(await r.json()); setLoadFailed(false); }
-      // Was "Hleð…" for good when this failed.
-      else setLoadFailed(true);
-    })();
-    return () => { alive = false; };
-  }, [pkgKey, attempt]);
-
-  const union = info?.unions.find((u) => u.id === unionId) ?? null;
-  const company = useCompany && codeState?.ok === true ? codeState : null;
-  const q = useMemo(() => quote({
-    priceIsk: info?.package.price_isk ?? 0,
-    employer: company ? { percent: company.contribution_percent, fixed_isk: company.contribution_isk } : null,
-    union: useUnion && union ? { settlement: union.settlement, rules: union.rules } : null,
-    unionCategory: info?.package.union_category ?? "health_check",
-  }), [info, company, useUnion, union]);
-
-  const checkCode = async () => {
-    if (checking) return;
-    setCodeState(null);
-    setChecking(true);
-    const r = await api(`/api/hc/checkout?package=${encodeURIComponent(pkgKey)}&code=${encodeURIComponent(code)}`).catch(() => null);
-    setChecking(false);
-    if (r?.ok) setCodeState((await r.json()).company_code ?? { ok: false, error: "Kóðinn fannst ekki." });
-    else setCodeState({ ok: false, error: "Ekki tókst að athuga kóðann – reyndu aftur." });
-  };
-
-  const pay = async () => {
-    if (busy) return;
-    setBusy(true); setErr("");
-    const r = await api("/api/hc/checkout", {
-      method: "POST",
-      headers: WEB_CLIENT_HEADER,
-      body: JSON.stringify({
-        package_key: pkgKey,
-        use_company: useCompany, company_code: useCompany ? code : undefined,
-        use_union: useUnion, union_id: useUnion ? unionId : undefined,
-        union_consent: consent, accept_terms: terms,
-        withdrawal_waiver: waiver, withdrawal_waiver_at: waiver ? new Date().toISOString() : null,
-      }),
-    }).catch(() => null);
-    const j = r ? await r.json().catch(() => ({})) : {};
-    setBusy(false);
-    if (!r || !r.ok) { setErr(humanError(j.error, "Greiðsla tókst ekki. Reyndu aftur.")); return; }
-    toast.show("Gengið frá kaupum", { tone: "ok" });
-    await reload();
-  };
-
-  if (!profileComplete) return <p className="text-sm text-hc-ink-2">Kláraðu fyrst skrefið „Upplýsingar um þig“. Þær þarf til að ganga frá kaupum.</p>;
-  if (!info && loadFailed) {
-    return (
-      <Alert tone="bad" title="Ekki tókst að sækja verðið"
-        actions={<Button variant="secondary" onClick={() => { setLoadFailed(false); setAttempt((n) => n + 1); }}>Reyna aftur</Button>}>
-        Athugaðu nettenginguna og reyndu aftur.
-      </Alert>
-    );
-  }
-  if (!info) return <p className="text-sm text-hc-ink-3">Hleð…</p>;
-
-  const companyCovers = company ? (company.contribution_isk != null ? formatIsk(company.contribution_isk) : `${company.contribution_percent}%`) : "";
-  const canPay = terms && waiver && !busy && !info.eligibility_error &&
-    (!useCompany || codeState?.ok === true) &&
-    (!useUnion || (!!union && (union.settlement !== "direct" || consent)));
-
-  return (
-    <div className="space-y-5">
-      {packages.length > 1 && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {packages.map((p) => (
-            <button key={p.key} type="button" aria-pressed={p.key === pkgKey} onClick={() => setPkgKey(p.key)} className={`rounded-2xl border p-4 text-left ${p.key === pkgKey ? "border-hc-brand ring-2 ring-hc-brand/30" : "border-hc-hairline"}`}>
-              <p className="font-semibold">{p.name}</p><p className="text-sm text-hc-ink-3">{formatIsk(p.price_isk)}</p>
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="rounded-2xl border border-hc-hairline p-5">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-lg font-bold text-hc-ink">{info.package.name}</h3>
-          <span className="text-lg font-bold text-hc-brand-text">{formatIsk(info.package.price_isk)}</span>
-        </div>
-        {info.package.tagline && <p className="text-sm font-medium text-hc-ink-3">{info.package.tagline}</p>}
-        {info.package.description && <p className="mt-2 text-sm leading-relaxed text-hc-ink-2">{info.package.description}</p>}
-        <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-          {info.package.includes.map((x) => (
-            <li key={x} className="flex gap-2 text-sm text-hc-ink-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-hc-brand-text" aria-hidden />{x}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-hc-ink-2">Tekur einhver þátt í kostnaðinum?</p>
-        <p className="text-xs text-hc-ink-3">Veldu annað, bæði eða hvorugt. Án þátttöku greiðir þú sjálf(ur) með korti.</p>
-        <ContributionToggle on={useCompany} onToggle={() => setUseCompany((v) => !v)}
-          title="Vinnuveitandinn minn tekur þátt" hint="Þú slærð inn persónulegan kóða frá fyrirtækinu þínu.">
-          <label className="block text-sm font-medium text-hc-ink-2" htmlFor="company-code">Kóði frá vinnuveitanda</label>
-          <div className="mt-1 flex gap-2">
-            <input id="company-code" value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeState(null); }} placeholder="FY-XXXX-XXXX" className="flex-1 rounded-lg border border-hc-control px-3 py-2.5 font-mono uppercase tracking-wider" />
-            <button type="button" onClick={checkCode} disabled={code.length < 8 || checking} className="min-h-11 rounded-lg bg-hc-brand-dark px-4 text-sm font-semibold text-white disabled:opacity-40">{checking ? "Athuga…" : "Staðfesta"}</button>
-          </div>
-          {codeState?.ok === true && <p className="mt-2 flex items-start gap-1.5 text-sm text-hc-ok-ink"><Check className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />{codeState.company_name ?? "Vinnuveitandi"} greiðir {codeState.contribution_isk != null ? formatIsk(codeState.contribution_isk) : codeState.contribution_percent >= 100 ? "allt" : `${codeState.contribution_percent}%`}.</p>}
-          {codeState?.ok === false && <p className="mt-2 text-sm text-hc-bad-ink">{codeState.error}</p>}
-        </ContributionToggle>
-        <ContributionToggle on={useUnion} onToggle={() => setUseUnion((v) => !v)} disabled={!info.unions.length}
-          title="Stéttarfélagið mitt tekur þátt"
-          hint={info.unions.length ? "Við reiknum endurgreiðsluna eftir reglum félagsins, af því sem þú greiðir sjálf(ur)." : "Ekkert félag er komið í samstarf enn."}>
-          <label className="block text-sm font-medium text-hc-ink-2" htmlFor="union-select">Stéttarfélag</label>
-          <select id="union-select" value={unionId} onChange={(e) => setUnionId(e.target.value)} className="mt-1 w-full rounded-lg border border-hc-control bg-hc-surface px-3 py-2.5">
-            <option value="">Veldu félag…</option>
-            {info.unions.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-          {union && (
-            <div className="mt-2 text-sm text-hc-ink-2">
-              {q.explanation && <p>{q.explanation}</p>}
-              {union.rules_summary && <p className="text-xs text-hc-ink-3">{union.rules_summary}</p>}
-              {union.settlement === "direct" ? (
-                <label className="mt-2 flex items-start gap-2 text-xs text-hc-ink-2">
-                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#047857]" />
-                  Ég staðfesti aðild mína að {union.name} og heimila Lifeline Health að innheimta styrkinn beint hjá félaginu. Félagið fær nafn, kennitölu og lýsingu þjónustunnar, engar heilsufarsupplýsingar.
-                </label>
-              ) : (
-                <p className="mt-2 text-xs text-hc-ink-3">Þú færð tilbúna umsókn (PDF) sem þú getur sent félaginu beint héðan með einum smelli.</p>
-              )}
-            </div>
-          )}
-        </ContributionToggle>
-      </div>
-
-      <div className="rounded-2xl border border-hc-hairline p-4 text-sm">
-        <Row label="Verð" value={formatIsk(q.priceIsk)} />
-        {q.employerIsk > 0 && <Row label={`${company?.company_name ?? "Vinnuveitandi"} greiðir${company && company.contribution_isk == null && company.contribution_percent < 100 ? ` (${companyCovers})` : ""}`} value={`−${formatIsk(q.employerIsk)}`} />}
-        {q.directGrantIsk > 0 && <Row label={`Styrkur ${union?.name ?? ""} (dreginn frá)`} value={`−${formatIsk(q.directGrantIsk)}`} />}
-        <Row label="Þú greiðir núna" value={formatIsk(q.chargedIsk)} strong />
-        {q.reimbursementIsk > 0 && (
-          <>
-            <Row label={`Endurgreiðsla frá ${union?.name ?? "félagi"}`} value={`−${formatIsk(q.reimbursementIsk)}`} muted />
-            <Row label="Kostnaður þinn eftir endurgreiðslu" value={formatIsk(q.netCostIsk)} strong accent />
-          </>
-        )}
-        {useUnion && union && q.chargedIsk === 0 && q.employerIsk >= q.priceIsk && (
-          <p className="mt-2 text-xs text-hc-ink-3">Vinnuveitandinn greiðir allt, svo ekkert er eftir til að sækja um hjá félaginu.</p>
-        )}
-      </div>
-
-      <label className="flex items-start gap-2 text-sm text-hc-ink-2">
-        <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#047857]" />
-        <span>Ég samþykki <a href="/soluskilmalar" target="_blank" rel="noopener noreferrer" className="underline">söluskilmála</a> Lifeline Health.</span>
-      </label>
-      <label className="flex items-start gap-2 text-sm text-hc-ink-2">
-        <input type="checkbox" checked={waiver} onChange={(e) => setWaiver(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#047857]" />
-        <span>{WITHDRAWAL_WAIVER_LABEL}</span>
-      </label>
-      {info.eligibility_error && <p className="text-sm text-hc-warn-ink">{info.eligibility_error}</p>}
-      {err && <p role="alert" className="text-sm text-hc-bad-ink">{err}</p>}
-      <button type="button" onClick={pay} disabled={!canPay} className={`${hcBtn.cta} w-full`}>
-        {busy ? "Augnablik…" : q.chargedIsk > 0 ? `Greiða ${formatIsk(q.chargedIsk)}` : "Staðfesta"}
-      </button>
-    </div>
-  );
-}
-
-function Row({ label, value, strong, muted, accent }: { label: string; value: string; strong?: boolean; muted?: boolean; accent?: boolean }) {
-  return (
-    <div className={`flex justify-between py-1 ${strong ? "font-semibold text-hc-ink" : muted ? "text-hc-ink-3" : "text-hc-ink-2"} ${accent ? "border-t border-hc-hairline pt-2 text-hc-brand-text" : ""}`}>
-      <span>{label}</span><span className="tabular-nums">{value}</span>
-    </div>
-  );
-}
 
 function PaidSummary({ order }: { order: HcOrder | null }) {
   if (!order) return <p className="text-sm text-hc-ink-2">Greitt.</p>;

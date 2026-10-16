@@ -16,6 +16,7 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { renderBrandedEmail, sendEmail } from "@/lib/email";
 import { hcAudit } from "@/lib/hc/server";
+import { AFTER_PURCHASE, isStandaloneKind } from "@/lib/hc/shop";
 
 /** Where pool alerts go. */
 const ALERT_TO = process.env.HC_CODE_ALERT_EMAIL || "contact@lifelinehealth.is";
@@ -103,22 +104,32 @@ async function alertEmpty(kind: string, orderId: string) {
 
 /** The customer email carrying the code (checkout and late assignment share it). */
 export function codeEmail(opts: { pkgName: string; kind: string; code: string; origin: string }) {
-  const what = opts.kind === "health_check" || opts.kind === "reevaluation" ? "heilsufarsskoðunina" : "eftirfylgdina";
+  const standalone = isStandaloneKind(opts.kind);
+  const what = opts.kind === "health_check" || opts.kind === "reevaluation" ? "heilsufarsskoðunina"
+    : opts.kind === "measurement" ? "mælinguna"
+    : opts.kind === "blood_test" ? "blóðprufuna"
+    : opts.kind === "doctor_interview" ? "læknisviðtalið"
+    : "eftirfylgdina";
+  /* The shop's products each have their own next step after the code. */
+  const next = standalone ? AFTER_PURCHASE[opts.kind] ?? "" : "";
+  const where = standalone ? "undir Þjónusta í appinu" : "í heilsuferðinni í appinu";
+  const url = `${opts.origin}${standalone ? "/app/eg/thjonusta" : "/app"}`;
   return {
     // No code in the subject or preheader: both show on lock screens and in
     // inbox previews, where anyone glancing at the phone could read it.
     subject: "Virkjunarkóðinn þinn er tilbúinn",
     html: renderBrandedEmail({
-      title: `${opts.pkgName} er greidd`,
+      title: `Greiðsla móttekin: ${opts.pkgName}`,
       accentLabel: "Næsta skref",
       preheader: "Virkjunarkóðinn þinn er tilbúinn",
       bodyHtml: `<p style="margin:0 0 12px;">Takk fyrir. Næsta skref er að virkja ${what} í sjúklingagáttinni (Medalia) með þessum kóða:</p>
         <div style="font-family:ui-monospace,monospace;font-size:26px;letter-spacing:.12em;text-align:center;background:#ECFDF5;border-radius:10px;padding:16px;margin:16px 0;color:#065F46;font-weight:700;">${opts.code}</div>
-        <p style="margin:0;">Þú finnur kóðann líka alltaf í heilsuferðinni í appinu.</p>`,
-      ctaLabel: "Opna heilsuferðina",
-      ctaUrl: `${opts.origin}/app`,
+        ${next ? `<p style="margin:0 0 12px;">${next}</p>` : ""}
+        <p style="margin:0;">Þú finnur kóðann líka alltaf ${where}.</p>`,
+      ctaLabel: standalone ? "Opna Þjónustu" : "Opna heilsuferðina",
+      ctaUrl: url,
     }),
-    text: `${opts.pkgName} er greidd. Virkjunarkóðinn þinn er ${opts.code}. Sláðu hann inn í sjúklingagáttinni (Medalia). Opnaðu heilsuferðina: ${opts.origin}/app`,
+    text: `Greiðsla móttekin: ${opts.pkgName}. Virkjunarkóðinn þinn er ${opts.code}. Sláðu hann inn í sjúklingagáttinni (Medalia).${next ? ` ${next}` : ""} ${url}`,
   };
 }
 

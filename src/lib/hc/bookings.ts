@@ -68,6 +68,8 @@ export function monthBounds(now = new Date()) {
 /** A booking's own label, for a diary or a list. */
 export function bookingLabel(kind: string, items: unknown): string {
   if (kind === "video") return "Myndsamtal";
+  /* Booked on the doctor's day from the shop (/api/hc/shop/book). */
+  if (kind === "doctor") return "Læknisviðtal";
   const list = Array.isArray(items) ? (items as string[]) : [];
   if (!list.length) return "Mælingar";
   return list.map((k) => MEASURE_IS[k] ?? k).join(" · ");

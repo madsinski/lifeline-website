@@ -39,7 +39,7 @@ interface Ev {
 
 const KIND_IS: Record<string, string> = {
   interview: "Áætlunarsamtal", followup: "Eftirfylgd", blood: "Blóðprufa",
-  measurements: "Mælingar", video: "Myndsímtal", measurement: "Mæling",
+  measurements: "Mælingar", video: "Myndsímtal", measurement: "Mæling", doctor: "Læknisviðtal",
 };
 
 /** Monday of the week a date falls in. */

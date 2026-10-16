@@ -139,6 +139,7 @@ function initials(name: string | null | undefined): string {
 const BOOKING_IS: Record<string, { label: string; what: string }> = {
   video: { label: "Myndsímtal við þjálfara", what: "Myndsímtal: farið yfir vikuna, áætlunina og það sem stendur í vegi." },
   measurement: { label: "Mælingar", what: "Líkamssamsetning og blóðþrýstingur." },
+  doctor: { label: "Læknisviðtal", what: "Læknir fer yfir niðurstöðurnar með þér. Viðtalið er skráð í sjúklingagáttinni (Medalia)." },
   vo2max: { label: "Þrekpróf (VO₂max)", what: "Þolpróf á hjóli eða bretti. Komdu í æfingafötum." },
   strength: { label: "Styrkmæling", what: "Grip- og fótstyrkur." },
 };
@@ -196,6 +197,7 @@ function bookingItem(
 ): CalItem {
   const t = BOOKING_IS[b.kind] ?? { label: "Tími hjá Lifeline", what: "" };
   const video = b.kind === "video";
+  const doctor = b.kind === "doctor";
   const items = b.items ?? [];
 
   // "Líkamssamsetning + blóðþrýstingur" rather than a generic sentence.
@@ -207,7 +209,7 @@ function bookingItem(
   // app's booking sheet uses.
   const prep = video ? [] : Array.from(new Set(items.flatMap((k) => MEASURE_PREP[k] ?? [])));
 
-  const site = video ? null : place(loc?.measurement_site, loc?.measurement_address);
+  const site = video ? null : doctor ? place(loc?.interview_site, loc?.interview_address) : place(loc?.measurement_site, loc?.measurement_address);
 
   return {
     id: `b${b.id.replace(/-/g, "").slice(0, 24)}`,
@@ -217,7 +219,7 @@ function bookingItem(
       what,
       prep.length ? `\nGott að vita:\n${prep.map((x) => `• ${x}`).join("\n")}` : null,
       site ? `\nStaðsetning: ${site}` : null,
-      loc?.measurement_info && !video ? `\n${loc.measurement_info}` : null,
+      loc?.measurement_info && !video && !doctor ? `\n${loc.measurement_info}` : null,
       b.note,
       b.meeting_url ? `\nMyndsímtal: ${b.meeting_url}` : null,
       "\nhttps://www.lifelinehealth.is/app/aaetlun?tab=coach",

@@ -33,12 +33,15 @@ export const APPT_EVENT: Record<ApptKind, string> = {
  * is not reschedulable through the journey-event endpoint, so the two must
  * stay tellable apart.
  */
-export const BOOK_KINDS = ["video", "measurement"] as const;
+/* 'doctor' is the doctor's interview booked on a doctor-day slot from the
+   shop (/api/hc/shop/book); held and recorded in Medalia. */
+export const BOOK_KINDS = ["video", "measurement", "doctor"] as const;
 export type BookKind = (typeof BOOK_KINDS)[number];
 
 export const BOOK_IS: Record<BookKind, { label: string; short: string; color: string; tint: string }> = {
   video: { label: "Myndsímtal", short: "Mynd", color: "#0E7490", tint: "#ECFEFF" },
   measurement: { label: "Mæling", short: "Mæling", color: "#7E22CE", tint: "#FAF5FF" },
+  doctor: { label: "Læknisviðtal", short: "Læknir", color: "#BE123C", tint: "#FFF1F2" },
 };
 
 /** What a measurement booking can contain, with the minutes each takes. */

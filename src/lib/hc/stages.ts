@@ -66,7 +66,7 @@ const DEFS: { key: StepKey; title: string; blurb: string; optional?: boolean }[]
    * Medalia releases the report; nobody at Lifeline "confirms" it.
    */
   { key: "report", title: "Skýrslan þín (úr sjúklingagáttinni)", blurb: "Sæktu Grunnheilsa-skýrsluna (PDF) í sjúklingagáttina og settu hana hér inn." },
-  { key: "doctor", title: "Læknisviðtal", blurb: "Viðtal við lækni um niðurstöðurnar. Það er bókað og fer fram í sjúklingagáttinni (Medalia)." },
+  { key: "doctor", title: "Læknisviðtal", blurb: "Viðtal við lækni um niðurstöðurnar. Þú bókar það hér á læknadegi vikunnar; það fer fram og er skráð í sjúklingagáttinni (Medalia)." },
   { key: "interview", title: "Áætlunarsamtal", blurb: "Þú og hjúkrunarfræðingur Lifeline gerið áætlun út frá lífsstíl þínum og markmiðum." },
   { key: "plan", title: "Aðgerðaáætlun", blurb: "Áætlunin þín til næstu þriggja mánaða." },
   /*
