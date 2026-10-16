@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { X } from "lucide-react";
+import { Modal, Button } from "@/app/components/account/ui";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -74,16 +77,13 @@ function Toast({ message, type, onClose }: { message: string; type: "success" | 
 
 function ConfirmDialog({ title, message, onConfirm, onCancel }: { title: string; message: string; onConfirm: () => void; onCancel: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onCancel}>
-      <div className="bg-white rounded-2xl max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-        <p className="text-sm text-gray-600 mb-6">{message}</p>
-        <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Cancel</button>
-          <button onClick={onConfirm} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg">Delete</button>
-        </div>
-      </div>
-    </div>
+    <Modal size="sm" title={title} onClose={onCancel} closeLabel="Cancel"
+      footer={<>
+        <Button variant="secondary" data-autofocus onClick={onCancel}>Cancel</Button>
+        <Button variant="danger" onClick={onConfirm}>Delete</Button>
+      </>}>
+      <p className="text-sm text-gray-600">{message}</p>
+    </Modal>
   );
 }
 
@@ -101,6 +101,8 @@ export default function MealsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [viewingMeal, setViewingMeal] = useState<Meal | null>(null);
+  const viewRef = useDialogA11y(!!viewingMeal, () => setViewingMeal(null));
+  const editRef = useDialogA11y(!!editingMeal, () => { setEditingMeal(null); setIsCreating(false); });
 
   const loadMeals = useCallback(async () => {
     setLoading(true);
@@ -188,7 +190,7 @@ export default function MealsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Meals Library</h1>
           <p className="text-sm text-gray-500 mt-1">{meals.length} meals total · {filtered.length} matching filters</p>
         </div>
-        <button onClick={startCreate} className="px-4 py-2 bg-[#10B981] text-white text-sm font-medium rounded-lg hover:bg-[#047857] transition-colors">
+        <button onClick={startCreate} className="px-4 py-2 bg-hc-brand-dark text-white text-sm font-medium rounded-lg hover:bg-hc-brand-darker transition-colors">
           + Add Meal
         </button>
       </div>
@@ -200,7 +202,7 @@ export default function MealsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or description..."
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none"
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none"
         />
         <div className="flex flex-wrap gap-2">
           <select
@@ -259,7 +261,7 @@ export default function MealsPage() {
                   )}
                   <div className="absolute top-2 left-2 flex gap-1">
                     <span
-                      className="px-2 py-0.5 text-[10px] font-semibold text-white rounded-full uppercase tracking-wide"
+                      className="px-2 py-0.5 text-xs font-semibold text-white rounded-full uppercase tracking-wide"
                       style={{ backgroundColor: catColor }}
                     >
                       {meal.category}
@@ -269,7 +271,7 @@ export default function MealsPage() {
                 <div className="p-3 flex-1 flex flex-col">
                   <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">{meal.name}</h3>
                   <p className="text-xs text-gray-500 line-clamp-2 mt-1 flex-1">{meal.description}</p>
-                  <div className="flex items-center gap-2 mt-2 text-[10px] text-gray-400">
+                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
                     <span>⏱ {totalTime}min</span>
                     {meal.protein != null && <span>· 💪 {meal.protein}g</span>}
                     {meal.calories != null && <span>· 🔥 {meal.calories}kcal</span>}
@@ -281,8 +283,8 @@ export default function MealsPage() {
                   </div>
                   <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100">
                     <button onClick={() => setViewingMeal(meal)} className="flex-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded">View</button>
-                    <button onClick={() => startEdit(meal)} className="flex-1 px-2 py-1 text-xs text-[#10B981] hover:bg-[#10B981]/5 rounded">Edit</button>
-                    <button onClick={() => setConfirmDelete({ id: meal.id, name: meal.name })} className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded">×</button>
+                    <button onClick={() => startEdit(meal)} className="flex-1 px-2 py-1 text-xs text-hc-brand-text hover:bg-[#10B981]/5 rounded">Edit</button>
+                    <button onClick={() => setConfirmDelete({ id: meal.id, name: meal.name })} aria-label="Delete" className="inline-flex h-8 w-8 items-center justify-center text-red-500 hover:bg-red-50 rounded"><X className="h-4 w-4" aria-hidden /></button>
                   </div>
                 </div>
               </div>
@@ -294,7 +296,7 @@ export default function MealsPage() {
       {/* View modal */}
       {viewingMeal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingMeal(null)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div ref={viewRef} role="dialog" aria-modal="true" aria-label={viewingMeal.name} className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             {viewingMeal.illustration_url && (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={viewingMeal.illustration_url} alt={viewingMeal.name} className="w-full h-56 object-cover" />
@@ -305,7 +307,7 @@ export default function MealsPage() {
                   <h2 className="text-2xl font-bold text-gray-900">{viewingMeal.name}</h2>
                   <p className="text-sm text-gray-500">{viewingMeal.description}</p>
                 </div>
-                <button onClick={() => setViewingMeal(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+                <button onClick={() => setViewingMeal(null)} aria-label="Loka" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"><X className="h-5 w-5" aria-hidden /></button>
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-500 my-3">
                 <span>⏱ {viewingMeal.prep_time_min}min prep</span>
@@ -326,7 +328,7 @@ export default function MealsPage() {
                 <ul className="space-y-1">
                   {(viewingMeal.ingredients || []).map((ing, i) => (
                     <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                      <span className="text-[#10B981]">•</span>
+                      <span className="text-hc-brand-text">•</span>
                       <span>{ing}</span>
                     </li>
                   ))}
@@ -337,7 +339,7 @@ export default function MealsPage() {
                 <ol className="space-y-2">
                   {(viewingMeal.instructions || []).map((step, i) => (
                     <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
-                      <span className="font-bold text-[#10B981] flex-shrink-0">{i + 1}.</span>
+                      <span className="font-bold text-hc-brand-text flex-shrink-0">{i + 1}.</span>
                       <span>{step}</span>
                     </li>
                   ))}
@@ -346,7 +348,7 @@ export default function MealsPage() {
               {viewingMeal.dietary_tags && viewingMeal.dietary_tags.length > 0 && (
                 <div className="flex gap-1 mt-4 flex-wrap">
                   {viewingMeal.dietary_tags.map(t => (
-                    <span key={t} className="px-2 py-1 bg-[#10B981]/10 text-[#10B981] text-xs rounded font-medium">{t}</span>
+                    <span key={t} className="px-2 py-1 bg-[#10B981]/10 text-hc-brand-text text-xs rounded font-medium">{t}</span>
                   ))}
                 </div>
               )}
@@ -358,10 +360,10 @@ export default function MealsPage() {
       {/* Edit modal */}
       {editingMeal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setEditingMeal(null); setIsCreating(false); }}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div ref={editRef} role="dialog" aria-modal="true" aria-label={isCreating ? "Add Meal" : "Edit Meal"} className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">{isCreating ? "Add Meal" : "Edit Meal"}</h2>
-              <button onClick={() => { setEditingMeal(null); setIsCreating(false); }} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
+              <button onClick={() => { setEditingMeal(null); setIsCreating(false); }} aria-label="Loka" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"><X className="h-5 w-5" aria-hidden /></button>
             </div>
             <div className="p-6 overflow-y-auto space-y-4">
               {/* Name */}
@@ -372,7 +374,7 @@ export default function MealsPage() {
                   value={editingMeal.name || ""}
                   onChange={(e) => setEditingMeal({ ...editingMeal, name: e.target.value })}
                   placeholder="Greek Yogurt Power Bowl"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none"
                 />
               </div>
               {/* Description */}
@@ -383,7 +385,7 @@ export default function MealsPage() {
                   value={editingMeal.description || ""}
                   onChange={(e) => setEditingMeal({ ...editingMeal, description: e.target.value })}
                   placeholder="One-line summary"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#10B981] outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-hc-brand-dark outline-none"
                 />
               </div>
               {/* Category, Difficulty, Servings */}
@@ -482,7 +484,7 @@ export default function MealsPage() {
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Ingredients</label>
                   <button
                     onClick={() => setEditingMeal({ ...editingMeal, ingredients: [...(editingMeal.ingredients || []), ""] })}
-                    className="text-xs text-[#10B981] hover:underline"
+                    className="text-xs text-hc-brand-text hover:underline"
                   >+ Add</button>
                 </div>
                 {(editingMeal.ingredients || [""]).map((ing, i) => (
@@ -503,8 +505,8 @@ export default function MealsPage() {
                         const updated = (editingMeal.ingredients || []).filter((_, j) => j !== i);
                         setEditingMeal({ ...editingMeal, ingredients: updated });
                       }}
-                      className="px-2 text-red-400 hover:text-red-600"
-                    >×</button>
+                      aria-label="Remove" className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-red-400 hover:text-red-600"
+                    ><X className="h-4 w-4" aria-hidden /></button>
                   </div>
                 ))}
               </div>
@@ -514,7 +516,7 @@ export default function MealsPage() {
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Instructions</label>
                   <button
                     onClick={() => setEditingMeal({ ...editingMeal, instructions: [...(editingMeal.instructions || []), ""] })}
-                    className="text-xs text-[#10B981] hover:underline"
+                    className="text-xs text-hc-brand-text hover:underline"
                   >+ Add step</button>
                 </div>
                 {(editingMeal.instructions || [""]).map((step, i) => (
@@ -536,8 +538,8 @@ export default function MealsPage() {
                         const updated = (editingMeal.instructions || []).filter((_, j) => j !== i);
                         setEditingMeal({ ...editingMeal, instructions: updated });
                       }}
-                      className="px-2 text-red-400 hover:text-red-600"
-                    >×</button>
+                      aria-label="Remove" className="inline-flex h-8 w-8 shrink-0 items-center justify-center text-red-400 hover:text-red-600"
+                    ><X className="h-4 w-4" aria-hidden /></button>
                   </div>
                 ))}
               </div>
@@ -552,7 +554,7 @@ export default function MealsPage() {
                         key={t}
                         onClick={() => toggleTag(t)}
                         className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                          isOn ? "bg-[#10B981] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          isOn ? "bg-hc-brand-dark text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
                       >
                         {t}
@@ -567,7 +569,7 @@ export default function MealsPage() {
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Approved swaps
-                    <span className="ml-2 text-[10px] font-normal text-gray-400 normal-case tracking-normal">
+                    <span className="ml-2 text-xs font-normal text-gray-400 normal-case tracking-normal">
                       Alternative meals client can log instead
                     </span>
                   </label>
@@ -576,7 +578,7 @@ export default function MealsPage() {
                       ...editingMeal,
                       swaps: [...(editingMeal.swaps || []), { name: "", kcal: 0, protein: 0, carbs: 0, fat: 0 }],
                     })}
-                    className="text-xs text-[#10B981] hover:underline"
+                    className="text-xs text-hc-brand-text hover:underline"
                   >+ Add swap</button>
                 </div>
                 {(editingMeal.swaps || []).length === 0 && (
@@ -610,7 +612,7 @@ export default function MealsPage() {
                         className="col-span-1 px-2 py-1.5 border border-gray-200 rounded-lg text-sm text-center"
                       />
                     ))}
-                    <div className="col-span-3 flex items-center gap-1.5 text-[10px] text-gray-400">
+                    <div className="col-span-3 flex items-center gap-1.5 text-xs text-gray-400">
                       <span>kcal</span><span>·</span><span>P</span><span>·</span><span>C</span><span>·</span><span>F</span>
                     </div>
                     <button
@@ -618,15 +620,15 @@ export default function MealsPage() {
                         const updated = (editingMeal.swaps || []).filter((_, j) => j !== i);
                         setEditingMeal({ ...editingMeal, swaps: updated });
                       }}
-                      className="col-span-1 text-red-400 hover:text-red-600 text-lg"
-                    >×</button>
+                      aria-label="Remove" className="col-span-1 inline-flex h-8 items-center justify-center text-red-400 hover:text-red-600"
+                    ><X className="h-4 w-4" aria-hidden /></button>
                   </div>
                 ))}
               </div>
             </div>
             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex gap-3">
               <button onClick={() => { setEditingMeal(null); setIsCreating(false); }} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 rounded-lg">Cancel</button>
-              <button onClick={saveMeal} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#10B981] hover:bg-[#047857] rounded-lg">{isCreating ? "Create" : "Save"}</button>
+              <button onClick={saveMeal} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-hc-brand-dark hover:bg-hc-brand-darker rounded-lg">{isCreating ? "Create" : "Save"}</button>
             </div>
           </div>
         </div>

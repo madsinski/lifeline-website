@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 interface MacroTarget {
   id: string;
@@ -54,6 +56,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
 };
 
 export function ClientMacroPanel({ clientId }: { clientId: string }) {
+  const toast = useToast();
   const [target, setTarget] = useState<MacroTarget | null>(null);
   const [body, setBody] = useState<ClientBody | null>(null);
   const [weights, setWeights] = useState<WeightEntry[]>([]);
@@ -132,7 +135,7 @@ export function ClientMacroPanel({ clientId }: { clientId: string }) {
       await load();
       setEditMode(false);
     } catch (e) {
-      alert(`Save failed: ${(e as Error).message}`);
+      toast.show(`Save failed: ${(e as Error).message}`, { tone: "bad" });
     }
     setSaving(false);
   };
@@ -168,7 +171,7 @@ export function ClientMacroPanel({ clientId }: { clientId: string }) {
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Macro Tracking</h4>
         {!editMode && (
-          <button onClick={() => setEditMode(true)} className="text-[10px] font-medium text-blue-600 hover:text-blue-800">
+          <button onClick={() => setEditMode(true)} className="text-xs font-medium text-blue-600 hover:text-blue-800">
             Override
           </button>
         )}
@@ -220,15 +223,15 @@ export function ClientMacroPanel({ clientId }: { clientId: string }) {
         <MetaCell label="TDEE obs." value={target!.tdee_observed ? `${Math.round(target!.tdee_observed)} kcal` : "—"} />
         <MetaCell label="Weight" value={`${Number(target!.weight_kg_snapshot).toFixed(1)} kg`} />
         <MetaCell label="Body fat" value={target!.body_fat_pct_snapshot ? `${target!.body_fat_pct_snapshot}%` : "—"} />
-        <MetaCell label="Next recalc" value={new Date(target!.next_recalc_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} />
+        <MetaCell label="Next recalc" value={fmtDate(target!.next_recalc_at, { year: false, month: "short" })} />
       </div>
 
       {/* Weight trend */}
       {weightAsc.length > 1 && (
         <div className="pt-3 border-t border-gray-100">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Weight trend</p>
-            <p className="text-[10px] text-gray-400">Last {weightAsc.length} entries</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Weight trend</p>
+            <p className="text-xs text-gray-400">Last {weightAsc.length} entries</p>
           </div>
           <div className="h-16 flex items-end gap-0.5 bg-gray-50 rounded-lg p-2">
             {weightAsc.map((w, i) => {
@@ -240,7 +243,7 @@ export function ClientMacroPanel({ clientId }: { clientId: string }) {
               );
             })}
           </div>
-          <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
             <span>{weightAsc[0].weight_kg.toFixed(1)} kg</span>
             <span>{weightAsc[weightAsc.length - 1].weight_kg.toFixed(1)} kg</span>
           </div>
@@ -249,7 +252,7 @@ export function ClientMacroPanel({ clientId }: { clientId: string }) {
 
       {target!.notes && (
         <div className="pt-3 border-t border-gray-100">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Notes</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Notes</p>
           <p className="text-xs text-gray-600 italic">{target!.notes}</p>
         </div>
       )}
@@ -261,7 +264,7 @@ function TargetCell({ label, value, unit = "", color }: { label: string; value: 
   return (
     <div className="text-center p-2 rounded-lg" style={{ backgroundColor: color + '10' }}>
       <p className="text-lg font-bold" style={{ color }}>{Math.round(value)}{unit}</p>
-      <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mt-0.5">{label}</p>
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mt-0.5">{label}</p>
     </div>
   );
 }
@@ -276,7 +279,7 @@ function EditCell({ label, value, onChange, color }: { label: string; value: num
         className="w-full text-lg font-bold text-center bg-transparent border-0 outline-none"
         style={{ color }}
       />
-      <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{label}</p>
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</p>
     </div>
   );
 }
@@ -284,7 +287,7 @@ function EditCell({ label, value, onChange, color }: { label: string; value: num
 function MetaCell({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
       <p className="text-xs font-medium text-gray-700">{value}</p>
     </div>
   );

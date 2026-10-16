@@ -16,6 +16,7 @@ import { useStaffGuard } from "@/lib/useStaffGuard";
 import { adminApi, adminJson } from "../hc-api";
 import { Markdown, SlideDeck, SlideView, VideoEmbed } from "@/app/components/hc/LectureContent";
 import { SLIDE_LAYOUTS, slideLayout, type HcLecture, type LectureSlide, type SlideLayout } from "@/lib/hc/types";
+import { useDialog } from "@/app/components/account/ui";
 
 type Row = HcLecture & { completions: number; id: string };
 type Draft = Partial<Row> & { kind: HcLecture["kind"]; slides: LectureSlide[] };
@@ -41,7 +42,7 @@ const LAYOUT_ICON: Record<SlideLayout, React.ReactNode> = {
 const EMPTY: Draft = { title: "", subtitle: "", kind: "slides", video_url: "", slides: [{ layout: "text", title: "", body: "" }], article_md: "", duration_min: 5, pillar: "general", is_welcome: false, sort: 100, published: false };
 
 const btn = "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-40";
-const btnPrimary = `${btn} bg-[#10B981] text-white hover:bg-[#047857]`;
+const btnPrimary = `${btn} bg-hc-brand-dark text-white hover:bg-hc-brand-darker`;
 const btnSecondary = `${btn} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50`;
 const btnGhost = `${btn} text-slate-600 hover:bg-slate-100`;
 const btnDanger = `${btn} text-red-600 hover:bg-red-50`;
@@ -49,6 +50,7 @@ const iconBtn = "inline-flex h-8 w-8 items-center justify-center rounded-lg text
 const input = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20";
 
 export default function LecturesAdmin() {
+  const dialog = useDialog();
   const { authorized, loading } = useStaffGuard();
   const [rows, setRows] = useState<Row[]>([]);
   const [edit, setEdit] = useState<Draft | null>(null);
@@ -81,8 +83,8 @@ export default function LecturesAdmin() {
 
   const change = (patch: Partial<Draft>) => { setEdit((e) => (e ? { ...e, ...patch } : e)); setDirty(true); };
 
-  const open = (d: Draft) => {
-    if (dirty && !confirm("Óvistaðar breytingar tapast. Halda áfram?")) return;
+  const open = async (d: Draft) => {
+    if (dirty && !(await dialog.confirm({ title: "Óvistaðar breytingar tapast.", body: "Halda áfram?", tone: "danger" }))) return;
     setEdit({ ...d, slides: (d.slides ?? []).map((s) => ({ ...s, layout: slideLayout(s) })) });
     setDirty(false); setMsg(null); setActiveSlide(0);
   };
@@ -109,7 +111,7 @@ export default function LecturesAdmin() {
   }, [edit, save]);
 
   const remove = async () => {
-    if (!edit?.id || !confirm(`Eyða „${edit.title}“? Þetta er ekki hægt að afturkalla.`)) return;
+    if (!edit?.id || !(await dialog.confirm({ title: `Eyða „${edit.title}“?`, body: `Þetta er ekki hægt að afturkalla.`, tone: "danger" }))) return;
     await adminApi(`/api/admin/hc/lectures?id=${edit.id}`, { method: "DELETE" });
     setEdit(null); setDirty(false);
     await load();
@@ -307,7 +309,7 @@ export default function LecturesAdmin() {
                             setActiveSlide(i + dir);
                           }}
                           onDuplicate={() => { const c = [...slides]; c.splice(i + 1, 0, { ...s }); setSlides(c); setActiveSlide(i + 1); }}
-                          onDelete={() => { if (confirm(`Eyða glæru ${i + 1}?`)) { setSlides(slides.filter((_, j) => j !== i)); setActiveSlide(Math.max(0, i - 1)); } }}
+                          onDelete={async () => { if ((await dialog.confirm({ title: `Eyða glæru ${i + 1}?`, tone: "danger" }))) { setSlides(slides.filter((_, j) => j !== i)); setActiveSlide(Math.max(0, i - 1)); } }}
                           onLibrary={(accept, cb) => setMedia({ onPick: cb, accept })}
                         />
                       ))}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import BiodySyncStatus from "./components/BiodySyncStatus";
 import { pickStaffGreeting, type GreetingRole } from "@/lib/staff-greetings";
+import { fmtDate, fmtTime, fmtIsk } from "@/app/components/account/ui/dates";
 
 // ─── Pricing (ISK per month) ──────────────────────────────────
 const TIER_PRICES: Record<string, number> = {
@@ -103,7 +104,7 @@ function timeAgo(dateStr: string): string {
 }
 
 function formatISK(amount: number): string {
-  return amount.toLocaleString("is-IS") + " ISK";
+  return fmtIsk(amount);
 }
 
 function TrendArrow({ current, previous }: { current: number; previous: number }) {
@@ -318,7 +319,7 @@ export default function AdminDashboardPage() {
         setSupabaseStatus("connected");
       }
 
-      setLastSync(new Date().toLocaleTimeString());
+      setLastSync(fmtTime(new Date()));
     } catch {
       setSupabaseStatus("error");
     }
@@ -342,8 +343,8 @@ export default function AdminDashboardPage() {
       {staffGreeting && (
         <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-5 shadow-sm">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-blue-500" />
-          <h1 className="text-xl sm:text-2xl font-bold text-[#1F2937] leading-tight">{staffGreeting}</h1>
-          <p className="text-xs text-gray-500 mt-1">Lifeline Admin · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-hc-ink leading-tight">{staffGreeting}</h1>
+          <p className="text-xs text-gray-500 mt-1">Lifeline Admin · {fmtDate(new Date(), { weekday: true, year: false })}</p>
         </div>
       )}
 
@@ -379,7 +380,7 @@ export default function AdminDashboardPage() {
               <p className="text-sm text-gray-500">{stat.label}</p>
               <TrendArrow current={stat.value} previous={stat.prev} />
             </div>
-            <p className="text-2xl font-bold text-[#1F2937]">
+            <p className="text-2xl font-bold text-hc-ink">
               {loading ? (
                 <span className="inline-block w-8 h-6 bg-gray-100 rounded animate-pulse" />
               ) : (
@@ -397,7 +398,7 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-gray-500">Estimated MRR</p>
             <TrendArrow current={stats.estimatedMRR} previous={stats.prevMRR} />
           </div>
-          <p className="text-2xl font-bold text-[#1F2937]">
+          <p className="text-2xl font-bold text-hc-ink">
             {loading ? (
               <span className="inline-block w-24 h-6 bg-gray-100 rounded animate-pulse" />
             ) : (
@@ -413,15 +414,15 @@ export default function AdminDashboardPage() {
           <div className="space-y-2 mt-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Free Plan</span>
-              <span className="font-medium text-[#1F2937]">{stats.freeTrialCount}</span>
+              <span className="font-medium text-hc-ink">{stats.freeTrialCount}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Self-Maintained</span>
-              <span className="font-medium text-[#1F2937]">{stats.selfMaintainedCount}</span>
+              <span className="font-medium text-hc-ink">{stats.selfMaintainedCount}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Premium</span>
-              <span className="font-medium text-[#1F2937]">{stats.fullAccessCount}</span>
+              <span className="font-medium text-hc-ink">{stats.fullAccessCount}</span>
             </div>
             {stats.noSubCount > 0 && (
               <div className="flex items-center justify-between text-sm">
@@ -448,7 +449,7 @@ export default function AdminDashboardPage() {
             {stats.trialAlerts.map((alert, i) => (
               <div key={i} className="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-amber-100">
                 <div>
-                  <p className="text-sm font-medium text-[#1F2937]">{alert.name}</p>
+                  <p className="text-sm font-medium text-hc-ink">{alert.name}</p>
                   <p className="text-xs text-gray-500">{alert.email}</p>
                 </div>
                 <div className="text-right">
@@ -479,7 +480,7 @@ export default function AdminDashboardPage() {
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-[#1F2937] group-hover:text-[#10B981] transition-colors">{action.label}</p>
+                <p className="text-sm font-medium text-hc-ink group-hover:text-hc-brand-text transition-colors">{action.label}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{action.desc}</p>
               </div>
             </Link>
@@ -491,8 +492,8 @@ export default function AdminDashboardPage() {
         {/* Recent Activity Feed */}
         <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[#1F2937]">Recent Activity</h2>
-            <Link href="/admin/clients" className="text-xs text-[#10B981] hover:underline font-medium">View all</Link>
+            <h2 className="text-lg font-semibold text-hc-ink">Recent Activity</h2>
+            <Link href="/admin/clients" className="text-xs text-hc-brand-text hover:underline font-medium">View all</Link>
           </div>
           {loading ? (
             <div className="space-y-3">
@@ -516,7 +517,7 @@ export default function AdminDashboardPage() {
                 <div key={i} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                   {activityIcon(client.type)}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[#1F2937]">
+                    <p className="text-sm text-hc-ink">
                       <span className="font-medium">{client.name}</span>
                       {" "}
                       {client.type === "subscription" ? `subscribed to ${client.tier}` : "signed up"}
@@ -526,7 +527,7 @@ export default function AdminDashboardPage() {
                     </p>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    client.tier === "Premium" ? "bg-emerald-50 text-emerald-600" :
+                    client.tier === "Premium" ? "bg-emerald-50 text-hc-brand-text" :
                     client.tier === "Self-Maintained" ? "bg-blue-50 text-blue-600" :
                     client.tier === "Free Plan" ? "bg-gray-100 text-gray-600" :
                     "bg-gray-50 text-gray-400"
@@ -541,7 +542,7 @@ export default function AdminDashboardPage() {
 
         {/* System overview */}
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold text-[#1F2937] mb-4">System Overview</h2>
+          <h2 className="text-lg font-semibold text-hc-ink mb-4">System Overview</h2>
           <div className="space-y-4">
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-between mb-1">
@@ -576,7 +577,7 @@ export default function AdminDashboardPage() {
             <div className="p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm text-gray-600">Brand Theme</span>
-                <span className={`text-xs font-medium ${brandTheme === "rebrand" ? "text-emerald-600" : "text-teal-600"}`}>
+                <span className={`text-xs font-medium ${brandTheme === "rebrand" ? "text-hc-brand-text" : "text-teal-600"}`}>
                   {brandTheme === "rebrand" ? "Rebrand" : "Classic"}
                 </span>
               </div>

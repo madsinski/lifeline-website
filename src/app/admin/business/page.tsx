@@ -10,6 +10,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import AdminTabs from "../components/AdminTabs";
+import { fmtIsk } from "@/app/components/account/ui/dates";
 
 const CompaniesContent = dynamic(() => import("../companies/page"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
 const PaymentsContent = dynamic(() => import("../payments/page"), { loading: () => <p role="status" className="p-8 text-gray-500">Hleð…</p> });
@@ -149,12 +150,12 @@ function OverviewStrip({ onNavigate }: { onNavigate: (tab: string) => void }) {
     return () => { cancelled = true; };
   }, []);
 
-  const isk = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
+  const isk = (n: number) => fmtIsk(n);
   const card = "text-left border border-gray-200 rounded-lg bg-white px-3.5 py-2.5 hover:border-emerald-300 hover:shadow-sm transition-all";
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-4">
       <button type="button" className={card} onClick={() => onNavigate("accounting")}>
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">This month</div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">This month</div>
         <div className={`text-sm font-bold ${data && data.net < 0 ? "text-red-600" : "text-gray-900"}`}>
           {data ? isk(data.net) : "…"}
           <span className="font-normal text-gray-400 text-xs"> net</span>
@@ -164,14 +165,14 @@ function OverviewStrip({ onNavigate }: { onNavigate: (tab: string) => void }) {
         </div>
       </button>
       <button type="button" className={card} onClick={() => onNavigate("accounting")}>
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Outstanding invoices</div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Outstanding invoices</div>
         <div className={`text-sm font-bold ${data && data.outstanding > 0 ? "text-amber-600" : "text-gray-900"}`}>
           {data ? isk(data.outstanding) : "…"}
         </div>
         <div className="text-[11px] text-gray-500">Issued via PayDay, not yet paid</div>
       </button>
       <button type="button" className={card} onClick={() => onNavigate("approvals")}>
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Pending approvals</div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Pending approvals</div>
         <div className={`text-sm font-bold ${data && data.pending > 0 ? "text-amber-600" : "text-gray-900"}`}>
           {data ? data.pending : "…"}
         </div>

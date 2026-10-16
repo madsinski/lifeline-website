@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import AdminAppendNote from "../components/AdminAppendNote";
+import { fmtDateTime, fmtNumericDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 interface BetaNdaRow {
   id: string;
@@ -25,6 +27,7 @@ interface BetaNdaRow {
 }
 
 export default function NdaTab() {
+  const toast = useToast();
   const [rows, setRows] = useState<BetaNdaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +64,7 @@ export default function NdaTab() {
 
   const download = async (row: BetaNdaRow) => {
     if (!row.pdf_storage_path) {
-      alert("No PDF stored for this acceptance.");
+      toast.show("No PDF stored for this acceptance.", { tone: "bad" });
       return;
     }
     setDownloadingId(row.id);
@@ -70,7 +73,7 @@ export default function NdaTab() {
         .from("beta-nda-pdfs")
         .createSignedUrl(row.pdf_storage_path, 60);
       if (error || !data?.signedUrl) {
-        alert(`Could not generate download URL: ${error?.message ?? "unknown"}`);
+        toast.show(`Could not generate download URL: ${error?.message ?? "unknown"}`, { tone: "bad" });
         return;
       }
       window.open(data.signedUrl, "_blank");
@@ -87,7 +90,7 @@ export default function NdaTab() {
       .update({ revoked_at: new Date().toISOString(), revoke_reason: reason || null })
       .eq("id", row.id);
     if (error) {
-      alert(`Revoke failed: ${error.message}`);
+      toast.show(`Revoke failed: ${error.message}`, { tone: "bad" });
       return;
     }
     load();
@@ -153,15 +156,13 @@ export default function NdaTab() {
                     <div className="text-xs text-gray-500">{r.user_email ?? "(no email)"}</div>
                     {r.revoked_at && (
                       <div className="text-xs text-red-600 mt-1">
-                        Revoked {new Date(r.revoked_at).toLocaleDateString()}
+                        Revoked {fmtNumericDate(r.revoked_at)}
                         {r.revoke_reason ? ` — ${r.revoke_reason}` : ""}
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-700">
-                    {new Date(r.accepted_at).toLocaleString("en-GB", {
-                      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-                    })}
+                    {fmtDateTime(r.accepted_at, { year: true, month: "short" })}
                   </td>
                   <td className="px-4 py-3 text-gray-700">v{r.document_version}</td>
                   <td className="px-4 py-3 text-gray-700">{r.app_platform ?? "—"}</td>

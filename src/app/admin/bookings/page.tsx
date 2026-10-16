@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { adminApi } from "@/app/admin/hc-api";
 import { supabase } from "@/lib/supabase";
+import { fmtDateTime, fmtIsk } from "@/app/components/account/ui/dates";
+import { fmtNum } from "@/app/admin/components/ui/format";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Admin bookings & refund requests.
@@ -64,7 +66,7 @@ export default function AdminBookingsPage() {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-[#1F2937]">Bookings & refunds</h1>
+        <h1 className="text-2xl font-semibold text-hc-ink">Bookings & refunds</h1>
         <p className="text-sm text-[#6B7280]">Manual cancel, partial / full refund, and the client-initiated refund queue.</p>
       </header>
 
@@ -88,7 +90,7 @@ export default function AdminBookingsPage() {
         >
           Refund requests
           {requestsPending > 0 && (
-            <span className="text-[10px] font-semibold bg-amber-500 text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">{requestsPending}</span>
+            <span className="text-xs font-semibold bg-amber-500 text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">{requestsPending}</span>
           )}
         </button>
       </div>
@@ -193,7 +195,7 @@ function BookingsTable({ setMsg, onAfterAction }: { setMsg: (s: string) => void;
       <div className="flex items-center justify-between text-xs text-gray-600">
         <div>
           {totalCount === 0 ? "No results"
-            : `Showing ${pageStart.toLocaleString("en-GB")}–${pageEnd.toLocaleString("en-GB")} of ${totalCount.toLocaleString("en-GB")}${search ? ` (filtered on this page)` : ""}`}
+            : `Showing ${fmtNum(pageStart)}–${fmtNum(pageEnd)} of ${fmtNum(totalCount)}${search ? ` (filtered on this page)` : ""}`}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -221,7 +223,7 @@ function BookingTableRow({ row, onReload, setMsg }: { row: BookingRow; onReload:
   const [cancelOpen, setCancelOpen] = useState(false);
   const packageLabel = row.package === "foundational" ? "Foundational" : row.package === "checkin" ? "Check-in" : row.package === "self-checkin" ? "Self Check-in" : (row.package || "—");
   const statusPill = (
-    <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
+    <span className={`text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
       row.status === "confirmed" ? "bg-emerald-50 text-emerald-700 border-emerald-100"
       : row.status === "requested" ? "bg-blue-50 text-blue-700 border-blue-100"
       : row.status === "completed" ? "bg-gray-50 text-gray-700 border-gray-200"
@@ -229,13 +231,13 @@ function BookingTableRow({ row, onReload, setMsg }: { row: BookingRow; onReload:
     }`}>{row.status}</span>
   );
   const payPill = row.payment_status ? (
-    <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
+    <span className={`text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
       row.payment_status === "paid" ? "bg-emerald-50 text-emerald-700 border-emerald-100"
       : row.payment_status === "refunded" ? "bg-gray-50 text-gray-600 border-gray-200"
       : "bg-amber-50 text-amber-700 border-amber-100"
     }`}>{row.payment_status}</span>
   ) : <span className="text-xs text-gray-400">—</span>;
-  const scheduled = row.scheduled_at ? new Date(row.scheduled_at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }) : "—";
+  const scheduled = row.scheduled_at ? fmtDateTime(row.scheduled_at, { weekday: "short", month: "short" }) : "—";
   const active = row.status === "requested" || row.status === "confirmed";
 
   return (
@@ -244,19 +246,19 @@ function BookingTableRow({ row, onReload, setMsg }: { row: BookingRow; onReload:
         <td className="px-4 py-3">
           <div className="font-medium text-gray-900">{row.client?.full_name || "—"}</div>
           <div className="text-[11px] text-gray-500">{row.client?.email}</div>
-          <div className="text-[10px] text-gray-400 font-mono mt-0.5">{row.id.slice(0, 8)}</div>
+          <div className="text-xs text-gray-400 font-mono mt-0.5">{row.id.slice(0, 8)}</div>
         </td>
         <td className="px-4 py-3">
           <div className="text-gray-800">{packageLabel}</div>
           {row.client?.checkin_doctor_addon_paid_at && row.package === "checkin" && (
-            <div className="text-[10px] text-violet-700">+ doctor add-on</div>
+            <div className="text-xs text-violet-700">+ doctor add-on</div>
           )}
         </td>
         <td className="px-4 py-3 text-gray-700">{scheduled}</td>
         <td className="px-4 py-3">{statusPill}</td>
         <td className="px-4 py-3">{payPill}</td>
         <td className="px-4 py-3 text-right text-gray-800 tabular-nums">
-          {(row.amount_isk ?? 0).toLocaleString("is-IS")} ISK
+          {fmtIsk(row.amount_isk ?? 0)}
         </td>
         <td className="px-4 py-3 text-right whitespace-nowrap">
           {active ? (
@@ -310,7 +312,7 @@ function CancelForm({ row, onClose, onDone }: { row: BookingRow; onClose: () => 
       setErr(error?.message || r?.error || "Unknown error");
       return;
     }
-    onDone(`Cancelled. Refunded ${(r?.refunded_isk ?? 0).toLocaleString("is-IS")} ISK.`);
+    onDone(`Cancelled. Refunded ${fmtIsk(r?.refunded_isk ?? 0)}.`);
   }
 
   return (
@@ -334,7 +336,7 @@ function CancelForm({ row, onClose, onDone }: { row: BookingRow; onClose: () => 
               disabled={busy || full === 0}
               className="px-3 py-2 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 whitespace-nowrap"
             >
-              Full ({full.toLocaleString("is-IS")})
+              Full ({fmtIsk(full)})
             </button>
             <button
               type="button" onClick={() => setRefundAmount(0)}
@@ -379,7 +381,7 @@ function CancelForm({ row, onClose, onDone }: { row: BookingRow; onClose: () => 
           onClick={submit} disabled={busy}
           className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-60"
         >
-          {busy ? "Working…" : `Cancel & refund ${refundAmount.toLocaleString("is-IS")} ISK`}
+          {busy ? "Working…" : `Cancel & refund ${fmtIsk(refundAmount)}`}
         </button>
       </div>
     </div>
@@ -438,7 +440,7 @@ function RefundRequestsTable({ setMsg, onAfterAction }: { setMsg: (s: string) =>
     if (!req.booking_id) { setMsg("This request is not linked to a booking — resolve it manually."); return; }
     const j = await resolve(req, { decision: "approve", amount, adminNote });
     if (!j) return;
-    setMsg(`Approved — refunded ${(j.refunded_isk ?? 0).toLocaleString("is-IS")} ISK.${j.notify_error ? ` ${j.notify_error}` : ""}`);
+    setMsg(`Approved — refunded ${fmtIsk(j.refunded_isk ?? 0)}.${j.notify_error ? ` ${j.notify_error}` : ""}`);
     load();
     onAfterAction();
   }
@@ -479,7 +481,7 @@ function RefundRequestsTable({ setMsg, onAfterAction }: { setMsg: (s: string) =>
       {totalCount > PAGE_SIZE && (
         <div className="flex items-center justify-between text-xs text-gray-600">
           <div>
-            Showing {pageStart.toLocaleString("en-GB")}–{pageEnd.toLocaleString("en-GB")} of {totalCount.toLocaleString("en-GB")}
+            Showing {fmtNum(pageStart)}–{fmtNum(pageEnd)} of {fmtNum(totalCount)}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -514,7 +516,7 @@ function RefundRequestCard({
   const [expanded, setExpanded] = useState(req.status === "pending");
   const [amount, setAmount] = useState<number>(req.requested_isk || req.booking?.amount_isk || 0);
   const [note, setNote] = useState("");
-  const scheduled = req.booking?.scheduled_at ? new Date(req.booking.scheduled_at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "—";
+  const scheduled = req.booking?.scheduled_at ? fmtDateTime(req.booking.scheduled_at, { weekday: "short", year: true, month: "short" }) : "—";
   const pkgLabel = req.booking?.package === "foundational" ? "Foundational" : req.booking?.package === "checkin" ? "Check-in" : req.booking?.package === "self-checkin" ? "Self Check-in" : "—";
   const hoursUntil = req.booking?.scheduled_at ? (new Date(req.booking.scheduled_at).getTime() - Date.now()) / 3_600_000 : null;
 
@@ -524,7 +526,7 @@ function RefundRequestCard({
         onClick={() => setExpanded((v) => !v)}
         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 text-left"
       >
-        <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
+        <span className={`text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
           req.status === "pending" ? "bg-amber-50 text-amber-700 border-amber-100"
           : req.status === "approved" ? "bg-emerald-50 text-emerald-700 border-emerald-100"
           : req.status === "denied" ? "bg-red-50 text-red-700 border-red-100"
@@ -535,7 +537,7 @@ function RefundRequestCard({
           <div className="text-[11px] text-gray-500 truncate">{pkgLabel} · {scheduled}{hoursUntil !== null && req.status === "pending" ? (hoursUntil < 48 ? ` · in ${hoursUntil.toFixed(0)}h` : "") : ""}</div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-medium text-gray-800 tabular-nums">{req.requested_isk.toLocaleString("is-IS")} ISK</div>
+          <div className="text-sm font-medium text-gray-800 tabular-nums">{fmtIsk(req.requested_isk)}</div>
           <div className="text-[11px] text-gray-400">requested</div>
         </div>
       </button>
@@ -584,9 +586,9 @@ function RefundRequestCard({
                 </button>
                 <button
                   onClick={() => onApprove(req, amount, note)}
-                  className="px-4 py-2 text-sm rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700"
+                  className="px-4 py-2 text-sm rounded-lg bg-hc-brand-dark text-white font-semibold hover:bg-hc-brand-darker"
                 >
-                  Approve & refund {amount.toLocaleString("is-IS")} ISK
+                  Approve & refund {fmtIsk(amount)}
                 </button>
               </div>
             </div>

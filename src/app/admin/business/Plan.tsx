@@ -9,6 +9,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtIsk } from "@/app/components/account/ui/dates";
+import { fmtNum } from "@/app/admin/components/ui/format";
 
 interface Pace {
   annual_target: number;
@@ -52,8 +54,8 @@ interface PlanData {
   };
 }
 
-const isk = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
-const mkr = (n: number) => `${(n / 1_000_000).toLocaleString("is-IS", { maximumFractionDigits: 1 })} mkr.`;
+const isk = (n: number) => fmtIsk(n);
+const mkr = (n: number) => `${fmtNum(n / 1_000_000, { max: 1 })} mkr.`;
 
 const btn = "text-xs font-medium px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50";
 
@@ -76,8 +78,8 @@ function PaceCard({ title, hint, p, unit, extra }: {
   return (
     <Card title={title} hint={hint}>
       <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-2xl font-bold text-gray-900">{p.actual.toLocaleString("is-IS")}</span>
-        <span className="text-sm text-gray-500">of {p.annual_target.toLocaleString("is-IS")} {unit} planned this year</span>
+        <span className="text-2xl font-bold text-gray-900">{fmtNum(p.actual)}</span>
+        <span className="text-sm text-gray-500">of {fmtNum(p.annual_target)} {unit} planned this year</span>
       </div>
       {/* Progress vs annual target, with a marker where YTD pace should be */}
       <div className="relative h-2.5 rounded-full bg-gray-100 mt-3 mb-1.5 overflow-hidden">
@@ -86,17 +88,17 @@ function PaceCard({ title, hint, p, unit, extra }: {
       </div>
       <div className="text-xs text-gray-600 space-y-0.5">
         <div>
-          YTD target <b>{p.ytd_target.toLocaleString("is-IS")}</b> ·{" "}
+          YTD target <b>{fmtNum(p.ytd_target)}</b> ·{" "}
           {p.lacking > 0 ? (
-            <span className="text-amber-600 font-semibold">lacking {p.lacking.toLocaleString("is-IS")} {unit}</span>
+            <span className="text-amber-600 font-semibold">lacking {fmtNum(p.lacking)} {unit}</span>
           ) : (
-            <span className="text-emerald-700 font-semibold">ahead by {Math.abs(p.lacking).toLocaleString("is-IS")} {unit}</span>
+            <span className="text-emerald-700 font-semibold">ahead by {fmtNum(Math.abs(p.lacking))} {unit}</span>
           )}
           {p.attainment_pct != null ? <span className="text-gray-400"> · {pct}% of pace</span> : null}
         </div>
         <div>
-          Plan pace {p.monthly_target.toLocaleString("is-IS")}/month · need{" "}
-          <b>{p.required_per_month_rest_of_year.toLocaleString("is-IS")}/month</b> for the remaining {12 - p.months_elapsed} months to hit the year.
+          Plan pace {fmtNum(p.monthly_target)}/month · need{" "}
+          <b>{fmtNum(p.required_per_month_rest_of_year)}/month</b> for the remaining {12 - p.months_elapsed} months to hit the year.
         </div>
         {extra}
       </div>
@@ -228,7 +230,7 @@ export default function Plan() {
           </div>
           <button className={btn} disabled={busy}
             onClick={() => editSetting("total_shares", "Total issued shares (for per-share pricing)", v.total_shares)}>
-            {v.total_shares > 0 ? `Shares: ${v.total_shares.toLocaleString("is-IS")} — edit` : "Set share count for per-share pricing"}
+            {v.total_shares > 0 ? `Shares: ${fmtNum(v.total_shares)} — edit` : "Set share count for per-share pricing"}
           </button>
         </Card>
 
@@ -275,7 +277,7 @@ export default function Plan() {
             </div>
             <div className="text-[11px] text-gray-500">
               Overhead burn {isk(inv.monthly_overhead_burn_isk)}/month
-              {inv.runway_months != null ? ` → ~${inv.runway_months.toLocaleString("is-IS")} months runway at zero income` : ""}.
+              {inv.runway_months != null ? ` → ~${fmtNum(inv.runway_months)} months runway at zero income` : ""}.
             </div>
           </div>
         </Card>

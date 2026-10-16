@@ -11,6 +11,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useStaffGuard } from "@/lib/useStaffGuard";
 import { adminApi, adminJson } from "../hc-api";
 import { UNION_CATEGORIES, computeReimbursement, type UnionCategoryRule, type UnionRules } from "@/lib/hc/reimbursement";
+import { fmtIsk } from "@/app/components/account/ui/dates";
+import { useDialog } from "@/app/components/account/ui";
 
 interface Doc { id: string; kind: "rules" | "agreement" | "other"; title: string | null; file_name: string | null; signed_at: string | null; valid_until: string | null; created_at: string }
 interface Union {
@@ -67,7 +69,7 @@ export default function UnionsPage() {
         </div>
         <div className="flex gap-2">
           <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nafn nýs félags" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-          <button onClick={create} className="rounded-lg bg-[#10B981] px-4 py-2 text-sm font-semibold text-white">Bæta við</button>
+          <button onClick={create} className="rounded-lg bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white">Bæta við</button>
         </div>
       </div>
       {err && <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
@@ -104,6 +106,7 @@ function Flag({ ok, label }: { ok: boolean; label: string }) {
 }
 
 function UnionEditor({ union, onChanged, onDeleted }: { union: Union; onChanged: () => void; onDeleted: () => void }) {
+  const dialog = useDialog();
   const [f, setF] = useState({
     name: union.name, kennitala: union.kennitala ?? "", region: union.region ?? "", website: union.website ?? "",
     contact_name: union.contact_name ?? "", contact_role: union.contact_role ?? "", contact_email: union.contact_email ?? "", contact_phone: union.contact_phone ?? "",
@@ -155,7 +158,7 @@ function UnionEditor({ union, onChanged, onDeleted }: { union: Union; onChanged:
   };
 
   const del = async () => {
-    if (!confirm(`Eyða ${union.name}?`)) return;
+    if (!(await dialog.confirm({ title: `Eyða ${union.name}?`, tone: "danger" }))) return;
     const r = await adminJson("/api/admin/hc/unions/" + union.id, { method: "DELETE" });
     if (r.ok) onDeleted(); else setMsg({ ok: false, text: r.error || "Villa" });
   };
@@ -215,7 +218,7 @@ function UnionEditor({ union, onChanged, onDeleted }: { union: Union; onChanged:
                     </label>
                     <p className="text-xs text-slate-500 sm:col-span-5">
                       Prófun: verð <input type="number" value={testPrice} onChange={(e) => setTestPrice(Number(e.target.value) || 0)} className="mx-1 w-24 rounded border border-slate-200 px-1" /> kr. →
-                      endurgreiðsla <strong>{computeReimbursement(rules, c.key, testPrice).amountIsk.toLocaleString("is-IS")} kr.</strong>
+                      endurgreiðsla <strong>{fmtIsk(computeReimbursement(rules, c.key, testPrice).amountIsk)}</strong>
                     </p>
                   </div>
                 )}
@@ -259,7 +262,7 @@ function UnionEditor({ union, onChanged, onDeleted }: { union: Union; onChanged:
       </Section>
 
       <div className="flex items-center gap-3">
-        <button onClick={() => save()} disabled={busy} className="rounded-lg bg-[#10B981] px-5 py-2.5 font-semibold text-white disabled:opacity-50">Vista</button>
+        <button onClick={() => save()} disabled={busy} className="rounded-lg bg-hc-brand-dark px-5 py-2.5 font-semibold text-white disabled:opacity-50">Vista</button>
         <span className="flex-1" />
         <button onClick={del} className="text-sm text-red-600">Eyða félagi</button>
       </div>
@@ -278,6 +281,7 @@ function Section({ title, hint, children }: { title: string; hint: string; child
 }
 
 function DocList({ union, onChanged, onExtract, busy }: { union: Union; onChanged: () => void; onExtract: (id: string) => void; busy: boolean }) {
+  const dialog = useDialog();
   const [kind, setKind] = useState<"rules" | "agreement" | "other">("rules");
   const [file, setFile] = useState<File | null>(null);
   const [signedAt, setSignedAt] = useState("");
@@ -306,7 +310,7 @@ function DocList({ union, onChanged, onExtract, busy }: { union: Union; onChange
     if (r.data.url) window.open(r.data.url, "_blank");
   };
   const remove = async (id: string) => {
-    if (!confirm("Eyða skjali?")) return;
+    if (!(await dialog.confirm({ title: "Eyða skjali?", tone: "danger" }))) return;
     await adminApi(`/api/admin/hc/unions/${union.id}/documents?doc=${id}`, { method: "DELETE" });
     onChanged();
   };
@@ -341,7 +345,7 @@ function DocList({ union, onChanged, onExtract, busy }: { union: Union; onChange
           </div>
         )}
         {err && <p className="text-sm text-red-600 sm:col-span-2">{err}</p>}
-        <button onClick={upload} disabled={!file || uploading} className="rounded-lg bg-[#10B981] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 sm:col-span-2">{uploading ? "Hleð upp…" : "Hlaða upp"}</button>
+        <button onClick={upload} disabled={!file || uploading} className="rounded-lg bg-hc-brand-dark px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 sm:col-span-2">{uploading ? "Hleð upp…" : "Hlaða upp"}</button>
       </div>
     </div>
   );

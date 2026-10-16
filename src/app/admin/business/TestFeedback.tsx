@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
 
 interface FeedbackRow {
   id: string;
@@ -72,7 +73,7 @@ export default function TestFeedback() {
   const openCount = rows.filter((r) => r.status === "open").length;
 
   const fmtDate = (iso: string) => {
-    try { return new Date(iso).toLocaleString("is-IS", { dateStyle: "medium", timeStyle: "short" }); }
+    try { return fmtDateTime(iso, { year: true, month: "short" }); }
     catch { return iso; }
   };
 
@@ -175,7 +176,7 @@ export default function TestFeedback() {
                       className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold disabled:opacity-50 ${
                         resolved
                           ? "border border-gray-200 text-gray-700 hover:bg-gray-50"
-                          : "bg-emerald-600 text-white hover:bg-emerald-700"
+                          : "bg-hc-brand-dark text-white hover:bg-hc-brand-darker"
                       }`}
                     >
                       {resolved ? "Reopen" : "Mark resolved"}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { fmtDate } from "@/app/components/account/ui/dates";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ function timeAgo(dateStr: string): string {
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return fmtDate(date, { year: false, month: "short" });
 }
 
 function formatDate(dateStr: string): string {
@@ -65,7 +66,7 @@ function formatDate(dateStr: string): string {
   tomorrow.setDate(tomorrow.getDate() + 1);
   if (d.toDateString() === today.toDateString()) return "Today";
   if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow";
-  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  return fmtDate(d, { weekday: "short", year: false, month: "short" });
 }
 
 const typeColors: Record<string, string> = {
@@ -244,15 +245,15 @@ export default function CoachDashboardPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Coach Dashboard</h1>
+          <h1 className="text-2xl font-bold text-hc-ink">Coach Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+            {fmtDate(new Date(), { weekday: true })}
           </p>
         </div>
         <div className="flex items-center gap-2">
         <Link
           href="/admin/coach/plans"
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-lg hover:bg-[#047857] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors"
         >
           Aðgerðaáætlanir
         </Link>
@@ -280,7 +281,7 @@ export default function CoachDashboardPage() {
             {iconMap[action.icon]}
             <span className="text-xs font-semibold">{action.label}</span>
             {action.badge && (
-              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
                 {action.badge}
               </span>
             )}
@@ -292,22 +293,22 @@ export default function CoachDashboardPage() {
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Clients</p>
-          <p className="text-2xl font-bold text-[#1F2937] mt-1">{totalClients}</p>
+          <p className="text-2xl font-bold text-hc-ink mt-1">{totalClients}</p>
           <p className="text-xs text-gray-400 mt-1">{clients.filter((c) => c.tier === "premium").length} premium</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Unread Messages</p>
-          <p className="text-2xl font-bold text-[#1F2937] mt-1">{unreadCount}</p>
+          <p className="text-2xl font-bold text-hc-ink mt-1">{unreadCount}</p>
           <p className="text-xs text-gray-400 mt-1">{recentConversations.length} conversations</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Today&apos;s Appointments</p>
-          <p className="text-2xl font-bold text-[#1F2937] mt-1">{todayAppointments.length}</p>
+          <p className="text-2xl font-bold text-hc-ink mt-1">{todayAppointments.length}</p>
           <p className="text-xs text-gray-400 mt-1">{upcomingAppointments.length} upcoming</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active Programs</p>
-          <p className="text-2xl font-bold text-[#1F2937] mt-1">{activePrograms}</p>
+          <p className="text-2xl font-bold text-hc-ink mt-1">{activePrograms}</p>
           <p className="text-xs text-gray-400 mt-1">{programStats.length} unique programs</p>
         </div>
       </div>
@@ -321,7 +322,7 @@ export default function CoachDashboardPage() {
           {/* Priority Tasks */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#1F2937] flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-hc-ink flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-red-400"></span>
                 Priority Tasks
               </h2>
@@ -332,12 +333,12 @@ export default function CoachDashboardPage() {
               {unreadCount > 0 && (
                 <Link href="/admin/conversations?tab=messages" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-hc-brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#1F2937]">{unreadCount} unread message{unreadCount > 1 ? "s" : ""}</p>
+                    <p className="text-sm font-medium text-hc-ink">{unreadCount} unread message{unreadCount > 1 ? "s" : ""}</p>
                     <p className="text-xs text-gray-400">Respond to client messages</p>
                   </div>
                   <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,12 +356,12 @@ export default function CoachDashboardPage() {
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#1F2937]">
+                    <p className="text-sm font-medium text-hc-ink">
                       {appt.clients?.full_name || "Client"} — {typeLabels[appt.type] || appt.type}
                     </p>
                     <p className="text-xs text-gray-400">{appt.time}{appt.station_name ? ` at ${appt.station_name}` : ""}</p>
                   </div>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${typeColors[appt.type] || "bg-gray-100 text-gray-600"}`}>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${typeColors[appt.type] || "bg-gray-100 text-gray-600"}`}>
                     {appt.time}
                   </span>
                 </Link>
@@ -375,12 +376,12 @@ export default function CoachDashboardPage() {
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#1F2937]">{client.name} — trial expiring</p>
+                    <p className="text-sm font-medium text-hc-ink">{client.name} — trial expiring</p>
                     <p className="text-xs text-gray-400">
-                      Expires {client.trialEndsAt ? new Date(client.trialEndsAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "soon"}
+                      Expires {client.trialEndsAt ? fmtDate(client.trialEndsAt, { year: false, month: "short" }) : "soon"}
                     </p>
                   </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Follow up</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Follow up</span>
                 </Link>
               ))}
 
@@ -393,10 +394,10 @@ export default function CoachDashboardPage() {
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#1F2937]">{client.name} — no active program</p>
+                    <p className="text-sm font-medium text-hc-ink">{client.name} — no active program</p>
                     <p className="text-xs text-gray-400">Consider reaching out to help them get started</p>
                   </div>
-                  <Link href="/admin/conversations?tab=messages" className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
+                  <Link href="/admin/conversations?tab=messages" className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
                     Message
                   </Link>
                 </div>
@@ -413,8 +414,8 @@ export default function CoachDashboardPage() {
           {/* Upcoming Appointments */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#1F2937]">Upcoming Appointments</h2>
-              <Link href="/admin/scheduling?tab=calendar" className="text-xs font-medium text-[#10B981] hover:underline">View all</Link>
+              <h2 className="text-sm font-semibold text-hc-ink">Upcoming Appointments</h2>
+              <Link href="/admin/scheduling?tab=calendar" className="text-xs font-medium text-hc-brand-text hover:underline">View all</Link>
             </div>
             {upcomingAppointments.length === 0 ? (
               <div className="px-5 py-8 text-center">
@@ -425,14 +426,14 @@ export default function CoachDashboardPage() {
                 {upcomingAppointments.map((appt) => (
                   <div key={appt.id} className="flex items-center gap-3 px-5 py-3">
                     <div className="text-center w-12 flex-shrink-0">
-                      <p className="text-[10px] font-medium text-gray-400 uppercase">{formatDate(appt.date)}</p>
-                      <p className="text-xs font-bold text-[#1F2937]">{appt.time}</p>
+                      <p className="text-xs font-medium text-gray-400 uppercase">{formatDate(appt.date)}</p>
+                      <p className="text-xs font-bold text-hc-ink">{appt.time}</p>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#1F2937] truncate">{appt.clients?.full_name || "Client"}</p>
+                      <p className="text-sm font-medium text-hc-ink truncate">{appt.clients?.full_name || "Client"}</p>
                       <p className="text-xs text-gray-400 truncate">{appt.station_name || appt.type}</p>
                     </div>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${typeColors[appt.type] || "bg-gray-100"}`}>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${typeColors[appt.type] || "bg-gray-100"}`}>
                       {typeLabels[appt.type] || appt.type}
                     </span>
                   </div>
@@ -444,8 +445,8 @@ export default function CoachDashboardPage() {
           {/* Program Overview */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#1F2937]">Program Enrollment</h2>
-              <Link href="/admin/content?tab=programs" className="text-xs font-medium text-[#10B981] hover:underline">Edit programs</Link>
+              <h2 className="text-sm font-semibold text-hc-ink">Program Enrollment</h2>
+              <Link href="/admin/content?tab=programs" className="text-xs font-medium text-hc-brand-text hover:underline">Edit programs</Link>
             </div>
             {programStats.length === 0 ? (
               <div className="px-5 py-8 text-center">
@@ -462,11 +463,11 @@ export default function CoachDashboardPage() {
                   };
                   return (
                     <div key={i} className="flex items-center gap-3 px-5 py-3">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${catColors[stat.category] || "bg-gray-100 text-gray-600"}`}>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${catColors[stat.category] || "bg-gray-100 text-gray-600"}`}>
                         {stat.category}
                       </span>
-                      <p className="text-sm text-[#1F2937] flex-1 capitalize">{stat.programName}</p>
-                      <p className="text-sm font-bold text-[#1F2937]">{stat.activeClients}</p>
+                      <p className="text-sm text-hc-ink flex-1 capitalize">{stat.programName}</p>
+                      <p className="text-sm font-bold text-hc-ink">{stat.activeClients}</p>
                       <p className="text-xs text-gray-400">client{stat.activeClients !== 1 ? "s" : ""}</p>
                     </div>
                   );
@@ -482,8 +483,8 @@ export default function CoachDashboardPage() {
           {/* Recent Messages */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#1F2937]">Recent Messages</h2>
-              <Link href="/admin/conversations?tab=messages" className="text-xs font-medium text-[#10B981] hover:underline">Open</Link>
+              <h2 className="text-sm font-semibold text-hc-ink">Recent Messages</h2>
+              <Link href="/admin/conversations?tab=messages" className="text-xs font-medium text-hc-brand-text hover:underline">Open</Link>
             </div>
             {recentConversations.length === 0 ? (
               <div className="px-4 py-8 text-center">
@@ -503,10 +504,10 @@ export default function CoachDashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className={`text-xs truncate ${unread > 0 ? "font-bold text-[#1F2937]" : "font-medium text-gray-600"}`}>
+                          <p className={`text-xs truncate ${unread > 0 ? "font-bold text-hc-ink" : "font-medium text-gray-600"}`}>
                             {conv.coach_name || "Client"}
                           </p>
-                          <span className="text-[10px] text-gray-400 flex-shrink-0 ml-2">
+                          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
                             {lastMsg ? timeAgo(lastMsg.created_at) : ""}
                           </span>
                         </div>
@@ -515,7 +516,7 @@ export default function CoachDashboardPage() {
                         </p>
                       </div>
                       {unread > 0 && (
-                        <span className="w-4 h-4 rounded-full bg-[#10B981] text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="w-4 h-4 rounded-full bg-hc-brand-dark text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0 mt-1">
                           {unread}
                         </span>
                       )}
@@ -529,17 +530,17 @@ export default function CoachDashboardPage() {
           {/* Client List (compact) */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[#1F2937]">Clients</h2>
-              <Link href="/admin/clients" className="text-xs font-medium text-[#10B981] hover:underline">View all</Link>
+              <h2 className="text-sm font-semibold text-hc-ink">Clients</h2>
+              <Link href="/admin/clients" className="text-xs font-medium text-hc-brand-text hover:underline">View all</Link>
             </div>
             <div className="divide-y divide-gray-50 max-h-80 overflow-y-auto">
               {clients.slice(0, 12).map((client) => (
                 <div key={client.id} className="flex items-center gap-2 px-4 py-2.5">
-                  <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-gray-500">
+                  <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-gray-500">
                     {client.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-[#1F2937] truncate">{client.name}</p>
+                    <p className="text-xs font-medium text-hc-ink truncate">{client.name}</p>
                   </div>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tierColors[client.tier]}`}>
                     {tierLabels[client.tier]}
@@ -554,7 +555,7 @@ export default function CoachDashboardPage() {
 
           {/* Quick Links */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h2 className="text-sm font-semibold text-[#1F2937] mb-3">Quick Links</h2>
+            <h2 className="text-sm font-semibold text-hc-ink mb-3">Quick Links</h2>
             <div className="space-y-2">
               {[
                 { label: "Create new program", href: "/admin/content?tab=programs", icon: "+" },
@@ -566,9 +567,9 @@ export default function CoachDashboardPage() {
                 <Link
                   key={link.label}
                   href={link.href}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-[#1F2937] transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-hc-ink transition-colors"
                 >
-                  <span className="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400">
+                  <span className="w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-400">
                     {link.icon}
                   </span>
                   {link.label}

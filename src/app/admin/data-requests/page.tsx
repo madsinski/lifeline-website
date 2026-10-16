@@ -10,6 +10,8 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useStaffGuard } from "@/lib/useStaffGuard";
+import { fmtDate, fmtNumericDate, fmtTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 type Status = "received" | "in_progress" | "completed" | "withdrawn" | "rejected";
 
@@ -86,6 +88,7 @@ const STATUS_STYLES: Record<Status, string> = {
 type FilterTab = "open" | "all" | "completed";
 
 export default function DataRequestsPage() {
+  const toast = useToast();
   const guard = useStaffGuard({ role: "admin" });
   const [rows, setRows] = useState<DsrRow[]>([]);
   const [clients, setClients] = useState<Record<string, ClientLite>>({});
@@ -157,7 +160,7 @@ export default function DataRequestsPage() {
       if (error) throw error;
       await load();
     } catch (e) {
-      alert("Update failed: " + (e as Error).message);
+      toast.show("Update failed: " + (e as Error).message, { tone: "bad" });
     } finally {
       setBusyId(null);
     }
@@ -178,7 +181,7 @@ export default function DataRequestsPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Privacy requests</h1>
+          <h1 className="text-2xl font-bold text-hc-ink">Privacy requests</h1>
           <p className="text-sm text-gray-500 mt-1">
             Data Subject Rights queue. Respond within 30 days (GDPR Art. 12(3)).
           </p>
@@ -206,7 +209,7 @@ export default function DataRequestsPage() {
             }`}
           >
             {t === "open" ? "Open" : t === "completed" ? "Completed" : "All"}
-            <span className={`ml-2 text-xs ${tab === t ? "text-emerald-600" : "text-gray-400"}`}>
+            <span className={`ml-2 text-xs ${tab === t ? "text-hc-brand-text" : "text-gray-400"}`}>
               {counts[t]}
             </span>
           </button>
@@ -245,9 +248,9 @@ export default function DataRequestsPage() {
                   <Fragment key={row.id}>
                     <tr className={`hover:bg-gray-50/50 ${expanded ? "bg-emerald-50/30" : ""}`}>
                       <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
-                        {submittedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                        {fmtDate(submittedAt, { month: "short" })}
                         <div className="text-xs text-gray-400">
-                          {submittedAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                          {fmtTime(submittedAt)}
                         </div>
                       </td>
                       <td className="px-4 py-3">
@@ -265,7 +268,7 @@ export default function DataRequestsPage() {
                       </td>
                       <td className="px-4 py-3 text-xs">
                         <div className={overdue ? "text-red-600 font-medium" : "text-gray-600"}>
-                          {deadline.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                          {fmtDate(deadline, { year: false, month: "short" })}
                         </div>
                         <div className={`text-xs ${overdue ? "text-red-500" : daysLeft <= 5 ? "text-amber-600" : "text-gray-400"}`}>
                           {overdue ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}
@@ -361,7 +364,7 @@ export default function DataRequestsPage() {
                                     <button
                                       onClick={() => transition(row, "completed")}
                                       disabled={busyId === row.id}
-                                      className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                                      className="px-3 py-1.5 bg-hc-brand-dark text-white text-xs font-semibold rounded-lg hover:bg-hc-brand-darker disabled:opacity-50"
                                     >
                                       Mark completed
                                     </button>
@@ -383,7 +386,7 @@ export default function DataRequestsPage() {
                                 )}
                                 {row.status === "completed" && row.resolved_at && (
                                   <span className="text-xs text-gray-500">
-                                    Completed {new Date(row.resolved_at).toLocaleDateString("en-GB")}
+                                    Completed {fmtNumericDate(row.resolved_at)}
                                   </span>
                                 )}
                               </div>

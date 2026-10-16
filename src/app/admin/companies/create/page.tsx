@@ -121,7 +121,7 @@ export default function AdminCompanyCreatePage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           Back to companies
         </Link>
-        <h1 className="text-2xl font-semibold text-[#1F2937]">Create company (draft)</h1>
+        <h1 className="text-2xl font-semibold text-hc-ink">Create company (draft)</h1>
         <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
           Create a company the Lifeline team has worked with, without the company admin having to finish registration right away.
           When you&apos;re ready to bring the admin in, send the invite from the company page — they sign the terms of service and
@@ -287,7 +287,7 @@ export default function AdminCompanyCreatePage() {
         <div className="flex items-center justify-between gap-3">
           <Link href="/admin/companies" className="text-sm text-gray-600 hover:underline">Cancel</Link>
           <button type="submit" disabled={submitting}
-            className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">
+            className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-hc-brand-dark hover:bg-hc-brand-darker disabled:opacity-50">
             {submitting ? "Creating…" : "Create draft"}
           </button>
         </div>

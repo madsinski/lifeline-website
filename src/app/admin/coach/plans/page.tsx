@@ -17,6 +17,9 @@ import {
 import { STAGE_LABELS } from "@/lib/hc/stages";
 import ExerciseSessionsEditor from "../../../components/hc/ExerciseSessionsEditor";
 import DayExampleEditor from "../../../components/hc/DayExampleEditor";
+import { fmtNumericDate } from "@/app/components/account/ui/dates";
+import { useDialog } from "@/app/components/account/ui";
+import { X } from "lucide-react";
 
 const TABS = [
   { key: "clients", label: "Skjólstæðingar" },
@@ -51,6 +54,7 @@ export default function PlansAdmin() {
 }
 
 function useRows<T>(kind: string) {
+  const dialog = useDialog();
   const [rows, setRows] = useState<T[]>([]);
   const load = useCallback(async () => {
     const r = await adminJson<{ rows: T[] }>(`/api/admin/hc/library/${kind}`);
@@ -63,7 +67,7 @@ function useRows<T>(kind: string) {
     return r;
   };
   const remove = async (key: string) => {
-    if (!confirm("Taka úr notkun?")) return;
+    if (!(await dialog.confirm({ title: "Taka úr notkun?", tone: "danger" }))) return;
     await adminApi(`/api/admin/hc/library/${kind}?key=${encodeURIComponent(key)}`, { method: "DELETE" });
     await load();
   };
@@ -89,7 +93,7 @@ function Clients() {
             <tr key={j.id} className="border-t border-slate-100">
               <td className="px-4 py-2 font-medium">{j.client_name || "—"}</td>
               <td className="px-4 py-2">{STAGE_LABELS[j.stage] ?? j.stage}</td>
-              <td className="px-4 py-2 text-slate-500">{new Date(j.updated_at).toLocaleDateString("is-IS")}</td>
+              <td className="px-4 py-2 text-slate-500">{fmtNumericDate(j.updated_at)}</td>
               <td className="px-4 py-2 text-right"><Link href={`/admin/coach/plans/${j.id}`} className="font-semibold text-emerald-700 hover:underline">Opna áætlun →</Link></td>
             </tr>
           ))}
@@ -133,7 +137,7 @@ function Modules() {
           <input value={edit.frequency ?? ""} onChange={(e) => setEdit({ ...edit, frequency: e.target.value })} placeholder="Tíðni, t.d. Daglega" className="w-full rounded-lg border border-slate-300 px-2 py-2" />
           <input value={(edit.tags ?? []).join(", ")} onChange={(e) => setEdit({ ...edit, tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })} placeholder="Merki, t.d. streita, svefnvandi" className="w-full rounded-lg border border-slate-300 px-2 py-2" />
           <div className="flex items-center gap-2">
-            <button onClick={async () => { const r = await save({ ...edit, name: edit.title } as Partial<PlanModule>); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white">Vista</button>
+            <button onClick={async () => { const r = await save({ ...edit, name: edit.title } as Partial<PlanModule>); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-hc-brand-dark px-4 py-2 font-semibold text-white">Vista</button>
             {edit.key && <button onClick={() => { void remove(edit.key!); setEdit(null); }} className="text-red-600">Taka úr notkun</button>}
             <span className="text-xs text-slate-500">{msg}</span>
           </div>
@@ -192,7 +196,7 @@ function Templates() {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={async () => { const r = await save(edit); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white">Vista</button>
+            <button onClick={async () => { const r = await save(edit); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-hc-brand-dark px-4 py-2 font-semibold text-white">Vista</button>
             {edit.key && <button onClick={() => { void remove(edit.key!); setEdit(null); }} className="text-red-600">Taka úr notkun</button>}
             <span className="text-xs text-slate-500">{msg}</span>
           </div>
@@ -249,7 +253,7 @@ function Exercise() {
                   <div key={i} className="grid grid-cols-[80px_1fr_auto] gap-1.5">
                     <input value={ph.weeks} onChange={(e) => setPh({ weeks: e.target.value })} placeholder="Vika 1–4" aria-label="Vikur" className="rounded border border-slate-200 px-2 py-1" />
                     <input value={ph.title} onChange={(e) => setPh({ title: e.target.value })} placeholder="Heiti tímabils" aria-label="Heiti tímabils" className="rounded border border-slate-200 px-2 py-1 font-semibold" />
-                    <button type="button" onClick={() => setEdit({ ...edit, progression: arr.filter((_, j) => j !== i) })} className="px-1 text-slate-400" aria-label="Eyða tímabili">×</button>
+                    <button type="button" onClick={() => setEdit({ ...edit, progression: arr.filter((_, j) => j !== i) })} className="inline-flex h-8 w-8 items-center justify-center text-slate-400" aria-label="Eyða tímabili"><X className="h-4 w-4" aria-hidden /></button>
                     <textarea value={ph.text} onChange={(e) => setPh({ text: e.target.value })} rows={2} placeholder="Hvað breytist?" aria-label="Lýsing tímabils" className="col-span-3 rounded border border-slate-200 px-2 py-1" />
                   </div>
                 );
@@ -258,7 +262,7 @@ function Exercise() {
             </div>
           </div>
           <div className="flex items-center gap-2 border-t border-slate-100 pt-3">
-            <button onClick={async () => { const r = await save({ ...edit, days_per_week: sessions.length || edit.days_per_week }); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white">Vista</button>
+            <button onClick={async () => { const r = await save({ ...edit, days_per_week: sessions.length || edit.days_per_week }); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-hc-brand-dark px-4 py-2 font-semibold text-white">Vista</button>
             {edit.key && <button onClick={() => { void remove(edit.key!); setEdit(null); }} className="text-red-600">Taka úr notkun</button>}
             <span className="text-xs text-slate-500">{msg}</span>
           </div>
@@ -300,7 +304,7 @@ function Nutrition() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={async () => { const r = await save({ ...edit, principles: (edit.principles ?? []).map((p) => p.trim()).filter(Boolean) }); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white">Vista</button>
+            <button onClick={async () => { const r = await save({ ...edit, principles: (edit.principles ?? []).map((p) => p.trim()).filter(Boolean) }); setMsg(r.ok ? "Vistað" : r.error || "Villa"); }} className="rounded-lg bg-hc-brand-dark px-4 py-2 font-semibold text-white">Vista</button>
             {edit.key && <button onClick={() => { void remove(edit.key!); setEdit(null); }} className="text-red-600">Taka úr notkun</button>}
             <span className="text-xs text-slate-500">{msg}</span>
           </div>

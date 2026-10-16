@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import StationInstructionsView from "@/app/components/StationInstructionsView";
 import { DEFAULT_SLUG, type Block, type StationDoc } from "@/lib/station-instructions";
+import { useToast } from "@/app/components/hc/Toast";
+import { X } from "lucide-react";
 
 async function authHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -26,6 +28,7 @@ function blankBlock(type: Block["type"]): Block {
 }
 
 export default function StationInstructionsAdmin() {
+  const toast = useToast();
   const [title, setTitle] = useState("");
   const [intro, setIntro] = useState("");
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -67,7 +70,7 @@ export default function StationInstructionsAdmin() {
       const { data } = supabase.storage.from("presentation-assets").getPublicUrl(path);
       updateBlock(i, { ...(blocks[i] as Extract<Block, { type: "image" }>), src: data.publicUrl });
     } catch (e) {
-      alert("Upload failed: " + (e instanceof Error ? e.message : "error"));
+      toast.show("Upload failed: " + (e instanceof Error ? e.message : "error"), { tone: "bad" });
     } finally {
       setUploadingIdx(null);
     }
@@ -108,7 +111,7 @@ export default function StationInstructionsAdmin() {
           onClick={async () => { try { await navigator.clipboard.writeText(publicUrl); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* ignore */ } }}
           className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
         >{copied ? "Copied!" : "Copy link"}</button>
-        <button onClick={persist} className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">
+        <button onClick={persist} className="rounded-md bg-hc-brand-dark px-4 py-1.5 text-sm font-semibold text-white hover:bg-hc-brand-darker">
           {save === "saving" ? "Saving…" : save === "saved" ? "Saved ✓" : save === "error" ? "Save failed" : "Save"}
         </button>
       </div>
@@ -130,7 +133,7 @@ export default function StationInstructionsAdmin() {
                 <div className="flex items-center gap-1 text-gray-400">
                   <button onClick={() => move(i, -1)} className="px-1.5 hover:text-gray-700">↑</button>
                   <button onClick={() => move(i, 1)} className="px-1.5 hover:text-gray-700">↓</button>
-                  <button onClick={() => remove(i)} className="px-1.5 hover:text-red-500">✕</button>
+                  <button onClick={() => remove(i)} aria-label="Fjarlægja" className="inline-flex h-8 w-8 items-center justify-center hover:text-red-500"><X className="h-4 w-4" aria-hidden /></button>
                 </div>
               </div>
 

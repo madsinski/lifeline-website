@@ -17,6 +17,7 @@ import {
 } from "@/lib/security-technical-brief";
 import LegalTabBar from "../LegalTabBar";
 import PostureDocument from "./PostureDocument";
+import { fmtDate } from "@/app/components/account/ui/dates";
 
 export default function SecurityPosturePage() {
   return (
@@ -25,7 +26,7 @@ export default function SecurityPosturePage() {
 
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Security &amp; Privacy Posture</h1>
+          <h1 className="text-2xl font-bold text-hc-ink">Security &amp; Privacy Posture</h1>
           <p className="text-sm text-gray-500 mt-1 max-w-3xl leading-relaxed">
             Comprehensive snapshot of every technical and organisational measure
             Lifeline has in place for personal data protection. Send this to
@@ -46,11 +47,7 @@ export default function SecurityPosturePage() {
         <div className="flex items-center gap-2">
           <span className="text-xs uppercase font-semibold tracking-wide text-gray-500">Last updated</span>
           <span className="text-xs font-medium text-gray-700">
-            {new Date(SECURITY_POSTURE_LAST_UPDATED).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
+            {fmtDate(SECURITY_POSTURE_LAST_UPDATED)}
           </span>
         </div>
         <div className="ml-auto flex items-center gap-4">

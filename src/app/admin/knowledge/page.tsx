@@ -11,6 +11,8 @@ import { useStaffGuard } from "@/lib/useStaffGuard";
 import AdminTabs from "../components/AdminTabs";
 import { adminJson } from "../hc-api";
 import { CATEGORY_IS, TONE_IS, type KnowledgeBand, type KnowledgeCategory, type KnowledgeEntry } from "@/lib/hc/knowledge";
+import { useDialog } from "@/app/components/account/ui";
+import { X } from "lucide-react";
 
 type Row = KnowledgeEntry & { active: boolean; updated_at?: string; updated_by?: string | null };
 
@@ -19,6 +21,7 @@ const TONES = Object.keys(TONE_IS) as KnowledgeBand["tone"][];
 const input = "w-full rounded-lg border border-slate-300 px-2 py-2 text-sm";
 
 export default function KnowledgeAdmin() {
+  const dialog = useDialog();
   const { authorized, loading } = useStaffGuard();
   const [rows, setRows] = useState<Row[]>([]);
   const [cat, setCat] = useState<string>("all");
@@ -107,7 +110,7 @@ export default function KnowledgeAdmin() {
                       <select value={b.sex ?? ""} onChange={(e) => set({ sex: (e.target.value || null) as KnowledgeBand["sex"] })} className="rounded border border-slate-200 px-1 py-1">
                         <option value="">Bæði kyn</option><option value="m">Karlar</option><option value="f">Konur</option>
                       </select>
-                      <button onClick={() => setBands(bands.filter((_, j) => j !== i))} className="px-1 text-red-500" aria-label="Eyða bili">×</button>
+                      <button onClick={() => setBands(bands.filter((_, j) => j !== i))} className="inline-flex h-8 w-8 items-center justify-center text-red-500" aria-label="Eyða bili"><X className="h-4 w-4" aria-hidden /></button>
                       <input value={b.note ?? ""} onChange={(e) => set({ note: e.target.value })} placeholder="Athugasemd (valfrjálst)" className="col-span-6 rounded border border-slate-200 px-2 py-1 text-xs" />
                     </div>
                   );
@@ -123,10 +126,10 @@ export default function KnowledgeAdmin() {
             </div>
 
             <div className="flex items-center gap-3 border-t border-slate-100 pt-3">
-              <button onClick={save} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white">Vista</button>
+              <button onClick={save} className="rounded-lg bg-hc-brand-dark px-4 py-2 font-semibold text-white">Vista</button>
               {edit.slug && edit.active !== false && (
                 <button onClick={async () => {
-                  if (!confirm("Taka færsluna úr notkun?")) return;
+                  if (!(await dialog.confirm({ title: "Taka færsluna úr notkun?", tone: "danger" }))) return;
                   await adminJson(`/api/admin/hc/knowledge?slug=${encodeURIComponent(edit.slug!)}`, { method: "DELETE" });
                   setEdit(null); await load();
                 }} className="text-red-600">Taka úr notkun</button>

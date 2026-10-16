@@ -28,6 +28,7 @@ import {
   type Safety,
   type AfterItem,
 } from "./content";
+import { X } from "lucide-react";
 
 const A4_W = 793.7;
 const A4_H = 1122.5;
@@ -96,7 +97,7 @@ function StepsEditor({ steps, onChange }: { steps: Step[]; onChange: (s: Step[])
           <button onClick={() => onChange(steps.filter((_, j) => j !== i))} className="text-xs text-red-500 hover:underline">Fjarlægja skref</button>
         </div>
       ))}
-      <button onClick={() => onChange([...steps, { title: "", body: "" }])} className="text-xs font-medium text-emerald-600 hover:underline">+ Bæta við skrefi</button>
+      <button onClick={() => onChange([...steps, { title: "", body: "" }])} className="text-xs font-medium text-hc-brand-text hover:underline">+ Bæta við skrefi</button>
     </div>
   );
 }
@@ -107,10 +108,10 @@ function StrListEditor({ items, onChange, addLabel }: { items: string[]; onChang
       {items.map((t, i) => (
         <div key={i} className="flex gap-1.5">
           <input value={t} onChange={(e) => onChange(items.map((x, j) => (j === i ? e.target.value : x)))} className={inputCls} />
-          <button onClick={() => onChange(items.filter((_, j) => j !== i))} className="shrink-0 rounded-md border border-gray-300 px-2 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Fjarlægja">✕</button>
+          <button onClick={() => onChange(items.filter((_, j) => j !== i))} className="inline-flex w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Fjarlægja" aria-label="Fjarlægja"><X className="h-4 w-4" aria-hidden /></button>
         </div>
       ))}
-      <button onClick={() => onChange([...items, ""])} className="text-xs font-medium text-emerald-600 hover:underline">+ {addLabel}</button>
+      <button onClick={() => onChange([...items, ""])} className="text-xs font-medium text-hc-brand-text hover:underline">+ {addLabel}</button>
     </div>
   );
 }
@@ -125,10 +126,10 @@ function ServicesEditor({ services, onChange }: { services: Service[]; onChange:
             {SERVICE_ICONS.map((ic) => <option key={ic} value={ic}>{ic}</option>)}
           </select>
           <input value={s.label} onChange={(e) => set(i, { label: e.target.value })} className={inputCls} />
-          <button onClick={() => onChange(services.filter((_, j) => j !== i))} className="shrink-0 rounded-md border border-gray-300 px-2 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Fjarlægja">✕</button>
+          <button onClick={() => onChange(services.filter((_, j) => j !== i))} className="inline-flex w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Fjarlægja" aria-label="Fjarlægja"><X className="h-4 w-4" aria-hidden /></button>
         </div>
       ))}
-      <button onClick={() => onChange([...services, { icon: SERVICE_ICONS[0], label: "" }])} className="text-xs font-medium text-emerald-600 hover:underline">+ Bæta við þjónustu</button>
+      <button onClick={() => onChange([...services, { icon: SERVICE_ICONS[0], label: "" }])} className="text-xs font-medium text-hc-brand-text hover:underline">+ Bæta við þjónustu</button>
     </div>
   );
 }
@@ -144,12 +145,12 @@ function BenefitsEditor({ benefits, onChange }: { benefits: Benefit[]; onChange:
               {BENEFIT_ICON_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
             </select>
             <input value={b.label} onChange={(e) => set(i, { label: e.target.value })} className={inputCls} placeholder="Titill" />
-            <button onClick={() => onChange(benefits.filter((_, j) => j !== i))} className="shrink-0 rounded-md border border-gray-300 px-2 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Fjarlægja">✕</button>
+            <button onClick={() => onChange(benefits.filter((_, j) => j !== i))} className="inline-flex w-8 shrink-0 items-center justify-center rounded-md border border-gray-300 text-gray-400 hover:bg-red-50 hover:text-red-600" title="Fjarlægja" aria-label="Fjarlægja"><X className="h-4 w-4" aria-hidden /></button>
           </div>
           <input value={b.detail ?? ""} onChange={(e) => set(i, { detail: e.target.value })} className={inputCls} placeholder="Nánar (valfrjálst)" />
         </div>
       ))}
-      <button onClick={() => onChange([...benefits, { icon: BENEFIT_ICON_KEYS[0], label: "" }])} className="text-xs font-medium text-emerald-600 hover:underline">+ Bæta við</button>
+      <button onClick={() => onChange([...benefits, { icon: BENEFIT_ICON_KEYS[0], label: "" }])} className="text-xs font-medium text-hc-brand-text hover:underline">+ Bæta við</button>
     </div>
   );
 }
@@ -175,7 +176,7 @@ function AfterEditor({ items, onChange }: { items: AfterItem[]; onChange: (v: Af
           <button onClick={() => onChange(items.filter((_, j) => j !== i))} className="text-xs text-red-500 hover:underline">Fjarlægja</button>
         </div>
       ))}
-      <button onClick={() => onChange([...items, { k: "•", bold: "", text: "" }])} className="text-xs font-medium text-emerald-600 hover:underline">+ Bæta við lið</button>
+      <button onClick={() => onChange([...items, { k: "•", bold: "", text: "" }])} className="text-xs font-medium text-hc-brand-text hover:underline">+ Bæta við lið</button>
     </div>
   );
 }

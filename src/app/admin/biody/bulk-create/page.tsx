@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useDialog } from "@/app/components/account/ui";
 
 // Admin CSV bulk-create for Biody placeholder profiles. Attaches
 // patients to the chosen company's Biody group and fills HR-gap
@@ -60,6 +61,7 @@ function rowErrors(r: Row): string | null {
 }
 
 export default function BiodyBulkCreatePage() {
+  const dialog = useDialog();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyId, setCompanyId] = useState("");
   const [input, setInput] = useState("");
@@ -107,10 +109,8 @@ export default function BiodyBulkCreatePage() {
     if (!companyId) { setErr("Veldu fyrirtæki."); return; }
     if (valid.length === 0) { setErr("Engar gildar línur í listanum."); return; }
     if (valid.length > 200) { setErr("Hámark er 200 í einu."); return; }
-    if (!confirm(
-      `Þetta mun stofna ${valid.length} Biody-sjúklinga undir völdu fyrirtæki með bráðabirgðagildum ` +
-      `(hæð 170 cm, hreyfingarstig moderate, kyn karlkyn nema annað sé tilgreint). Halda áfram?`,
-    )) return;
+    if (!(await dialog.confirm({ title: "Halda áfram?", body: `Þetta mun stofna ${valid.length} Biody-sjúklinga undir völdu fyrirtæki með bráðabirgðagildum ` +
+      `(hæð 170 cm, hreyfingarstig moderate, kyn karlkyn nema annað sé tilgreint).` }))) return;
     setSubmitting(true);
     setErr("");
     setSummary(null);
@@ -157,7 +157,7 @@ export default function BiodyBulkCreatePage() {
         <div className="text-xs text-gray-500 mb-1">
           <Link href="/admin/clients" className="hover:underline">Viðskiptavinir</Link> · Biody fjölda-stofnun
         </div>
-        <h1 className="text-2xl font-semibold text-[#1F2937]">Biody fjölda-stofnun (með bráðabirgðagildum)</h1>
+        <h1 className="text-2xl font-semibold text-hc-ink">Biody fjölda-stofnun (með bráðabirgðagildum)</h1>
         <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
           Stofnar Biody-sjúklinga fyrir hóp starfsmanna áður en fyrirtækið hefur farið í gegnum fulla B2B-skráningu.
           Sjúklingarnir eru tengdir Biody-hópnum sem er kenndur við fyrirtækið. Hæð / hreyfingarstig /
@@ -310,8 +310,8 @@ export default function BiodyBulkCreatePage() {
                     <td className="px-4 py-2 text-gray-600">{r.sex || <span className="text-gray-400">karl (sjálfg.)</span>}</td>
                     <td className="px-4 py-2">
                       {v
-                        ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-red-50 text-red-700 border-red-100">{v}</span>
-                        : <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-100">Tilbúið</span>}
+                        ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-red-50 text-red-700 border-red-100">{v}</span>
+                        : <span className="text-xs font-semibold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-100">Tilbúið</span>}
                     </td>
                   </tr>
                 );
@@ -365,7 +365,7 @@ export default function BiodyBulkCreatePage() {
                   <tr key={i}>
                     <td className="px-4 py-2 text-gray-800 font-mono text-[12px]">{r.email}</td>
                     <td className="px-4 py-2">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${pill}`}>{label}</span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${pill}`}>{label}</span>
                     </td>
                     <td className="px-4 py-2 text-xs text-gray-600 font-mono">{r.biody_patient_id ?? ""}</td>
                     <td className="px-4 py-2 text-xs text-gray-600">{r.error || ""}</td>

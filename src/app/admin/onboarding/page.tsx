@@ -28,6 +28,8 @@ import {
   DEFAULT_FLOW, MODULES, flowProblems, moduleDef,
   type FlowStep, type ModuleKind,
 } from "@/lib/hc/onboarding-modules";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { X } from "lucide-react";
 
 interface Flow {
   slug: string; name: string; audience: "all" | "check" | "coach";
@@ -63,6 +65,7 @@ export default function OnboardingAdminPage() {
   const [showPreview, setShowPreview] = useState(true);
   /* Full-screen, for when 390px of phone is not enough to judge a screen. */
   const [bigPreview, setBigPreview] = useState(false);
+  const previewRef = useDialogA11y(bigPreview, () => setBigPreview(false));
 
   const load = useCallback(async () => {
     const { ok, data } = await adminJson<{ flows: Flow[]; lectures: Lecture[]; funnel: Record<string, Funnel> }>("/api/admin/hc/onboarding");
@@ -220,7 +223,7 @@ export default function OnboardingAdminPage() {
                         <button type="button" onClick={() => move(i, 1)} disabled={i === draft.steps.length - 1}
                           aria-label="Niður" className="rounded px-2 py-1 text-slate-500 hover:bg-slate-100 disabled:opacity-30">↓</button>
                         <button type="button" onClick={() => remove(i)}
-                          aria-label="Fjarlægja" className="rounded px-2 py-1 text-slate-500 hover:bg-red-50 hover:text-red-700">✕</button>
+                          aria-label="Fjarlægja" className="inline-flex h-8 w-8 items-center justify-center rounded text-slate-500 hover:bg-red-50 hover:text-red-700"><X className="h-4 w-4" aria-hidden /></button>
                       </div>
 
                       {/* Only the fields this kind actually has. */}
@@ -382,7 +385,7 @@ export default function OnboardingAdminPage() {
                 <div className="mb-2 flex items-center gap-2">
                   <h2 className="flex-1 text-xs font-bold uppercase tracking-wide text-slate-500">Forskoðun</h2>
                   <button type="button" onClick={() => setBigPreview(true)}
-                    className="text-xs font-semibold text-[#047857] hover:underline">Stækka</button>
+                    className="text-xs font-semibold text-hc-brand-text hover:underline">Stækka</button>
                   <button type="button" onClick={() => setShowPreview(false)}
                     className="text-xs font-semibold text-slate-500 hover:text-slate-800">Fela</button>
                 </div>
@@ -423,8 +426,8 @@ export default function OnboardingAdminPage() {
             size nobody will see it at; this is the same width a phone gives
             it, with room around it to actually look. */}
         {bigPreview && draft && draft.steps.length > 0 && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4"
-            role="dialog" aria-label="Forskoðun">
+          <div ref={previewRef} className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4"
+            role="dialog" aria-modal="true" aria-label="Forskoðun">
             <div className="flex max-h-full flex-col items-center gap-3">
               <div className="flex w-full items-center gap-2">
                 <p className="flex-1 text-sm font-semibold text-white">

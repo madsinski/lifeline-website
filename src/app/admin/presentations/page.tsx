@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { TEMPLATES } from "@/lib/presentations/templates";
 import type { PresentationMeta } from "@/lib/presentations/types";
+import { fmtDate as fmtDateIs } from "@/app/components/account/ui/dates";
+import { useDialog } from "@/app/components/account/ui";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 
 async function authHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -13,15 +16,17 @@ async function authHeaders(): Promise<Record<string, string>> {
 }
 
 function fmtDate(s: string) {
-  try { return new Date(s).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }); } catch { return s; }
+  try { return fmtDateIs(s, { month: "short" }); } catch { return s; }
 }
 
 export default function PresentationsList() {
+  const dialog = useDialog();
   const router = useRouter();
   const [items, setItems] = useState<PresentationMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const newRef = useDialogA11y(showNew, () => setShowNew(false));
   const [copied, setCopied] = useState<string | null>(null);
   const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
 
@@ -73,7 +78,7 @@ export default function PresentationsList() {
   }
 
   async function remove(p: PresentationMeta) {
-    if (!confirm(`Delete “${p.title}”? This cannot be undone.`)) return;
+    if (!(await dialog.confirm({ title: `Delete “${p.title}”?`, body: `This cannot be undone.`, tone: "danger" }))) return;
     setBusy(p.id);
     try {
       const res = await fetch(`/api/admin/presentations/${p.id}`, { method: "DELETE", headers: await authHeaders() });
@@ -97,7 +102,7 @@ export default function PresentationsList() {
           <Link href="/admin/presentations/collateral" className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
             Fjarlækningar prentefni
           </Link>
-          <button onClick={() => setShowNew(true)} className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">
+          <button onClick={() => setShowNew(true)} className="rounded-md bg-hc-brand-dark px-4 py-2 text-sm font-medium text-white hover:bg-hc-brand-darker">
             + New presentation
           </button>
         </div>
@@ -124,7 +129,7 @@ export default function PresentationsList() {
                 {p.is_published && (
                   <div className="mt-1 flex items-center gap-2 text-xs">
                     <code className="truncate rounded bg-gray-50 px-1.5 py-0.5 text-gray-500">/present/{p.slug}</code>
-                    <button onClick={() => copyLink(p.slug)} className="font-medium text-emerald-600 hover:underline">{copied === p.slug ? "Copied!" : "Copy link"}</button>
+                    <button onClick={() => copyLink(p.slug)} className="font-medium text-hc-brand-text hover:underline">{copied === p.slug ? "Copied!" : "Copy link"}</button>
                     <a href={`/present/${p.slug}`} target="_blank" rel="noreferrer" className="font-medium text-gray-500 hover:underline">Open ↗</a>
                   </div>
                 )}
@@ -144,7 +149,7 @@ export default function PresentationsList() {
 
       {showNew && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={() => setShowNew(false)}>
-          <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div ref={newRef} role="dialog" aria-modal="true" aria-label="New presentation" className="flex max-h-[85vh] w-full max-w-md flex-col rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="mb-1 font-semibold text-gray-800">New presentation</h3>
             <p className="mb-4 text-sm text-gray-500">Start from a template — you can change everything after.</p>
             <div className="-mr-2 space-y-2 overflow-y-auto pr-2">

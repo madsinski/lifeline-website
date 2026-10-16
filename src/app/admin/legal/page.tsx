@@ -3,6 +3,10 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import LegalTabBar from "./LegalTabBar";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { fmtNum } from "@/app/admin/components/ui/format";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
 
 type Tab = "commercial" | "platform";
 
@@ -39,6 +43,8 @@ interface PlatformAcceptanceRow {
 }
 
 export default function AdminLegalPage() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>("commercial");
   const [rows, setRows] = useState<AgreementRow[]>([]);
   const [platformRows, setPlatformRows] = useState<PlatformAcceptanceRow[]>([]);
@@ -58,9 +64,10 @@ export default function AdminLegalPage() {
     if (count === 0) return;
     const label = target === "commercial" ? "commercial agreement(s)" : "platform acceptance(s)";
     const prompt = opts.all
-      ? `Delete ALL ${count} ${label}? This removes legal evidence of sign-off and cannot be undone.`
-      : `Delete ${ids.length} selected ${label}? This cannot be undone.`;
-    if (!confirm(prompt)) return;
+      ? `Delete ALL ${count} ${label}?`
+      : `Delete ${ids.length} selected ${label}?`;
+    const promptBody = opts.all ? "This removes legal evidence of sign-off and cannot be undone." : "This cannot be undone.";
+    if (!(await dialog.confirm({ title: prompt, body: promptBody, tone: "danger" }))) return;
     setDeleting(true);
     try {
       const { data: s } = await supabase.auth.getSession();
@@ -75,9 +82,9 @@ export default function AdminLegalPage() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j?.ok) {
-        alert(`Delete failed: ${j?.detail || j?.error || "unknown"}`);
+        toast.show(`Delete failed: ${j?.detail || j?.error || "unknown"}`, { tone: "bad" });
       } else {
-        alert(`Deleted ${j.deleted} row(s). Storage blobs removed: ${j.blobs_removed ?? 0}.`);
+        toast.show(`Deleted ${j.deleted} row(s). Storage blobs removed: ${j.blobs_removed ?? 0}.`, { tone: "ok" });
         if (target === "commercial") setSelectedCommercial(new Set());
         else setSelectedPlatform(new Set());
         await load();
@@ -207,7 +214,7 @@ export default function AdminLegalPage() {
   }, [filteredPlatform]);
 
   const backfillPdfs = async () => {
-    if (!confirm("Regenerate missing acceptance PDFs for every platform acceptance that has no PDF yet?")) return;
+    if (!(await dialog.confirm({ title: "Regenerate missing acceptance PDFs for every platform acceptance that has no PDF yet?" }))) return;
     setBackfilling(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -218,7 +225,7 @@ export default function AdminLegalPage() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j?.ok) {
-        alert(`Backfill failed: ${j?.detail || j?.error || "unknown"}`);
+        toast.show(`Backfill failed: ${j?.detail || j?.error || "unknown"}`, { tone: "bad" });
         return;
       }
       const c = j.counts || {};
@@ -227,14 +234,16 @@ export default function AdminLegalPage() {
       // hit the same problem (usually the case).
       const uniqErrs = Array.from(new Set(failures.map((r: { error?: string }) => r.error || "no detail"))) as string[];
       const errDetail = uniqErrs.length > 0 ? "\n\nUnique errors:\n" + uniqErrs.map((e) => "  • " + e).join("\n") : "";
-      alert(
+      await dialog.alert({
+        title: "Backfill finished",
+        body: <div className="whitespace-pre-line">{
         `Scanned ${c.scanned}\n` +
         `Regenerated ${c.regenerated}\n` +
         `Skipped (old version) ${c.skipped_version_not_found}\n` +
         `Skipped (text drift) ${c.skipped_text_hash_mismatch}\n` +
         `Failed ${c.failed}` +
-        errDetail
-      );
+        errDetail}</div>,
+      });
       console.log("[backfill] full results:", j);
       await load();
     } finally {
@@ -244,7 +253,7 @@ export default function AdminLegalPage() {
 
   const downloadFromBucket = async (id: string, bucket: string, storagePath: string | null) => {
     if (!storagePath) {
-      alert("PDF is missing — the upload may have failed.");
+      toast.show("PDF is missing — the upload may have failed.", { tone: "bad" });
       return;
     }
     setDownloadingId(id);
@@ -253,7 +262,7 @@ export default function AdminLegalPage() {
         .from(bucket)
         .createSignedUrl(storagePath, 300);
       if (sErr || !data?.signedUrl) {
-        alert(`Failed to generate download URL: ${sErr?.message || "unknown"}`);
+        toast.show(`Failed to generate download URL: ${sErr?.message || "unknown"}`, { tone: "bad" });
         return;
       }
       window.open(data.signedUrl, "_blank");
@@ -264,7 +273,7 @@ export default function AdminLegalPage() {
 
   const download = async (row: AgreementRow) => {
     if (!row.pdf_storage_path) {
-      alert("PDF is missing — the upload may have failed. Contact engineering to regenerate.");
+      toast.show("PDF is missing — the upload may have failed. Contact engineering to regenerate.", { tone: "bad" });
       return;
     }
     setDownloadingId(row.id);
@@ -273,7 +282,7 @@ export default function AdminLegalPage() {
         .from("b2b-signed-documents")
         .createSignedUrl(row.pdf_storage_path, 300);
       if (sErr || !data?.signedUrl) {
-        alert(`Failed to generate download URL: ${sErr?.message || "unknown"}`);
+        toast.show(`Failed to generate download URL: ${sErr?.message || "unknown"}`, { tone: "bad" });
         return;
       }
       window.open(data.signedUrl, "_blank");
@@ -282,7 +291,7 @@ export default function AdminLegalPage() {
     }
   };
 
-  const fmtIsk = (n: number | null) => n == null ? "—" : n.toLocaleString("is-IS") + " kr";
+  const fmtIsk = (n: number | null) => n == null ? "—" : fmtNum(n) + " kr";
 
   return (
     <div className="space-y-4">
@@ -356,7 +365,7 @@ export default function AdminLegalPage() {
                 key={p.key}
                 onClick={() => setDocKindFilter(p.key)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  docKindFilter === p.key ? "bg-emerald-600 text-white" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                  docKindFilter === p.key ? "bg-hc-brand-dark text-white" : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
                 }`}
               >
                 {p.label} <span className="opacity-70">· {platformCounts[p.key]}</span>
@@ -459,7 +468,7 @@ export default function AdminLegalPage() {
                       <div className="text-xs text-gray-400">{r.signatory_role} · {r.signatory_email}</div>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      {new Date(r.signed_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {fmtDateTime(r.signed_at, { year: true, month: "short" })}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900 text-right whitespace-nowrap">{fmtIsk(r.total_isk)}</td>
                     <td className="px-4 py-3 text-[11px] font-mono text-gray-500">{r.agreement_version}</td>
@@ -562,15 +571,15 @@ export default function AdminLegalPage() {
                       {r.user_full_name && r.user_email && (
                         <div className="text-[11px] text-gray-500">{r.user_email}</div>
                       )}
-                      <div className="text-[10px] font-mono text-gray-400 truncate max-w-[220px]" title={r.user_id}>{r.user_id}</div>
+                      <div className="text-xs font-mono text-gray-400 truncate max-w-[220px]" title={r.user_id}>{r.user_id}</div>
                     </td>
                     <td className="px-4 py-3 text-sm font-mono text-gray-700">{r.document_key}</td>
                     <td className="px-4 py-3 text-xs font-mono text-gray-500">{r.document_version}</td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      {new Date(r.accepted_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {fmtDateTime(r.accepted_at, { year: true, month: "short" })}
                     </td>
                     <td className="px-4 py-3 text-[11px] font-mono text-gray-400">{r.ip || "—"}</td>
-                    <td className="px-4 py-3 text-[10px] font-mono text-gray-400 truncate max-w-[180px]" title={r.text_hash}>{r.text_hash.slice(0, 16)}…</td>
+                    <td className="px-4 py-3 text-xs font-mono text-gray-400 truncate max-w-[180px]" title={r.text_hash}>{r.text_hash.slice(0, 16)}…</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => downloadFromBucket(r.id, "platform-acceptance-pdfs", r.pdf_storage_path)}

@@ -16,6 +16,9 @@ import {
 import { Deck, SlideStage } from "@/app/components/presentation/Deck";
 import { DeckPrint } from "@/app/components/presentation/DeckPrint";
 import { SlideFields } from "../_components/SlideFields";
+import { useDialog } from "@/app/components/account/ui";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { X } from "lucide-react";
 
 type EditLang = "en" | "is";
 const EMPTY_SNAP = { en: {}, is: {} };
@@ -28,6 +31,7 @@ async function authHeaders(): Promise<Record<string, string>> {
 type SaveState = "idle" | "saving" | "saved" | "error";
 
 export default function PresentationEditor() {
+  const dialog = useDialog();
   const params = useParams<{ id: string }>();
   const id = params?.id;
 
@@ -47,6 +51,7 @@ export default function PresentationEditor() {
   const [present, setPresent] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const addRef = useDialogA11y(addOpen, () => setAddOpen(false));
   const [addBrand, setAddBrand] = useState<BrandKey>("lifeline");
   const [previewType, setPreviewType] = useState<SlideType>("title");
   const [copied, setCopied] = useState(false);
@@ -159,8 +164,8 @@ export default function PresentationEditor() {
     setSel((i) => i + 1);
     setAddOpen(false);
   }
-  function removeSlide(i: number) {
-    if (!confirm("Delete this slide?")) return;
+  async function removeSlide(i: number) {
+    if (!(await dialog.confirm({ title: "Delete this slide?", tone: "danger" }))) return;
     setSlides((prev) => prev.filter((_, idx) => idx !== i));
     setSel((cur) => Math.max(0, cur > i ? cur - 1 : cur));
   }
@@ -197,7 +202,7 @@ export default function PresentationEditor() {
           className="min-w-0 flex-1 rounded-md border border-transparent px-2 py-1 text-lg font-semibold text-gray-900 hover:border-gray-200 focus:border-emerald-500 focus:outline-none"
           placeholder="Untitled presentation"
         />
-        <span className={`text-xs ${save === "error" ? "text-red-600" : save === "saved" ? "text-emerald-600" : "text-gray-400"}`}>
+        <span className={`text-xs ${save === "error" ? "text-red-600" : save === "saved" ? "text-hc-brand-text" : "text-gray-400"}`}>
           {save === "saving" ? "Saving…" : save === "saved" ? "Saved" : save === "error" ? "Save failed" : ""}
         </span>
         <label className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -208,7 +213,7 @@ export default function PresentationEditor() {
         </label>
         <button onClick={() => setPresent(true)} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">▶ Present</button>
         <button onClick={() => setPrintOpen(true)} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50" title="Export to PDF">⤓ PDF</button>
-        <button onClick={togglePublish} className={`rounded-md px-3 py-1.5 text-sm font-medium ${published ? "bg-emerald-600 text-white hover:bg-emerald-700" : "border border-gray-300 text-gray-700 hover:bg-gray-50"}`}>
+        <button onClick={togglePublish} className={`rounded-md px-3 py-1.5 text-sm font-medium ${published ? "bg-hc-brand-dark text-white hover:bg-hc-brand-darker" : "border border-gray-300 text-gray-700 hover:bg-gray-50"}`}>
           {published ? "Published" : "Publish"}
         </button>
       </div>
@@ -218,7 +223,7 @@ export default function PresentationEditor() {
         <span className="font-medium text-gray-400">Language</span>
         <div className="inline-flex overflow-hidden rounded-md border border-gray-300">
           {(["en", "is"] as const).map((l) => (
-            <button key={l} onClick={() => setEditLang(l)} className={`px-2.5 py-1 ${editLang === l ? "bg-emerald-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
+            <button key={l} onClick={() => setEditLang(l)} className={`px-2.5 py-1 ${editLang === l ? "bg-hc-brand-dark text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>
               {l === "en" ? "English" : "Íslenska"}
             </button>
           ))}
@@ -234,7 +239,7 @@ export default function PresentationEditor() {
         <div className="flex items-center gap-2 border-b border-emerald-100 bg-emerald-50/60 px-4 py-1.5 text-xs">
           <span className="text-emerald-700">Public link:</span>
           <code className="rounded bg-white px-1.5 py-0.5 text-gray-600">{origin}/present/{slug}</code>
-          <button onClick={copyLink} className="font-medium text-emerald-600 hover:underline">{copied ? "Copied!" : "Copy"}</button>
+          <button onClick={copyLink} className="font-medium text-hc-brand-text hover:underline">{copied ? "Copied!" : "Copy"}</button>
           <a href={`/present/${slug}`} target="_blank" rel="noreferrer" className="font-medium text-gray-500 hover:underline">Open ↗</a>
         </div>
       )}
@@ -254,7 +259,7 @@ export default function PresentationEditor() {
                 <div className="flex items-center gap-0.5 text-gray-300 opacity-0 group-hover:opacity-100">
                   <button onClick={(e) => { e.stopPropagation(); moveSlide(i, -1); }} className="px-1 hover:text-gray-700">↑</button>
                   <button onClick={(e) => { e.stopPropagation(); moveSlide(i, 1); }} className="px-1 hover:text-gray-700">↓</button>
-                  <button onClick={(e) => { e.stopPropagation(); removeSlide(i); }} className="px-1 hover:text-red-500">✕</button>
+                  <button onClick={(e) => { e.stopPropagation(); removeSlide(i); }} aria-label="Delete slide" className="inline-flex h-8 w-8 items-center justify-center hover:text-red-500"><X className="h-4 w-4" aria-hidden /></button>
                 </div>
               </div>
               <div className="mt-0.5 truncate text-xs text-gray-700">{s.heading?.replace(/==/g, "") || s.quote?.replace(/==/g, "") || s.kicker || "—"}</div>
@@ -262,7 +267,7 @@ export default function PresentationEditor() {
           ))}
           <button
             onClick={() => { setAddBrand(selected?.brand ?? "lifeline"); setPreviewType(selected?.type ?? "title"); setAddOpen(true); }}
-            className="mt-1 w-full rounded-md border border-dashed border-gray-300 py-2 text-sm text-gray-500 hover:border-emerald-400 hover:text-emerald-600"
+            className="mt-1 w-full rounded-md border border-dashed border-gray-300 py-2 text-sm text-gray-500 hover:border-emerald-400 hover:text-hc-brand-text"
           >+ Add slide</button>
         </div>
 
@@ -347,7 +352,7 @@ export default function PresentationEditor() {
 
       {addOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={() => setAddOpen(false)}>
-          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div ref={addRef} role="dialog" aria-modal="true" aria-label="Add slide" className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 px-4 py-3">
               <h3 className="font-semibold text-gray-800">Add slide</h3>
               <span className="text-xs text-gray-400">Pick a layout — preview on the right.</span>
@@ -355,10 +360,10 @@ export default function PresentationEditor() {
                 <span>Logo</span>
                 <div className="inline-flex overflow-hidden rounded-md border border-gray-300">
                   {BRAND_OPTIONS.map((o) => (
-                    <button key={o.value} onClick={() => setAddBrand(o.value)} className={`px-2.5 py-1 ${addBrand === o.value ? "bg-emerald-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>{o.label}</button>
+                    <button key={o.value} onClick={() => setAddBrand(o.value)} className={`px-2.5 py-1 ${addBrand === o.value ? "bg-hc-brand-dark text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>{o.label}</button>
                   ))}
                 </div>
-                <button onClick={() => setAddOpen(false)} className="ml-1 rounded p-1 text-gray-400 hover:text-gray-700" aria-label="Close">✕</button>
+                <button onClick={() => setAddOpen(false)} className="ml-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Loka"><X className="h-5 w-5" aria-hidden /></button>
               </div>
             </div>
             <div className="grid min-h-0 flex-1 grid-cols-[230px_1fr] gap-3 overflow-hidden p-3">
@@ -382,7 +387,7 @@ export default function PresentationEditor() {
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-3">
                   <p className="text-xs text-gray-500">{SLIDE_SCHEMAS[previewType].label} · {SLIDE_SCHEMAS[previewType].description}</p>
-                  <button onClick={() => addSlide(previewType)} className="flex-none rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700">Add this slide</button>
+                  <button onClick={() => addSlide(previewType)} className="flex-none rounded-md bg-hc-brand-dark px-3 py-1.5 text-sm font-medium text-white hover:bg-hc-brand-darker">Add this slide</button>
                 </div>
               </div>
             </div>

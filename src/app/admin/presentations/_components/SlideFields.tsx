@@ -10,6 +10,9 @@ import {
 import { LUCIDE_ICON_NAMES as iconNames } from "@/lib/presentations/lucide-icon-names";
 import { Icon } from "@/app/components/presentation/DeckAssets";
 import { ImagePicker } from "./ImagePicker";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
+import { X } from "lucide-react";
 
 const inputCls = "w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:border-emerald-500 focus:outline-none";
 const labelCls = "block text-xs font-medium text-gray-500 mb-1";
@@ -38,7 +41,7 @@ function IconPicker({ value, onChange }: { value?: string; onChange: (v: string)
   return (
     <div className="relative">
       <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 rounded-md border border-gray-300 px-2.5 py-1.5 text-sm hover:bg-gray-50">
-        <span className="flex h-5 w-5 flex-none items-center justify-center text-emerald-600">{value ? <Icon name={value} /> : null}</span>
+        <span className="flex h-5 w-5 flex-none items-center justify-center text-hc-brand-text">{value ? <Icon name={value} /> : null}</span>
         <span className="truncate text-gray-700">{value || "Choose icon"}</span>
         <span className="ml-auto text-gray-400">▾</span>
       </button>
@@ -105,7 +108,7 @@ function ImageField({ value, role, presentationId, onChange, presets }: { value?
         <div className="h-14 w-20 flex-none overflow-hidden rounded-md border border-gray-200 bg-gray-50">
           {value
             ? <img src={value} alt="" className="h-full w-full object-cover" />
-            : <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">none</div>}
+            : <div className="flex h-full w-full items-center justify-center text-xs text-gray-400">none</div>}
         </div>
         <button type="button" onClick={() => setOpen(true)} className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
           {value ? "Change" : "Choose"}
@@ -327,7 +330,7 @@ function HotspotField({ value, image, onChange }: { value: Hotspot[]; image?: st
         {spots.map((r, i) => (
           <div key={i} data-rect={i} className="absolute border-2 border-emerald-500 bg-emerald-400/20"
             style={{ left: `${r.x}%`, top: `${r.y}%`, width: `${r.w}%`, height: `${r.h}%`, cursor: "move", borderRadius: 6 }}>
-            <span className="pointer-events-none absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-600 text-[9px] font-bold text-white" style={{ transform: "translate(-50%,-50%)" }}>{i + 1}</span>
+            <span className="pointer-events-none absolute -left-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-hc-brand-dark text-[9px] font-bold text-white" style={{ transform: "translate(-50%,-50%)" }}>{i + 1}</span>
             {HANDLES.map((h) => (
               <span key={h.id} data-handle={`${h.id}:${i}`} className="absolute h-2.5 w-2.5 rounded-sm border border-white bg-emerald-500" style={h.style} />
             ))}
@@ -339,7 +342,7 @@ function HotspotField({ value, image, onChange }: { value: Hotspot[]; image?: st
         <div key={i} className="rounded-md border border-gray-200 bg-gray-50/60 p-2.5">
           <div className="mb-1.5 flex items-center justify-between">
             <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">Focus area {i + 1}</span>
-            <button type="button" onClick={() => remove(i)} className="px-1 text-gray-400 hover:text-red-500">✕</button>
+            <button type="button" onClick={() => remove(i)} aria-label="Remove" className="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-red-500"><X className="h-4 w-4" aria-hidden /></button>
           </div>
           <input value={r.title ?? ""} onChange={(e) => setAt(i, { title: e.target.value })} placeholder="Title" className={`${inputCls} mb-1.5`} />
           <textarea rows={2} value={r.body ?? ""} onChange={(e) => setAt(i, { body: e.target.value })} placeholder="Body (shown when opened)" className={inputCls} />
@@ -393,7 +396,7 @@ function ListEditor({ field, value, presentationId, onChange, textOnly }: { fiel
               <div className="flex items-center gap-1.5 text-gray-400">
                 <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="px-1 hover:text-gray-700 disabled:opacity-30">↑</button>
                 <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} className="px-1 hover:text-gray-700 disabled:opacity-30">↓</button>
-                <button type="button" onClick={() => remove(i)} className="px-1 hover:text-red-500">✕</button>
+                <button type="button" onClick={() => remove(i)} aria-label="Remove" className="inline-flex h-8 w-8 items-center justify-center hover:text-red-500"><X className="h-4 w-4" aria-hidden /></button>
               </div>
             )}
           </div>
@@ -418,7 +421,7 @@ function ListEditor({ field, value, presentationId, onChange, textOnly }: { fiel
         </div>
       ))}
       {!textOnly && !atMax && (
-        <button type="button" onClick={add} className="w-full rounded-md border border-dashed border-gray-300 py-1.5 text-sm text-gray-500 hover:border-emerald-400 hover:text-emerald-600">
+        <button type="button" onClick={add} className="w-full rounded-md border border-dashed border-gray-300 py-1.5 text-sm text-gray-500 hover:border-emerald-400 hover:text-hc-brand-text">
           + Add {field.itemLabel}
         </button>
       )}
@@ -429,6 +432,8 @@ function ListEditor({ field, value, presentationId, onChange, textOnly }: { fiel
 
 // ---- the editor for one slide ---------------------------------------------
 export function SlideFields({ slide, presentationId, onChange, textOnly }: { slide: Slide; presentationId: string; onChange: (s: Slide) => void; textOnly?: boolean }) {
+  const dialog = useDialog();
+  const toast = useToast();
   const schema = SLIDE_SCHEMAS[slide.type];
 
   function setField(key: string, value: unknown) {
@@ -480,11 +485,11 @@ export function SlideFields({ slide, presentationId, onChange, textOnly }: { sli
               <button type="button" className="mb-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                 onClick={async () => {
                   const cur = ((raw as string[]) ?? []).filter((x) => x && x.trim());
-                  if (cur.length && !confirm("Replace the current texts with the ones in the image?")) return;
+                  if (cur.length && !(await dialog.confirm({ title: "Replace the current texts with the ones in the image?" }))) return;
                   try {
                     const src = await (await fetch(slide.image!)).text();
                     setField(key, readSvgTexts(src));
-                  } catch { alert("Could not read the image."); }
+                  } catch { toast.show("Could not read the image.", { tone: "bad" }); }
                 }}>
                 Load texts from image
               </button>

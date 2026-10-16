@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtIsk } from "@/app/components/account/ui/dates";
+import { fmtNum } from "@/app/admin/components/ui/format";
 
 const TIER_PRICES: Record<string, number> = {
   "free-trial": 0,
@@ -154,7 +156,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-[#1F2937]">Analytics</h2>
+        <h2 className="text-2xl font-bold text-hc-ink">Analytics</h2>
         <button
           onClick={loadStats}
           className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
@@ -168,32 +170,32 @@ export default function AnalyticsPage() {
 
       {/* Client Statistics */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Client Statistics</h2>
+        <h2 className="text-lg font-semibold text-hc-ink mb-4">Client Statistics</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Total Clients</p>
-            <p className="text-2xl font-bold text-[#1F2937] mt-1">{stats.totalClients}</p>
+            <p className="text-2xl font-bold text-hc-ink mt-1">{stats.totalClients}</p>
           </div>
           {Object.entries(TIER_LABELS).map(([key, label]) => (
             <div key={key}>
               <p className="text-xs text-gray-500 uppercase tracking-wider">{label}</p>
-              <p className="text-2xl font-bold text-[#1F2937] mt-1">{stats.tierCounts[key] || 0}</p>
+              <p className="text-2xl font-bold text-hc-ink mt-1">{stats.tierCounts[key] || 0}</p>
             </div>
           ))}
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Active Rate</p>
-            <p className="text-2xl font-bold text-[#1F2937] mt-1">{stats.activeRate.toFixed(1)}%</p>
+            <p className="text-2xl font-bold text-hc-ink mt-1">{stats.activeRate.toFixed(1)}%</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">New (7 days)</p>
-            <p className="text-2xl font-bold text-[#10B981] mt-1">{stats.recentSignups}</p>
+            <p className="text-2xl font-bold text-hc-brand-text mt-1">{stats.recentSignups}</p>
           </div>
         </div>
       </div>
 
       {/* Tier distribution bar */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Client Distribution by Tier</h2>
+        <h2 className="text-lg font-semibold text-hc-ink mb-4">Client Distribution by Tier</h2>
         {stats.totalClients === 0 ? (
           <p className="text-sm text-gray-400">No clients yet</p>
         ) : (
@@ -223,15 +225,15 @@ export default function AnalyticsPage() {
 
       {/* Assessment / Appointment Stats */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Appointment Statistics</h2>
+        <h2 className="text-lg font-semibold text-hc-ink mb-4">Appointment Statistics</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Total Appointments</p>
-            <p className="text-2xl font-bold text-[#1F2937] mt-1">{stats.totalAppointments}</p>
+            <p className="text-2xl font-bold text-hc-ink mt-1">{stats.totalAppointments}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Measurements</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">{stats.appointmentsByType["measurement"] || 0}</p>
+            <p className="text-2xl font-bold text-hc-brand-text mt-1">{stats.appointmentsByType["measurement"] || 0}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Blood Tests</p>
@@ -246,34 +248,34 @@ export default function AnalyticsPage() {
 
       {/* Coaching Stats */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Coaching Statistics</h2>
+        <h2 className="text-lg font-semibold text-hc-ink mb-4">Coaching Statistics</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Completions (30d)</p>
-            <p className="text-2xl font-bold text-[#1F2937] mt-1">{stats.totalCompletions.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-hc-ink mt-1">{fmtNum(stats.totalCompletions)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Avg/Day</p>
-            <p className="text-2xl font-bold text-[#1F2937] mt-1">{stats.avgCompletionsPerDay.toFixed(1)}</p>
+            <p className="text-2xl font-bold text-hc-ink mt-1">{stats.avgCompletionsPerDay.toFixed(1)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Completion Rate</p>
-            <p className="text-2xl font-bold text-[#1F2937] mt-1">{stats.completionRate.toFixed(0)}%</p>
+            <p className="text-2xl font-bold text-hc-ink mt-1">{stats.completionRate.toFixed(0)}%</p>
           </div>
         </div>
       </div>
 
       {/* Revenue Overview */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Revenue Overview</h2>
+        <h2 className="text-lg font-semibold text-hc-ink mb-4">Revenue Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Monthly Recurring Revenue</p>
-            <p className="text-2xl font-bold text-[#1F2937] mt-1">{formatISK(stats.mrr)}</p>
+            <p className="text-2xl font-bold text-hc-ink mt-1">{formatISK(stats.mrr)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wider">Paying Clients</p>
-            <p className="text-2xl font-bold text-[#1F2937] mt-1">
+            <p className="text-2xl font-bold text-hc-ink mt-1">
               {(stats.tierCounts["self-maintained"] || 0) + (stats.tierCounts["premium"] || 0)}
             </p>
           </div>
@@ -292,23 +294,23 @@ export default function AnalyticsPage() {
             <tbody className="divide-y divide-gray-100">
               {tierEntries.map((row, idx) => (
                 <tr key={row.key} className={idx % 2 === 1 ? "bg-gray-50/50" : ""}>
-                  <td className="py-2.5 px-3 text-sm font-medium text-[#1F2937]">{row.tier}</td>
+                  <td className="py-2.5 px-3 text-sm font-medium text-hc-ink">{row.tier}</td>
                   <td className="py-2.5 px-3 text-sm text-gray-600">{row.clients}</td>
                   <td className="py-2.5 px-3 text-sm text-gray-600">
-                    {row.pricePerMonth === 0 ? "Free" : `kr ${row.pricePerMonth.toLocaleString()}`}
+                    {row.pricePerMonth === 0 ? "Free" : fmtIsk(row.pricePerMonth)}
                   </td>
-                  <td className="py-2.5 px-3 text-sm font-medium text-[#1F2937]">{formatISK(row.mrr)}</td>
+                  <td className="py-2.5 px-3 text-sm font-medium text-hc-ink">{formatISK(row.mrr)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-gray-200">
-                <td className="py-2.5 px-3 text-sm font-bold text-[#1F2937]">Total</td>
-                <td className="py-2.5 px-3 text-sm font-bold text-[#1F2937]">
+                <td className="py-2.5 px-3 text-sm font-bold text-hc-ink">Total</td>
+                <td className="py-2.5 px-3 text-sm font-bold text-hc-ink">
                   {tierEntries.reduce((s, r) => s + r.clients, 0)}
                 </td>
                 <td className="py-2.5 px-3" />
-                <td className="py-2.5 px-3 text-sm font-bold text-[#10B981]">{formatISK(stats.mrr)}</td>
+                <td className="py-2.5 px-3 text-sm font-bold text-hc-brand-text">{formatISK(stats.mrr)}</td>
               </tr>
             </tfoot>
           </table>

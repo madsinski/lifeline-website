@@ -7,6 +7,7 @@
 import { useState } from "react";
 import type { CollateralContent, ArchivedDoc, Doc } from "./content";
 import type { SaveResult } from "./CollateralStudio";
+import { useDialog } from "@/app/components/account/ui";
 
 const TYPE_LABEL: Record<string, string> = {
   poster: "Veggspjald",
@@ -30,6 +31,7 @@ export function CollateralArchive({
   onSave: (content: CollateralContent) => Promise<SaveResult>;
   backHref: string;
 }) {
+  const dialog = useDialog();
   const [content, setContent] = useState<CollateralContent>(initial);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -60,8 +62,8 @@ export function CollateralArchive({
     });
   }
 
-  function remove(i: number) {
-    if (!window.confirm("Eyða endanlega? Þetta er ekki hægt að afturkalla.")) return;
+  async function remove(i: number) {
+    if (!(await dialog.confirm({ title: "Eyða endanlega?", body: "Þetta er ekki hægt að afturkalla.", tone: "danger" }))) return;
     persist({ ...content, archived: archived.filter((_, j) => j !== i) });
   }
 
@@ -93,7 +95,7 @@ export function CollateralArchive({
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => restore(i)} disabled={busy}
-                  className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-40">
+                  className="rounded-md bg-hc-brand-dark px-3 py-1.5 text-xs font-medium text-white hover:bg-hc-brand-darker disabled:opacity-40">
                   Endurheimta
                 </button>
                 <button onClick={() => remove(i)} disabled={busy}

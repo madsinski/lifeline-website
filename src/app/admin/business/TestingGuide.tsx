@@ -11,6 +11,7 @@
 
 import { useEffect, useState, useCallback, createContext, useContext } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
 
 const STORAGE_KEY = "business_testing_guide_progress_v1";
 
@@ -53,7 +54,7 @@ function PhaseFeedback({ fbKey, fbLabel }: { fbKey: string; fbLabel: string }) {
   };
 
   const fmtDate = (iso: string) => {
-    try { return new Date(iso).toLocaleString("is-IS", { dateStyle: "short", timeStyle: "short" }); }
+    try { return fmtDateTime(iso, { year: true, month: "short" }); }
     catch { return iso; }
   };
 
@@ -72,13 +73,13 @@ function PhaseFeedback({ fbKey, fbLabel }: { fbKey: string; fbLabel: string }) {
       <div className="mt-1.5 flex items-center justify-between gap-3">
         <span className="text-[11px] text-red-600">
           {err}
-          {justSent && <span className="text-emerald-600">Sent — thanks!</span>}
+          {justSent && <span className="text-hc-brand-text">Sent — thanks!</span>}
         </span>
         <button
           type="button"
           onClick={onSubmit}
           disabled={busy || !body.trim()}
-          className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+          className="rounded-lg bg-hc-brand-dark px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-hc-brand-darker disabled:opacity-50 transition-colors"
         >
           {busy ? "Sending…" : "Submit"}
         </button>
@@ -89,7 +90,7 @@ function PhaseFeedback({ fbKey, fbLabel }: { fbKey: string; fbLabel: string }) {
           {mine.map((f) => (
             <li key={f.id} className="rounded-md bg-white border border-gray-100 px-2.5 py-1.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-gray-400">{fmtDate(f.created_at)}</span>
+                <span className="text-xs text-gray-400">{fmtDate(f.created_at)}</span>
                 <Pill tone={f.status === "resolved" ? "emerald" : "amber"}>{f.status}</Pill>
               </div>
               <p className="text-[12px] text-gray-700 whitespace-pre-wrap">{f.body}</p>

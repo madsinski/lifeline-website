@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDate as fmtDateIs } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 interface PendingEvent {
   id: string;
@@ -35,6 +37,7 @@ interface PendingLecture {
 }
 
 export default function ApprovalsContent() {
+  const toast = useToast();
   const [events, setEvents] = useState<PendingEvent[]>([]);
   const [interviews, setInterviews] = useState<PendingInterview[]>([]);
   const [lectures, setLectures] = useState<PendingLecture[]>([]);
@@ -96,11 +99,11 @@ export default function ApprovalsContent() {
       body: JSON.stringify({ action }),
     });
     setBusyId(null);
-    if (!res.ok) { const j = await res.json().catch(() => ({})); alert(`Failed: ${j.error || res.status}`); return; }
+    if (!res.ok) { const j = await res.json().catch(() => ({})); toast.show(`Failed: ${j.error || res.status}`, { tone: "bad" }); return; }
     load();
   };
 
-  const fmtDate = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const fmtDate = (d: string) => fmtDateIs(d + "T00:00:00", { weekday: "short", month: "short" });
   const totalPending = events.length + interviews.length + lectures.length;
 
   return (
@@ -123,7 +126,7 @@ export default function ApprovalsContent() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button disabled={busyId === e.id} onClick={() => act("event", e.id, "approve")}
-                        className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-40">Approve</button>
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker disabled:opacity-40">Approve</button>
                       <button disabled={busyId === e.id} onClick={() => act("event", e.id, "reject")}
                         className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-40">Reject</button>
                     </div>
@@ -148,7 +151,7 @@ export default function ApprovalsContent() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button disabled={busyId === e.id} onClick={() => act("interview", e.id, "approve")}
-                        className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-40">Approve</button>
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker disabled:opacity-40">Approve</button>
                       <button disabled={busyId === e.id} onClick={() => act("interview", e.id, "reject")}
                         className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-40">Reject</button>
                     </div>
@@ -174,7 +177,7 @@ export default function ApprovalsContent() {
                     </div>
                     <div className="flex gap-2 shrink-0">
                       <button disabled={busyId === e.id} onClick={() => act("lecture", e.id, "approve")}
-                        className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-40">Approve</button>
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker disabled:opacity-40">Approve</button>
                       <button disabled={busyId === e.id} onClick={() => act("lecture", e.id, "reject")}
                         className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-40">Reject</button>
                     </div>

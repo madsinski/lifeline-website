@@ -12,6 +12,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import BackButton from "@/app/components/BackButton";
 import { DEFAULTS, JobDescriptionDoc, type DocFields } from "./JobDescriptionDoc";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { X } from "lucide-react";
 
 const DEFAULT_DOC_ID = "framkvaemdastjori";
 
@@ -50,6 +55,8 @@ async function authHeaders(): Promise<Record<string, string>> {
 }
 
 export default function JobDescriptionWorkspace() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [docs, setDocs] = useState<DocMeta[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [fields, setFields] = useState<DocFields>(DEFAULTS);
@@ -156,24 +163,24 @@ export default function JobDescriptionWorkspace() {
         headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({ title: title.trim() || DEFAULT_TITLE }),
       });
-      if (!res.ok) { alert("Gat ekki búið til skjal."); return; }
+      if (!res.ok) { toast.show("Gat ekki búið til skjal.", { tone: "bad" }); return; }
       const j = await res.json();
       await loadList(j.document?.id);
       setActiveId(j.document?.id ?? null);
-    } catch { alert("Gat ekki búið til skjal."); }
+    } catch { toast.show("Gat ekki búið til skjal.", { tone: "bad" }); }
   };
 
   const deleteDoc = async (id: string) => {
-    if (id === DEFAULT_DOC_ID) { alert("Ekki er hægt að eyða sjálfgefna skjalinu."); return; }
-    if (!confirm("Eyða þessari verkefnalýsingu? Þetta er óafturkræft.")) return;
+    if (id === DEFAULT_DOC_ID) { toast.show("Ekki er hægt að eyða sjálfgefna skjalinu.", { tone: "bad" }); return; }
+    if (!(await dialog.confirm({ title: "Eyða þessari verkefnalýsingu?", body: "Þetta er óafturkræft.", tone: "danger" }))) return;
     try {
       const res = await fetch(`/api/job-description?id=${encodeURIComponent(id)}`, {
         method: "DELETE", headers: await authHeaders(),
       });
-      if (!res.ok) { alert("Gat ekki eytt skjali."); return; }
+      if (!res.ok) { toast.show("Gat ekki eytt skjali.", { tone: "bad" }); return; }
       setDocs((prev) => prev.filter((d) => d.id !== id));
       if (activeId === id) setActiveId(DEFAULT_DOC_ID);
-    } catch { alert("Gat ekki eytt skjali."); }
+    } catch { toast.show("Gat ekki eytt skjali.", { tone: "bad" }); }
   };
 
   // Copy a password-gated online link to this specific proposal — the
@@ -202,7 +209,7 @@ export default function JobDescriptionWorkspace() {
           <button
             type="button"
             onClick={createDoc}
-            className="text-xs font-semibold px-2.5 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
+            className="text-xs font-semibold px-2.5 py-1.5 rounded-md bg-hc-brand-dark text-white hover:bg-hc-brand-darker"
           >
             + Ný
           </button>
@@ -225,7 +232,7 @@ export default function JobDescriptionWorkspace() {
                     <span className={`text-sm font-semibold truncate ${active ? "text-emerald-700" : "text-gray-900"}`}>
                       {d.title || "Untitled"}
                     </span>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLOR[d.status] ?? STATUS_COLOR.draft}`}>
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLOR[d.status] ?? STATUS_COLOR.draft}`}>
                       {STATUS_LABEL[d.status] ?? d.status}
                     </span>
                   </div>
@@ -271,7 +278,7 @@ export default function JobDescriptionWorkspace() {
                   <p className="text-xs text-gray-500 mt-2">
                     <strong>Deila hlekk</strong> sendir lykilorðsvarinn vefhlekk (mælt með) · <strong>Forskoða</strong> sýnir útgáfu umsækjanda.
                     {save === "saving" && <span className="text-gray-400"> · Vista…</span>}
-                    {save === "saved" && <span className="text-emerald-600 font-medium"> · Vistað</span>}
+                    {save === "saved" && <span className="text-hc-brand-text font-medium"> · Vistað</span>}
                     {save === "error" && <span className="text-amber-600 font-medium"> · Vistun mistókst</span>}
                     {loadingDoc && <span className="text-gray-400"> · Hleð…</span>}
                   </p>
@@ -299,7 +306,7 @@ export default function JobDescriptionWorkspace() {
                   <button
                     type="button"
                     onClick={shareLink}
-                    className="text-sm font-semibold px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="text-sm font-semibold px-4 py-2 rounded-md bg-hc-brand-dark text-white hover:bg-hc-brand-darker"
                   >
                     Deila hlekk
                   </button>
@@ -349,15 +356,17 @@ function Modal({
 }: {
   title: string; onClose: () => void; children: React.ReactNode; wide?: boolean;
 }) {
+  const panelRef = useDialogA11y(true, onClose);
   return (
     <div className="jd-noprint fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8" onClick={onClose}>
       <div
+        ref={panelRef} role="dialog" aria-modal="true" aria-label={title}
         className={`my-4 w-full ${wide ? "max-w-4xl" : "max-w-2xl"} rounded-xl bg-white shadow-2xl`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3 sticky top-0 bg-white rounded-t-xl">
           <h3 className="text-sm font-bold text-gray-900">{title}</h3>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none px-2">&times;</button>
+          <button type="button" onClick={onClose} aria-label="Loka" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600"><X className="h-5 w-5" aria-hidden /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -391,6 +400,7 @@ function ContractPanel({
 }: {
   jobId: string; candidateName: string; candidateEmail: string; onChanged: () => void;
 }) {
+  const dialog = useDialog();
   const [contracts, setContracts] = useState<ContractRow[]>([]);
   const [sending, setSending] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -435,7 +445,7 @@ function ContractPanel({
 
   const send = async () => {
     if (!candidateEmail.trim()) { setErr("Skráðu netfang umsækjanda að ofan fyrst."); return; }
-    if (!confirm(`Senda ráðningarsamning á ${candidateEmail}? Samningurinn byggir á samþykktu dálkunum í samantekt kjara.`)) return;
+    if (!(await dialog.confirm({ title: `Senda ráðningarsamning á ${candidateEmail}?`, body: `Samningurinn byggir á samþykktu dálkunum í samantekt kjara.` }))) return;
     setSending(true);
     setErr(null);
     try {
@@ -457,7 +467,7 @@ function ContractPanel({
   };
 
   const patch = async (id: string, action: "resend" | "void") => {
-    if (action === "void" && !confirm("Fella þennan samning úr gildi? Hlekkurinn hættir að virka.")) return;
+    if (action === "void" && !(await dialog.confirm({ title: "Fella þennan samning úr gildi?", body: "Hlekkurinn hættir að virka.", tone: "danger" }))) return;
     setBusyId(id);
     setErr(null);
     try {
@@ -537,7 +547,7 @@ function ContractPanel({
         Sendur á <code className="bg-gray-100 px-1 py-0.5 rounded">{candidateEmail || "— vantar netfang —"}</code>.
       </p>
       {err && <p className="text-red-600 text-sm mb-3">{err}</p>}
-      {note && <p className="text-emerald-600 text-sm mb-3">{note}</p>}
+      {note && <p className="text-hc-brand-text text-sm mb-3">{note}</p>}
 
       {contracts.length === 0 ? (
         <p className="text-xs text-gray-400">Enginn samningur sendur enn.</p>
@@ -551,8 +561,8 @@ function ContractPanel({
                 </span>
                 <span className="block text-[11px] text-gray-500 mt-1">
                   {c.signed_at
-                    ? `Undirritað ${new Date(c.signed_at).toLocaleString("is-IS")}`
-                    : `Sendur ${new Date(c.created_at).toLocaleString("is-IS")}`}
+                    ? `Undirritað ${fmtDateTime(c.signed_at, { year: true, month: "short" })}`
+                    : `Sendur ${fmtDateTime(c.created_at, { year: true, month: "short" })}`}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">

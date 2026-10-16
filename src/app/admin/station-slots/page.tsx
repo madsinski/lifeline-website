@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import SlotsBulkDeleteModal from "../components/SlotsBulkDeleteModal";
+import { fmtDate, fmtTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
 
 type StationSlot = {
   id: string;
@@ -21,6 +24,8 @@ type StationSlot = {
 type Filter = "upcoming" | "available" | "booked" | "past" | "all";
 
 export default function StationSlotsAdminPage() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [slots, setSlots] = useState<StationSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("upcoming");
@@ -85,12 +90,11 @@ export default function StationSlotsAdminPage() {
     // body_comp_booking is tied to it, use the Payments page to refund.
     const slot = slots.find((s) => s.id === id);
     if (slot?.client_id) {
-      alert(
-        "This slot is booked by a client. Release the claim first (Unclaim), or refund the booking via the Payments page. Deleting a claimed slot would leave the client stuck.",
-      );
+      toast.show(
+        "This slot is booked by a client. Release the claim first (Unclaim), or refund the booking via the Payments page. Deleting a claimed slot would leave the client stuck.", { tone: "bad" });
       return;
     }
-    if (!confirm("Delete this slot?")) return;
+    if (!(await dialog.confirm({ title: "Delete this slot?", tone: "danger" }))) return;
     const { error } = await supabase.from("station_slots").delete().eq("id", id);
     if (error) { setMsg(`Delete failed: ${error.message}`); return; }
     setMsg("Deleted.");
@@ -98,7 +102,7 @@ export default function StationSlotsAdminPage() {
   }
 
   async function unclaimSlot(id: string) {
-    if (!confirm("Release this slot? The client's booking row is left intact (and still paid, if applicable) — use the Payments page to refund. The slot goes back into the open pool.")) return;
+    if (!(await dialog.confirm({ title: "Release this slot?", body: "The client's booking row is left intact (and still paid, if applicable) — use the Payments page to refund. The slot goes back into the open pool.", tone: "danger" }))) return;
     const { error } = await supabase.rpc("release_station_slot_by_id", { p_slot_id: id });
     if (error) { setMsg(`Release failed: ${error.message}`); return; }
     setMsg("Released.");
@@ -116,7 +120,7 @@ export default function StationSlotsAdminPage() {
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1F2937]">Station slots</h1>
+          <h1 className="text-2xl font-semibold text-hc-ink">Station slots</h1>
           <p className="text-sm text-[#6B7280]">Availability at the Lifeline measurement station for B2C Foundational Health bookings.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -192,8 +196,8 @@ export default function StationSlotsAdminPage() {
                 return (
                   <tr key={s.id} className="border-t border-gray-100 align-top">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</div>
-                      <div className="text-xs text-gray-600">{d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })} · {s.duration_minutes} min</div>
+                      <div className="font-medium text-gray-900">{fmtDate(d, { weekday: "short", month: "short" })}</div>
+                      <div className="text-xs text-gray-600">{fmtTime(d)} · {s.duration_minutes} min</div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">{s.location || "—"}</td>
                     <td className="px-4 py-3">
@@ -211,7 +215,7 @@ export default function StationSlotsAdminPage() {
                       {isBooked ? (
                         <>
                           <div className="font-medium">{name || s.client?.email || "—"}</div>
-                          {s.booking_id && <div className="text-[10px] text-gray-400 font-mono">{s.booking_id.slice(0, 8)}</div>}
+                          {s.booking_id && <div className="text-xs text-gray-400 font-mono">{s.booking_id.slice(0, 8)}</div>}
                         </>
                       ) : <span className="text-gray-400">—</span>}
                     </td>
@@ -334,8 +338,8 @@ function BulkAddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         const at = new Date(t);
         out.push({
           slot_at: at.toISOString(),
-          day: at.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }),
-          time: at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }),
+          day: fmtDate(at, { weekday: "short", year: false, month: "short" }),
+          time: fmtTime(at),
         });
         count++;
       }

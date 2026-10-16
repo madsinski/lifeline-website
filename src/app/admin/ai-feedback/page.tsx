@@ -14,6 +14,8 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useStaffGuard } from "@/lib/useStaffGuard";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
 
 interface FeedbackRow {
   id: string;
@@ -94,6 +96,7 @@ function windowToCutoff(w: Window): Date | null {
 }
 
 export default function AiFeedbackPage() {
+  const toast = useToast();
   const guard = useStaffGuard({ role: "admin" });
   const [rows, setRows] = useState<FeedbackRow[]>([]);
   const [recsById, setRecsById] = useState<Map<string, RecommendationRow>>(new Map());
@@ -249,9 +252,9 @@ export default function AiFeedbackPage() {
       })
       .in("id", ids)
       .select("id");
-    if (error) { alert(`Could not update: ${error.message}`); return; }
+    if (error) { toast.show(`Could not update: ${error.message}`, { tone: "bad" }); return; }
     if (!data || data.length === 0) {
-      alert("0 rows updated — RLS may be blocking. Check the Admin updates ai feedback policy.");
+      toast.show("0 rows updated — RLS may be blocking. Check the Admin updates ai feedback policy.", { tone: "bad" });
       return;
     }
     await load();
@@ -324,7 +327,7 @@ export default function AiFeedbackPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-[#1F2937]">AI feedback</h1>
+        <h1 className="text-2xl font-bold text-hc-ink">AI feedback</h1>
         <p className="text-sm text-gray-500 mt-1 max-w-3xl">
           Users tap <em>&quot;Doesn&apos;t feel right&quot;</em> on an AI recommendation in the app
           and a row lands here. Grouped by reason + recommendation signature, so a
@@ -347,7 +350,7 @@ export default function AiFeedbackPage() {
               key={w}
               onClick={() => setWindowSel(w)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                windowSel === w ? "bg-emerald-600 text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                windowSel === w ? "bg-hc-brand-dark text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
               }`}
             >
               {WINDOW_LABELS[w]}
@@ -424,7 +427,7 @@ export default function AiFeedbackPage() {
               <div className="text-xs text-violet-700 font-semibold uppercase tracking-wide">AI summary · {summary.model}</div>
               <div className="text-xs text-gray-500 mt-0.5">
                 {summary.responses_count} report{summary.responses_count === 1 ? "" : "s"} ·
-                Generated {new Date(summary.generated_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                Generated {fmtDateTime(summary.generated_at, { month: "short" })}
               </div>
             </div>
           </div>
@@ -438,7 +441,7 @@ export default function AiFeedbackPage() {
                 {summary.concerns.map((c, i) => (
                   <div key={i} className="border border-gray-200 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${
                         c.severity === "high" ? "bg-red-100 text-red-800"
                         : c.severity === "medium" ? "bg-amber-100 text-amber-800"
                         : "bg-gray-100 text-gray-700"
@@ -458,7 +461,7 @@ export default function AiFeedbackPage() {
                 {summary.action_items.map((a, i) => (
                   <div key={i} className="border border-gray-200 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${
                         a.priority === "high" ? "bg-red-100 text-red-800"
                         : a.priority === "medium" ? "bg-amber-100 text-amber-800"
                         : "bg-gray-100 text-gray-700"
@@ -509,7 +512,7 @@ export default function AiFeedbackPage() {
                   <Fragment key={g.key}>
                     <tr className={`hover:bg-gray-50/50 ${expanded ? "bg-emerald-50/30" : ""} ${g.status === "resolved" ? "opacity-60" : ""} ${g.escalated && g.status === "open" ? "bg-orange-50/30" : ""}`}>
                       <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                        {new Date(g.lastSeen).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        {fmtDateTime(g.lastSeen, { month: "short" })}
                       </td>
                       <td className="px-4 py-3">
                         {g.escalated && g.status === "open" && (
@@ -528,7 +531,7 @@ export default function AiFeedbackPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-800 font-medium truncate max-w-md" title={recLabel}>
                         {rec?.type && (
-                          <span className="text-[10px] px-1.5 py-0.5 mr-2 rounded bg-gray-100 text-gray-600 font-mono">
+                          <span className="text-xs px-1.5 py-0.5 mr-2 rounded bg-gray-100 text-gray-600 font-mono">
                             {rec.type}
                           </span>
                         )}
@@ -582,7 +585,7 @@ export default function AiFeedbackPage() {
                                   </div>
                                   <div>
                                     <div className="text-gray-400 uppercase font-semibold tracking-wide mb-1">Recommendation made</div>
-                                    <div className="text-gray-700">{new Date(rec.created_at).toLocaleString("en-GB")}</div>
+                                    <div className="text-gray-700">{fmtDateTime(rec.created_at, { year: true, month: "short" })}</div>
                                   </div>
                                 </div>
                               </>
@@ -593,20 +596,20 @@ export default function AiFeedbackPage() {
                                 {g.allRows.map((r) => (
                                   <div key={r.id} className="bg-white border border-gray-200 rounded p-2">
                                     <div className="flex items-center gap-2 mb-1">
-                                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${REASON_STYLES[r.reason]}`}>
+                                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${REASON_STYLES[r.reason]}`}>
                                         {REASON_LABELS[r.reason]}
                                       </span>
-                                      <span className="text-[10px] text-gray-500">
-                                        client {r.client_id.slice(0, 8)}… · {new Date(r.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                      <span className="text-xs text-gray-500">
+                                        client {r.client_id.slice(0, 8)}… · {fmtDateTime(r.created_at, { month: "short" })}
                                       </span>
-                                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ml-auto ${STATUS_STYLES[r.status]}`}>
+                                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ml-auto ${STATUS_STYLES[r.status]}`}>
                                         {r.status}
                                       </span>
                                     </div>
                                     {r.notes && <div className="text-gray-700 italic">&quot;{r.notes}&quot;</div>}
                                     {r.resolved_by_name && (
-                                      <div className="text-[10px] text-gray-400 mt-1">
-                                        Resolved by {r.resolved_by_name} {r.resolved_at ? `at ${new Date(r.resolved_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}
+                                      <div className="text-xs text-gray-400 mt-1">
+                                        Resolved by {r.resolved_by_name} {r.resolved_at ? `at ${fmtDateTime(r.resolved_at, { month: "short" })}` : ""}
                                       </div>
                                     )}
                                   </div>

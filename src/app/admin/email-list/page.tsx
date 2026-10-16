@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import { fmtDateTime } from "@/app/components/account/ui/dates";
 
 type Subscriber = {
   id: string;
@@ -91,7 +92,7 @@ export default function EmailListPage() {
         </div>
         <button
           onClick={exportCsv}
-          className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-full hover:bg-emerald-700 transition"
+          className="px-4 py-2 bg-hc-brand-dark text-white text-sm font-medium rounded-full hover:bg-hc-brand-darker transition"
         >
           Export CSV
         </button>
@@ -137,7 +138,7 @@ export default function EmailListPage() {
                 <td className="px-4 py-3 text-gray-900 font-medium">{r.email}</td>
                 <td className="px-4 py-3 text-gray-600">{r.source ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-500">
-                  {new Date(r.created_at).toLocaleString()}
+                  {fmtDateTime(r.created_at, { year: true, month: "short" })}
                 </td>
                 <td className="px-4 py-3">
                   {r.unsubscribed_at ? (

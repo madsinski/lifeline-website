@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { adminApi } from "@/app/admin/hc-api";
 import { supabase } from "@/lib/supabase";
 import SlotsBulkDeleteModal from "../components/SlotsBulkDeleteModal";
+import { fmtDate, fmtTime } from "@/app/components/account/ui/dates";
+import { useDialog } from "@/app/components/account/ui";
 
 type DoctorSlot = {
   id: string;
@@ -27,6 +29,7 @@ type Filter = "upcoming" | "available" | "booked" | "past" | "all";
 type CompanyOption = { id: string; name: string };
 
 export default function DoctorSlotsAdminPage() {
+  const dialog = useDialog();
   const [slots, setSlots] = useState<DoctorSlot[]>([]);
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,10 +87,10 @@ export default function DoctorSlotsAdminPage() {
     const slot = slots.find((s) => s.id === id);
     let reason = "";
     if (slot?.client_id) {
-      if (!confirm("This slot is booked by a client. Deleting it will cancel their doctor consultation and email them a notification. Continue?")) return;
+      if (!(await dialog.confirm({ title: "This slot is booked by a client.", body: "Deleting it will cancel their doctor consultation and email them a notification. Continue?", tone: "danger" }))) return;
       reason = window.prompt("Optional: reason to include in the email (e.g. 'Doctor out sick — please rebook').") || "";
     } else {
-      if (!confirm("Delete this slot?")) return;
+      if (!(await dialog.confirm({ title: "Delete this slot?", tone: "danger" }))) return;
     }
     // One server step: delete the row, then (only if that succeeded) email
     // the booked client. See src/app/api/bookings/doctor-slot-deleted/route.ts.
@@ -130,7 +133,7 @@ export default function DoctorSlotsAdminPage() {
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1F2937]">Doctor consultation slots</h1>
+          <h1 className="text-2xl font-semibold text-hc-ink">Doctor consultation slots</h1>
           <p className="text-sm text-[#6B7280]">Create and manage the available 1:1 consultation slots for employees.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -209,8 +212,8 @@ export default function DoctorSlotsAdminPage() {
                 return (
                   <tr key={s.id} className="border-t border-gray-100 align-top">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</div>
-                      <div className="text-xs text-gray-600">{d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })} · {s.duration_minutes} min</div>
+                      <div className="font-medium text-gray-900">{fmtDate(d, { weekday: "short", month: "short" })}</div>
+                      <div className="text-xs text-gray-600">{fmtTime(d)} · {s.duration_minutes} min</div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       <span className="capitalize">{s.mode.replace("_", " ")}</span>
@@ -408,8 +411,8 @@ function BulkAddForm({ companies, onClose, onSaved }: { companies: CompanyOption
         const at = new Date(t);
         out.push({
           slot_at: at.toISOString(),
-          day: at.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }),
-          time: at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }),
+          day: fmtDate(at, { weekday: "short", year: false, month: "short" }),
+          time: fmtTime(at),
         });
         count++;
       }

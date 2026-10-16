@@ -165,7 +165,7 @@ function SurveyReportPage() {
 
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Skýrsla: {survey.title_is}</h1>
+          <h1 className="text-2xl font-bold text-hc-ink">Skýrsla: {survey.title_is}</h1>
           <p className="text-sm text-gray-500 mt-1">
             {isFollowUpSurvey(questions)
               ? "Niðurstöður á einni A4-síðu og frásagnir á annarri síðu þegar þær hafa borist. Prentaðu eða vistaðu sem PDF."
@@ -182,7 +182,7 @@ function SurveyReportPage() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+            className="px-4 py-2 text-sm font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker"
           >
             Prenta / vista PDF
           </button>
@@ -203,7 +203,7 @@ function SurveyReportPage() {
       {stories.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#1F2937]">Frásagnir á síðu 2 ({shownStories.length} af {stories.length})</h2>
+            <h2 className="text-sm font-semibold text-hc-ink">Frásagnir á síðu 2 ({shownStories.length} af {stories.length})</h2>
             <label className="flex items-center gap-2 text-xs text-gray-600">
               <input type="checkbox" checked={showNames} onChange={(e) => setShowNames(e.target.checked)} />
               Birta fornafn þar sem leyfi er fyrir hendi
@@ -234,7 +234,7 @@ function SurveyReportPage() {
 
       {quotes.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-[#1F2937]">Nafnlaus svör ({quotes.filter((q) => !excluded.has(q.id)).length} af {quotes.length})</h2>
+          <h2 className="text-sm font-semibold text-hc-ink">Nafnlaus svör ({quotes.filter((q) => !excluded.has(q.id)).length} af {quotes.length})</h2>
           <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
             Þátttakendur voru ekki beðnir um leyfi til að birta svörin. Notið skýrsluna innanhúss eða fjarlægið svör áður en hún er send út.
           </p>

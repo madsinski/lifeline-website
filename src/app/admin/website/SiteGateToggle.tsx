@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
+import { useDialog } from "@/app/components/account/ui";
 
 // Master coming-soon switch. When gated, the public site rewrites to
 // /coming-soon for everyone without access; when open, the whole site is live.
 export default function SiteGateToggle() {
+  const dialog = useDialog();
   const [gated, setGated] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -31,7 +33,7 @@ export default function SiteGateToggle() {
   }, [load]);
 
   const setGate = async (next: boolean) => {
-    if (!next && !window.confirm("Opna vefinn fyrir öllum? Coming soon-læsingin verður tekin af og allir geta skoðað vefinn.")) return;
+    if (!next && !(await dialog.confirm({ title: "Opna vefinn fyrir öllum?", body: "Coming soon-læsingin verður tekin af og allir geta skoðað vefinn." }))) return;
     setBusy(true);
     setMsg(null);
     const res = await fetch("/api/admin/site-gate", {
@@ -79,7 +81,7 @@ export default function SiteGateToggle() {
           <button
             onClick={() => setGate(!gated)}
             disabled={busy}
-            className={`shrink-0 rounded-full px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 ${gated ? "bg-[#10B981] hover:bg-[#047857]" : "bg-amber-600 hover:bg-amber-700"}`}
+            className={`shrink-0 rounded-full px-5 py-2 text-sm font-semibold text-white disabled:opacity-50 ${gated ? "bg-hc-brand-dark hover:bg-hc-brand-darker" : "bg-amber-600 hover:bg-amber-700"}`}
           >
             {busy ? "Uppfæri…" : gated ? "Opna vefinn" : "Læsa vefnum"}
           </button>

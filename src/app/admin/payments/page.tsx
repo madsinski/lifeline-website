@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtNumericDate, fmtTime, fmtIsk } from "@/app/components/account/ui/dates";
+import { fmtNum } from "@/app/admin/components/ui/format";
+import { useDialog } from "@/app/components/account/ui";
 
 type Payment = {
   id: string;
@@ -55,7 +58,7 @@ function PaydayImportButton({ onImported }: { onImported?: () => void }) {
   };
   return (
     <div className="flex items-center gap-2">
-      {result && <span className="text-xs text-emerald-600">{result}</span>}
+      {result && <span className="text-xs text-hc-brand-text">{result}</span>}
       <button onClick={importAll} disabled={importing} className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 disabled:opacity-50" title="Pull all companies' invoices from PayDay (incl. ones made directly in PayDay) and reconcile statuses">
         {importing ? "Importing…" : "Import from PayDay"}
       </button>
@@ -64,6 +67,7 @@ function PaydayImportButton({ onImported }: { onImported?: () => void }) {
 }
 
 export default function AdminPaymentsPage() {
+  const dialog = useDialog();
   const [rows, setRows] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<Filter>("all");
@@ -186,9 +190,9 @@ export default function AdminPaymentsPage() {
     const count = opts.all ? rows.length : ids.length;
     if (count === 0) return;
     const prompt = opts.all
-      ? `Delete ALL ${rows.length} payments? This cannot be undone.`
-      : `Delete ${ids.length} selected payment(s)? This cannot be undone.`;
-    if (!confirm(prompt)) return;
+      ? `Delete ALL ${rows.length} payments?`
+      : `Delete ${ids.length} selected payment(s)?`;
+    if (!(await dialog.confirm({ title: prompt, body: "This cannot be undone.", tone: "danger" }))) return;
     setDeleting(true);
     try {
       const { data: s } = await supabase.auth.getSession();
@@ -263,19 +267,19 @@ export default function AdminPaymentsPage() {
     if (related?.related_type === "body_comp_booking" && related.related_id) {
       const full = related.amount_isk ?? 0;
       const amountStr = window.prompt(
-        `Refund amount in ISK (full = ${full.toLocaleString("is-IS")}, 0 = cancel without refund):`,
+        `Refund amount in ISK (full = ${fmtNum(full)}, 0 = cancel without refund):`,
         String(full),
       );
       if (amountStr === null) return;
       const amount = parseInt(amountStr.replace(/[^\d-]/g, ""), 10);
       if (Number.isNaN(amount) || amount < 0 || amount > full) {
-        setMsg(`Refund amount must be between 0 and ${full.toLocaleString("is-IS")} ISK.`);
+        setMsg(`Refund amount must be between 0 and ${fmtIsk(full)}.`);
         return;
       }
       const reason = (window.prompt("Admin reason (saved on booking as audit trail — required):", "") || "").trim();
       if (!reason) { setMsg("Reason is required."); return; }
-      const includeAddon = confirm("Also refund the Check-in doctor add-on (18,500 ISK) for this client, if any?");
-      if (!confirm(`Cancel booking and refund ${amount.toLocaleString("is-IS")} ISK${includeAddon ? " + 18,500 ISK doctor add-on" : ""}? This also releases the measurement slot and any tied doctor consult.`)) return;
+      const includeAddon = (await dialog.confirm({ title: "Also refund the Check-in doctor add-on (18.500 kr.) for this client, if any?", confirmLabel: "Yes", cancelLabel: "No" }));
+      if (!(await dialog.confirm({ title: `Cancel booking and refund ${fmtIsk(amount)}${includeAddon ? " + 18.500 kr. doctor add-on" : ""}?`, body: `This also releases the measurement slot and any tied doctor consult.`, tone: "danger" }))) return;
       const { data, error } = await supabase.rpc("admin_cancel_booking", {
         p_booking_id: related.related_id,
         p_reason: reason,
@@ -287,11 +291,11 @@ export default function AdminPaymentsPage() {
         setMsg(`Refund failed: ${error?.message || row?.error}`);
         return;
       }
-      setMsg(`Refunded ${(row?.refunded_isk ?? 0).toLocaleString("is-IS")} ISK and cancelled booking.`);
+      setMsg(`Refunded ${fmtIsk(row?.refunded_isk ?? 0)} and cancelled booking.`);
       load();
       return;
     }
-    if (!confirm("Mark this payment as refunded? (Not linked to a booking — a tied company invoice reverts to 'sent'.)")) return;
+    if (!(await dialog.confirm({ title: "Mark this payment as refunded?", body: "(Not linked to a booking — a tied company invoice reverts to 'sent'.)" }))) return;
     const r = await markViaApi(id, "refunded");
     if (!r.ok) { setMsg(`Update failed: ${r.error}`); return; }
     setMsg(r.cascaded ? "Marked refunded — company invoice reverted to sent." : "Marked refunded.");
@@ -305,14 +309,14 @@ export default function AdminPaymentsPage() {
       refunded: "bg-gray-50 text-gray-600 border-gray-200",
       failed: "bg-red-50 text-red-700 border-red-100",
     }[s];
-    return <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${cls}`}>{s}</span>;
+    return <span className={`inline-flex items-center text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${cls}`}>{s}</span>;
   }
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1F2937]">Payments</h1>
+          <h1 className="text-2xl font-semibold text-hc-ink">Payments</h1>
           <p className="text-sm text-[#6B7280]">All Straumur + PayDay activity across clients and companies.</p>
         </div>
         <PaydayImportButton onImported={load} />
@@ -327,8 +331,8 @@ export default function AdminPaymentsPage() {
           { label: "Total invoiced", value: totals.invoiced, tone: "text-gray-900" },
         ] as const).map((t) => (
           <div key={t.label} className="rounded-xl border border-gray-200 bg-white px-4 py-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{t.label}</div>
-            <div className={`text-lg font-bold tabular-nums ${t.tone}`}>{Math.round(t.value).toLocaleString("is-IS")} kr.</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">{t.label}</div>
+            <div className={`text-lg font-bold tabular-nums ${t.tone}`}>{fmtIsk(t.value)}</div>
           </div>
         ))}
       </div>
@@ -442,13 +446,13 @@ export default function AdminPaymentsPage() {
                     />
                   </td>
                   <td className="px-4 py-3 text-gray-900 whitespace-nowrap">
-                    {new Date(p.paid_at || p.created_at).toLocaleDateString("en-GB")}
-                    <div className="text-[10px] text-gray-500">{new Date(p.paid_at || p.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
+                    {fmtNumericDate(p.paid_at || p.created_at)}
+                    <div className="text-xs text-gray-500">{fmtTime(p.paid_at || p.created_at)}</div>
                   </td>
                   <td className="px-4 py-3 text-gray-800">
                     {isCompanyPayment ? (
                       <>
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                           Company
                         </span>
@@ -458,7 +462,7 @@ export default function AdminPaymentsPage() {
                       </>
                     ) : (
                       <>
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                           Personal
                         </span>
@@ -471,21 +475,21 @@ export default function AdminPaymentsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-700">
-                    <div className="text-[10px] uppercase tracking-wide text-gray-500">{p.owner_type}</div>
+                    <div className="text-xs uppercase tracking-wide text-gray-500">{p.owner_type}</div>
                     <div className="font-medium truncate max-w-[180px]" title={payerLabel}>{payerLabel}</div>
                     {p.owner_type === "client" && p.client?.email && p.client.email !== payerLabel && (
-                      <div className="text-[10px] text-gray-400 truncate max-w-[180px]" title={p.client.email}>{p.client.email}</div>
+                      <div className="text-xs text-gray-400 truncate max-w-[180px]" title={p.client.email}>{p.client.email}</div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-gray-900 max-w-sm">
                     {p.description}
-                    {p.provider_reference && <div className="text-[10px] text-gray-400 font-mono">{p.provider_reference}</div>}
+                    {p.provider_reference && <div className="text-xs text-gray-400 font-mono">{p.provider_reference}</div>}
                   </td>
                   <td className="px-4 py-3 text-gray-900 font-medium text-right whitespace-nowrap">
-                    {p.amount_isk.toLocaleString("is-IS")} {p.currency}
+                    {fmtNum(p.amount_isk)} {p.currency}
                   </td>
                   <td className={`px-4 py-3 font-medium text-right whitespace-nowrap ${p.status === "succeeded" ? "text-emerald-700" : "text-gray-300"}`}>
-                    {(p.status === "succeeded" ? p.amount_isk : 0).toLocaleString("is-IS")} {p.currency}
+                    {fmtNum(p.status === "succeeded" ? p.amount_isk : 0)} {p.currency}
                   </td>
                   <td className="px-4 py-3 text-gray-600 capitalize">{p.provider}</td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">{statusPill(p.status)}</td>

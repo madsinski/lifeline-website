@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useDialog } from "@/app/components/account/ui";
 
 interface Translation {
   id: string;
@@ -34,6 +35,7 @@ const sections = [
 ];
 
 export default function TranslationsPage() {
+  const dialog = useDialog();
   const [translations, setTranslations] = useState<Translation[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("all");
@@ -116,7 +118,7 @@ export default function TranslationsPage() {
   };
 
   const handleApproveAll = async () => {
-    if (!confirm(`Approve all ${filtered.filter(t => !t.approved && t.is_text).length} pending translations in this view?`)) return;
+    if (!(await dialog.confirm({ title: `Approve all ${filtered.filter(t => !t.approved && t.is_text).length} pending translations in this view?` }))) return;
     setSaving("all");
     const { data: { user } } = await supabase.auth.getUser();
     const ids = filtered.filter(t => !t.approved && t.is_text).map(t => t.id);
@@ -195,7 +197,7 @@ export default function TranslationsPage() {
         </button>
         {filtered.filter(t => !t.approved && t.is_text).length > 0 && (
           <button onClick={handleApproveAll} disabled={saving === "all"}
-            className="px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50">
+            className="px-3 py-2 text-sm font-medium text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker transition-colors disabled:opacity-50">
             {saving === "all" ? "Approving..." : `Approve all visible (${filtered.filter(t => !t.approved && t.is_text).length})`}
           </button>
         )}
@@ -220,17 +222,17 @@ export default function TranslationsPage() {
               {/* Header: key + context + status */}
               <div className="flex items-center gap-2 mb-3">
                 <code className="text-[11px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{t.key}</code>
-                {t.context && <span className="text-[10px] text-gray-400">{t.context}</span>}
+                {t.context && <span className="text-xs text-gray-400">{t.context}</span>}
                 <div className="flex-1" />
                 {t.approved ? (
-                  <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="text-xs font-medium text-hc-brand-text bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                     Approved{t.approved_by ? ` by ${t.approved_by.split("@")[0]}` : ""}
                   </span>
                 ) : t.is_text ? (
-                  <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending review</span>
+                  <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending review</span>
                 ) : (
-                  <span className="text-[10px] font-medium text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Missing translation</span>
+                  <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Missing translation</span>
                 )}
               </div>
 
@@ -238,12 +240,12 @@ export default function TranslationsPage() {
               <div className="grid grid-cols-2 gap-4">
                 {/* English (read-only) */}
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">English</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">English</p>
                   <p className="text-sm text-gray-800 leading-relaxed">{t.en}</p>
                 </div>
                 {/* Icelandic (editable) */}
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Íslenska</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Íslenska</p>
                   {editingId === t.id ? (
                     <div className="space-y-2">
                       <textarea
@@ -284,7 +286,7 @@ export default function TranslationsPage() {
                   </button>
                   {t.is_text && !t.approved && (
                     <button onClick={() => handleApprove(t.id, true)} disabled={saving === t.id}
-                      className="text-xs font-medium text-emerald-600 hover:text-emerald-700 disabled:opacity-50">
+                      className="text-xs font-medium text-hc-brand-text hover:text-emerald-700 disabled:opacity-50">
                       Approve
                     </button>
                   )}

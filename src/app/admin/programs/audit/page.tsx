@@ -12,6 +12,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useStaffGuard } from "@/lib/useStaffGuard";
+import { fmtDate } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
 
 type Intensity = "gentle" | "moderate" | "vigorous";
 type RecoveryFloor = "any" | "not_sick" | "not_tired" | "not_vacation";
@@ -46,6 +49,8 @@ const CAT_STYLE: Record<ActionRow["category"], string> = {
 };
 
 export default function ActionAuditPage() {
+  const dialog = useDialog();
+  const toast = useToast();
   const guard = useStaffGuard({ role: "admin" });
   const [rows, setRows] = useState<ActionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,7 +197,7 @@ export default function ActionAuditPage() {
   const acceptAllDrafts = async () => {
     const ids = Object.keys(drafts);
     if (ids.length === 0) return;
-    if (!confirm(`Accept and save AI suggestions for ${ids.length} actions? You can still edit any after.`)) return;
+    if (!(await dialog.confirm({ title: `Accept and save AI suggestions for ${ids.length} actions?`, body: `You can still edit any after.` }))) return;
     for (const id of ids) {
       await acceptDraft(id);
     }
@@ -240,7 +245,7 @@ export default function ActionAuditPage() {
         .maybeSingle();
       if (fresh) setRows((prev) => prev.map((r) => (r.id === id ? (fresh as ActionRow) : r)));
     } catch (e) {
-      alert(`Save failed: ${(e as Error).message}`);
+      toast.show(`Save failed: ${(e as Error).message}`, { tone: "bad" });
       await load();
     } finally {
       setSavingIds((s) => {
@@ -258,7 +263,7 @@ export default function ActionAuditPage() {
     <div className="space-y-5">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">Action library audit</h1>
+          <h1 className="text-2xl font-bold text-hc-ink">Action library audit</h1>
           <p className="text-sm text-gray-500 mt-1 max-w-3xl">
             Tag each action with the metadata the modes engine needs:
             intensity (drives Sick / Tired filtering), recovery floor
@@ -287,7 +292,7 @@ export default function ActionAuditPage() {
               key={s.k}
               onClick={() => setStatusFilter(s.k)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                statusFilter === s.k ? "bg-emerald-600 text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                statusFilter === s.k ? "bg-hc-brand-dark text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
               }`}
             >
               {s.label}
@@ -337,7 +342,7 @@ export default function ActionAuditPage() {
           <button
             onClick={acceptAllDrafts}
             disabled={suggesting}
-            className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg disabled:opacity-50"
+            className="px-3 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark hover:bg-hc-brand-darker rounded-lg disabled:opacity-50"
           >
             Accept all {Object.keys(drafts).length}
           </button>
@@ -378,21 +383,21 @@ export default function ActionAuditPage() {
                 } px-5 py-4 space-y-3 ${saving ? "opacity-70" : ""}`}
               >
                 <header className="flex items-start gap-3 flex-wrap">
-                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${CAT_STYLE[row.category]}`}>
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide ${CAT_STYLE[row.category]}`}>
                     {row.category}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-base font-semibold text-[#1F2937]">{row.label}</h3>
+                    <h3 className="text-base font-semibold text-hc-ink">{row.label}</h3>
                     <p className="text-[11px] font-mono text-gray-400 mt-0.5">{row.action_key}</p>
                   </div>
                   {draft && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-800">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide bg-violet-100 text-violet-800">
                       ✨ AI suggested
                     </span>
                   )}
                   {!draft && row.audited_at && (
                     <span className="text-[11px] text-gray-400">
-                      Tagged {new Date(row.audited_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                      Tagged {fmtDate(row.audited_at, { year: false, month: "short" })}
                       {row.audited_by_name && ` · ${row.audited_by_name}`}
                     </span>
                   )}
@@ -471,7 +476,7 @@ export default function ActionAuditPage() {
                     <button
                       onClick={() => acceptDraft(row.id)}
                       disabled={saving}
-                      className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-hc-brand-dark rounded-lg hover:bg-hc-brand-darker disabled:opacity-50"
                     >
                       Accept
                     </button>

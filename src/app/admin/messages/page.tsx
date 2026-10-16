@@ -2,6 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDate, fmtTime } from "@/app/components/account/ui/dates";
+import { useToast } from "@/app/components/hc/Toast";
+import { useDialog } from "@/app/components/account/ui";
+import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -110,7 +114,7 @@ function timeAgo(dateStr: string): string {
 
 function formatTime(dateStr: string): string {
   const d = new Date(dateStr);
-  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return fmtTime(d);
 }
 
 function formatDate(dateStr: string): string {
@@ -121,7 +125,7 @@ function formatDate(dateStr: string): string {
 
   if (d.toDateString() === today.toDateString()) return "Today";
   if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  return fmtDate(d, { month: "short" });
 }
 
 // ─── Supabase helpers ────────────────────────────────────────
@@ -405,6 +409,8 @@ async function createConversationWithClient(
 // ─── Component ───────────────────────────────────────────────
 
 export default function AdminMessagesPage() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [newMessage, setNewMessage] = useState("");
@@ -414,6 +420,7 @@ export default function AdminMessagesPage() {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [replyAsStaff, setReplyAsStaff] = useState<StaffMember | null>(null);
   const [showNewConversation, setShowNewConversation] = useState(false);
+  const newConvRef = useDialogA11y(showNewConversation, () => setShowNewConversation(false));
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
   const [clientSearch, setClientSearch] = useState("");
   const [creatingConv, setCreatingConv] = useState(false);
@@ -586,7 +593,7 @@ export default function AdminMessagesPage() {
 
   const handleDeleteConversation = async (convId: string) => {
     if (!convId) return;
-    if (!confirm("Delete this conversation? All messages with this client will be permanently removed. This cannot be undone.")) return;
+    if (!(await dialog.confirm({ title: "Delete this conversation?", body: "All messages with this client will be permanently removed. This cannot be undone.", tone: "danger" }))) return;
 
     // Look up client_id for this conversation (bundles group by client_id)
     const { data: convRow } = await supabase
@@ -596,7 +603,7 @@ export default function AdminMessagesPage() {
       .single();
 
     if (!convRow) {
-      alert("Could not find conversation.");
+      toast.show("Could not find conversation.", { tone: "bad" });
       return;
     }
 
@@ -614,7 +621,7 @@ export default function AdminMessagesPage() {
       // Use .select() so we can detect silent RLS denials (0 rows affected).
       const { error: msgErr } = await supabase.from("messages_decrypted").delete().in("conversation_id", convIds).select("id");
       if (msgErr) {
-        alert(`Failed to delete messages: ${msgErr.message}`);
+        toast.show(`Failed to delete messages: ${msgErr.message}`, { tone: "bad" });
         return;
       }
       const { data: deletedConvs, error: convErr } = await supabase
@@ -623,14 +630,13 @@ export default function AdminMessagesPage() {
         .in("id", convIds)
         .select("id");
       if (convErr) {
-        alert(`Failed to delete conversation: ${convErr.message}`);
+        toast.show(`Failed to delete conversation: ${convErr.message}`, { tone: "bad" });
         return;
       }
       if (!deletedConvs || deletedConvs.length === 0) {
-        alert(
+        toast.show(
           "No rows were deleted — your account may not have permission.\n\n" +
-          "If this persists, run migration-messaging-staff-delete.sql in Supabase to grant staff DELETE on conversations/messages."
-        );
+          "If this persists, run migration-messaging-staff-delete.sql in Supabase to grant staff DELETE on conversations/messages.", { tone: "bad" });
         return;
       }
     }
@@ -660,7 +666,7 @@ export default function AdminMessagesPage() {
       setSelectedId(convId);
       setShowNewConversation(false);
     } else {
-      alert("Failed to create conversation.");
+      toast.show("Failed to create conversation.", { tone: "bad" });
     }
     setCreatingConv(false);
   };
@@ -692,12 +698,12 @@ export default function AdminMessagesPage() {
         <div className="p-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-[#1F2937]">Messages</h2>
+              <h2 className="text-lg font-semibold text-hc-ink">Messages</h2>
               <span className={`w-2 h-2 rounded-full ${dbConnected ? 'bg-[#10B981]' : 'bg-gray-300'}`} title={dbConnected ? 'Connected to Supabase' : 'Using mock data'} />
             </div>
             <div className="flex items-center gap-1.5">
               {totalUnread > 0 && (
-                <span className="bg-[#10B981] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-hc-brand-dark text-white text-xs font-bold px-2 py-0.5 rounded-full">
                   {totalUnread}
                 </span>
               )}
@@ -729,7 +735,7 @@ export default function AdminMessagesPage() {
             <input
               type="text"
               placeholder="Search conversations..."
-              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981]"
+              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-hc-brand-dark"
             />
           </div>
         </div>
@@ -770,7 +776,7 @@ export default function AdminMessagesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className={`text-sm truncate ${conv.unreadCount > 0 ? "font-semibold text-[#1F2937]" : "font-medium text-gray-700"}`}>
+                      <p className={`text-sm truncate ${conv.unreadCount > 0 ? "font-semibold text-hc-ink" : "font-medium text-gray-700"}`}>
                         {conv.clientName}
                       </p>
                       <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
@@ -782,12 +788,12 @@ export default function AdminMessagesPage() {
                         {conv.lastMessage}
                       </p>
                       {conv.unreadCount > 0 && (
-                        <span className="bg-[#10B981] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                        <span className="bg-hc-brand-dark text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
                           {conv.unreadCount}
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-gray-300 mt-0.5">{conv.tier}</p>
+                    <p className="text-xs text-gray-300 mt-0.5">{conv.tier}</p>
                   </div>
                 </div>
               </button>
@@ -812,18 +818,18 @@ export default function AdminMessagesPage() {
         {/* Thread header */}
         <div className="px-6 py-3 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
           <div>
-            <p className="text-sm font-semibold text-[#1F2937]">{selected.clientName}</p>
+            <p className="text-sm font-semibold text-hc-ink">{selected.clientName}</p>
             <p className="text-xs text-gray-400">{selected.clientEmail}</p>
           </div>
           <div className="flex items-center gap-3">
             {replyAsStaff && (
             <div className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${roleColors[replyAsStaff.role]}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${roleColors[replyAsStaff.role]}`}>
                 {replyAsStaff.avatarInitial}
               </div>
               <div className="text-right">
                 <p className="text-xs font-medium text-gray-700">{replyAsStaff.name}</p>
-                <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleColors[replyAsStaff.role]}`}>
+                <span className={`inline-block text-xs px-1.5 py-0.5 rounded-full font-medium ${roleColors[replyAsStaff.role]}`}>
                   {roleLabels[replyAsStaff.role]}
                 </span>
               </div>
@@ -873,8 +879,8 @@ export default function AdminMessagesPage() {
                     <div
                       className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
                         isStaff
-                          ? "bg-[#10B981] text-white rounded-br-md"
-                          : "bg-white text-[#1F2937] border border-gray-200 rounded-bl-md shadow-sm"
+                          ? "bg-hc-brand-dark text-white rounded-br-md"
+                          : "bg-white text-hc-ink border border-gray-200 rounded-bl-md shadow-sm"
                       }`}
                     >
                       <div className={`flex items-center gap-1.5 mb-1 ${isStaff ? "text-green-100" : "text-gray-400"}`}>
@@ -886,7 +892,7 @@ export default function AdminMessagesPage() {
                         )}
                       </div>
                       <p className="text-sm leading-relaxed">{msg.content}</p>
-                      <p className={`text-[10px] mt-1 text-right ${isStaff ? "text-green-200" : "text-gray-300"}`}>
+                      <p className={`text-xs mt-1 text-right ${isStaff ? "text-green-200" : "text-gray-300"}`}>
                         {formatTime(msg.createdAt)}
                       </p>
                     </div>
@@ -904,7 +910,7 @@ export default function AdminMessagesPage() {
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs text-gray-400">Sending as</span>
             <span className="text-xs font-medium text-gray-700">{replyAsStaff.name}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${roleColors[replyAsStaff.role]}`}>{roleLabels[replyAsStaff.role]}</span>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${roleColors[replyAsStaff.role]}`}>{roleLabels[replyAsStaff.role]}</span>
           </div>
           )}
           <div className="flex items-end gap-3">
@@ -914,13 +920,13 @@ export default function AdminMessagesPage() {
               onKeyDown={handleKeyDown}
               placeholder={`Reply to ${selected.clientName}${replyAsStaff ? ` as ${replyAsStaff.name}` : ""}...`}
               rows={1}
-              className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] max-h-32"
+              className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-hc-brand-dark max-h-32"
               style={{ minHeight: "40px" }}
             />
             <button
               onClick={handleSendMessage}
               disabled={!newMessage.trim()}
-              className="bg-[#10B981] hover:bg-[#047857] disabled:bg-gray-200 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 flex-shrink-0"
+              className="bg-hc-brand-dark hover:bg-hc-brand-darker disabled:bg-gray-200 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 flex-shrink-0"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -928,7 +934,7 @@ export default function AdminMessagesPage() {
               Send
             </button>
           </div>
-          <p className="text-[10px] text-gray-300 mt-1.5">Press Enter to send, Shift+Enter for new line</p>
+          <p className="text-xs text-gray-300 mt-1.5">Press Enter to send, Shift+Enter for new line</p>
         </div>
         </>)}
       </div>
@@ -936,10 +942,10 @@ export default function AdminMessagesPage() {
       {/* New conversation modal */}
       {showNewConversation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+          <div ref={newConvRef} role="dialog" aria-modal="true" aria-label="New conversation" className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#1F2937]">New conversation</h3>
-              <button
+              <h3 className="text-lg font-semibold text-hc-ink">New conversation</h3>
+              <button aria-label="Loka"
                 onClick={() => setShowNewConversation(false)}
                 className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -960,7 +966,7 @@ export default function AdminMessagesPage() {
                   placeholder="Search clients..."
                   value={clientSearch}
                   onChange={(e) => setClientSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-[#10B981] text-gray-900"
+                  className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#10B981]/30 focus:border-hc-brand-dark text-gray-900"
                 />
               </div>
             </div>
@@ -978,11 +984,11 @@ export default function AdminMessagesPage() {
                     disabled={creatingConv}
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 flex items-center gap-3 disabled:opacity-50"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#10B981]/10 flex items-center justify-center text-xs font-bold text-[#10B981] flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-[#10B981]/10 flex items-center justify-center text-xs font-bold text-hc-brand-text flex-shrink-0">
                       {client.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#1F2937] truncate">{client.name}</p>
+                      <p className="text-sm font-medium text-hc-ink truncate">{client.name}</p>
                       <p className="text-xs text-gray-400 truncate">{client.email}</p>
                     </div>
                   </button>

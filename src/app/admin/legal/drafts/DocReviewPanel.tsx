@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { fmtDate, fmtDateTime } from "@/app/components/account/ui/dates";
 
 type Status = "pending" | "under_review" | "approved" | "changes_requested" | "rejected";
 type Action = "comment" | "approve" | "request_changes" | "reject";
@@ -52,7 +53,7 @@ const ACTION_LABELS: Record<Action, string> = {
 
 const ACTION_STYLES: Record<Action, string> = {
   comment: "bg-gray-700 text-white hover:bg-gray-800",
-  approve: "bg-emerald-600 text-white hover:bg-emerald-700",
+  approve: "bg-hc-brand-dark text-white hover:bg-hc-brand-darker",
   request_changes: "bg-orange-500 text-white hover:bg-orange-600",
   reject: "bg-red-600 text-white hover:bg-red-700",
 };
@@ -155,7 +156,7 @@ export default function DocReviewPanel({ documentKey, documentVersion, documentT
           </span>
           {latest && (
             <span className="text-xs text-gray-400">
-              by {latest.reviewer_name} · {new Date(latest.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              by {latest.reviewer_name} · {fmtDate(latest.created_at, { month: "short" })}
             </span>
           )}
         </div>
@@ -175,11 +176,11 @@ export default function DocReviewPanel({ documentKey, documentVersion, documentT
           {commentHistory.map((s) => (
             <div key={s.id} className="text-xs border-b border-gray-100 pb-2 last:border-b-0 last:pb-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${STATUS_STYLES[s.status]}`}>
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[s.status]}`}>
                   {STATUS_LABELS[s.status]}
                 </span>
                 <span className="text-gray-500">{s.reviewer_name}</span>
-                <span className="text-gray-400">{new Date(s.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                <span className="text-gray-400">{fmtDateTime(s.created_at, { year: true, month: "short" })}</span>
               </div>
               {s.comments && (
                 <div className="text-gray-700 whitespace-pre-wrap">{s.comments}</div>

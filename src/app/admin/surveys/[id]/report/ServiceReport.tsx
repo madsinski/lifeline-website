@@ -18,6 +18,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FeedbackSurvey, FeedbackQuestion } from "@/lib/feedback-survey-types";
 import type { AssignmentRow, ResponseRow } from "./ReportPages";
+import { fmtNum } from "@/app/admin/components/ui/format";
 
 export interface Quote { id: string; text: string; stage: string; kind: "praise" | "improve" }
 
@@ -25,7 +26,7 @@ const MONTHS_IS = ["janúar", "febrúar", "mars", "apríl", "maí", "júní", "j
 const fmtMonth = (d: Date) => `${MONTHS_IS[d.getMonth()]} ${d.getFullYear()}`;
 const fmtDate = (d: Date) => `${d.getDate()}. ${MONTHS_IS[d.getMonth()]} ${d.getFullYear()}`;
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
-const num1 = (x: number) => x.toLocaleString("is-IS", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const num1 = (x: number) => fmtNum(x, { min: 1, max: 1 });
 
 // ordinal colours, most positive first (works for 3-, 4- and 5-point scales)
 const SCALE: Record<number, string[]> = {
@@ -251,7 +252,7 @@ function QuoteColumns({ praise, improve, first, more }: { praise: Quote[]; impro
 
 function Page({ children, demo, page, total }: { children: React.ReactNode; demo: boolean; page: number; total: number }) {
   return (
-    <div className="a4 relative bg-white shadow-lg overflow-hidden flex flex-col text-[#1F2937]"
+    <div className="a4 relative bg-white shadow-lg overflow-hidden flex flex-col text-hc-ink"
       style={{ width: "210mm", height: "297mm", padding: "12mm 14mm 10mm", fontFamily: "var(--font-inter), system-ui, sans-serif" }} data-page={page} data-total={total}>
       {children}
       {demo && (

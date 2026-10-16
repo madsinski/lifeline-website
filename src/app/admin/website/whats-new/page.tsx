@@ -195,7 +195,7 @@ export default function WhatsNewAdminPage() {
         </div>
         <span
           className={`text-sm font-medium ${
-            status === "error" ? "text-red-500" : status === "saved" ? "text-emerald-600" : "text-gray-400"
+            status === "error" ? "text-red-500" : status === "saved" ? "text-hc-brand-text" : "text-gray-400"
           }`}
         >
           {statusLabel}
@@ -211,7 +211,7 @@ export default function WhatsNewAdminPage() {
               <button
                 key={lng}
                 onClick={() => setPreviewLang(lng)}
-                className={`px-3 py-1 ${previewLang === lng ? "bg-emerald-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                className={`px-3 py-1 ${previewLang === lng ? "bg-hc-brand-dark text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
               >
                 {lng.toUpperCase()}
               </button>
@@ -246,7 +246,7 @@ export default function WhatsNewAdminPage() {
                   type="checkbox"
                   checked={c.enabled}
                   onChange={(e) => set(i, { enabled: e.target.checked })}
-                  className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  className="h-4 w-4 rounded border-gray-300 text-hc-brand-text focus:ring-emerald-500"
                 />
                 Virkt
               </label>
@@ -326,7 +326,7 @@ export default function WhatsNewAdminPage() {
                     type="checkbox"
                     checked={!!c.emailCapture}
                     onChange={(e) => set(i, { emailCapture: e.target.checked })}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-hc-brand-text focus:ring-emerald-500"
                   />
                   <span>
                     Netfangssöfnun (early access) — hnappurinn verður að netfangsreit. Áskriftir fara í{" "}
