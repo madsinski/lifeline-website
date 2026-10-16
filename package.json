@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "hc:meal-media": "node scripts/hc-gen-meal-media.mjs --check",
-    "hc:recs": "node scripts/hc-check-recommendations.mjs"
+    "hc:recs": "node scripts/hc-check-recommendations.mjs",
+    "check:admin-auth": "node scripts/check-admin-auth.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.61",

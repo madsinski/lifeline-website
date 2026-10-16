@@ -16,7 +16,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { aalFromToken } from "@/lib/auth-helpers";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 import { sendEmail, renderSurveyInviteEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -44,39 +44,20 @@ function newToken(): string {
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: surveyId } = await ctx.params;
+  // Admin + AAL2: a leaked AAL1 token must not fire mass-email assignments.
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
 
   let body: RequestBody = {};
   try { body = await req.json(); } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Auth + admin
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  }
-  const token = authHeader.slice("Bearer ".length);
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-  if (userErr || !userData.user?.email) {
-    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
-    .select("id, role, name, active")
-    .eq("email", userData.user.email)
+    .select("id, name, email")
+    .eq("id", user.id)
     .maybeSingle();
-  if (!staffRow || !staffRow.active || staffRow.role !== "admin") {
-    return NextResponse.json({ ok: false, error: "Admin role required" }, { status: 403 });
-  }
-  // Defence in depth: the /admin UI already gates on AAL2, but a leaked
-  // AAL1 access token must not be able to fire mass-email assignments
-  // directly via the API.
-  if (aalFromToken(token) !== "aal2") {
-    return NextResponse.json(
-      { ok: false, error: "MFA step-up required to send surveys." },
-      { status: 403 },
-    );
-  }
 
   // Verify survey is approved
   const { data: surveyRow } = await supabaseAdmin
@@ -115,7 +96,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       .select("id, email, full_name")
       .in("id", Array.from(explicitClientIds));
     if (clientErr) {
-      return NextResponse.json({ ok: false, error: `Recipient lookup failed: ${clientErr.message}` }, { status: 500 });
+      console.error("[surveys/assign] recipient lookup failed", clientErr.code);
+      return NextResponse.json({ ok: false, error: "Ekki tókst að sækja viðtakendur." }, { status: 500 });
     }
     const found = new Set<string>();
     for (const c of (rows || []) as { id: string; email: string | null; full_name: string | null }[]) {
@@ -156,10 +138,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           .in("company_id", cleanedCompanyIds),
       ]);
       if (clientsRes.error) {
-        return NextResponse.json({ ok: false, error: `Company client expansion failed: ${clientsRes.error.message}` }, { status: 500 });
+        console.error("[surveys/assign] company client expansion failed", clientsRes.error.code);
+        return NextResponse.json({ ok: false, error: "Ekki tókst að sækja starfsmenn fyrirtækis." }, { status: 500 });
       }
       if (membersRes.error) {
-        return NextResponse.json({ ok: false, error: `Company roster expansion failed: ${membersRes.error.message}` }, { status: 500 });
+        console.error("[surveys/assign] company roster expansion failed", membersRes.error.code);
+        return NextResponse.json({ ok: false, error: "Ekki tókst að sækja starfsmannalista fyrirtækis." }, { status: 500 });
       }
       for (const c of (clientsRes.data || []) as { id: string; email: string | null; full_name: string | null }[]) {
         if (!c.email) continue;
@@ -222,14 +206,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         client_email: recipient.email,
         client_name: recipient.full_name || null,
         completion_token: completionToken,
-        sent_by: staffRow.id,
-        sent_by_name: staffRow.name || userData.user.email,
+        sent_by: user.id,
+        sent_by_name: staffRow?.name || staffRow?.email || user.email || null,
         expires_at: expiresAt.toISOString(),
       })
       .select("id")
       .single();
     if (insErr || !assignment) {
-      results.push({ client_id: recipient.id, email: recipient.email, status: "failed", reason: insErr?.message || "insert_failed" });
+      results.push({ client_id: recipient.id, email: recipient.email, status: "failed", reason: "insert_failed" });
       continue;
     }
 

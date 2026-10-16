@@ -21,6 +21,7 @@ import { generateText, Output } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -85,7 +86,7 @@ async function loadStaff(token: string): Promise<{ id: string; role: string; nam
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
     .select("id, role, name, active")
-    .eq("email", userData.user.email)
+    .eq("id", userData.user.id)
     .maybeSingle();
   if (!staffRow || !staffRow.active) return null;
   if (staffRow.role !== "admin" && staffRow.role !== "medical_advisor") return null;
@@ -115,9 +116,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: surveyId } = await ctx.params;
-  const token = authToken(req);
-  if (!token) return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  const staff = await loadStaff(token);
+  // Writes an AI summary row — admin or medical_advisor, both with AAL2.
+  const gate = await requireStaffAAL2(req, { roles: ["admin", "medical_advisor"] });
+  if (typeof gate === "string") return gateError(gate);
+  const staff = await loadStaff(authToken(req) || "");
   if (!staff) return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
 
   if (!process.env.OPENAI_API_KEY) {
@@ -318,7 +320,8 @@ ${dataBlock}
     .select("*")
     .single();
   if (saveErr) {
-    return NextResponse.json({ ok: false, error: `Save failed: ${saveErr.message}` }, { status: 500 });
+    console.error("[surveys/[id]/ai-summary]", saveErr?.code);
+    return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, summary: saved });

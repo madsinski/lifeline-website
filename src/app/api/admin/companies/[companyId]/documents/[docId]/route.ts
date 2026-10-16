@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 
 const BUCKET = "company-docs";
 
@@ -9,9 +9,8 @@ export async function DELETE(
   { params }: { params: Promise<{ companyId: string; docId: string }> },
 ) {
   const { companyId, docId } = await params;
-  const user = await getUserFromRequest(_req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(_req);
+  if (typeof user === "string") return gateError(user);
 
   const { data: doc } = await supabaseAdmin
     .from("company_documents")
@@ -28,6 +27,9 @@ export async function DELETE(
     .from("company_documents")
     .delete()
     .eq("id", docId);
-  if (error) return NextResponse.json({ error: "delete_failed", detail: error.message }, { status: 500 });
+  if (error) {
+    console.error("[companies/[companyId]/documents/[docId]]", error?.code);
+    return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

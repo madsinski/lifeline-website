@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { adminApi } from "@/app/admin/hc-api";
 import { supabase } from "@/lib/supabase";
 import SlotsBulkDeleteModal from "../components/SlotsBulkDeleteModal";
 
@@ -85,21 +86,18 @@ export default function DoctorSlotsAdminPage() {
     if (slot?.client_id) {
       if (!confirm("This slot is booked by a client. Deleting it will cancel their doctor consultation and email them a notification. Continue?")) return;
       reason = window.prompt("Optional: reason to include in the email (e.g. 'Doctor out sick — please rebook').") || "";
-      // Fire the notification BEFORE we delete the row, so we can still read
-      // the client_id + slot details from the DB.
-      try {
-        await fetch("/api/bookings/doctor-slot-deleted", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slotId: id, reason }),
-        });
-      } catch {}
     } else {
       if (!confirm("Delete this slot?")) return;
     }
-    const { error } = await supabase.from("doctor_slots").delete().eq("id", id);
-    if (error) { setMsg(`Delete failed: ${error.message}`); return; }
-    setMsg(slot?.client_id ? "Deleted and client notified." : "Deleted.");
+    // One server step: delete the row, then (only if that succeeded) email
+    // the booked client. See src/app/api/bookings/doctor-slot-deleted/route.ts.
+    const res = await adminApi("/api/bookings/doctor-slot-deleted", {
+      method: "POST",
+      body: JSON.stringify({ slotId: id, reason }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) { setMsg(`Delete failed: ${j?.error || `Villa ${res.status}`}`); return; }
+    setMsg(j?.notify_error ? `Deleted. ${j.notify_error}` : j?.notified ? "Deleted and client notified." : "Deleted.");
     load();
   }
 

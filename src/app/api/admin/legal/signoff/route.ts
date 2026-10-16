@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 import { renderAcceptancePdf } from "@/lib/pdf-acceptance-renderer";
 
 export const runtime = "nodejs";
@@ -37,6 +38,13 @@ function statusForAction(action: Action): string {
 }
 
 export async function POST(req: Request) {
+  // External counsel (lawyer) OR an internal admin may sign off. Admins need
+  // AAL2; lawyer is MFA-exempt by the documented policy in
+  // src/app/admin/layout.tsx (only sees /admin/legal/*, zero patient data;
+  // non-repudiation comes from session + IP + sha256 + PDF certificate).
+  const user = await requireStaffAAL2(req, { roles: ["admin", "lawyer"], mfaExemptRoles: ["lawyer"] });
+  if (typeof user === "string") return gateError(user);
+
   let body: ReviewBody = {};
   try { body = await req.json(); } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
@@ -51,28 +59,11 @@ export async function POST(req: Request) {
   }
   const comments = (body.comments || "").toString().slice(0, 8000);
 
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  }
-  const token = authHeader.slice("Bearer ".length);
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-  if (userErr || !userData.user) {
-    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
-  const user = userData.user;
-
-  // Verify the caller is an active reviewer — external counsel (lawyer)
-  // OR an internal admin. Both may sign off on legal documents; the row
-  // captures reviewer_name + signed_at so it's clear who approved and when.
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
-    .select("id, name, email, role, active")
+    .select("id, name, email")
     .eq("id", user.id)
     .maybeSingle();
-  if (!staffRow || !staffRow.active || (staffRow.role !== "lawyer" && staffRow.role !== "admin")) {
-    return NextResponse.json({ ok: false, error: "Not authorised (lawyer or admin role required)" }, { status: 403 });
-  }
 
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
@@ -93,7 +84,7 @@ export async function POST(req: Request) {
       status,
       comments: comments || null,
       reviewer_id: user.id,
-      reviewer_name: staffRow.name,
+      reviewer_name: staffRow?.name ?? null,
       signed_at: signedAt,
       ip,
       user_agent: userAgent,
@@ -102,8 +93,9 @@ export async function POST(req: Request) {
     .single();
 
   if (insErr || !inserted) {
+    console.error("[legal/signoff] insert failed", insErr?.code);
     return NextResponse.json(
-      { ok: false, error: insErr?.message || "Could not record signoff" },
+      { ok: false, error: "Ekki tókst að skrá yfirferðina." },
       { status: 500 },
     );
   }
@@ -113,7 +105,7 @@ export async function POST(req: Request) {
   if (action === "approve") {
     try {
       const pdfBytes = await renderAcceptancePdf({
-        userEmail: staffRow.email || "(unknown)",
+        userEmail: staffRow?.email || user.email || "(unknown)",
         userId: user.id,
         documentKey: body.document_key,
         documentTitle: body.document_title,

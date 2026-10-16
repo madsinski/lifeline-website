@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { getUserFromRequest, requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 // Admin view of a specific staff member's agreement-acceptance history.
 // Used by the team panel: list signed, pending, historical versions.
@@ -30,7 +30,10 @@ export async function GET(
     .select("id, document_key, document_version, document_title, text_hash, accepted_at, ip, user_agent, pdf_storage_path, typed_signature")
     .eq("staff_id", staffId)
     .order("accepted_at", { ascending: false });
-  if (error) return NextResponse.json({ error: "query_failed", detail: error.message }, { status: 500 });
+  if (error) {
+    console.error("[staff/[staffId]/agreements]", error?.code);
+    return NextResponse.json({ error: "query_failed" }, { status: 500 });
+  }
 
   // Short-lived signed URLs for any available PDFs so the admin UI can
   // render a direct download link without another round-trip.
@@ -56,12 +59,8 @@ export async function DELETE(
   { params }: { params: Promise<{ staffId: string }> },
 ) {
   const { staffId } = await params;
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-
-  const { data: me } = await supabaseAdmin.from("staff").select("role").eq("id", user.id).maybeSingle();
-  if (me?.role !== "admin") return NextResponse.json({ error: "admin_only" }, { status: 403 });
+  const user = await requireStaffAAL2(req, { roles: ["admin"] });
+  if (typeof user === "string") return gateError(user);
 
   const url = new URL(req.url);
   const acceptanceId = url.searchParams.get("id");
@@ -72,6 +71,9 @@ export async function DELETE(
     .delete()
     .eq("id", acceptanceId)
     .eq("staff_id", staffId);
-  if (error) return NextResponse.json({ error: "delete_failed", detail: error.message }, { status: 500 });
+  if (error) {
+    console.error("[staff/[staffId]/agreements]", error?.code);
+    return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

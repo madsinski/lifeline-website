@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 
 // Create a draft company from the admin side. Used for:
 //   • Pre-existing customers who haven't onboarded themselves yet
@@ -37,9 +37,8 @@ type Body = {
 };
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body: Body = await req.json().catch(() => ({}));
   const name = (body.name || "").trim();
@@ -69,7 +68,8 @@ export async function POST(req: NextRequest) {
       p_text: kennitala,
     });
     if (encErr) {
-      return NextResponse.json({ error: "kennitala_encrypt_failed", detail: encErr.message }, { status: 500 });
+      console.error("[companies/create-draft]", encErr?.code);
+      return NextResponse.json({ error: "kennitala_encrypt_failed" }, { status: 500 });
     }
     encData = data;
   }
@@ -125,7 +125,8 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "create_failed", detail: error.message }, { status: 500 });
+    console.error("[companies/create-draft]", error?.code);
+    return NextResponse.json({ error: "create_failed" }, { status: 500 });
   }
   return NextResponse.json({ ok: true, company: data });
 }

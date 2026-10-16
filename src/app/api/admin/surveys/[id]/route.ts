@@ -5,7 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { aalFromToken } from "@/lib/auth-helpers";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 import type { QuestionType } from "@/lib/feedback-survey-types";
 
 export const runtime = "nodejs";
@@ -50,30 +50,20 @@ interface RequestBody {
 
 export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: surveyId } = await ctx.params;
+  const user = await requireStaffAAL2(req, { roles: ["admin", "medical_advisor"] });
+  if (typeof user === "string") return gateError(user);
 
   let body: RequestBody = {};
   try { body = await req.json(); } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Auth + admin check
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  }
-  const token = authHeader.slice("Bearer ".length);
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-  if (userErr || !userData.user?.email) {
-    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
-    .select("id, role, name, active")
-    .eq("email", userData.user.email)
+    .select("id, role, name, email")
+    .eq("id", user.id)
     .maybeSingle();
-  if (!staffRow || !staffRow.active || (staffRow.role !== "admin" && staffRow.role !== "medical_advisor")) {
-    return NextResponse.json({ ok: false, error: "Admin or medical_advisor role required" }, { status: 403 });
-  }
+  if (!staffRow) return gateError("forbidden");
 
   // Verify survey + status allows editing
   const { data: surveyRow } = await supabaseAdmin
@@ -102,7 +92,8 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
       .update(patch)
       .eq("id", surveyId);
     if (error) {
-      return NextResponse.json({ ok: false, error: `Survey update failed: ${error.message}` }, { status: 500 });
+      console.error("[surveys/[id]]", error?.code);
+      return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
     }
   }
 
@@ -132,7 +123,8 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
       .delete()
       .eq("survey_id", surveyId);
     if (delErr) {
-      return NextResponse.json({ ok: false, error: `Question reset failed: ${delErr.message}` }, { status: 500 });
+      console.error("[surveys/[id]]", delErr?.code);
+      return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
     }
     if (body.questions.length > 0) {
       const rows = body.questions.map((q, i) => ({
@@ -156,7 +148,8 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
         .from("feedback_questions")
         .insert(rows);
       if (insErr) {
-        return NextResponse.json({ ok: false, error: `Question insert failed: ${insErr.message}` }, { status: 500 });
+        console.error("[surveys/[id]]", insErr?.code);
+        return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
       }
     }
   }
@@ -191,31 +184,18 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
 //     typed confirmation so accidental fetch()s can't wipe the record.
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: surveyId } = await ctx.params;
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
 
   let body: { confirm?: string } = {};
   try { body = await req.json(); } catch { /* allow empty body */ }
 
-  // ── Auth ──────────────────────────────────────────────────────
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  }
-  const token = authHeader.slice("Bearer ".length);
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-  if (userErr || !userData.user?.email) {
-    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
-    .select("id, role, name, active")
-    .eq("email", userData.user.email)
+    .select("id, role, name, email")
+    .eq("id", user.id)
     .maybeSingle();
-  if (!staffRow || !staffRow.active || staffRow.role !== "admin") {
-    return NextResponse.json({ ok: false, error: "Admin role required to delete a survey." }, { status: 403 });
-  }
-  if (aalFromToken(token) !== "aal2") {
-    return NextResponse.json({ ok: false, error: "MFA step-up required to delete a survey." }, { status: 403 });
-  }
+  if (!staffRow) return gateError("forbidden");
 
   // ── Load survey + counts; require typed confirmation ──────────
   const { data: surveyRow } = await supabaseAdmin
@@ -260,18 +240,20 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }
     .delete()
     .eq("survey_id", surveyId);
   if (aErr) {
-    return NextResponse.json({ ok: false, error: `Assignment delete failed: ${aErr.message}` }, { status: 500 });
+    console.error("[surveys/[id]]", aErr?.code);
+    return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
   }
   const { error: sErr } = await supabaseAdmin
     .from("feedback_surveys")
     .delete()
     .eq("id", surveyId);
   if (sErr) {
-    return NextResponse.json({ ok: false, error: `Survey delete failed: ${sErr.message}` }, { status: 500 });
+    console.error("[surveys/[id]]", sErr?.code);
+    return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
   }
 
   console.warn(
-    `[surveys:delete] survey=${surveyRow.key} (${surveyId}) by staff=${staffRow.id} (${userData.user.email}) — removed ${assignmentCount ?? 0} assignment(s), ${responseCount ?? 0} response(s)`,
+    `[surveys:delete] survey=${surveyRow.key} (${surveyId}) by staff=${staffRow.id} (${user.email}) — removed ${assignmentCount ?? 0} assignment(s), ${responseCount ?? 0} response(s)`,
   );
 
   return NextResponse.json({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { adminApi } from "@/app/admin/hc-api";
 import { supabase } from "@/lib/supabase";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -416,43 +417,36 @@ function RefundRequestsTable({ setMsg, onAfterAction }: { setMsg: (s: string) =>
   const pageStart = totalCount === 0 ? 0 : page * PAGE_SIZE + 1;
   const pageEnd = Math.min((page + 1) * PAGE_SIZE, totalCount);
 
+  // One server step: cancel + refund (approve) or deny, mark the request
+  // resolved, and only then email the client. See
+  // src/app/api/bookings/refund-request-resolved/route.ts.
+  async function resolve(req: RefundRequestRow, body: Record<string, unknown>): Promise<{ refunded_isk?: number | null; notify_error?: string } | null> {
+    const res = await adminApi("/api/bookings/refund-request-resolved", {
+      method: "POST",
+      body: JSON.stringify({ requestId: req.id, ...body }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setMsg(j?.error || `Villa ${res.status}`);
+      load();
+      return null;
+    }
+    return j;
+  }
+
   async function approve(req: RefundRequestRow, amount: number, adminNote: string) {
     if (!req.booking_id) { setMsg("This request is not linked to a booking — resolve it manually."); return; }
-    const { data, error } = await supabase.rpc("admin_cancel_booking", {
-      p_booking_id: req.booking_id,
-      p_reason: `Refund request approved: ${req.reason}${adminNote ? ` — ${adminNote}` : ""}`,
-      p_refund_isk: amount,
-      p_include_checkin_addon: req.include_checkin_addon,
-    });
-    const r = Array.isArray(data) ? data[0] : data;
-    if (error || (r && r.ok === false)) {
-      setMsg(`Approve failed: ${error?.message || r?.error}`);
-      return;
-    }
-    await supabase.from("refund_requests")
-      .update({ status: "approved", approved_isk: amount, admin_note: adminNote || null, resolved_at: new Date().toISOString() })
-      .eq("id", req.id);
-    setMsg(`Approved — refunded ${(r?.refunded_isk ?? 0).toLocaleString("is-IS")} ISK.`);
-    // Notify the client via email — fire-and-forget, row is already updated.
-    fetch("/api/bookings/refund-request-resolved", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId: req.id }),
-    }).catch(() => {});
+    const j = await resolve(req, { decision: "approve", amount, adminNote });
+    if (!j) return;
+    setMsg(`Approved — refunded ${(j.refunded_isk ?? 0).toLocaleString("is-IS")} ISK.${j.notify_error ? ` ${j.notify_error}` : ""}`);
     load();
     onAfterAction();
   }
 
   async function deny(req: RefundRequestRow, adminNote: string) {
-    await supabase.from("refund_requests")
-      .update({ status: "denied", admin_note: adminNote || null, resolved_at: new Date().toISOString() })
-      .eq("id", req.id);
-    setMsg("Request denied.");
-    fetch("/api/bookings/refund-request-resolved", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId: req.id }),
-    }).catch(() => {});
+    const j = await resolve(req, { decision: "deny", adminNote });
+    if (!j) return;
+    setMsg(`Request denied.${j.notify_error ? ` ${j.notify_error}` : ""}`);
     load();
     onAfterAction();
   }

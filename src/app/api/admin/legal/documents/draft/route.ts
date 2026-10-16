@@ -11,6 +11,7 @@
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,9 @@ function sha256Hex(s: string): string {
 }
 
 export async function POST(req: Request) {
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
+
   let body: DraftBody = {};
   try {
     body = await req.json();
@@ -56,25 +60,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "text exceeds 200KB — split into sections if needed" }, { status: 400 });
   }
 
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  }
-  const token = authHeader.slice("Bearer ".length);
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-  if (userErr || !userData.user?.email) {
-    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
-
   // Admin-only — lawyer is read-only for drafts they don't author.
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
-    .select("id, role, name, active")
-    .eq("email", userData.user.email)
+    .select("id, name, email")
+    .eq("id", user.id)
     .maybeSingle();
-  if (!staffRow || !staffRow.active || staffRow.role !== "admin") {
-    return NextResponse.json({ ok: false, error: "Admin role required" }, { status: 403 });
-  }
+  const editorEmail = user.email || staffRow?.email || null;
 
   const text_hash = sha256Hex(text);
 
@@ -86,17 +78,18 @@ export async function POST(req: Request) {
       proposed_version,
       text,
       text_hash,
-      edited_by: staffRow.id,
-      edited_by_email: userData.user.email,
-      edited_by_name: staffRow.name || userData.user.email,
+      edited_by: user.id,
+      edited_by_email: editorEmail,
+      edited_by_name: staffRow?.name || editorEmail,
       source_note,
     })
     .select("id, created_at, text_hash, proposed_version")
     .single();
 
   if (insErr || !insertRow) {
+    console.error("[legal/draft] insert failed", insErr?.code);
     return NextResponse.json(
-      { ok: false, error: `Could not save draft: ${insErr?.message}` },
+      { ok: false, error: "Ekki tókst að vista drögin." },
       { status: 500 },
     );
   }

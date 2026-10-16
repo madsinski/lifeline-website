@@ -7,6 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,9 @@ interface RequestBody {
 }
 
 export async function POST(req: Request) {
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
+
   let body: RequestBody = {};
   try { body = await req.json(); } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
@@ -33,23 +37,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "title_is required" }, { status: 400 });
   }
 
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  }
-  const token = authHeader.slice("Bearer ".length);
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-  if (userErr || !userData.user?.email) {
-    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
-    .select("id, role, name, active")
-    .eq("email", userData.user.email)
+    .select("id, name, email")
+    .eq("id", user.id)
     .maybeSingle();
-  if (!staffRow || !staffRow.active || staffRow.role !== "admin") {
-    return NextResponse.json({ ok: false, error: "Admin role required" }, { status: 403 });
-  }
+  if (!staffRow) return gateError("forbidden");
 
   // Pick the next version for this key. UNIQUE(key, version) on the
   // table will catch any race; this is just a friendlier path.
@@ -72,12 +65,13 @@ export async function POST(req: Request) {
       estimated_minutes: body.estimated_minutes && body.estimated_minutes > 0 ? body.estimated_minutes : 5,
       status: "draft",
       created_by: staffRow.id,
-      created_by_name: staffRow.name || userData.user.email,
+      created_by_name: staffRow.name || user.email,
     })
     .select()
     .single();
   if (insErr || !created) {
-    return NextResponse.json({ ok: false, error: `Create failed: ${insErr?.message}` }, { status: 500 });
+    console.error("[surveys]", insErr?.code);
+    return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
   }
 
   return NextResponse.json({

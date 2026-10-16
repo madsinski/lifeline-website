@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest } from "@/lib/auth-helpers";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 // Bulk-delete platform_agreement_acceptances rows. Admin-only.
 // Also removes any PDF certificate from the platform-acceptance-pdfs
@@ -10,10 +10,8 @@ import { getUserFromRequest } from "@/lib/auth-helpers";
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const { data: me } = await supabaseAdmin.from("staff").select("role, active").eq("id", user.id).maybeSingle();
-  if (!me?.active || me.role !== "admin") return NextResponse.json({ error: "admin_only" }, { status: 403 });
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const ids: string[] = Array.isArray(body?.ids) ? body.ids.filter((x: unknown) => typeof x === "string") : [];
@@ -38,7 +36,10 @@ export async function POST(req: NextRequest) {
     .from("platform_agreement_acceptances")
     .delete({ count: "exact" })
     .in("id", targetIds);
-  if (error) return NextResponse.json({ error: "delete_failed", detail: error.message }, { status: 500 });
+  if (error) {
+    console.error("[legal/acceptances/bulk-delete]", error?.code);
+    return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+  }
 
   const paths = (toDelete || []).map((r) => r.pdf_storage_path).filter((p): p is string => !!p);
   if (paths.length > 0) {

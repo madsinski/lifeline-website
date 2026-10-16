@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { getUserFromRequest, isStaff, requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 
 // Admin CRUD for company_documents — historic ToS / DPA / purchase-
 // order PDFs for companies that signed offline. Stored in the
@@ -32,7 +32,10 @@ export async function GET(
     .select("id, company_id, kind, title, filename, storage_path, content_type, size_bytes, signer_name, signed_at, note, uploaded_by, uploaded_at")
     .eq("company_id", companyId)
     .order("uploaded_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[companies/[companyId]/documents]", error?.code);
+    return NextResponse.json({ error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
+  }
 
   // Attach a 10-minute signed URL per document so the admin can
   // download directly without another round-trip.
@@ -58,9 +61,8 @@ export async function POST(
   { params }: { params: Promise<{ companyId: string }> },
 ) {
   const { companyId } = await params;
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const contentType = req.headers.get("content-type") || "";
   if (!contentType.includes("multipart/form-data")) {
@@ -100,7 +102,8 @@ export async function POST(
     .from(BUCKET)
     .upload(storagePath, buffer, { contentType: file.type, upsert: false });
   if (upErr) {
-    return NextResponse.json({ error: "upload_failed", detail: upErr.message }, { status: 500 });
+    console.error("[companies/[companyId]/documents]", upErr?.name);
+    return NextResponse.json({ error: "upload_failed" }, { status: 500 });
   }
 
   const { data: row, error: insErr } = await supabaseAdmin
@@ -124,7 +127,8 @@ export async function POST(
   if (insErr) {
     // Best-effort: delete the uploaded blob so we don't orphan files.
     await supabaseAdmin.storage.from(BUCKET).remove([storagePath]).catch(() => {});
-    return NextResponse.json({ error: "db_insert_failed", detail: insErr.message }, { status: 500 });
+    console.error("[companies/[companyId]/documents]", insErr?.code);
+    return NextResponse.json({ error: "db_insert_failed" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, document: row });

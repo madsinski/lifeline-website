@@ -1,29 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest } from "@/lib/auth-helpers";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 // Delete a bespoke staff document. Admin / manage_team only.
 // Removes the storage blob + the row.
 
 export const maxDuration = 30;
 
-async function canManage(userId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
-    .from("staff")
-    .select("role, permissions, active")
-    .eq("id", userId)
-    .maybeSingle();
-  return !!data?.active && (data.role === "admin" || (Array.isArray(data.permissions) && (data.permissions as string[]).includes("manage_team")));
-}
-
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ staffId: string; docId: string }> },
 ) {
   const { staffId, docId } = await params;
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await canManage(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  // admin or manage_team permission, + AAL2
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
 
   const { data: doc } = await supabaseAdmin
     .from("staff_documents")
@@ -42,6 +33,9 @@ export async function DELETE(
     .delete()
     .eq("id", docId)
     .eq("staff_id", staffId);
-  if (error) return NextResponse.json({ error: "delete_failed", detail: error.message }, { status: 500 });
+  if (error) {
+    console.error("[staff-documents DELETE] row delete failed", error.code);
+    return NextResponse.json({ error: "Ekki tókst að eyða skjalinu." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

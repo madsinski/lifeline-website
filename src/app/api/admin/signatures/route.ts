@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
-import { getUserFromRequest, isAnyActiveStaff, isStaff } from "@/lib/auth-helpers";
+import { getUserFromRequest, isAnyActiveStaff, requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
@@ -35,7 +35,10 @@ export async function GET(req: NextRequest) {
     .select("key, name, title, phone, email, sort_order, updated_at")
     .order("sort_order", { ascending: true })
     .order("key", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[signatures]", error?.code);
+    return NextResponse.json({ error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
+  }
   return NextResponse.json({ signatures: data ?? [] });
 }
 
@@ -48,10 +51,8 @@ interface SignaturePatch {
 }
 
 export async function PUT(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   let body: SignaturePatch;
   try { body = (await req.json()) as SignaturePatch; } catch {
@@ -75,7 +76,10 @@ export async function PUT(req: NextRequest) {
     .eq("key", body.key)
     .select("key, name, title, phone, email, updated_at")
     .maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[signatures]", error?.code);
+    return NextResponse.json({ error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
+  }
   if (!data) return NextResponse.json({ error: "not_found" }, { status: 404 });
   return NextResponse.json({ signature: data });
 }
@@ -83,10 +87,8 @@ export async function PUT(req: NextRequest) {
 // POST — create a new signature. Generates a unique key from the name
 // (a random suffix is appended on collision) and appends it to the end.
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   let body: { name?: string; title?: string; phone?: string; email?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "invalid_body" }, { status: 400 }); }
@@ -116,19 +118,23 @@ export async function POST(req: NextRequest) {
     })
     .select("key, name, title, phone, email, sort_order, updated_at")
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[signatures]", error?.code);
+    return NextResponse.json({ error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
+  }
   return NextResponse.json({ signature: data }, { status: 201 });
 }
 
 // DELETE ?key=<key> — remove a signature.
 export async function DELETE(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
   const key = req.nextUrl.searchParams.get("key");
   if (!key) return NextResponse.json({ error: "missing_key" }, { status: 400 });
   const { error } = await supabaseAdmin.from("email_signatures").delete().eq("key", key);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[signatures]", error?.code);
+    return NextResponse.json({ error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

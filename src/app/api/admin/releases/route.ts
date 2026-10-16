@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest } from "@/lib/auth-helpers";
+import { getUserFromRequest, requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 import { withErrorReporting } from "@/lib/with-error-reporting";
 
 export const runtime = "nodejs";
@@ -34,17 +34,15 @@ async function requireAdmin(req: NextRequest) {
   const { data: staff } = await supabaseAdmin
     .from("staff")
     .select("role, active")
-    .eq("email", user.email ?? "")
+    .eq("id", user.id)
     .maybeSingle();
   if (!staff?.active || staff.role !== "admin") return null;
   return user;
 }
 
 export const POST = withErrorReporting(async (req: NextRequest) => {
-  const user = await requireAdmin(req);
-  if (!user) {
-    return NextResponse.json({ error: "admin_access_required" }, { status: 403 });
-  }
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
 
   const contentType = req.headers.get("content-type") ?? "";
 
@@ -119,7 +117,8 @@ export const POST = withErrorReporting(async (req: NextRequest) => {
     if (insErr.code === "23505") {
       return NextResponse.json({ error: "release_already_registered" }, { status: 409 });
     }
-    return NextResponse.json({ error: "insert_failed", detail: insErr.message }, { status: 500 });
+    console.error("[releases] insert failed", insErr.code);
+    return NextResponse.json({ error: "Ekki tókst að skrá útgáfuna." }, { status: 500 });
   }
 
   let sbomStoragePath: string | null = null;
@@ -173,7 +172,8 @@ export const GET = withErrorReporting(async (req: NextRequest) => {
   if (repo) q = q.eq("repo", repo);
   const { data, error } = await q;
   if (error) {
-    return NextResponse.json({ error: "list_failed", detail: error.message }, { status: 500 });
+    console.error("[releases] list failed", error.code);
+    return NextResponse.json({ error: "Ekki tókst að sækja útgáfur." }, { status: 500 });
   }
   return NextResponse.json({ releases: data ?? [] });
 }, { route: "GET /api/admin/releases" });

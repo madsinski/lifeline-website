@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { Modal, Button, Alert, accountInput, accountLabel } from "@/app/components/account/ui";
 
 interface Props {
   title: string;
@@ -11,10 +12,37 @@ interface Props {
 }
 
 /**
+ * Checks the signed-in staff member's password on the server
+ * (POST /api/admin/reauth). Never signs in from the browser: a client-side
+ * signInWithPassword replaces the AAL2 session with an AAL1 one and every
+ * MFA-gated admin API after it fails. Returns null on success, otherwise an
+ * Icelandic reason.
+ */
+export async function verifyAdminPassword(password: string): Promise<string | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return "Innskráningin er útrunnin. Skráðu þig inn aftur.";
+    const res = await fetch("/api/admin/reauth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ password }),
+    });
+    if (res.ok) return null;
+    const j = await res.json().catch(() => ({}));
+    if (res.status === 401 && j?.error === "unauthorized") return "Innskráningin er útrunnin. Skráðu þig inn aftur.";
+    if (j?.error === "mfa_required") return "Staðfestu tvíþætta auðkenningu aftur og reyndu svo.";
+    if (j?.error === "forbidden") return "Þú hefur ekki heimild til að eyða.";
+    return typeof j?.error === "string" ? j.error : "Ekki tókst að staðfesta lykilorðið.";
+  } catch {
+    return "Engin tenging við netþjóninn. Reyndu aftur.";
+  }
+}
+
+/**
  * Three-step delete confirmation:
- * 1. Shows warning with description
- * 2. User must type "delete" to proceed
- * 3. User must enter their password to confirm
+ * 1. Warning with description
+ * 2. Type „eyða“ (or "delete") to proceed
+ * 3. Password, checked server-side without touching the browser session
  */
 export default function DeleteConfirmModal({ title, description, onConfirm, onCancel }: Props) {
   const [step, setStep] = useState<"warn" | "type" | "password">("warn");
@@ -22,129 +50,103 @@ export default function DeleteConfirmModal({ title, description, onConfirm, onCa
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const word = typed.trim().toLowerCase();
+  const typedOk = word === "eyða" || word === "delete";
 
   const handlePasswordConfirm = async () => {
     setBusy(true);
     setError("");
+    const problem = await verifyAdminPassword(password);
+    if (problem) {
+      setError(problem);
+      setBusy(false);
+      return;
+    }
     try {
-      // Verify password by attempting sign-in with current user's email
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) { setError("Could not verify identity."); setBusy(false); return; }
-
-      const { error: authErr } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password,
-      });
-      if (authErr) {
-        setError("Incorrect password.");
-        setBusy(false);
-        return;
-      }
-
       await onConfirm();
     } catch (e) {
-      setError((e as Error).message || "Delete failed.");
+      setError((e as Error).message || "Ekki tókst að eyða.");
     }
     setBusy(false);
   };
 
+  const footer =
+    step === "warn" ? (
+      <>
+        <Button variant="secondary" data-autofocus onClick={onCancel}>Hætta við</Button>
+        <Button variant="danger" onClick={() => setStep("type")}>Ég skil, halda áfram</Button>
+      </>
+    ) : step === "type" ? (
+      <>
+        <Button variant="secondary" onClick={onCancel}>Hætta við</Button>
+        <Button variant="danger" disabled={!typedOk} onClick={() => { setError(""); setStep("password"); }}>Áfram</Button>
+      </>
+    ) : (
+      <>
+        <Button variant="secondary" onClick={onCancel} disabled={busy}>Hætta við</Button>
+        <Button variant="danger" busy={busy} disabled={busy || !password} onClick={handlePasswordConfirm}>
+          {busy ? "Eyði…" : "Eyða endanlega"}
+        </Button>
+      </>
+    );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onCancel}>
-      <div className="bg-white rounded-xl shadow-2xl w-[420px] max-w-[calc(100vw-2rem)] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 bg-red-50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-red-900">{title}</h3>
-              <p className="text-sm text-red-700 mt-0.5">This action cannot be undone.</p>
-            </div>
+    <Modal size="sm" title={title} description="Ekki er hægt að afturkalla þessa aðgerð." onClose={onCancel} dismissable={!busy} footer={footer}>
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (step === "type" && typedOk) { setError(""); setStep("password"); }
+          else if (step === "password" && password && !busy) void handlePasswordConfirm();
+        }}
+      >
+        <p className="text-sm leading-relaxed text-hc-ink-2">{description}</p>
+
+        {step === "type" && (
+          <div>
+            <label htmlFor="delete-confirm-word" className={accountLabel}>
+              Skrifaðu <span className="font-mono font-bold text-hc-bad-ink">eyða</span> til að staðfesta
+            </label>
+            <input
+              id="delete-confirm-word"
+              type="text"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              placeholder="eyða"
+              autoComplete="off"
+              data-autofocus
+              autoFocus
+              className={`${accountInput} mt-1`}
+            />
           </div>
-        </div>
+        )}
 
-        <div className="px-6 py-5 space-y-4">
-          <p className="text-sm text-gray-700 leading-relaxed">{description}</p>
+        {step === "password" && (
+          <div>
+            <label htmlFor="delete-confirm-password" className={accountLabel}>
+              Sláðu inn lykilorðið þitt til að staðfesta
+            </label>
+            <input
+              id="delete-confirm-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              data-autofocus
+              autoFocus
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "delete-confirm-error" : undefined}
+              className={`${accountInput} mt-1`}
+            />
+          </div>
+        )}
 
-          {/* Step 1: Warning — proceed */}
-          {step === "warn" && (
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                Cancel
-              </button>
-              <button onClick={() => setStep("type")} className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700">
-                I understand, continue
-              </button>
-            </div>
-          )}
-
-          {/* Step 2: Type "delete" */}
-          {step === "type" && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type <span className="font-mono font-bold text-red-600">delete</span> to confirm
-                </label>
-                <input
-                  type="text"
-                  value={typed}
-                  onChange={(e) => setTyped(e.target.value)}
-                  placeholder="delete"
-                  autoFocus
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-red-300 outline-none box-border"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                  Cancel
-                </button>
-                <button
-                  onClick={() => { setError(""); setStep("password"); }}
-                  disabled={typed.toLowerCase() !== "delete"}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-40"
-                >
-                  Next
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Step 3: Enter password */}
-          {step === "password" && (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Enter your password to confirm
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Your admin password"
-                  autoFocus
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-red-300 outline-none box-border"
-                />
-                {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
-              </div>
-              <div className="flex justify-end gap-2">
-                <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                  Cancel
-                </button>
-                <button
-                  onClick={handlePasswordConfirm}
-                  disabled={busy || !password}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-40"
-                >
-                  {busy ? "Deleting…" : "Delete permanently"}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+        {error && (
+          <div id="delete-confirm-error">
+            <Alert tone="bad" compact>{error}</Alert>
+          </div>
+        )}
+      </form>
+    </Modal>
   );
 }

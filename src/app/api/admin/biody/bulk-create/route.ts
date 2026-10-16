@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff, findAuthUserByEmail } from "@/lib/auth-helpers";
+import { findAuthUserByEmail, requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { activateBiodyForClient } from "@/lib/biody";
 import { logAdminAction } from "@/lib/audit";
 
@@ -125,7 +125,7 @@ async function createOne(companyId: string, row: Invitee): Promise<ResultRow> {
         created_at: nowIso,
         updated_at: nowIso,
       });
-      if (insErr) return { email, status: "failed", error: insErr.message };
+      if (insErr) return { email, status: "failed", error: "db_error" };
     } else {
       const patch: Record<string, unknown> = { updated_at: nowIso };
       if (!existingClient.full_name) patch.full_name = fullName;
@@ -146,7 +146,7 @@ async function createOne(companyId: string, row: Invitee): Promise<ResultRow> {
         .from("clients_decrypted")
         .update(patch)
         .eq("id", userId);
-      if (upErr) return { email, status: "failed", error: upErr.message };
+      if (upErr) return { email, status: "failed", error: "db_error" };
     }
 
     // Activate Biody. If the client already has a biody_patient_id, the
@@ -166,9 +166,8 @@ async function createOne(companyId: string, row: Invitee): Promise<ResultRow> {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const companyId: string | undefined = body?.company_id;

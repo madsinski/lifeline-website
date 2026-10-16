@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { signBiodyHeaders } from "@/lib/biody";
 
 const BIODY_SYNC_URL = process.env.BIODY_SYNC_URL ||
@@ -13,20 +13,17 @@ export async function POST(req: NextRequest) {
   if (!SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY not set" }, { status: 500 });
   }
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Staff-only + MFA (only caller is /admin/companies).
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const companyId: string | undefined = body?.company_id;
   if (!companyId) return NextResponse.json({ error: "company_id required" }, { status: 400 });
 
-  // Contact person for the company OR staff
   const { data: company } = await supabaseAdmin
-    .from("companies").select("contact_person_id").eq("id", companyId).maybeSingle();
+    .from("companies").select("id").eq("id", companyId).maybeSingle();
   if (!company) return NextResponse.json({ error: "company not found" }, { status: 404 });
-  if (company.contact_person_id !== user.id && !(await isStaff(user.id))) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
 
   const bodyText = JSON.stringify({ company_id: companyId });
   const res = await fetch(`${BIODY_SYNC_URL}/ensure-group`, {

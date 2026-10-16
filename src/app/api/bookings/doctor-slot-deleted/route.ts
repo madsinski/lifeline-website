@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 
-// Called by /admin/doctor-slots right before admin deletes a booked slot.
-// Emails the client so they know the consultation's gone — otherwise the
-// admin silently erases a scheduled appointment.
+// Called by /admin/doctor-slots to delete a doctor slot. One server step:
+// read the slot (+ booked client), delete the row, and ONLY THEN email the
+// client (if the slot was booked) so they know the consultation's gone.
+// A failed delete never sends a cancellation email; a failed email after a
+// successful delete is reported back as { ok: true, notified: false }.
+//
+// Gate: write-authorized staff + AAL2 (requireAdminAAL2).
 
 export const maxDuration = 20;
 
@@ -14,9 +18,8 @@ function escapeHtml(s: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const slotId = (body?.slotId || "").trim();
@@ -28,15 +31,21 @@ export async function POST(req: NextRequest) {
     .select("id, slot_at, mode, location, meeting_link, client_id, doctor_name")
     .eq("id", slotId)
     .maybeSingle();
-  if (!slot) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  if (!slot.client_id) return NextResponse.json({ ok: true, skipped: "no_client" });
+  if (!slot) return NextResponse.json({ error: "Tíminn fannst ekki." }, { status: 404 });
 
-  const { data: client } = await supabaseAdmin
-    .from("clients_decrypted")
-    .select("full_name, email")
-    .eq("id", slot.client_id)
-    .maybeSingle();
-  if (!client?.email) return NextResponse.json({ ok: true, skipped: "no_client_email" });
+  // Read the client BEFORE deleting (the slot row holds the link).
+  const { data: client } = slot.client_id
+    ? await supabaseAdmin.from("clients_decrypted").select("full_name, email").eq("id", slot.client_id).maybeSingle()
+    : { data: null };
+
+  const { error: delErr } = await supabaseAdmin.from("doctor_slots").delete().eq("id", slotId);
+  if (delErr) {
+    console.error("[bookings/doctor-slot-deleted] delete failed", delErr.code);
+    return NextResponse.json({ error: "Ekki tókst að eyða tímanum." }, { status: 500 });
+  }
+
+  if (!slot.client_id) return NextResponse.json({ ok: true, notified: false, skipped: "no_client" });
+  if (!client?.email) return NextResponse.json({ ok: true, notified: false, skipped: "no_client_email" });
 
   const when = new Date(slot.slot_at).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Atlantic/Reykjavik" });
   const firstName = client.full_name?.split(" ")[0] || "there";
@@ -67,7 +76,10 @@ export async function POST(req: NextRequest) {
     html,
     text,
   });
-  if (!result.ok) return NextResponse.json({ error: result.error || "send_failed" }, { status: 500 });
+  if (!result.ok) {
+    console.error("[bookings/doctor-slot-deleted] email failed");
+    return NextResponse.json({ ok: true, notified: false, notify_error: "Tímanum var eytt en ekki tókst að senda skjólstæðingi tölvupóst." });
+  }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, notified: true });
 }

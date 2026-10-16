@@ -224,10 +224,10 @@ export default function CoachDashboardPage() {
 
   // Quick action buttons
   const quickActions = [
-    { label: "Messages", icon: "chat", href: "/admin/messages", badge: unreadCount > 0 ? unreadCount : null, color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    { label: "Calendar", icon: "calendar", href: "/admin/calendar", badge: todayAppointments.length > 0 ? todayAppointments.length : null, color: "bg-blue-50 text-blue-700 border-blue-200" },
-    { label: "Programs", icon: "program", href: "/admin/programs", badge: null, color: "bg-purple-50 text-purple-700 border-purple-200" },
-    { label: "Education", icon: "education", href: "/admin/education", badge: null, color: "bg-amber-50 text-amber-700 border-amber-200" },
+    { label: "Messages", icon: "chat", href: "/admin/conversations?tab=messages", badge: unreadCount > 0 ? unreadCount : null, color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    { label: "Calendar", icon: "calendar", href: "/admin/scheduling?tab=calendar", badge: todayAppointments.length > 0 ? todayAppointments.length : null, color: "bg-blue-50 text-blue-700 border-blue-200" },
+    { label: "Programs", icon: "program", href: "/admin/content?tab=programs", badge: null, color: "bg-purple-50 text-purple-700 border-purple-200" },
+    { label: "Education", icon: "education", href: "/admin/content?tab=education", badge: null, color: "bg-amber-50 text-amber-700 border-amber-200" },
     { label: "Clients", icon: "clients", href: "/admin/clients", badge: null, color: "bg-gray-50 text-gray-700 border-gray-200" },
   ];
 
@@ -330,7 +330,7 @@ export default function CoachDashboardPage() {
             <div className="divide-y divide-gray-50">
               {/* Unread messages */}
               {unreadCount > 0 && (
-                <Link href="/admin/messages" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors">
+                <Link href="/admin/conversations?tab=messages" className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -348,7 +348,7 @@ export default function CoachDashboardPage() {
 
               {/* Today's appointments */}
               {todayAppointments.map((appt) => (
-                <Link href="/admin/calendar" key={appt.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors">
+                <Link href="/admin/scheduling?tab=calendar" key={appt.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -396,7 +396,7 @@ export default function CoachDashboardPage() {
                     <p className="text-sm font-medium text-[#1F2937]">{client.name} — no active program</p>
                     <p className="text-xs text-gray-400">Consider reaching out to help them get started</p>
                   </div>
-                  <Link href="/admin/messages" className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
+                  <Link href="/admin/conversations?tab=messages" className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors">
                     Message
                   </Link>
                 </div>
@@ -414,7 +414,7 @@ export default function CoachDashboardPage() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-[#1F2937]">Upcoming Appointments</h2>
-              <Link href="/admin/calendar" className="text-xs font-medium text-[#10B981] hover:underline">View all</Link>
+              <Link href="/admin/scheduling?tab=calendar" className="text-xs font-medium text-[#10B981] hover:underline">View all</Link>
             </div>
             {upcomingAppointments.length === 0 ? (
               <div className="px-5 py-8 text-center">
@@ -445,7 +445,7 @@ export default function CoachDashboardPage() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-[#1F2937]">Program Enrollment</h2>
-              <Link href="/admin/programs" className="text-xs font-medium text-[#10B981] hover:underline">Edit programs</Link>
+              <Link href="/admin/content?tab=programs" className="text-xs font-medium text-[#10B981] hover:underline">Edit programs</Link>
             </div>
             {programStats.length === 0 ? (
               <div className="px-5 py-8 text-center">
@@ -483,7 +483,7 @@ export default function CoachDashboardPage() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-[#1F2937]">Recent Messages</h2>
-              <Link href="/admin/messages" className="text-xs font-medium text-[#10B981] hover:underline">Open</Link>
+              <Link href="/admin/conversations?tab=messages" className="text-xs font-medium text-[#10B981] hover:underline">Open</Link>
             </div>
             {recentConversations.length === 0 ? (
               <div className="px-4 py-8 text-center">
@@ -497,7 +497,7 @@ export default function CoachDashboardPage() {
                   const lastMsg = sorted[0];
                   const unread = msgs.filter((m) => !m.read && m.sender_role === "client").length;
                   return (
-                    <Link href="/admin/messages" key={conv.id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                    <Link href="/admin/conversations?tab=messages" key={conv.id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 text-xs font-bold text-gray-500">
                         {(conv.coach_name || "C")[0]}
                       </div>
@@ -557,11 +557,11 @@ export default function CoachDashboardPage() {
             <h2 className="text-sm font-semibold text-[#1F2937] mb-3">Quick Links</h2>
             <div className="space-y-2">
               {[
-                { label: "Create new program", href: "/admin/programs", icon: "+" },
-                { label: "Add education course", href: "/admin/education", icon: "+" },
-                { label: "Start conversation", href: "/admin/messages", icon: "+" },
+                { label: "Create new program", href: "/admin/content?tab=programs", icon: "+" },
+                { label: "Add education course", href: "/admin/content?tab=education", icon: "+" },
+                { label: "Start conversation", href: "/admin/conversations?tab=messages", icon: "+" },
                 { label: "View analytics", href: "/admin/analytics", icon: ">" },
-                { label: "Manage team", href: "/admin/team", icon: ">" },
+                { label: "Manage team", href: "/admin/settings?tab=team", icon: ">" },
               ].map((link) => (
                 <Link
                   key={link.label}

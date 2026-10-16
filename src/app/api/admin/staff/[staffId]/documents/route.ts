@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { getUserFromRequest, requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 // List + upload bespoke staff documents (offer letter, amendment, tax
 // form, etc.). Mirrors /api/admin/companies/[id]/documents.
@@ -37,7 +37,10 @@ export async function GET(
     .select("id, kind, title, filename, storage_path, content_type, size_bytes, signer_name, signed_at, note, uploaded_by, uploaded_at")
     .eq("staff_id", staffId)
     .order("uploaded_at", { ascending: false });
-  if (error) return NextResponse.json({ error: "query_failed", detail: error.message }, { status: 500 });
+  if (error) {
+    console.error("[staff/[staffId]/documents]", error?.code);
+    return NextResponse.json({ error: "query_failed" }, { status: 500 });
+  }
 
   const withUrls = await Promise.all(
     (rows || []).map(async (r) => {
@@ -56,10 +59,8 @@ export async function POST(
   { params }: { params: Promise<{ staffId: string }> },
 ) {
   const { staffId } = await params;
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  if (!(await canManage(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
 
   // FormData: file + kind + optional title/signer/signed_at/note.
   const form = await req.formData();
@@ -91,7 +92,8 @@ export async function POST(
     .upload(storagePath, fileBytes, { contentType: file.type || "application/octet-stream", upsert: false });
   if (upErr) {
     console.error("[staff-documents POST] upload failed", upErr);
-    return NextResponse.json({ error: "upload_failed", detail: upErr.message }, { status: 500 });
+    console.error("[staff/[staffId]/documents]", upErr?.name);
+    return NextResponse.json({ error: "upload_failed" }, { status: 500 });
   }
 
   const { data: inserted, error: insErr } = await supabaseAdmin
@@ -114,7 +116,8 @@ export async function POST(
   if (insErr || !inserted) {
     // Try to clean up the orphan upload.
     await supabaseAdmin.storage.from("staff-documents").remove([storagePath]).catch(() => null);
-    return NextResponse.json({ error: "insert_failed", detail: insErr?.message }, { status: 500 });
+    console.error("[staff/[staffId]/documents]", insErr?.code);
+    return NextResponse.json({ error: "insert_failed" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, id: inserted.id, uploaded_at: inserted.uploaded_at });

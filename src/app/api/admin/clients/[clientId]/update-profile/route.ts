@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> },
 ) {
   const { clientId } = await params;
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const { full_name, email, phone, address, date_of_birth, sex } = body;
@@ -39,14 +37,17 @@ export async function POST(
 
   if (Object.keys(clientUpdate).length > 0) {
     const { error } = await supabaseAdmin.from("clients_decrypted").update(clientUpdate).eq("id", clientId);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) {
+      console.error("[clients/[clientId]/update-profile]", error?.code);
+      return NextResponse.json({ error: "Aðgerð mistókst. Reyndu aftur." }, { status: 400 });
+    }
   }
 
-  // 2. Update auth email if changed
+  // 2. The login email is NOT changed here. It is the key to the account, so
+  //    it has its own route with a stricter gate, a staff-account refusal,
+  //    notices to both addresses and an audit row: update-email.
   if (email && email !== oldEmail) {
-    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(clientId, { email });
-    if (authErr) return NextResponse.json({ error: authErr.message }, { status: 400 });
-    await supabaseAdmin.from("clients_decrypted").update({ email }).eq("id", clientId);
+    return NextResponse.json({ error: "Innskráningarnetfangi er breytt sérstaklega (stjórnandi)." }, { status: 400 });
   }
 
   // 3. Sync to company_members (B2B roster) using OLD email for matching
@@ -56,7 +57,6 @@ export async function POST(
     const memberUpdate: Record<string, unknown> = {};
     if (full_name) memberUpdate.full_name = full_name;
     if (phone !== undefined) memberUpdate.phone = phone;
-    if (email && email !== oldEmail) memberUpdate.email = email;
 
     if (Object.keys(memberUpdate).length > 0) {
       await supabaseAdmin.from("company_members")

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { sendEmail, renderB2bIntroEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -14,10 +14,8 @@ interface SendPayload {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const staff = await isStaff(user.id);
-  if (!staff) return NextResponse.json({ error: "forbidden_staff_only" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body: SendPayload = await req.json().catch(() => ({} as SendPayload));
   const ids = Array.isArray(body.recipient_ids) ? body.recipient_ids.filter(Boolean) : [];
@@ -29,7 +27,10 @@ export async function POST(req: NextRequest) {
     .from("clients_decrypted")
     .select("id, email, full_name, marketing_opt_out")
     .in("id", ids);
-  if (rErr) return NextResponse.json({ error: rErr.message }, { status: 500 });
+  if (rErr) {
+    console.error("[send-b2b-intro] recipient lookup failed", rErr.code);
+    return NextResponse.json({ error: "Ekki tókst að sækja viðtakendur." }, { status: 500 });
+  }
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL
     || req.headers.get("origin")

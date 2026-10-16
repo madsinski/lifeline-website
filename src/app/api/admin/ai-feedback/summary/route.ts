@@ -16,6 +16,7 @@ import { generateText, Output } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -58,30 +59,9 @@ interface RecRow {
   input_snapshot: Record<string, unknown> | null;
 }
 
-async function loadStaff(token: string): Promise<{ id: string; role: string; name: string | null; email: string } | null> {
-  const { data: userData } = await supabaseAdmin.auth.getUser(token);
-  if (!userData.user?.email) return null;
-  const { data: staffRow } = await supabaseAdmin
-    .from("staff")
-    .select("id, role, name, active")
-    .eq("email", userData.user.email)
-    .maybeSingle();
-  if (!staffRow || !staffRow.active) return null;
-  if (staffRow.role !== "admin") return null;
-  return { id: staffRow.id, role: staffRow.role, name: staffRow.name, email: userData.user.email };
-}
-
-function authToken(req: Request): string | null {
-  const h = req.headers.get("authorization");
-  if (!h?.startsWith("Bearer ")) return null;
-  return h.slice("Bearer ".length);
-}
-
 export async function POST(req: Request) {
-  const token = authToken(req);
-  if (!token) return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  const staff = await loadStaff(token);
-  if (!staff) return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  const gate = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof gate === "string") return gateError(gate);
 
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({
