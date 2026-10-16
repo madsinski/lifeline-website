@@ -88,6 +88,31 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  /* "Keeps swapping the same session": substitutions in the last 14 days,
+     grouped per client and prescribed session; the most-swapped one if it
+     happened 3+ times. One indexed query over the visible clients with a
+     live plan. migration-session-substitutions.sql */
+  const swapHint: Record<string, { label: string | null; count: number }> = {};
+  const liveClients = Array.from(new Set((journeys || []).filter((j) => j.plan_published_at).map((j) => j.client_id)));
+  if (liveClients.length) {
+    const { data: swaps } = await supabaseAdmin.from("client_session_completions")
+      .select("client_id, prescribed_action_key, prescribed_label")
+      .eq("substituted", true).in("client_id", liveClients)
+      .gte("completed_at", new Date(Date.now() - 14 * 86400_000).toISOString())
+      .limit(2000);
+    const counts = new Map<string, { client: string; label: string | null; count: number }>();
+    for (const s of swaps || []) {
+      const label = (s.prescribed_label as string | null)?.trim() || null;
+      const key = `${s.client_id}|${label ?? s.prescribed_action_key ?? ""}`;
+      const c = counts.get(key) ?? { client: s.client_id as string, label, count: 0 };
+      c.count++;
+      counts.set(key, c);
+    }
+    for (const c of counts.values()) {
+      if (c.count >= 3 && c.count > (swapHint[c.client]?.count ?? 0)) swapHint[c.client] = { label: c.label, count: c.count };
+    }
+  }
+
   /* "Lifeline þjálfun" subscribers, for the Þjálfun badge: an active row,
      or a cancelled one still inside its paid period. One query for all. */
   const coachingClients = new Set<string>();
@@ -124,6 +149,7 @@ export async function GET(req: NextRequest) {
       // A Vera partner contact whose email did not go: resend it.
       partner_failed: (openRefs[j.id] ?? 0) > 0,
       ticks_7d: ticks7[j.id] ?? 0,
+      swap_hint: j.plan_published_at ? swapHint[j.client_id] ?? null : null,
     })),
   });
 }

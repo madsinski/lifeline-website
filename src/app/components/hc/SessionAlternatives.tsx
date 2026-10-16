@@ -20,9 +20,12 @@
 
 import { useState } from "react";
 import Sheet from "./Sheet";
-import { Bike, CheckCircle2, Dumbbell, Footprints, Mountain, PersonStanding, Timer, Users, Waves, X, Zap } from "lucide-react";
+import { ArrowLeft, Bike, CheckCircle2, Dumbbell, Footprints, Mountain, PersonStanding, Timer, Users, Waves, X, Zap } from "lucide-react";
 import type { Modality } from "@/lib/hc/personalise";
+import { EFFORTS } from "@/lib/hc/activity";
 import { hcBtn } from "./ui";
+
+const MINUTES = [15, 30, 45, 60, 90];
 
 export interface Alternative {
   key: string;
@@ -66,12 +69,76 @@ const BY_MODALITY: Record<Modality, { blurb: string; options: Alternative[] }> =
 export default function SessionAlternatives({ modality, sessionTitle, onPick, onClose }: {
   modality: Modality;
   sessionTitle: string;
-  /** What they did instead, and whether it still counts as this kind of day. */
-  onPick: (info: { label: string; modality: Modality }) => void;
+  /** What they did instead, for how long and how hard, and whether it still
+   *  counts as this kind of day. */
+  onPick: (info: { label: string; modality: Modality; minutes: number | null; rpe: number | null }) => void;
   onClose: () => void;
 }) {
   const [own, setOwn] = useState("");
+  /* Step two: the activity is chosen, now how long and how hard. Asked
+     rather than invented — the row used to carry a fixed RPE 5 and no
+     duration, which made every substitution look the same to the coach. */
+  const [picked, setPicked] = useState<{ label: string; modality: Modality } | null>(null);
+  const [minutes, setMinutes] = useState<number | null>(null);
+  const [custom, setCustom] = useState("");
+  const [rpe, setRpe] = useState<number | null>(null);
   const set = BY_MODALITY[modality] ?? BY_MODALITY.other;
+  const customMin = Number(custom);
+  const mins = custom.trim() ? (Number.isFinite(customMin) && customMin >= 1 && customMin <= 600 ? Math.round(customMin) : null) : minutes;
+  const chip = (on: boolean) =>
+    `min-h-11 rounded-full px-4 text-sm font-semibold ring-1 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand ${on ? "bg-hc-brand-dark text-white ring-hc-brand-dark" : "bg-hc-surface text-hc-ink-2 ring-hc-control hover:bg-hc-sunken"}`;
+
+  if (picked) {
+    return (
+      <Sheet title="Gera eitthvað annað" onClose={onClose}
+        header={
+          <div className="flex items-start gap-3 border-b border-hc-hairline p-4">
+            <button type="button" onClick={() => setPicked(null)} aria-label="Til baka"
+              className="-ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-hc-ink-3 hover:bg-hc-sunken-2"><ArrowLeft className="h-5 w-5" /></button>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Í stað „{sessionTitle}“</p>
+              <p className="font-bold text-hc-ink">{picked.label}</p>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Loka" className="flex h-11 w-11 items-center justify-center rounded-lg text-hc-ink-3 hover:bg-hc-sunken-2"><X className="h-5 w-5" /></button>
+          </div>
+        }>
+        <div className="space-y-5 p-4">
+          <fieldset>
+            <legend className="text-sm font-semibold text-hc-ink">Hversu lengi?</legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {MINUTES.map((m) => (
+                <button key={m} type="button" aria-pressed={!custom.trim() && minutes === m}
+                  onClick={() => { setMinutes(m); setCustom(""); }} className={chip(!custom.trim() && minutes === m)}>
+                  {m} mín.
+                </button>
+              ))}
+              <label className="flex min-h-11 items-center gap-2 rounded-full bg-hc-surface px-3 text-sm text-hc-ink-2 ring-1 ring-hc-control">
+                <span className="sr-only">Annar tími í mínútum</span>
+                <input inputMode="numeric" pattern="[0-9]*" value={custom} maxLength={3}
+                  onChange={(e) => setCustom(e.target.value.replace(/\D/g, ""))}
+                  placeholder="Annað" className="w-14 bg-transparent text-sm outline-none" />
+                mín.
+              </label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend className="text-sm font-semibold text-hc-ink">Hversu erfitt?</legend>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {EFFORTS.map((e) => (
+                <button key={e.key} type="button" aria-pressed={rpe === e.rpe} onClick={() => setRpe(e.rpe)} className={chip(rpe === e.rpe)}>
+                  {e.label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <button type="button" className={`${hcBtn.primary} w-full`}
+            onClick={() => onPick({ ...picked, minutes: mins, rpe })}>
+            {mins || rpe ? "Skrá" : "Skrá án tíma og álags"}
+          </button>
+        </div>
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet title="Gera eitthvað annað" onClose={onClose}
@@ -94,7 +161,7 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {set.options.map((o) => (
-                  <button key={o.key} type="button" onClick={() => onPick({ label: o.label, modality })}
+                  <button key={o.key} type="button" onClick={() => setPicked({ label: o.label, modality })}
                     className="flex items-start gap-3 rounded-2xl bg-hc-surface p-3 text-left ring-1 ring-hc-hairline transition hover:ring-2 hover:ring-hc-brand">
                     <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700">
                       <o.Icon className="h-5 w-5" aria-hidden />
@@ -120,7 +187,7 @@ export default function SessionAlternatives({ modality, sessionTitle, onPick, on
                 placeholder="t.d. „Fjallganga á Esjuna“" aria-label="Hvað gerðirðu?"
                 className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
               <button type="button" disabled={own.trim().length < 2} className={hcBtn.primary}
-                onClick={() => onPick({ label: own.trim(), modality: "other" })}>Skrá</button>
+                onClick={() => setPicked({ label: own.trim(), modality: "other" })}>Áfram</button>
             </div>
           </div>
         </div>

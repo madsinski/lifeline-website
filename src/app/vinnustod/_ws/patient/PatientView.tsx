@@ -16,6 +16,7 @@ import CoachBookings from "@/app/components/hc/CoachBookings";
 import PlanChanges from "@/app/components/hc/PlanChanges";
 import ClientThread from "@/app/components/hc/ClientThread";
 import EmptyState from "@/app/components/hc/EmptyState";
+import ActivityLog from "@/app/components/hc/ActivityLog";
 import { hcTabs } from "@/app/components/hc/ui";
 import { useWsApi, WS_SESSION_EXPIRED } from "@/app/components/hc/ws-api";
 import { useToast } from "@/app/components/hc/Toast";
@@ -327,6 +328,8 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
             <ClientRequests journeyId={j.id} onAction={onRequestAction} prefill={reqPrefill} onChanged={onChanged} />
             <Progress d={d} record={record} />
             {j.plan_published_at && <Adherence d={d} />}
+            {/* What they actually did, substitutions included. */}
+            <ActivityLog api={api} path={`/api/vinnustod/journeys/${j.id}/activity?days=14`} audience="staff" />
             <div id="ws-bookings" className="scroll-mt-24">
               <CoachBookings api={api} journeyId={j.id} start={bookStart} onBooked={onBooked} />
             </div>

@@ -554,7 +554,13 @@ function PlanPageInner() {
    * True when it stored. `announce` says "Æfingin vistuð" here; the workout
    * runner says it itself (it shows the toast unless this returns false).
    */
-  const finishWorkout = async (info: { minutes: number; rpe: number; session: { id: string; title: string; modality: string; weekday: number } }, announce = true): Promise<boolean> => {
+  const finishWorkout = async (info: {
+    minutes: number | null; rpe: number | null;
+    session: { id: string; title: string; modality: string; weekday: number };
+    /** "Gera annað": what was done instead of the prescribed session, whose
+     *  title goes beside it so the coach can read "í stað Styrkur A". */
+    instead?: { prescribedTitle: string };
+  }, announce = true): Promise<boolean> => {
     const { data: u } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
     if (!u.user) { toast.show("Ekki tókst að vista æfinguna. Skráðu þig inn aftur.", { tone: "bad" }); return false; }
     const ins = await supabase.from("client_session_completions").insert({
@@ -565,7 +571,10 @@ function PlanPageInner() {
       prescribed_action_key: info.session.id,
       modality: info.session.modality,
       duration_min: info.minutes || null,
-      intensity_rpe: info.rpe,
+      intensity_rpe: info.rpe ?? null,
+      // migration-session-substitutions.sql
+      substituted: !!info.instead,
+      prescribed_label: info.instead?.prescribedTitle ?? null,
       // The column is checked against mon…sun, not the Icelandic day name.
       prescribed_day: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"][info.session.weekday] ?? null,
     }).then((x) => x, () => ({ error: { message: "network" } }));
@@ -587,7 +596,7 @@ function PlanPageInner() {
         body: JSON.stringify({ journey_id: data?.journey_id, action_uid: uid, done_on: isoDay(), done: true }),
       }), { fail: "Æfingin vistaðist en ekki tókst að haka við venjuna." });
     }
-    if (announce) toast.show("Æfingin vistuð", { tone: "ok" });
+    if (announce) toast.show(info.instead ? "Skráð. Það telst með í vikunni." : "Æfingin vistuð", { tone: "ok" });
     cache.invalidate("/api/hc/");
     setReloadKey((k) => k + 1);
     return true;
@@ -941,8 +950,9 @@ function PlanPageInner() {
                           activities: [...training.activities, { ...a, id: Math.random().toString(36).slice(2, 10) }],
                         })}
                         onInstead={(info) => void finishWorkout({
-                          minutes: 0, rpe: 5,
+                          minutes: info.minutes, rpe: info.rpe,
                           session: { ...info.session, modality: info.modality, title: info.label },
+                          instead: { prescribedTitle: info.session.title },
                         })}
                         />
                     </>
