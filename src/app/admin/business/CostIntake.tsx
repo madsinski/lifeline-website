@@ -9,6 +9,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useDialog } from "@/app/components/account/ui";
+import { useToast } from "@/app/components/hc/Toast";
+import { parseIsNumber } from "@/lib/is-number";
+import { usePromptForm } from "../components/PromptForm";
+import { adminErrorText } from "../hc-api";
 
 const CATEGORIES = [
   { key: "measurements", label: "Measurements" },
@@ -61,6 +66,14 @@ export default function CostPage() {
   const idRef = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  const dialog = useDialog();
+  const toast = useToast();
+  const [promptNode, askPrompt] = usePromptForm();
+  // Every ledger write reports its own failure; returns null on success.
+  const failText = async (res: Response) => {
+    const j = await res.json().catch(() => ({}));
+    return adminErrorText((j as { error?: string }).error, `Villa ${res.status}`);
+  };
   const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
@@ -125,19 +138,36 @@ export default function CostPage() {
   };
 
   // ── ledger edits ────────────────────────────────────────────────
-  const patch = async (id: string, body: Record<string, unknown>) => {
-    await authedFetch(`/api/admin/accounting/invoices`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...body }) });
+  const patch = async (id: string, body: Record<string, unknown>): Promise<string | null> => {
+    let err: string | null = null;
+    try {
+      const res = await authedFetch(`/api/admin/accounting/invoices`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...body }) });
+      if (!res.ok) err = await failText(res);
+    } catch { err = "Netvilla."; }
+    if (err) toast.show(`Breytingin vistaðist ekki: ${err}`, { tone: "bad" });
     await loadLedger();
+    return err;
   };
-  const editAmount = (r: CostInvoice) => {
-    const v = prompt(`Amount ISK for ${r.vendor || "this cost"}:`, String(r.amount_isk));
-    if (v === null) return;
-    const n = parseInt(v.replace(/[^\d]/g, ""), 10);
-    if (Number.isInteger(n) && n >= 0) patch(r.id, { amount_isk: n });
+  const editAmount = async (r: CostInvoice) => {
+    await askPrompt({
+      title: "Breyta upphæð",
+      description: r.vendor || "Kostnaðarreikningur",
+      fields: [{ name: "amount", label: "Upphæð (kr.)", kind: "amount", initial: r.amount_isk, min: 0, hint: "T.d. 12.500 eða 12500." }],
+      onSubmit: async ({ amount }) => {
+        const res = await authedFetch(`/api/admin/accounting/invoices`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: r.id, amount_isk: amount }) });
+        if (!res.ok) return await failText(res);
+        await loadLedger();
+      },
+    });
   };
   const removeInvoice = async (id: string) => {
-    if (!confirm("Delete this cost invoice?")) return;
-    await authedFetch(`/api/admin/accounting/invoices?id=${id}`, { method: "DELETE" });
+    const ok = await dialog.confirm({ title: "Eyða þessum kostnaðarreikningi?", body: "Reikningnum og skránni hans verður eytt. Ekki er hægt að afturkalla þetta.", confirmLabel: "Eyða", cancelLabel: "Hætta við", tone: "danger" });
+    if (!ok) return;
+    try {
+      const res = await authedFetch(`/api/admin/accounting/invoices?id=${id}`, { method: "DELETE" });
+      if (!res.ok) toast.show(`Reikningnum var ekki eytt: ${await failText(res)}`, { tone: "bad" });
+      else toast.show("Reikningi eytt.");
+    } catch { toast.show("Reikningnum var ekki eytt: netvilla.", { tone: "bad" }); }
     await loadLedger();
   };
 
@@ -184,17 +214,25 @@ export default function CostPage() {
       .sort((a, b) => (b.invoice_date || b.month).localeCompare(a.invoice_date || a.month));
   };
   const addRecurring = async () => {
-    const amount = parseInt(newRec.amount, 10);
-    if (!newRec.name.trim() || !Number.isInteger(amount) || amount < 0) return;
-    await authedFetch(`/api/admin/accounting/overheads`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newRec.name.trim(), amount_isk: amount, quantity: 1 }),
-    });
+    const parsed = parseIsNumber(newRec.amount);
+    if (!newRec.name.trim()) { toast.show("Sláðu inn heiti.", { tone: "bad" }); return; }
+    if (parsed == null || parsed < 0) { toast.show("Sláðu inn upphæð, t.d. 12.500.", { tone: "bad" }); return; }
+    const amount = Math.round(parsed);
+    try {
+      const res = await authedFetch(`/api/admin/accounting/overheads`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newRec.name.trim(), amount_isk: amount, quantity: 1 }),
+      });
+      if (!res.ok) { toast.show(`Fastur kostnaður vistaðist ekki: ${await failText(res)}`, { tone: "bad" }); return; }
+    } catch { toast.show("Fastur kostnaður vistaðist ekki: netvilla.", { tone: "bad" }); return; }
     setNewRec({ name: "", amount: "" });
     await loadRecurring();
   };
   const removeRecurring = async (id: string) => {
-    await authedFetch(`/api/admin/accounting/overheads?id=${id}`, { method: "DELETE" });
+    try {
+      const res = await authedFetch(`/api/admin/accounting/overheads?id=${id}`, { method: "DELETE" });
+      if (!res.ok) toast.show(`Ekki tókst að fjarlægja: ${await failText(res)}`, { tone: "bad" });
+    } catch { toast.show("Ekki tókst að fjarlægja: netvilla.", { tone: "bad" }); }
     await loadRecurring();
   };
 
@@ -210,19 +248,20 @@ export default function CostPage() {
       { company_id: "", amount: String(r.amount_isk - half), clients: "" },
     ]);
   };
-  const allocSum = allocs.reduce((s, a) => s + (parseInt(a.amount, 10) || 0), 0);
+  const allocAmount = (v: string) => Math.round(parseIsNumber(v) ?? 0);
+  const allocSum = allocs.reduce((s, a) => s + allocAmount(a.amount), 0);
   const submitSplit = async () => {
     if (!splitFor) return;
-    const valid = allocs.filter((a) => a.company_id && (parseInt(a.amount, 10) || 0) >= 0);
+    const valid = allocs.filter((a) => a.company_id && allocAmount(a.amount) >= 0);
     if (valid.length < 1) return;
     setSplitBusy(true);
     try {
       const res = await authedFetch(`/api/admin/accounting/invoices/split`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: splitFor.id, allocations: valid.map((a) => ({ company_id: a.company_id, amount_isk: parseInt(a.amount, 10) || 0, client_count: a.clients ? parseInt(a.clients, 10) : null })) }),
+        body: JSON.stringify({ id: splitFor.id, allocations: valid.map((a) => ({ company_id: a.company_id, amount_isk: allocAmount(a.amount), client_count: a.clients ? parseInt(a.clients, 10) : null })) }),
       });
       if (res.ok) { setSplitFor(null); await loadLedger(); }
-      else { const j = await res.json().catch(() => ({})); alert(`Split failed: ${j.error || res.status}`); }
+      else toast.show(`Skipting vistaðist ekki: ${await failText(res)}`, { tone: "bad" });
     } finally { setSplitBusy(false); }
   };
 
@@ -239,6 +278,7 @@ export default function CostPage() {
 
   return (
     <div className="px-8 pb-10 space-y-4">
+      {promptNode}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900 mb-1">Cost</h1>
@@ -368,7 +408,7 @@ export default function CostPage() {
           })}
           <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-gray-100 mt-1">
             <input className={`${selCls} flex-1 min-w-[140px]`} placeholder="Recurring cost (e.g. Notion)" value={newRec.name} onChange={(e) => setNewRec({ ...newRec, name: e.target.value })} />
-            <input className={`${selCls} w-28`} type="number" placeholder="ISK / month" value={newRec.amount} onChange={(e) => setNewRec({ ...newRec, amount: e.target.value })} />
+            <input className={`${selCls} w-28`} type="text" inputMode="decimal" placeholder="kr. / mán." value={newRec.amount} onChange={(e) => setNewRec({ ...newRec, amount: e.target.value })} />
             <button onClick={addRecurring} className="text-xs font-medium px-2.5 py-1 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50">Add</button>
           </div>
         </div>
@@ -506,7 +546,7 @@ export default function CostPage() {
                     <option value="">Pick company…</option>
                     {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
-                  <input className={`${selCls} min-w-0`} type="number" placeholder="Amount" value={a.amount} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))} />
+                  <input className={`${selCls} min-w-0`} type="text" inputMode="decimal" placeholder="Upphæð" value={a.amount} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))} />
                   <input className={`${selCls} min-w-0`} type="number" placeholder="#" value={a.clients} onChange={(e) => setAllocs((p) => p.map((x, j) => j === i ? { ...x, clients: e.target.value } : x))} />
                   <button onClick={() => setAllocs((p) => p.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 text-center">×</button>
                 </div>

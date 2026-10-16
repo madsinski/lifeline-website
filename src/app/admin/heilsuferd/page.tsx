@@ -13,7 +13,7 @@ import AdminTabs from "../components/AdminTabs";
 import DiscountsTab from "./DiscountsTab";
 import CodesTab from "./CodesTab";
 import PartnersTab from "./PartnersTab";
-import { adminJson } from "../hc-api";
+import { adminJson, adminErrorText } from "../hc-api";
 import { useNow } from "@/app/components/account/ui/useNow";
 import { STAGE_LABELS } from "@/lib/hc/stages";
 import { formatIsk, type HcLocation, type HcPackage } from "@/lib/hc/types";
@@ -61,9 +61,16 @@ export default function HeilsuferdAdmin() {
     return TABS.some((x) => x.key === t) ? t! : "overview";
   });
   const [data, setData] = useState<Overview | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
   const load = useCallback(async () => {
-    const r = await adminJson<Overview>("/api/admin/hc/overview");
-    if (r.ok) setData(r.data);
+    setLoadErr(null);
+    try {
+      const r = await adminJson<Overview>("/api/admin/hc/overview");
+      if (r.ok) setData(r.data);
+      else setLoadErr(adminErrorText(r.error, "Ekki tókst að sækja gögnin."));
+    } catch {
+      setLoadErr("Netvilla – ekki tókst að sækja gögnin.");
+    }
   }, []);
   useEffect(() => {
     if (!authorized) return;
@@ -90,7 +97,12 @@ export default function HeilsuferdAdmin() {
       </div>
       <AdminTabs tabs={TABS} active={tab} onChange={setTab} />
       <div className="mt-6">
-        {!data ? <p className="text-slate-500">Hleð…</p> : (
+        {!data && loadErr ? (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <p>Ekki tókst að sækja Heilsuferð: {loadErr}</p>
+            <button onClick={() => void load()} className="mt-2 font-semibold underline">Reyna aftur</button>
+          </div>
+        ) : !data ? <p className="text-slate-500">Hleð…</p> : (
           <>
             {tab === "overview" && <OverviewTab data={data} />}
             {tab === "packages" && <PackagesTab packages={data.packages} onSaved={load} />}
@@ -165,7 +177,7 @@ function PackageCard({ p, onSaved }: { p: Overview["packages"][number]; onSaved:
   const [msg, setMsg] = useState("");
   const save = async () => {
     const r = await adminJson("/api/admin/hc/overview", { method: "PUT", body: JSON.stringify({ type: "package", key: p.key, ...f, includes: f.includes.split("\n").map((x) => x.trim()).filter(Boolean) }) });
-    setMsg(r.ok ? "Vistað" : r.error || "Villa");
+    setMsg(r.ok ? "Vistað" : adminErrorText(r.error, "Vistaðist ekki."));
     if (r.ok) onSaved();
   };
   return (
@@ -196,9 +208,12 @@ const LOC_FIELDS: [keyof HcLocation, string][] = [
 function LocationsTab({ locations, onSaved }: { locations: Overview["locations"]; onSaved: () => void }) {
   const [slug, setSlug] = useState("");
   const [name, setName] = useState("");
+  const [addErr, setAddErr] = useState<string | null>(null);
   const add = async () => {
+    setAddErr(null);
     const r = await adminJson("/api/admin/hc/overview", { method: "PUT", body: JSON.stringify({ type: "new_location", slug, name }) });
     if (r.ok) { setSlug(""); setName(""); onSaved(); }
+    else setAddErr(adminErrorText(r.error, "Staðurinn varð ekki til."));
   };
   return (
     <div className="space-y-4">
@@ -207,6 +222,7 @@ function LocationsTab({ locations, onSaved }: { locations: Overview["locations"]
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nýr staður, t.d. Akureyri" className="rounded-lg border border-slate-300 px-3 py-2" />
         <input value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="slóð, t.d. akureyri" className="rounded-lg border border-slate-300 px-3 py-2 font-mono" />
         <button onClick={add} disabled={!slug || !name} className="rounded-lg bg-[#10B981] px-4 py-2 font-semibold text-white disabled:opacity-40">Bæta við stað</button>
+        {addErr && <p role="alert" className="w-full text-red-700">{addErr}</p>}
       </div>
     </div>
   );
@@ -217,7 +233,7 @@ function LocationCard({ l, onSaved }: { l: Overview["locations"][number]; onSave
   const [msg, setMsg] = useState("");
   const save = async () => {
     const r = await adminJson("/api/admin/hc/overview", { method: "PUT", body: JSON.stringify({ type: "location", id: l.id, ...f }) });
-    setMsg(r.ok ? "Vistað" : r.error || "Villa");
+    setMsg(r.ok ? "Vistað" : adminErrorText(r.error, "Vistaðist ekki."));
     if (r.ok) onSaved();
   };
   return (
@@ -280,6 +296,7 @@ function WorkersTab({ locations }: { locations: Overview["locations"] }) {
   const load = useCallback(async () => {
     const r = await adminJson<{ workers: Worker[] }>("/api/admin/hc/workers");
     if (r.ok) setWorkers(r.data.workers);
+    else setMsg(`Ekki tókst að sækja starfsfólk: ${adminErrorText(r.error)}`);
   }, []);
   useEffect(() => { const t = setTimeout(() => void load(), 0); return () => clearTimeout(t); }, [load]);
 
@@ -288,7 +305,7 @@ function WorkersTab({ locations }: { locations: Overview["locations"] }) {
     setInvite(null);
     const r = await adminJson<{ worker: { name: string; email: string }; invite_url: string | null; sent: boolean; expires_at: string | null }>(
       "/api/admin/hc/workers", { method: "POST", body: JSON.stringify({ ...edit, send_invite: invite }) });
-    if (!r.ok) { setMsg(r.error || "Villa"); return; }
+    if (!r.ok) { setMsg(adminErrorText(r.error, "Vistaðist ekki.")); return; }
     if (invite && r.data.invite_url) {
       setMsg("");
       setInvite({ name: r.data.worker.name, email: r.data.worker.email, url: r.data.invite_url, sent: !!r.data.sent, expires_at: r.data.expires_at });

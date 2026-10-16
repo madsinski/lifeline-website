@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { replaceRows } from "../replace-rows";
+import { usePromptForm } from "../components/PromptForm";
 
 type TimeGroup = "morning" | "midday" | "evening";
 
@@ -205,6 +207,7 @@ function PhonePreview({ day, categoryId }: { day: DayContent; categoryId: string
 }
 
 export default function ProgramsCMSPage() {
+  const [promptNode, askPrompt] = usePromptForm();
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeTab, setActiveTab] = useState<string>("exercise");
   const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
@@ -740,28 +743,30 @@ export default function ProgramsCMSPage() {
     return `${categoryId}-${programKey}-w${weekIdx}d${dayIdx}-${timeGroup}-${actionIndex}`;
   };
 
+  // Insert-then-delete (replaceRows): a failed save leaves the old list in
+  // place, and the day is reloaded from the database so the screen shows
+  // what is actually stored instead of the optimistic edit.
   const saveActionExercises = useCallback(async (actionKey: string, programKey: string, weekRange: number, dayOfWeek: number, exercises: ActionExercise[]) => {
-    try {
-      await supabase.from("action_exercises").delete().eq("action_key", actionKey).eq("program_key", programKey);
-      if (exercises.length > 0) {
-        const rows = exercises.map((ex, i) => ({
-          action_key: actionKey,
-          program_key: programKey,
-          week_range: weekRange,
-          day_of_week: dayOfWeek,
-          exercise_id: ex.exercise_id,
-          exercise_name: ex.exercise_name,
-          sets: ex.sets,
-          reps: ex.reps,
-          duration: ex.duration || null,
-          rest: ex.rest,
-          notes: ex.notes || null,
-          sort_order: i,
-        }));
-        await supabase.from("action_exercises").insert(rows);
-      }
-    } catch { /* silent */ }
-  }, []);
+    const rows = exercises.map((ex, i) => ({
+      action_key: actionKey,
+      program_key: programKey,
+      week_range: weekRange,
+      day_of_week: dayOfWeek,
+      exercise_id: ex.exercise_id,
+      exercise_name: ex.exercise_name,
+      sets: ex.sets,
+      reps: ex.reps,
+      duration: ex.duration || null,
+      rest: ex.rest,
+      notes: ex.notes || null,
+      sort_order: i,
+    }));
+    const r = await replaceRows("action_exercises", { action_key: actionKey, program_key: programKey }, rows);
+    if (!r.ok) {
+      setToast({ message: `Æfingar vistuðust ekki: ${r.error}`, type: "error" });
+      await loadActionExercises(programKey, weekRange, dayOfWeek);
+    }
+  }, [loadActionExercises]);
 
   // ── Meals library functions (parallel to exercises) ────────────────────────
 
@@ -806,23 +811,22 @@ export default function ProgramsCMSPage() {
   }, []);
 
   const saveActionMeals = useCallback(async (actionKey: string, programKey: string, weekRange: number, dayOfWeek: number, meals: ActionMealItem[]) => {
-    try {
-      await supabase.from("action_meals").delete().eq("action_key", actionKey).eq("program_key", programKey);
-      if (meals.length > 0) {
-        const rows = meals.map((m, i) => ({
-          action_key: actionKey,
-          program_key: programKey,
-          week_range: weekRange,
-          day_of_week: dayOfWeek,
-          meal_id: m.meal_id,
-          meal_name: m.meal_name,
-          notes: m.notes || null,
-          sort_order: i,
-        }));
-        await supabase.from("action_meals").insert(rows);
-      }
-    } catch { /* silent */ }
-  }, []);
+    const rows = meals.map((m, i) => ({
+      action_key: actionKey,
+      program_key: programKey,
+      week_range: weekRange,
+      day_of_week: dayOfWeek,
+      meal_id: m.meal_id,
+      meal_name: m.meal_name,
+      notes: m.notes || null,
+      sort_order: i,
+    }));
+    const r = await replaceRows("action_meals", { action_key: actionKey, program_key: programKey }, rows);
+    if (!r.ok) {
+      setToast({ message: `Máltíðir vistuðust ekki: ${r.error}`, type: "error" });
+      await loadActionMeals(programKey, weekRange, dayOfWeek);
+    }
+  }, [loadActionMeals]);
 
   const generateDetailsFromMeals = (meals: ActionMealItem[]): string[] => {
     // Each meal becomes a line. Coach can pick one of these in the app.
@@ -1207,21 +1211,32 @@ export default function ProgramsCMSPage() {
         programs: cat.programs.filter((p) => p.id !== programId),
       }))
     );
+    const before = categories;
     try {
+      let err: string | null = null;
       if (target?.isCustom && target.customDbId) {
         // Custom program: delete from client_custom_programs
-        await supabase.from("client_custom_programs").delete().eq("id", target.customDbId);
+        const { data, error } = await supabase.from("client_custom_programs").delete().eq("id", target.customDbId).select("id");
+        if (error || !data?.length) err = error?.message || "engin heimild til að eyða";
       } else {
         // Global program: delete actions first, then program
-        const { data: prog } = await supabase.from("programs").select("id").eq("key", programId).maybeSingle();
-        if (prog) {
-          await supabase.from("program_actions").delete().eq("program_id", prog.id);
-          await supabase.from("programs").delete().eq("id", prog.id);
+        const { data: prog, error: readErr } = await supabase.from("programs").select("id").eq("key", programId).maybeSingle();
+        if (readErr) err = readErr.message;
+        else if (prog) {
+          const { error: aErr } = await supabase.from("program_actions").delete().eq("program_id", prog.id);
+          const { data: del, error: pErr } = aErr ? { data: null, error: aErr } : await supabase.from("programs").delete().eq("id", prog.id).select("id");
+          if (pErr || !del?.length) err = pErr?.message || "engin heimild til að eyða";
         }
       }
-      setToast({ message: "Program deleted", type: "success" });
+      if (err) {
+        updateCategories(before);
+        setToast({ message: `Prógramminu var ekki eytt: ${err}`, type: "error" });
+      } else {
+        setToast({ message: "Program deleted", type: "success" });
+      }
     } catch {
-      setToast({ message: "Deleted locally — Supabase sync failed", type: "error" });
+      updateCategories(before);
+      setToast({ message: "Prógramminu var ekki eytt – netvilla. Reyndu aftur.", type: "error" });
     }
     setPendingDelete(null);
   };
@@ -1339,6 +1354,7 @@ export default function ProgramsCMSPage() {
 
   const handleSave = async () => {
     setSaving(true);
+    const failed: string[] = [];
     try {
       for (let ci = 0; ci < categories.length; ci++) {
         const cat = categories[ci];
@@ -1353,7 +1369,7 @@ export default function ProgramsCMSPage() {
         }, { onConflict: "key" }).select("id").single();
 
         const categoryDbId = catRow?.id;
-        if (!categoryDbId) continue;
+        if (!categoryDbId) { failed.push(meta.label || cat.name); continue; }
 
         for (let pi = 0; pi < cat.programs.length; pi++) {
           const prog = cat.programs[pi];
@@ -1361,7 +1377,7 @@ export default function ProgramsCMSPage() {
           // Custom programs save to client_custom_programs (single jsonb actions blob)
           if (prog.isCustom && prog.customDbId) {
             const flatActions = flattenWeeksToActions(prog.weeks);
-            await supabase.from("client_custom_programs").update({
+            const { data: upd, error: updErr } = await supabase.from("client_custom_programs").update({
               program_name: prog.name,
               description: prog.description || null,
               tagline: prog.tagline || null,
@@ -1372,7 +1388,8 @@ export default function ProgramsCMSPage() {
               actions: flatActions,
               shared: prog.customShared !== false,
               updated_at: new Date().toISOString(),
-            }).eq("id", prog.customDbId);
+            }).eq("id", prog.customDbId).select("id");
+            if (updErr || !upd?.length) failed.push(`${prog.name} (${updErr?.message || "engin heimild"})`);
             continue;
           }
 
@@ -1394,9 +1411,7 @@ export default function ProgramsCMSPage() {
           }, { onConflict: "key" }).select("id").single();
 
           const programDbId = progRow?.id;
-          if (!programDbId) continue;
-
-          await supabase.from("program_actions").delete().eq("program_id", programDbId);
+          if (!programDbId) { failed.push(prog.name); continue; }
 
           const actions = prog.weeks.flatMap((w, wi) =>
             w.days.flatMap((d, di) =>
@@ -1417,13 +1432,17 @@ export default function ProgramsCMSPage() {
             )
           );
 
-          if (actions.length > 0) {
-            await supabase.from("program_actions").insert(actions);
-          }
+          const r = await replaceRows("program_actions", { program_id: programDbId }, actions);
+          if (!r.ok) failed.push(`${prog.name} (${r.error})`);
         }
       }
-      setDirty(false);
-      setToast({ message: "All changes saved successfully", type: "success" });
+      if (failed.length > 0) {
+        // Stay dirty so the edits are not mistaken for saved.
+        setToast({ message: `Vistaðist ekki: ${failed.join(", ")}`, type: "error" });
+      } else {
+        setDirty(false);
+        setToast({ message: "All changes saved successfully", type: "success" });
+      }
     } catch (err) {
       console.error("Save error:", err);
       setToast({ message: "Failed to save changes", type: "error" });
@@ -1554,6 +1573,7 @@ export default function ProgramsCMSPage() {
   return (
     <div className="space-y-4">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {promptNode}
 
       <div className="flex items-center justify-end">
         <a
@@ -1917,7 +1937,12 @@ export default function ProgramsCMSPage() {
                     </div>
                     <button
                       onClick={async () => {
-                        const name = prompt("Save as template:", program.name);
+                        const v = await askPrompt({
+                          title: "Vista sem sniðmát",
+                          fields: [{ name: "name", label: "Heiti sniðmáts", initial: program.name }],
+                          submitLabel: "Vista sniðmát",
+                        });
+                        const name = v?.name as string | undefined;
                         if (!name) return;
                         try {
                           const { data: { user } } = await supabase.auth.getUser();
@@ -1931,7 +1956,7 @@ export default function ProgramsCMSPage() {
                               }))
                             )
                           );
-                          await supabase.from("program_templates").insert({
+                          const { error: tmplErr } = await supabase.from("program_templates").insert({
                             name, category_key: activeTab, description: program.description || "",
                             tagline: program.tagline || null, level: program.level || null,
                             exercise_type: program.exerciseType || null,
@@ -1940,6 +1965,7 @@ export default function ProgramsCMSPage() {
                             duration: program.duration, actions: allActions,
                             created_by: user?.id || null,
                           });
+                          if (tmplErr) { setToast({ message: `Sniðmát vistaðist ekki: ${tmplErr.message}`, type: "error" }); return; }
                           setProgramTemplates(prev => [{ id: "new", name, category_key: activeTab, description: program.description || "", actions: allActions, duration: program.duration, level: program.level || "", exercise_type: program.exerciseType || "", target_audience: program.targetAudience || "", structured_phases: program.structuredPhases, tagline: program.tagline || "" }, ...prev]);
                           setToast({ message: `Template "${name}" saved`, type: "success" });
                         } catch {

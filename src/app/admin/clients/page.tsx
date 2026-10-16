@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useAllClientsProgress, ProgressIndicator, getNudgeStatus, nudgeConfig, type NudgeStatus } from "./ClientProgressPanel";
 import ClientCategoryPanel from "./ClientCategoryPanel";
 import { AppointmentsCard, MessagesCard } from "./ClientSidePanels";
 import { ClientMacroPanel } from "./ClientMacroPanel";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import { useToast } from "@/app/components/hc/Toast";
 
 type Tier = "free-trial" | "self-maintained" | "premium";
 type Status = "active" | "cancelled" | "expired" | "trial";
@@ -106,12 +108,6 @@ interface StaffMember {
   active: boolean;
 }
 
-const fallbackStaffMembers: StaffMember[] = [
-  { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", role: "coach", avatarInitial: "CS", active: true },
-  { id: "staff-2", name: "Dr. Guðmundur Sigurðsson", email: "gudmundur@lifeline.is", role: "doctor", avatarInitial: "GS", active: true },
-  { id: "staff-3", name: "Helga Jónsdóttir", email: "helga@lifeline.is", role: "nurse", avatarInitial: "HJ", active: true },
-  { id: "staff-4", name: "Dr. Anna Kristjánsdóttir", email: "anna.k@lifeline.is", role: "psychologist", avatarInitial: "AK", active: true },
-];
 
 const staffRoleLabels: Record<StaffMember["role"], string> = {
   coach: "Coach",
@@ -184,6 +180,7 @@ function daysUntil(dateStr: string | null): number | null {
 
 export default function ClientsPage() {
   const router = useRouter();
+  const toast = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -197,7 +194,8 @@ export default function ClientsPage() {
   const [savingTier, setSavingTier] = useState<string | null>(null);
   const [creatingSubscription, setCreatingSubscription] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"clients" | "staff">("clients");
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>(fallbackStaffMembers);
+  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
+  const [staffError, setStaffError] = useState<string | null>(null);
   const [coachAssignments, setCoachAssignments] = useState<Record<string, string>>({});
   const [deletingClient, setDeletingClient] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -225,7 +223,7 @@ export default function ClientsPage() {
 
       if (clientsError) {
         setError(
-          `Failed to fetch clients: ${clientsError.message} (code: ${clientsError.code}). This may be due to RLS policies — ensure the admin user has read access.`
+          `${clientsError.message} (kóði ${clientsError.code}). Líklega hefur hlutverkið þitt ekki lesaðgang að skjólstæðingum.`
         );
         setClients([]);
         setLoading(false);
@@ -251,7 +249,7 @@ export default function ClientsPage() {
 
       if (clientsData && clientsData.length > 0) {
         // Fetch subscriptions separately to avoid join issues
-        let subsMap: Record<string, Subscription[]> = {};
+        const subsMap: Record<string, Subscription[]> = {};
         try {
           const { data: subsData } = await supabase
             .from("subscriptions")
@@ -288,48 +286,9 @@ export default function ClientsPage() {
 
         setClients(normalized);
       } else {
-        
-        // Fallback: try auth admin API (requires service role key)
-        try {
-          const { data: authData, error: authError } =
-            await supabase.auth.admin.listUsers();
-
-
-          if (!authError && authData?.users && authData.users.length > 0) {
-            setClients(
-              authData.users.map((u) => ({
-                id: u.id,
-                name:
-                  (u.user_metadata?.full_name as string) ||
-                  u.email ||
-                  "Unknown",
-                email: u.email || "",
-                tier: "none" as const,
-                status: "expired" as Status,
-                joined: u.created_at
-                  ? new Date(u.created_at).toISOString().split("T")[0]
-                  : "",
-                phone: (u.user_metadata?.phone as string) || "",
-                address: "",
-                dateOfBirth: "",
-                sex: "",
-                avatarUrl: null,
-                subscriptionId: null,
-                subscriptionStart: null,
-                subscriptionEnd: null,
-                trialEndsAt: null,
-                termsAcceptedAt: null,
-                termsVersion: null,
-                companyId: null,
-                companyName: null,
-              }))
-            );
-          } else {
-            setClients([]);
-          }
-        } catch {
-          setClients([]);
-        }
+        // RLS returns no rows rather than an error when this staff member
+        // cannot read clients; the empty state says so.
+        setClients([]);
       }
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : "An unexpected error occurred";
@@ -342,6 +301,7 @@ export default function ClientsPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchClients();
   }, [fetchClients]);
 
@@ -367,6 +327,7 @@ export default function ClientsPage() {
           if (d2 && d2.length > 0) data = d2;
         }
 
+        if (!data) setStaffError("Ekki tókst að sækja starfsfólk – ekki er hægt að úthluta þjálfara.");
         if (data && data.length > 0) {
           const mapped: StaffMember[] = data.map((s: Record<string, unknown>) => ({
             id: s.id as string,
@@ -384,7 +345,7 @@ export default function ClientsPage() {
           setStaffMembers(mapped);
         }
       } catch {
-        // keep fallback staff
+        setStaffError("Ekki tókst að sækja starfsfólk – ekki er hægt að úthluta þjálfara.");
       }
     })();
   }, []);
@@ -409,23 +370,22 @@ export default function ClientsPage() {
       } else {
         // No conversation exists at all — create one
         const defaultStaff = staffMembers[0];
-        const isRealUUID = defaultStaff?.id && !defaultStaff.id.startsWith("staff-");
         const { error: convError } = await supabase
           .from("conversations")
           .insert({
             client_id: clientId,
-            coach_id: isRealUUID ? defaultStaff.id : null,
+            coach_id: defaultStaff?.id ?? null,
             coach_name: defaultStaff?.name || "Coach",
           });
 
         if (convError) {
-          alert(`Failed to create conversation: ${convError.message}`);
+          toast.show(`Tókst ekki að stofna samtal: ${convError.message}`, { tone: "bad" });
         } else {
           router.push("/admin/messages");
         }
       }
     } catch (err) {
-      alert(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.show(`Villa: ${err instanceof Error ? err.message : "óþekkt villa"}`, { tone: "bad" });
     }
     setSendingMessage(null);
   };
@@ -475,10 +435,17 @@ export default function ClientsPage() {
 
     if (subscriptionId) {
       // Cancel existing subscription and create new one
-      await supabase
+      const { data: cancelled, error: cancelError } = await supabase
         .from("subscriptions")
         .update({ status: "cancelled" })
-        .eq("id", subscriptionId);
+        .eq("id", subscriptionId)
+        .select("id");
+      if (cancelError || !cancelled?.length) {
+        await fetchClients();
+        toast.show(`Áskriftarleið var ekki breytt: ${cancelError?.message || "engin heimild til að breyta núverandi áskrift"}`, { tone: "bad" });
+        setSavingTier(null);
+        return;
+      }
     }
 
     const now = new Date().toISOString();
@@ -498,7 +465,7 @@ export default function ClientsPage() {
 
     if (insertError) {
       await fetchClients();
-      alert(`Failed to update tier: ${insertError.message}`);
+      toast.show(`Tókst ekki að breyta áskriftarleið: ${insertError.message}`, { tone: "bad" });
     } else {
       await fetchClients();
     }
@@ -524,7 +491,7 @@ export default function ClientsPage() {
       });
 
     if (insertError) {
-      alert(`Failed to create subscription: ${insertError.message}`);
+      toast.show(`Tókst ekki að stofna áskrift: ${insertError.message}`, { tone: "bad" });
     } else {
       await fetchClients();
     }
@@ -664,7 +631,7 @@ export default function ClientsPage() {
     setSyncing(false);
   };
 
-  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+  const sortHeader = (label: string, field: SortKey) => (
     <th
       className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
       onClick={() => handleSort(field)}
@@ -679,11 +646,27 @@ export default function ClientsPage() {
   );
 
   const handleAssignCoach = async (clientId: string, staffId: string) => {
+    const previous = coachAssignments[clientId];
+    const rollback = () => setCoachAssignments((prev) => {
+      const next = { ...prev };
+      if (previous) next[clientId] = previous; else delete next[clientId];
+      return next;
+    });
     setCoachAssignments((prev) => ({ ...prev, [clientId]: staffId }));
-    // Persist to Supabase
     try {
-      await supabase.from("clients_decrypted").update({ assigned_coach_id: staffId }).eq("id", clientId);
-    } catch {}
+      const { data, error } = await supabase.from("clients_decrypted")
+        .update({ assigned_coach_id: staffId || null }).eq("id", clientId).select("id");
+      if (error || !data?.length) {
+        rollback();
+        toast.show(`Þjálfara var ekki úthlutað: ${error?.message || "engin heimild til að breyta skjólstæðingnum"}`, { tone: "bad" });
+        return;
+      }
+      const name = staffMembers.find((m) => m.id === staffId)?.name;
+      toast.show(name ? `${name} er nú þjálfari skjólstæðingsins.` : "Þjálfari fjarlægður.");
+    } catch (err) {
+      rollback();
+      toast.show(`Þjálfara var ekki úthlutað: ${err instanceof Error ? err.message : "netvilla"}`, { tone: "bad" });
+    }
   };
 
   return (
@@ -714,7 +697,7 @@ export default function ClientsPage() {
         </div>
         {activeTab === "clients" && (
           <div className="flex items-center gap-2 flex-wrap">
-            <a
+            <Link
               href="/admin/clients/bulk-invite"
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-gradient-to-br from-blue-600 to-emerald-500 hover:opacity-95"
             >
@@ -722,7 +705,7 @@ export default function ClientsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Fjölda-boð
-            </a>
+            </Link>
             <a
               href="/admin/biody/bulk-create"
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
@@ -743,6 +726,7 @@ export default function ClientsPage() {
             <h3 className="text-lg font-semibold text-[#1F2937]">Team Members</h3>
             <p className="text-sm text-gray-500 mt-1">Internal staff who can be assigned to clients</p>
           </div>
+          {staffError && <p role="alert" className="px-6 py-3 text-sm text-red-700 bg-red-50">{staffError}</p>}
           <div className="divide-y divide-gray-100">
             {staffMembers.map((staff) => (
               <div key={staff.id} className="px-6 py-4 flex items-center gap-4">
@@ -863,8 +847,10 @@ export default function ClientsPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
-          {error}
+        <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+          <p className="font-medium">Ekki tókst að sækja skjólstæðinga.</p>
+          <p className="mt-1 text-xs">{error}</p>
+          <button onClick={() => void fetchClients()} className="mt-2 text-xs font-semibold underline">Reyna aftur</button>
         </div>
       )}
 
@@ -915,53 +901,11 @@ export default function ClientsPage() {
               />
             </svg>
           </div>
-          <p className="text-gray-500 text-sm font-medium">No clients yet</p>
-          <p className="text-gray-400 text-xs mt-1 mb-4">
-            Clients will appear here once they sign up via the app.
+          <p className="text-gray-500 text-sm font-medium">Engir skjólstæðingar sjáanlegir</p>
+          <p className="text-gray-400 text-xs mt-1 mb-4 max-w-md mx-auto">
+            Skjólstæðingar birtast hér þegar þeir skrá sig í appinu. Ef þú veist að einhverjir hafa skráð sig getur
+            verið að hlutverkið þitt hafi ekki lesaðgang að skjólstæðingum – hafðu þá samband við kerfisstjóra.
           </p>
-          <p className="text-gray-400 text-xs mb-4">
-            If clients have signed up but are not showing, they may be missing a row in the clients table.
-          </p>
-          {/* Sync from auth button — requires service role key */}
-          <button
-            onClick={async () => {
-              try {
-                const { data: authData, error: authErr } = await supabase.auth.admin.listUsers();
-                if (authErr) {
-                  alert(`Sync failed: ${authErr.message}. Note: this requires a Supabase service role key, not the anon key.`);
-                  return;
-                }
-                if (!authData?.users || authData.users.length === 0) {
-                  alert("No auth users found.");
-                  return;
-                }
-                let created = 0;
-                for (const u of authData.users) {
-                  const { data: existing } = await supabase
-                    .from("clients_decrypted")
-                    .select("id")
-                    .eq("id", u.id)
-                    .maybeSingle();
-                  if (!existing) {
-                    await supabase.from("clients_decrypted").insert({
-                      id: u.id,
-                      email: u.email || "",
-                      full_name: (u.user_metadata?.full_name as string) || null,
-                      phone: (u.user_metadata?.phone as string) || null,
-                    });
-                    created++;
-                  }
-                }
-                alert(`Synced ${created} new client(s) from auth users.`);
-                await fetchClients();
-              } catch (err) {
-                alert(`Sync failed: ${err instanceof Error ? err.message : "Unknown error"}. Note: this requires a Supabase service role key configured on the server.`);
-              }
-            }}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#10B981] rounded-lg hover:bg-[#10B981] transition-colors"
-          >
-            Sync from Auth Users
-          </button>
           <button
             onClick={cleanOrphans}
             className="px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors"
@@ -969,7 +913,7 @@ export default function ClientsPage() {
             Clean orphaned records
           </button>
           <p className="text-gray-300 text-[10px] mt-2">
-            Sync requires service role key · Clean removes clients deleted from Auth
+            Hreinsun fjarlægir skjólstæðinga sem hefur verið eytt úr innskráningarkerfinu
           </p>
         </div>
       )}
@@ -981,15 +925,15 @@ export default function ClientsPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <SortHeader label="Name" field="name" />
-                  <SortHeader label="Email" field="email" />
+                  {sortHeader("Name", "name")}
+                  {sortHeader("Email", "email")}
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
-                  <SortHeader label="Subscription" field="tier" />
+                  {sortHeader("Subscription", "tier")}
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Company</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Progress</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Coach</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Terms</th>
-                  <SortHeader label="Joined" field="joined" />
+                  {sortHeader("Joined", "joined")}
                   <th className="px-4 py-3 w-10"></th>
                 </tr>
               </thead>
@@ -1023,7 +967,7 @@ export default function ClientsPage() {
                     onDeleteClick={() => setDeleteConfirmId(client.id)}
                     onDeleteConfirm={() => deleteClient(client.id)}
                     onDeleteCancel={() => setDeleteConfirmId(null)}
-                    assignedCoachId={coachAssignments[client.id] || (staffMembers[0]?.id ?? "staff-1")}
+                    assignedCoachId={coachAssignments[client.id] || ""}
                     onAssignCoach={handleAssignCoach}
                     staffMembers={staffMembers}
                     onSendMessage={handleSendMessageToClient}
@@ -1304,7 +1248,9 @@ function ClientRowComponent({
         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
           <select value={assignedCoachId} onChange={(e) => onAssignCoach(client.id, e.target.value)}
             className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-700 focus:ring-2 focus:ring-gray-300 outline-none cursor-pointer bg-transparent">
+            <option value="">— Enginn —</option>
             {staffMembers.filter((s) => s.active).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {assignedCoachId && !staffMembers.some((s) => s.id === assignedCoachId) && <option value={assignedCoachId}>Óþekktur starfsmaður</option>}
           </select>
         </td>
         <td className="px-4 py-3">

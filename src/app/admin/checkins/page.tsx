@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { useDialog } from "@/app/components/account/ui";
+import { useToast } from "@/app/components/hc/Toast";
 import { generateBrandedPDF } from "./pdf";
 
 
@@ -56,6 +58,8 @@ function QRCodeSVG({ value, size = 200 }: { value: string; size?: number }) {
 }
 
 export default function CheckinsAdminPage() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [locations, setLocations] = useState<CheckinLocation[]>([]);
   const [recentCheckins, setRecentCheckins] = useState<CheckinLog[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -109,13 +113,16 @@ export default function CheckinsAdminPage() {
       category: form.category,
     };
 
-    if (editingId) {
-      const { error } = await supabase.from("checkin_locations").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", editingId);
-      if (error) console.error("[checkins] update error:", error);
-    } else {
-      const { error } = await supabase.from("checkin_locations").insert(payload);
-      if (error) { console.error("[checkins] insert error:", error); alert("Insert failed: " + error.message); }
+    // Keep the form open on failure so nothing typed is lost.
+    const { data, error } = editingId
+      ? await supabase.from("checkin_locations").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", editingId).select("id")
+      : await supabase.from("checkin_locations").insert(payload).select("id");
+    if (error || !data?.length) {
+      setSaving(false);
+      toast.show(`Staðsetning vistaðist ekki: ${error?.message || "engin heimild til að vista"}`, { tone: "bad" });
+      return;
     }
+    toast.show(editingId ? "Staðsetning uppfærð." : "Staðsetning stofnuð.");
     setSaving(false);
     setShowForm(false);
     setEditingId(null);
@@ -124,13 +131,21 @@ export default function CheckinsAdminPage() {
   };
 
   const toggleActive = async (id: string, active: boolean) => {
-    await supabase.from("checkin_locations").update({ active: !active }).eq("id", id);
+    const { data, error } = await supabase.from("checkin_locations").update({ active: !active }).eq("id", id).select("id");
+    if (error || !data?.length) toast.show(`Ekki tókst að breyta stöðu: ${error?.message || "engin heimild"}`, { tone: "bad" });
     loadLocations();
   };
 
   const deleteLocation = async (id: string) => {
-    if (!confirm("Delete this check-in location? This cannot be undone.")) return;
-    await supabase.from("checkin_locations").delete().eq("id", id);
+    const ok = await dialog.confirm({
+      title: "Eyða þessari innskráningarstaðsetningu?",
+      body: "Ekki er hægt að afturkalla þetta. QR-kóðar sem vísa á hana hætta að virka.",
+      confirmLabel: "Eyða", cancelLabel: "Hætta við", tone: "danger",
+    });
+    if (!ok) return;
+    const { data, error } = await supabase.from("checkin_locations").delete().eq("id", id).select("id");
+    if (error || !data?.length) toast.show(`Staðsetningu var ekki eytt: ${error?.message || "engin heimild"}`, { tone: "bad" });
+    else toast.show("Staðsetningu eytt.");
     loadLocations();
   };
 
@@ -146,7 +161,7 @@ export default function CheckinsAdminPage() {
       await generateBrandedPDF([loc], `lifeline-checkin-${loc.key}.pdf`);
     } catch (e) {
       console.error("QR download error:", e);
-      alert("Failed to generate PDF.");
+      toast.show("Ekki tókst að búa til PDF-skjal.", { tone: "bad" });
     }
   };
 
@@ -165,14 +180,14 @@ export default function CheckinsAdminPage() {
 
   const exportPDF = async () => {
     const toExport = locations.filter(l => selectedForPrint.has(l.key));
-    if (toExport.length === 0) { alert("Select at least one location to export."); return; }
+    if (toExport.length === 0) { toast.show("Veldu að minnsta kosti eina staðsetningu.", { tone: "bad" }); return; }
 
     setExporting(true);
     try {
       await generateBrandedPDF(toExport, "lifeline-checkin-qrcodes.pdf");
     } catch (e) {
       console.error("PDF export error:", e);
-      alert("Failed to generate PDF. Check console for details.");
+      toast.show("Ekki tókst að búa til PDF-skjal.", { tone: "bad" });
     }
     setExporting(false);
   };

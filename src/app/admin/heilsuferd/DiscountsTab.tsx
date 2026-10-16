@@ -14,7 +14,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, Plus, X } from "lucide-react";
-import { adminJson } from "../hc-api";
+import { adminJson, adminErrorText } from "../hc-api";
+import { useToast } from "@/app/components/hc/Toast";
 
 interface Code {
   code: string;
@@ -49,6 +50,7 @@ const day = (s: string | null) =>
   s ? new Date(s).toLocaleDateString("is-IS", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
 export default function DiscountsTab() {
+  const toast = useToast();
   const [codes, setCodes] = useState<Code[] | null>(null);
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -59,9 +61,14 @@ export default function DiscountsTab() {
     max_uses: "", max_per_client: "1", expires_at: "", note: "",
   });
 
+  const [loadErr, setLoadErr] = useState<string | null>(null);
   const load = useCallback(async () => {
     const r = await adminJson<{ codes: Code[] }>("/api/admin/hc/discounts");
-    setTimeout(() => setCodes(r.ok ? r.data.codes ?? [] : []), 0);
+    setTimeout(() => {
+      // A failed load is not "no codes": keep what is shown and say so.
+      if (r.ok) { setCodes(r.data.codes ?? []); setLoadErr(null); }
+      else { setLoadErr(adminErrorText(r.error, "Ekki tókst að sækja afsláttarkóða.")); setCodes((c) => c ?? []); }
+    }, 0);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -86,8 +93,7 @@ export default function DiscountsTab() {
           : j.error === "bad_percent" ? "Prósenta má ekki vera yfir 100."
           : j.error === "bad_months" ? "Fríir mánuðir verða að vera heil tala."
           : j.error === "months_need_subscription" ? "Fríir mánuðir gilda aðeins um áskrift."
-          : j.error === "mfa_required" ? "Þú þarft að staðfesta með tveggja þátta auðkenningu."
-          : "Kóðinn varð ekki til. Athugaðu gildin.",
+          : adminErrorText(j.error === "bad_request" ? null : j.error, "Kóðinn varð ekki til. Athugaðu gildin."),
       );
       return;
     }
@@ -98,8 +104,9 @@ export default function DiscountsTab() {
 
   const patch = async (code: string, change: Record<string, unknown>) => {
     setBusy(code);
-    await adminJson("/api/admin/hc/discounts", { method: "PATCH", body: JSON.stringify({ code, ...change }) });
+    const r = await adminJson("/api/admin/hc/discounts", { method: "PATCH", body: JSON.stringify({ code, ...change }) });
     setBusy(null);
+    if (!r.ok) toast.show(`Kóðanum ${code} var ekki breytt: ${adminErrorText(r.error)}`, { tone: "bad" });
     await load();
   };
 
@@ -107,6 +114,11 @@ export default function DiscountsTab() {
 
   return (
     <div className="space-y-4">
+      {loadErr && (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {loadErr} <button onClick={() => void load()} className="font-semibold underline">Reyna aftur</button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Afsláttarkóðar</h2>

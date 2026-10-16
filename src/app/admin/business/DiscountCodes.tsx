@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/app/components/hc/Toast";
 
 interface DiscountCode {
   id: string;
@@ -21,7 +22,9 @@ function fmtValue(c: DiscountCode): string {
 }
 
 export default function DiscountCodesContent() {
+  const toast = useToast();
   const [codes, setCodes] = useState<DiscountCode[]>([]);
+  const [toggling, setToggling] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -57,7 +60,7 @@ export default function DiscountCodesContent() {
     if (kind === "percent" && numValue > 100) { setError("Percent cannot exceed 100."); return; }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    const { error: insErr } = await supabase.from("discount_codes").insert({
+    const { data: inserted, error: insErr } = await supabase.from("discount_codes").insert({
       code: normalized,
       kind,
       value: numValue,
@@ -65,16 +68,27 @@ export default function DiscountCodesContent() {
       expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
       note: note.trim() || null,
       created_by: user?.id ?? null,
-    });
+    }).select("id");
     setSaving(false);
     if (insErr) { setError(insErr.message.includes("duplicate") ? "That code already exists." : insErr.message); return; }
+    if (!inserted?.length) { setError("Kóðinn vistaðist ekki – þú hefur ekki heimild til þess."); return; }
+    toast.show(`Afsláttarkóðinn ${normalized} var stofnaður.`);
     setCode(""); setValue(""); setMaxUses(""); setExpiresAt(""); setNote("");
     load();
   };
 
   const toggleActive = async (c: DiscountCode) => {
-    await supabase.from("discount_codes").update({ active: !c.active }).eq("id", c.id);
-    load();
+    const next = !c.active;
+    setToggling(c.id);
+    setCodes((prev) => prev.map((x) => (x.id === c.id ? { ...x, active: next } : x)));
+    const { data, error: e } = await supabase.from("discount_codes").update({ active: next }).eq("id", c.id).select("id");
+    setToggling(null);
+    if (e || !data?.length) {
+      setCodes((prev) => prev.map((x) => (x.id === c.id ? { ...x, active: c.active } : x)));
+      toast.show(`Kóðanum ${c.code} var ekki breytt: ${e?.message || "engin heimild"}`, { tone: "bad" });
+      return;
+    }
+    toast.show(next ? `${c.code} er virkur.` : `${c.code} er óvirkur.`);
   };
 
   return (
@@ -149,7 +163,7 @@ export default function DiscountCodesContent() {
                     </span>
                   </td>
                   <td className="py-2 px-4 text-right">
-                    <button onClick={() => toggleActive(c)} className="text-xs font-medium text-blue-600 hover:underline">
+                    <button onClick={() => toggleActive(c)} disabled={toggling === c.id} className="text-xs font-medium text-blue-600 hover:underline disabled:opacity-50">
                       {c.active ? "Deactivate" : "Activate"}
                     </button>
                   </td>

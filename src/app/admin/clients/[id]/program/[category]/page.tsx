@@ -4,6 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useDialog } from "@/app/components/account/ui";
+import { useToast } from "@/app/components/hc/Toast";
+import { replaceRows } from "../../../../replace-rows";
+import { usePromptForm } from "../../../../components/PromptForm";
 
 type TimeGroup = "morning" | "midday" | "evening";
 type ProgramLevel = "beginner" | "intermediate" | "advanced" | "";
@@ -67,6 +71,9 @@ export default function ClientProgramEditorPage() {
   const router = useRouter();
   const clientId = params.id as string;
   const categoryKey = params.category as string;
+  const dialog = useDialog();
+  const toast = useToast();
+  const [promptNode, askPrompt] = usePromptForm();
   const color = categoryColors[categoryKey] || "#6B7280";
 
   // Program state
@@ -142,7 +149,7 @@ export default function ClientProgramEditorPage() {
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("client_custom_programs").upsert({
+      const { data: saved, error } = await supabase.from("client_custom_programs").upsert({
         client_id: clientId,
         category_key: categoryKey,
         program_name: programName,
@@ -157,14 +164,19 @@ export default function ClientProgramEditorPage() {
         shared,
         created_by: user?.id || null,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "client_id,category_key" });
+      }, { onConflict: "client_id,category_key" }).select("id");
+      if (error || !saved?.length) {
+        toast.show(`Vistaðist ekki: ${error?.message || "engin heimild til að vista"}`, { tone: "bad" });
+        return;
+      }
       setDirty(false);
       setSaveMsg("Saved");
       setTimeout(() => setSaveMsg(""), 2000);
     } catch {
-      alert("Failed to save");
+      toast.show("Vistaðist ekki – netvilla. Reyndu aftur.", { tone: "bad" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleShare = async () => {
@@ -173,7 +185,7 @@ export default function ClientProgramEditorPage() {
     // Save immediately so sharing takes effect without clicking Save
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("client_custom_programs").upsert({
+      const { data: saved, error } = await supabase.from("client_custom_programs").upsert({
         client_id: clientId,
         category_key: categoryKey,
         program_name: programName || `Custom ${categoryLabels[categoryKey] || categoryKey}`,
@@ -188,9 +200,11 @@ export default function ClientProgramEditorPage() {
         shared: next,
         created_by: user?.id || null,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "client_id,category_key" });
-    } catch {
-      alert("Failed to update sharing status");
+      }, { onConflict: "client_id,category_key" }).select("id");
+      if (error || !saved?.length) throw new Error(error?.message || "engin heimild til að vista");
+      toast.show(next ? "Prógrammið er nú sýnilegt skjólstæðingnum." : "Prógrammið er falið skjólstæðingnum.");
+    } catch (e) {
+      toast.show(`Deilingu var ekki breytt: ${e instanceof Error ? e.message : "netvilla"}`, { tone: "bad" });
       setShared(!next); // revert
     }
   };
@@ -206,27 +220,38 @@ export default function ClientProgramEditorPage() {
   }, [categoryKey]);
 
   const handleSaveAsTemplate = async () => {
-    const name = prompt("Template name:", programName);
+    const v = await askPrompt({
+      title: "Vista sem sniðmát",
+      fields: [{ name: "name", label: "Heiti sniðmáts", initial: programName }],
+      submitLabel: "Vista sniðmát",
+    });
+    const name = v?.name as string | undefined;
     if (!name) return;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("program_templates").insert({
+      const { error } = await supabase.from("program_templates").insert({
         name, category_key: categoryKey, description: description || "",
         tagline: tagline || null, level: level || null, exercise_type: exerciseType || null,
         target_audience: targetAudience || null,
         structured_phases: phases.length > 0 ? JSON.stringify(phases) : null,
         duration, actions, created_by: user?.id || null,
       });
+      if (error) { toast.show(`Sniðmát vistaðist ekki: ${error.message}`, { tone: "bad" }); return; }
       const { data: updated } = await supabase.from("program_templates").select("*").eq("category_key", categoryKey).order("created_at", { ascending: false });
       if (updated) setTemplates(updated as typeof templates);
-      alert(`Template "${name}" saved`);
-    } catch { alert("Failed to save template"); }
+      toast.show(`Sniðmátið „${name}“ var vistað.`);
+    } catch { toast.show("Sniðmát vistaðist ekki – netvilla.", { tone: "bad" }); }
   };
 
   const handleLoadTemplate = async (templateId: string) => {
     const tmpl = templates.find(t => t.id === templateId);
     if (!tmpl) return;
-    if (!confirm(`Load template "${tmpl.name}"? This will replace all current content.`)) return;
+    const ok = await dialog.confirm({
+      title: `Hlaða sniðmátinu „${tmpl.name}“?`,
+      body: "Allt núverandi efni prógrammsins verður skipt út. Breytingin vistast ekki fyrr en þú vistar.",
+      confirmLabel: "Hlaða sniðmáti", cancelLabel: "Hætta við", tone: "danger",
+    });
+    if (!ok) return;
     setProgramName(tmpl.name);
     setDescription(tmpl.description || "");
     setTagline(tmpl.tagline || "");
@@ -319,22 +344,30 @@ export default function ClientProgramEditorPage() {
     }
   }, [selectedCell, categoryKey, loadExerciseLibrary, loadActionExercisesForDay]);
 
-  const saveActionExercisesForKey = async (actionKey: string, exercises: ActionExercise[]) => {
-    if (!customProgramDbId) return;
+  // New rows first, old ones deleted by id only once those are in
+  // (replaceRows); on failure the optimistic edit is rolled back.
+  const saveActionExercisesForKey = async (actionKey: string, exercises: ActionExercise[], previous: ActionExercise[]): Promise<boolean> => {
+    if (!customProgramDbId) {
+      setActionExercises(prev => ({ ...prev, [actionKey]: previous }));
+      toast.show("Vistaðu prógrammið fyrst – síðan er hægt að tengja æfingar.", { tone: "bad" });
+      return false;
+    }
     const progKey = `custom-${customProgramDbId}`;
-    try {
-      await supabase.from("action_exercises").delete().eq("action_key", actionKey).eq("program_key", progKey);
-      if (exercises.length > 0) {
-        const rows = exercises.map((ex, i) => ({
-          action_key: actionKey, program_key: progKey,
-          week_range: selectedCell?.week ?? 0, day_of_week: selectedCell?.day ?? 0,
-          exercise_id: ex.exercise_id, exercise_name: ex.exercise_name,
-          sets: ex.sets, reps: ex.reps, duration: ex.duration || null,
-          rest: ex.rest, notes: ex.notes || null, sort_order: i,
-        }));
-        await supabase.from("action_exercises").insert(rows);
-      }
-    } catch {}
+    const rows = exercises.map((ex, i) => ({
+      action_key: actionKey, program_key: progKey,
+      week_range: selectedCell?.week ?? 0, day_of_week: selectedCell?.day ?? 0,
+      exercise_id: ex.exercise_id, exercise_name: ex.exercise_name,
+      sets: ex.sets, reps: ex.reps, duration: ex.duration || null,
+      rest: ex.rest, notes: ex.notes || null, sort_order: i,
+    }));
+    const r = await replaceRows("action_exercises", { action_key: actionKey, program_key: progKey }, rows);
+    if (!r.ok) {
+      setActionExercises(prev => ({ ...prev, [actionKey]: previous }));
+      toast.show(`Æfingar vistuðust ekki: ${r.error}`, { tone: "bad" });
+      if (selectedCell) void loadActionExercisesForDay(selectedCell.week, selectedCell.day);
+      return false;
+    }
+    return true;
   };
 
   const addExerciseToAction = async (actionKey: string) => {
@@ -346,17 +379,19 @@ export default function ClientProgramEditorPage() {
       sets: exSets, reps: exReps, duration: "", rest: exRest, notes: exNotes,
       sort_order: (actionExercises[actionKey]?.length ?? 0),
     };
-    const updated = [...(actionExercises[actionKey] || []), newEx];
+    const previous = actionExercises[actionKey] || [];
+    const updated = [...previous, newEx];
     setActionExercises(prev => ({ ...prev, [actionKey]: updated }));
-    await saveActionExercisesForKey(actionKey, updated);
+    if (!(await saveActionExercisesForKey(actionKey, updated, previous))) return;
     setSelectedExercise(null); setExerciseSearch(""); setExSets(3); setExReps("10"); setExRest("60s"); setExNotes("");
     setShowExercisePicker(null);
   };
 
   const removeExerciseFromAction = async (actionKey: string, index: number) => {
-    const updated = (actionExercises[actionKey] || []).filter((_, i) => i !== index);
+    const previous = actionExercises[actionKey] || [];
+    const updated = previous.filter((_, i) => i !== index);
     setActionExercises(prev => ({ ...prev, [actionKey]: updated }));
-    await saveActionExercisesForKey(actionKey, updated);
+    await saveActionExercisesForKey(actionKey, updated, previous);
   };
 
   const selectedActions = selectedCell
@@ -369,6 +404,7 @@ export default function ClientProgramEditorPage() {
 
   return (
     <div className="space-y-4">
+      {promptNode}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

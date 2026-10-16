@@ -13,6 +13,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { getMyStaffRole } from "@/lib/staff-role";
+import { useDialog } from "@/app/components/account/ui";
 import {
   type FeedbackSurvey,
   type FeedbackQuestion,
@@ -30,6 +31,39 @@ interface DraftQuestion extends FeedbackQuestion {
 
 const QUESTION_TYPES: QuestionType[] = ["likert5", "singleselect", "multiselect", "nps10", "open", "consent_optional"];
 
+// What saveAll sends, and what "unsaved changes" is measured against.
+function savePayload(survey: FeedbackSurvey, questions: DraftQuestion[]) {
+  return {
+    survey: {
+      title_is: survey.title_is,
+      title_en: survey.title_en,
+      intro_is: survey.intro_is,
+      intro_en: survey.intro_en,
+      outro_is: survey.outro_is,
+      outro_en: survey.outro_en,
+      estimated_minutes: survey.estimated_minutes,
+      category: survey.category,
+    },
+    questions: questions.map((q) => ({
+      id: q._new ? null : q.id,
+      order_index: q.order_index,
+      section_index: q.section_index ?? 1,
+      section_title_is: q.section_title_is,
+      section_title_en: q.section_title_en,
+      question_type: q.question_type,
+      label_is: q.label_is,
+      label_en: q.label_en,
+      helper_is: q.helper_is,
+      helper_en: q.helper_en,
+      options_jsonb: q.options_jsonb,
+      required: q.required,
+      allow_skip: q.allow_skip,
+      skip_label_is: q.skip_label_is,
+      skip_label_en: q.skip_label_en,
+    })),
+  };
+}
+
 export default function SurveyEditorPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
@@ -41,6 +75,9 @@ export default function SurveyEditorPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const dialog = useDialog();
+  // JSON of the payload as the server last had it; null until loaded.
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
 
   // Approval / status-change form (medical advisor)
   const [approvalNote, setApprovalNote] = useState("");
@@ -83,7 +120,9 @@ export default function SurveyEditorPage() {
           .eq("survey_id", surveyId)
           .order("order_index", { ascending: true });
         if (cancelled) return;
-        setQuestions(((qRows || []) as FeedbackQuestion[]).map((q) => ({ ...q })));
+        const loadedQs = ((qRows || []) as FeedbackQuestion[]).map((q) => ({ ...q }));
+        setQuestions(loadedQs);
+        if (surveyRow) setSavedSnapshot(JSON.stringify(savePayload(surveyRow as FeedbackSurvey, loadedQs)));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -198,8 +237,15 @@ export default function SurveyEditorPage() {
   };
 
   const removeQuestion = (idx: number) => {
-    if (!confirm("Remove this question? Already-collected responses to it remain in the database for historical surveys.")) return;
+    void (async () => {
+    const ok = await dialog.confirm({
+      title: "Fjarlægja þessa spurningu?",
+      body: "Svör sem þegar hafa borist við henni haldast í gagnagrunninum fyrir eldri kannanir.",
+      confirmLabel: "Fjarlægja", cancelLabel: "Hætta við", tone: "danger",
+    });
+    if (!ok) return;
     setQuestions((prev) => prev.filter((_, i) => i !== idx).map((q, i) => ({ ...q, order_index: i + 1, _dirty: true })));
+    })();
   };
 
   const saveAll = async () => {
@@ -213,44 +259,16 @@ export default function SurveyEditorPage() {
       const res = await fetch(`/api/admin/surveys/${survey.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          survey: {
-            title_is: survey.title_is,
-            title_en: survey.title_en,
-            intro_is: survey.intro_is,
-            intro_en: survey.intro_en,
-            outro_is: survey.outro_is,
-            outro_en: survey.outro_en,
-            estimated_minutes: survey.estimated_minutes,
-            category: survey.category,
-          },
-          questions: questions.map((q) => ({
-            id: q._new ? null : q.id,
-            order_index: q.order_index,
-            section_index: q.section_index ?? 1,
-            section_title_is: q.section_title_is,
-            section_title_en: q.section_title_en,
-            question_type: q.question_type,
-            label_is: q.label_is,
-            label_en: q.label_en,
-            helper_is: q.helper_is,
-            helper_en: q.helper_en,
-            options_jsonb: q.options_jsonb,
-            required: q.required,
-            allow_skip: q.allow_skip,
-            skip_label_is: q.skip_label_is,
-            skip_label_en: q.skip_label_en,
-          })),
-        }),
+        body: JSON.stringify(savePayload(survey, questions)),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.ok) throw new Error(j.error || "Save failed");
       setMsg({ type: "ok", text: "Saved." });
       // Refresh local state from server response.
       router.refresh();
-      if (j.questions) {
-        setQuestions((j.questions as FeedbackQuestion[]).map((q) => ({ ...q })));
-      }
+      const savedQs = j.questions ? (j.questions as FeedbackQuestion[]).map((q) => ({ ...q })) : questions;
+      if (j.questions) setQuestions(savedQs);
+      setSavedSnapshot(JSON.stringify(savePayload(survey, savedQs)));
     } catch (e) {
       setMsg({ type: "err", text: (e as Error).message });
     } finally {
@@ -283,7 +301,14 @@ export default function SurveyEditorPage() {
 
   const cloneSurvey = async () => {
     if (!survey) return;
-    if (!confirm(`Clone ${survey.key} v${survey.version} into a new draft? You'll edit the new copy without affecting the current ${survey.status} version.`)) return;
+    const ok = await dialog.confirm({
+      title: `Afrita ${survey.key} v${survey.version} í ný drög?`,
+      body: dirty
+        ? "Afritið er gert af útgáfunni á þjóninum: óvistaðar breytingar hér fylgja ekki með og tapast þegar þú ferð í nýju drögin."
+        : "Þú breytir nýja afritinu án þess að hrófla við núverandi útgáfu.",
+      confirmLabel: "Afrita", cancelLabel: "Hætta við", tone: dirty ? "danger" : "default",
+    });
+    if (!ok) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -335,6 +360,31 @@ export default function SurveyEditorPage() {
     }
   };
 
+  const dirty = useMemo(
+    () => !!survey && savedSnapshot !== null && JSON.stringify(savePayload(survey, questions)) !== savedSnapshot,
+    [survey, questions, savedSnapshot],
+  );
+
+  // A closed tab or reload loses unsaved edits; warn first.
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  // In-app navigation does not fire beforeunload.
+  const confirmLeave = () => dialog.confirm({
+    title: "Fara án þess að vista?",
+    body: "Þú ert með óvistaðar breytingar á könnuninni. Þær tapast ef þú ferð.",
+    confirmLabel: "Fara án þess að vista", cancelLabel: "Vera áfram", tone: "danger",
+  });
+  const onBackClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!dirty) return;
+    e.preventDefault();
+    if (await confirmLeave()) router.push("/admin/surveys");
+  };
+
   if (loading) return <div className="px-8 pt-6 text-sm text-gray-400">Loading…</div>;
   if (!survey) return <div className="px-8 pt-6 text-sm text-red-700">Survey not found.</div>;
 
@@ -342,7 +392,7 @@ export default function SurveyEditorPage() {
     <div className="px-8 pt-6 pb-12 space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <Link href="/admin/surveys" className="text-xs text-gray-500 hover:text-gray-700 underline underline-offset-2">
+          <Link href="/admin/surveys" onClick={onBackClick} className="text-xs text-gray-500 hover:text-gray-700 underline underline-offset-2">
             ← Back to all surveys
           </Link>
           <div className="flex items-center gap-2 flex-wrap mt-2">

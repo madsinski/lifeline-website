@@ -18,6 +18,16 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useDialog } from "@/app/components/account/ui";
+import { useToast } from "@/app/components/hc/Toast";
+import { usePromptForm } from "../components/PromptForm";
+import { adminErrorText } from "../hc-api";
+
+/** The server's reason for a failed write, in Icelandic where it is an auth code. */
+async function failText(res: Response): Promise<string> {
+  const j = await res.json().catch(() => ({}));
+  return adminErrorText((j as { error?: string }).error, `Villa ${res.status}`);
+}
 
 const CATEGORIES = ["blood_tests", "measurements", "doctor", "saas", "other"] as const;
 const CATEGORY_LABELS: Record<string, string> = {
@@ -258,6 +268,7 @@ function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged 
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [promptNode, askPrompt] = usePromptForm();
 
   const load = useCallback(async () => {
     const res = await authedFetch(`/api/admin/accounting/founder-salaries?year=${year}`);
@@ -272,7 +283,7 @@ function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged 
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ month: monthKey, amount_isk: amount }),
     });
-    if (!res.ok) setMsg("Save failed.");
+    if (!res.ok) setMsg(`Vistaðist ekki: ${await failText(res)}`);
     await load();
     onChanged();
     setBusy(false);
@@ -284,25 +295,45 @@ function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged 
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ month: monthKey, sereign: val }),
     });
-    if (!res.ok) setMsg("Save failed.");
+    if (!res.ok) setMsg(`Vistaðist ekki: ${await failText(res)}`);
     await load();
     setBusy(false);
   };
 
   const editDefault = async () => {
     if (!data) return;
-    const v = prompt("Default monthly founders' salary (ISK) — pre-fill suggestion only:", String(data.default_isk));
-    if (v === null) return;
-    const n = parseInt(v.replace(/[^\d]/g, ""), 10);
-    if (!Number.isInteger(n) || n < 0) { setMsg("Bad amount."); return; }
-    setBusy(true);
-    const res = await authedFetch(`/api/admin/accounting/plan`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "founder_salary_default_isk", value: n }),
+    setMsg("");
+    await askPrompt({
+      title: "Sjálfgefin mánaðarlaun stofnenda",
+      description: "Aðeins tillaga sem fyllist sjálfkrafa inn; breytir ekki mánuðum sem þegar eru skráðir.",
+      fields: [{ name: "amount", label: "Upphæð á mánuði (kr.)", kind: "amount", initial: data.default_isk, min: 0, hint: "T.d. 1.600.000" }],
+      onSubmit: async ({ amount }) => {
+        const res = await authedFetch(`/api/admin/accounting/plan`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: "founder_salary_default_isk", value: amount }),
+        });
+        if (!res.ok) return await failText(res);
+        await load();
+      },
     });
-    if (!res.ok) setMsg("Save failed.");
-    await load();
-    setBusy(false);
+  };
+
+  const editMonth = async (m: { month: string; amount_isk: number; is_set: boolean }, def: number) => {
+    setMsg("");
+    await askPrompt({
+      title: `Laun stofnenda – ${monthLabel(m.month)} ${m.month.slice(0, 4)}`,
+      description: "Heildarlaun stofnenda fyrir félagið í mánuðinum.",
+      fields: [{ name: "amount", label: "Upphæð (kr.)", kind: "amount", initial: m.is_set ? m.amount_isk : def, min: 0 }],
+      onSubmit: async ({ amount }) => {
+        const res = await authedFetch(`/api/admin/accounting/founder-salaries`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ month: m.month, amount_isk: amount }),
+        });
+        if (!res.ok) return await failText(res);
+        await load();
+        onChanged();
+      },
+    });
   };
 
   const def = data?.default_isk ?? 1600000;
@@ -310,6 +341,7 @@ function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged 
 
   return (
     <div className="space-y-2 text-xs text-gray-700">
+      {promptNode}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <button type="button" className={btnXs} onClick={() => setYear(year - 1)} disabled={busy}>←</button>
@@ -346,13 +378,7 @@ function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged 
                   <td className="py-1 text-right whitespace-nowrap w-44">
                     <button
                       type="button" className={btnXs} disabled={busy}
-                      onClick={() => {
-                        const v = prompt(`${monthLabel(m.month)} ${m.month.slice(0, 4)} — founders' salary total for the company (ISK):`, String(m.is_set ? m.amount_isk : def));
-                        if (v === null) return;
-                        const n = parseInt(v.replace(/[^\d]/g, ""), 10);
-                        if (!Number.isInteger(n) || n < 0) { setMsg("Bad amount."); return; }
-                        setMonthAmount(m.month, n);
-                      }}
+                      onClick={() => void editMonth(m, def)}
                     >{m.is_set ? "Edit" : "Set"}</button>{" "}
                     {m.is_set ? (
                       <button type="button" className={btnXs} disabled={busy} onClick={() => setMonthAmount(m.month, null)}>Clear</button>
@@ -400,6 +426,9 @@ function FounderSalaries({ authedFetch, initialYear, currentMonthKey, onChanged 
 }
 
 export default function Accounting() {
+  const dialog = useDialog();
+  const toast = useToast();
+  const [promptNode, askPrompt] = usePromptForm();
   const [month, setMonth] = useState(currentMonth());
   const [report, setReport] = useState<Report | null>(null);
   const [runs, setRuns] = useState<ReportRun[]>([]);
@@ -476,17 +505,20 @@ export default function Accounting() {
   // Edit a position setting (cash / Biody liability / Þorvaldur) via the
   // shared plan-settings endpoint, then refresh the panel.
   const editPosition = useCallback(async (key: string, label: string, current: number) => {
-    const v = prompt(`${label} (ISK):`, String(current));
-    if (v === null) return;
-    const value = Number(v.replace(/[. ]/g, "").replace(",", "."));
-    if (!Number.isFinite(value)) { setMsg("Not a number."); return; }
-    const res = await authedFetch(`/api/admin/accounting/plan`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key, value }),
+    await askPrompt({
+      title: label,
+      fields: [{ name: "value", label: "Upphæð (kr.)", kind: "amount", initial: current, allowNegative: true, hint: "T.d. 1.250.000 eða -500.000" }],
+      onSubmit: async ({ value }) => {
+        const res = await authedFetch(`/api/admin/accounting/plan`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key, value }),
+        });
+        if (!res.ok) return await failText(res);
+        const posRes = await authedFetch(`/api/admin/accounting/position`);
+        if (posRes.ok) setPosition(await posRes.json());
+        toast.show(`${label} vistað.`);
+      },
     });
-    if (!res.ok) { setMsg("Save failed."); return; }
-    const posRes = await authedFetch(`/api/admin/accounting/position`);
-    setPosition(posRes.ok ? await posRes.json() : position);
-  }, [authedFetch, position]);
+  }, [authedFetch, askPrompt, toast]);
 
   // Defer / un-defer an internal-debt bucket (founder loan we're in no hurry
   // to repay). Stored as a numeric 0/1 setting; deferred amounts drop out of
@@ -581,8 +613,13 @@ export default function Accounting() {
     }
   };
 
-  const sendToAccountant = () => {
-    if (!confirm(`Send the ${month} report to the accounting firm now?`)) return;
+  const sendToAccountant = async () => {
+    const ok = await dialog.confirm({
+      title: `Senda skýrslu ${month} til bókhaldsstofunnar?`,
+      body: "Skýrslan fer strax í tölvupósti til bókhaldsstofunnar.",
+      confirmLabel: "Senda", cancelLabel: "Hætta við",
+    });
+    if (!ok) return;
     act("send", () => authedFetch(`/api/admin/accounting/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -735,16 +772,22 @@ export default function Accounting() {
     }));
   };
 
-  const setFxManually = () => {
-    const v = prompt(`USD/ISK rate for ${month}:`, report?.fx ? String(report.fx.usd_isk) : "");
-    if (!v) return;
-    const rate = Number(v.replace(",", "."));
-    if (!Number.isFinite(rate) || rate <= 0) { setMsg("Bad FX rate."); return; }
-    act("fx", () => authedFetch(`/api/admin/accounting/fx`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ month, usd_isk: rate }),
-    }));
+  const setFxManually = async () => {
+    await askPrompt({
+      title: `Gengi USD/ISK – ${month}`,
+      fields: [{ name: "rate", label: "Krónur á hvern dollara", kind: "number", initial: report?.fx ? report.fx.usd_isk : null, min: 0.0001, hint: "T.d. 138,5" }],
+      onSubmit: async ({ rate }) => {
+        const res = await authedFetch(`/api/admin/accounting/fx`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ month, usd_isk: rate }),
+        });
+        if (!res.ok) return await failText(res);
+        toast.show("Gengi vistað.");
+        await refresh();
+        await loadTotals();
+      },
+    });
   };
 
   // ── Render ──────────────────────────────────────────────────────
@@ -754,6 +797,7 @@ export default function Accounting() {
 
   return (
     <div className="px-8 pb-10 space-y-4">
+      {promptNode}
       <div>
         <h1 className="text-xl font-bold text-gray-900 mb-1">Accounting</h1>
         <p className="text-sm text-gray-500">Monthly P&amp;L from operations and uploaded invoices. Send to the accounting firm at month-end.</p>
@@ -1414,10 +1458,9 @@ export default function Accounting() {
                   <button className="text-gray-500 hover:text-gray-800" onClick={() => setEditingInvoice(inv)}>Edit</button>
                   <button
                     className="text-red-500 hover:text-red-700"
-                    onClick={() => {
-                      if (confirm("Delete this invoice and its file?")) {
-                        act("del-inv", () => authedFetch(`/api/admin/accounting/invoices?id=${inv.id}`, { method: "DELETE" }));
-                      }
+                    onClick={async () => {
+                      const ok = await dialog.confirm({ title: "Eyða þessum reikningi?", body: "Reikningnum og skránni hans verður eytt. Ekki er hægt að afturkalla þetta.", confirmLabel: "Eyða", cancelLabel: "Hætta við", tone: "danger" });
+                      if (ok) act("del-inv", () => authedFetch(`/api/admin/accounting/invoices?id=${inv.id}`, { method: "DELETE" }), "Reikningi eytt.");
                     }}
                   >×</button>
                 </span>
@@ -1455,17 +1498,20 @@ export default function Accounting() {
               <span className="flex items-center gap-2">
                 <button
                   className="text-gray-500 hover:text-gray-800"
-                  onClick={() => {
-                    const q = prompt(`Quantity for ${o.name}:`, String(o.quantity));
-                    if (!q) return;
-                    const quantity = parseInt(q, 10);
-                    if (!Number.isInteger(quantity) || quantity < 1) { setMsg("Bad quantity."); return; }
-                    act("ovh-qty", () => authedFetch(`/api/admin/accounting/overheads`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ id: o.id, quantity }),
-                    }));
-                  }}
+                  onClick={() => void askPrompt({
+                    title: `Fjöldi – ${o.name}`,
+                    fields: [{ name: "quantity", label: "Fjöldi", kind: "integer", initial: o.quantity, min: 1 }],
+                    onSubmit: async ({ quantity }) => {
+                      const res = await authedFetch(`/api/admin/accounting/overheads`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: o.id, quantity }),
+                      });
+                      if (!res.ok) return await failText(res);
+                      await refresh();
+                      await loadTotals();
+                    },
+                  })}
                 >qty</button>
                 <button
                   className="text-gray-500 hover:text-gray-800"

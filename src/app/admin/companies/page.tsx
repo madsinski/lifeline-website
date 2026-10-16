@@ -5,6 +5,16 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { assessmentUnitPriceIsk, FOLLOWUP_DOCTOR_PRICE_ISK, BLOOD_PROVIDER_RATES } from "@/lib/b2b-pricing";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import { useDialog } from "@/app/components/account/ui";
+import { useToast } from "@/app/components/hc/Toast";
+import { usePromptForm } from "../components/PromptForm";
+import { adminErrorText } from "../hc-api";
+
+/** The server's reason for a failed write, in Icelandic where it is an auth code. */
+async function failText(res: Response): Promise<string> {
+  const j = await res.json().catch(() => ({}));
+  return adminErrorText((j as { error?: string }).error, `Villa ${res.status}`);
+}
 import BulkBiodyButton from "./BulkBiodyButton";
 
 interface CompanyRow {
@@ -112,6 +122,7 @@ function CompanyIncomeBreakdown({ c, onReload, membersOverride, discountCodes = 
   // manual values persist in company_income_item_qty.
   const [qty, setQty] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
+  const [promptNode, askPrompt] = usePromptForm();
 
   const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -134,20 +145,26 @@ function CompanyIncomeBreakdown({ c, onReload, membersOverride, discountCodes = 
   useEffect(() => { queueMicrotask(load); }, [load]);
 
   const editQty = async (item: string, label: string) => {
-    const v = prompt(`${label} — number of employees (empty = auto, full roster ${members}):`,
-      qty[item] != null ? String(qty[item]) : "");
-    if (v === null) return;
-    const trimmed = v.replace(/[^\d]/g, "");
-    setBusy(true);
-    const res = await authedFetch(`/api/admin/accounting/income-items`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ company_id: c.id, item, qty: trimmed === "" ? null : parseInt(trimmed, 10) }),
+    await askPrompt({
+      title: `${label} – fjöldi starfsmanna`,
+      fields: [{ name: "qty", label: "Fjöldi", kind: "integer", optional: true, min: 0, initial: qty[item] ?? null,
+        hint: `Autt = sjálfvirkt (allur hópurinn, ${members}).` }],
+      onSubmit: async ({ qty: n }) => {
+        setBusy(true);
+        try {
+          const res = await authedFetch(`/api/admin/accounting/income-items`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ company_id: c.id, item, qty: n }),
+          });
+          if (!res.ok) return await failText(res);
+          await load();
+          onReload();
+        } finally {
+          setBusy(false);
+        }
+      },
     });
-    if (!res.ok) alert("Saving quantity failed.");
-    await load();
-    onReload();
-    setBusy(false);
   };
 
   if (members === 0) return null;
@@ -179,6 +196,7 @@ function CompanyIncomeBreakdown({ c, onReload, membersOverride, discountCodes = 
   const oneTimeTotal = qtyCheck * checkPrice + qtyFollow * followupPrice;
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+      {promptNode}
       <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
         <span className="flex items-center gap-2">
           {c.applied_discount_code ? (
@@ -263,6 +281,7 @@ function CompanyCosts({ companyId, memberCount, onChanged }: { companyId: string
   const [form, setForm] = useState({ description: "", amount: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [promptNode, askPrompt] = usePromptForm();
 
   const authedFetch = useCallback(async (path: string, init?: RequestInit) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -307,7 +326,7 @@ function CompanyCosts({ companyId, memberCount, onChanged }: { companyId: string
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ company_id: companyId, category, ...patch }),
     });
-    if (!res.ok) setMsg("Saving item state failed.");
+    if (!res.ok) setMsg(`Vistaðist ekki: ${await failText(res)}`);
     await load();
     onChanged?.();
     setBusy(false);
@@ -316,20 +335,42 @@ function CompanyCosts({ companyId, memberCount, onChanged }: { companyId: string
   useEffect(() => { queueMicrotask(load); }, [load]);
 
   const editAmount = async (row: TaggedCost) => {
-    const v = prompt(`New amount (ISK) for ${row.vendor || row.description || "this cost"}:`, String(row.amount_isk));
-    if (v === null) return;
-    const amount = parseInt(v.replace(/[^\d]/g, ""), 10);
-    if (!Number.isInteger(amount) || amount < 0) { setMsg("Bad amount."); return; }
-    setBusy(true);
-    const res = await authedFetch(`/api/admin/accounting/invoices`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: row.id, amount_isk: amount }),
+    setMsg("");
+    await askPrompt({
+      title: "Breyta upphæð",
+      description: row.vendor || row.description || "Kostnaður",
+      fields: [{ name: "amount", label: "Upphæð (kr.)", kind: "amount", initial: row.amount_isk, min: 0, hint: "T.d. 12.500" }],
+      onSubmit: async ({ amount }) => {
+        const res = await authedFetch(`/api/admin/accounting/invoices`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: row.id, amount_isk: amount }),
+        });
+        if (!res.ok) return await failText(res);
+        await load();
+        onChanged?.();
+      },
     });
-    if (!res.ok) setMsg("Update failed.");
-    await load();
-    onChanged?.();
-    setBusy(false);
+  };
+
+  const editUnitPrice = async (category: string, label: string, current: number | null, autoRate: number) => {
+    setMsg("");
+    await askPrompt({
+      title: `${label} – einingaverð`,
+      description: "Einingaverð fyrir þetta fyrirtæki.",
+      fields: [{ name: "price", label: "Einingaverð (kr.)", kind: "amount", optional: true, min: 0, initial: current,
+        hint: `Autt = sjálfvirkt (${iskFmt(autoRate)}).` }],
+      onSubmit: async ({ price }) => {
+        const res = await authedFetch(`/api/admin/accounting/cost-items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ company_id: companyId, category, unit_price_isk: price }),
+        });
+        if (!res.ok) return await failText(res);
+        await load();
+        onChanged?.();
+      },
+    });
   };
 
   const addAdjustment = async () => {
@@ -393,6 +434,7 @@ function CompanyCosts({ companyId, memberCount, onChanged }: { companyId: string
 
   return (
     <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+      {promptNode}
       {invoices === null ? (
         <div className="text-xs text-gray-400">Loading…</div>
       ) : (
@@ -427,15 +469,7 @@ function CompanyCosts({ companyId, memberCount, onChanged }: { companyId: string
                         className="text-gray-300 hover:text-emerald-700"
                         title={`Override the unit price for this company (empty = auto ${iskFmt(autoRate)})`}
                         disabled={busy}
-                        onClick={() => {
-                          const v = prompt(
-                            `${item.label} — unit price ISK for this company (empty = auto ${iskFmt(autoRate)}):`,
-                            state.unit_price_isk != null ? String(state.unit_price_isk) : "",
-                          );
-                          if (v === null) return;
-                          const trimmed = v.replace(/[^\d]/g, "");
-                          saveItem(item.category, { unit_price_isk: trimmed === "" ? null : parseInt(trimmed, 10) });
-                        }}
+                        onClick={() => void editUnitPrice(item.category, item.label, state.unit_price_isk, autoRate)}
                       >✎</button>
                       {" "}= {iskFmt(expected)}
                       {state.status === "auto" && outstanding > 0 ? ` · ${iskFmt(outstanding)} open` : ""}
@@ -1028,6 +1062,7 @@ function DivisionRow({ d, onContactChanged, onMilestoneChanged }: { d: CompanyRo
 // when a client account with that email exists. Roster members can
 // also be promoted via "make admin" in the employee list.
 function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
+  const toast = useToast();
   const name = c.contact_full_name || c.contact_draft_name || null;
   const email = c.contact_email || c.contact_draft_email || null;
   const phone = c.contact_phone || c.contact_draft_phone || null;
@@ -1036,7 +1071,7 @@ function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
 
   const save = async () => {
-    if (!form.name.trim() && !form.email.trim()) { alert("Need at least a name or an email."); return; }
+    if (!form.name.trim() && !form.email.trim()) { toast.show("Sláðu inn að minnsta kosti nafn eða netfang.", { tone: "bad" }); return; }
     setSaving(true);
     try {
       const update: Record<string, unknown> = {
@@ -1052,8 +1087,8 @@ function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
           .maybeSingle();
         if (client?.id) update.contact_person_id = client.id;
       }
-      const { error } = await supabase.from("companies").update(update).eq("id", c.id);
-      if (error) { alert(`Failed: ${error.message}`); return; }
+      const { data: upd, error } = await supabase.from("companies").update(update).eq("id", c.id).select("id");
+      if (error || !upd?.length) { toast.show(`Tengiliður vistaðist ekki: ${error?.message || "engin heimild"}`, { tone: "bad" }); return; }
       setEditing(false);
       onSaved();
     } finally {
@@ -1124,20 +1159,23 @@ function ContactCell({ c, onSaved }: { c: CompanyRow; onSaved: () => void }) {
 // The PayDay PDF proxy (/api/admin/invoices/[id]/pdf) requires a
 // Bearer token — a plain <a href> sends none and 403s. Fetch with the
 // session token and open the blob instead.
-async function openAuthedPdf(url: string) {
-  if (/^https?:\/\//.test(url)) { window.open(url, "_blank", "noreferrer"); return; }
+async function openAuthedPdf(url: string): Promise<string | null> {
+  if (/^https?:\/\//.test(url)) { window.open(url, "_blank", "noreferrer"); return null; }
   const { data: { session } } = await supabase.auth.getSession();
   const res = await fetch(url, {
     headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
   });
-  if (!res.ok) { alert(`PDF fetch failed (${res.status})`); return; }
+  if (!res.ok) return `Ekki tókst að sækja PDF-skjalið: ${await failText(res)}`;
   const blob = await res.blob();
   const blobUrl = URL.createObjectURL(blob);
   window.open(blobUrl, "_blank", "noreferrer");
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+  return null;
 }
 
 function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId: string; companyName: string; hasChildren: boolean }) {
+  const dialog = useDialog();
+  const toast = useToast();
   const [rows, setRows] = useState<CompanyInvoiceRow[] | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [attaching, setAttaching] = useState(false);
@@ -1184,8 +1222,10 @@ function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId
   };
 
   const removeExternal = async (id: string) => {
-    if (!confirm("Remove this attached invoice and its PDF?")) return;
-    await authedFetch(`/api/admin/companies/${companyId}/external-invoice?id=${id}`, { method: "DELETE" });
+    const ok = await dialog.confirm({ title: "Fjarlægja þennan reikning?", body: "Viðhengdum reikningi og PDF-skjali hans verður eytt.", confirmLabel: "Fjarlægja", cancelLabel: "Hætta við", tone: "danger" });
+    if (!ok) return;
+    const res = await authedFetch(`/api/admin/companies/${companyId}/external-invoice?id=${id}`, { method: "DELETE" });
+    if (!res.ok) toast.show(`Reikningurinn var ekki fjarlægður: ${await failText(res)}`, { tone: "bad" });
     setReloadKey((k) => k + 1);
   };
 
@@ -1268,7 +1308,7 @@ function CompanyInvoiceRows({ companyId, companyName, hasChildren }: { companyId
                 {r.status}
               </span>
               {r.pdf_url ? (
-                <button type="button" onClick={() => openAuthedPdf(r.pdf_url!)} className="text-[11px] text-emerald-700 hover:underline">PDF</button>
+                <button type="button" onClick={async () => { const e = await openAuthedPdf(r.pdf_url!); if (e) toast.show(e, { tone: "bad" }); }} className="text-[11px] text-emerald-700 hover:underline">PDF</button>
               ) : null}
               {r.pdf_storage_path ? (
                 <button type="button" onClick={() => removeExternal(r.id)} className="text-red-500 hover:text-red-700" title="Remove attached invoice">×</button>
@@ -1517,6 +1557,7 @@ type CompanyDocument = {
 const REQUIRED_DOC_KINDS = ["tos", "dpa", "purchase_order"] as const;
 
 function DocumentsButton({ companyId, docKinds = [], onChanged }: { companyId: string; docKinds?: string[]; onChanged?: () => void }) {
+  const dialog = useDialog();
   const [open, setOpen] = useState(false);
   const [docs, setDocs] = useState<CompanyDocument[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -1577,7 +1618,8 @@ function DocumentsButton({ companyId, docKinds = [], onChanged }: { companyId: s
   };
 
   const deleteDoc = async (docId: string) => {
-    if (!confirm("Delete this document?")) return;
+    const ok = await dialog.confirm({ title: "Eyða þessu skjali?", body: "Ekki er hægt að afturkalla þetta.", confirmLabel: "Eyða", cancelLabel: "Hætta við", tone: "danger" });
+    if (!ok) return;
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     const res = await fetch(`/api/admin/companies/${companyId}/documents/${docId}`, {
@@ -2295,6 +2337,7 @@ function GenerateInvoiceButton({ companyId, companyName }: { companyId: string; 
 }
 
 function EnsureGroupButton({ companyId }: { companyId: string }) {
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const click = async () => {
     setBusy(true);
@@ -2305,9 +2348,9 @@ function EnsureGroupButton({ companyId }: { companyId: string }) {
       headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
       body: JSON.stringify({ company_id: companyId }),
     });
-    const j = await res.json();
-    if (j.ok && j.biody_group_id) alert(`Biody group ready: id ${j.biody_group_id}`);
-    else alert(`Failed: ${j.error || JSON.stringify(j)}`);
+    const j = await res.json().catch(() => ({}));
+    if (j.ok && j.biody_group_id) toast.show(`Biody-hópur tilbúinn: auðkenni ${j.biody_group_id}`);
+    else toast.show(`Biody-hópur varð ekki til: ${adminErrorText(j.error, `villa ${res.status}`)}`, { tone: "bad" });
     setBusy(false);
   };
   return (
@@ -2318,9 +2361,11 @@ function EnsureGroupButton({ companyId }: { companyId: string }) {
 }
 
 function BulkActivateButton({ companyId }: { companyId: string }) {
+  const dialog = useDialog();
   const [busy, setBusy] = useState(false);
   const click = async () => {
-    if (!confirm("Create all employees of this company as patients in Biody? Skips anyone already created.")) return;
+    const ok = await dialog.confirm({ title: "Stofna alla starfsmenn í Biody?", body: "Allir starfsmenn fyrirtækisins verða stofnaðir sem sjúklingar í Biody. Þeim sem þegar eru til er sleppt.", confirmLabel: "Stofna", cancelLabel: "Hætta við" });
+    if (!ok) return;
     setBusy(true);
     const { data: s } = await supabase.auth.getSession();
     const t = s.session?.access_token;
@@ -2329,16 +2374,25 @@ function BulkActivateButton({ companyId }: { companyId: string }) {
       headers: { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
       body: JSON.stringify({ company_id: companyId }),
     });
-    const j = await res.json();
-    const failures = (j.results || []).filter((r: { ok: boolean }) => !r.ok);
-    const summary = `Processed ${j.processed ?? 0} · created ${j.succeeded ?? 0} · failed ${j.failed ?? 0}`;
-    if (failures.length) {
-      const detail = failures.map((r: { client_id: string; error?: string }) => `• ${r.client_id}: ${r.error}`).join("\n");
-      alert(`${summary}\n\nErrors:\n${detail}`);
-    } else {
-      alert(summary);
-    }
+    const j = await res.json().catch(() => ({}));
     setBusy(false);
+    if (!res.ok) {
+      await dialog.alert({ title: "Ekkert var stofnað í Biody", body: adminErrorText(j.error, `Villa ${res.status}`) });
+      return;
+    }
+    const failures = (j.results || []).filter((r: { ok: boolean }) => !r.ok) as Array<{ client_id: string; error?: string }>;
+    const summary = `Unnið úr ${j.processed ?? 0} · stofnaðir ${j.succeeded ?? 0} · mistókst ${j.failed ?? 0}`;
+    await dialog.alert({
+      title: failures.length ? "Biody: sumt mistókst" : "Biody: lokið",
+      body: failures.length ? (
+        <div>
+          <p>{summary}</p>
+          <ul className="mt-2 max-h-60 list-disc overflow-y-auto pl-5 font-mono text-xs">
+            {failures.map((r) => <li key={r.client_id}>{r.client_id}: {r.error}</li>)}
+          </ul>
+        </div>
+      ) : summary,
+    });
   };
   return (
     <button onClick={click} disabled={busy} className="w-full text-left text-xs font-medium px-2.5 py-1.5 rounded-md text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
@@ -2705,6 +2759,8 @@ function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, 
   onMilestoneChanged?: () => void;
 }) {
   const [members, setMembers] = useState<MemberRow[] | null>(null);
+  const dialog = useDialog();
+  const toast = useToast();
   const [milestones, setMilestones] = useState<MemberMilestones>({});
   const [err, setErr] = useState("");
   const [sortByName, setSortByName] = useState(false);
@@ -2794,7 +2850,8 @@ function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, 
   // into the contact_draft_* fields, and links contact_person_id when
   // they already have a claimed client account (matched by email).
   const makeContact = async (m: MemberRow) => {
-    if (!confirm(`Make ${m.full_name} the company admin for this company?`)) return;
+    const ok = await dialog.confirm({ title: `Gera ${m.full_name} að stjórnanda fyrirtækisins?`, body: "Viðkomandi verður tengiliður og stjórnandi fyrirtækisins.", confirmLabel: "Gera að stjórnanda", cancelLabel: "Hætta við" });
+    if (!ok) return;
     setSettingContact(m.id);
     try {
       const update: Record<string, unknown> = {
@@ -2808,8 +2865,9 @@ function EmployeeRows({ companyId, companyName, contactEmail, onContactChanged, 
         .eq("email", m.email)
         .maybeSingle();
       if (client?.id) update.contact_person_id = client.id;
-      const { error } = await supabase.from("companies").update(update).eq("id", companyId);
-      if (error) { alert(`Failed: ${error.message}`); return; }
+      const { data: upd, error } = await supabase.from("companies").update(update).eq("id", companyId).select("id");
+      if (error || !upd?.length) { toast.show(`Stjórnanda var ekki breytt: ${error?.message || "engin heimild"}`, { tone: "bad" }); return; }
+      toast.show(`${m.full_name} er nú stjórnandi fyrirtækisins.`);
       onContactChanged?.();
     } finally {
       setSettingContact(null);
@@ -3110,6 +3168,8 @@ function CommercialSettingsButton({ company, onReload }: { company: CompanyRow; 
 }
 
 export default function AdminCompaniesPage() {
+  const dialog = useDialog();
+  const toast = useToast();
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -3125,10 +3185,11 @@ export default function AdminCompaniesPage() {
     if (key) setOpenSections((prev) => ({ ...prev, [companyId]: { [key]: true } }));
   };
   const markFollowupDone = async (c: CompanyRow) => {
-    if (!confirm(`Mark the 3-month doctor follow-up as done for ${c.name}?`)) return;
+    const ok = await dialog.confirm({ title: "Merkja eftirfylgni sem lokið?", body: `Þriggja mánaða eftirfylgni læknis hjá ${c.name} verður merkt lokið.`, confirmLabel: "Merkja lokið", cancelLabel: "Hætta við" });
+    if (!ok) return;
     const now = new Date().toISOString();
-    const { error } = await supabase.from("companies").update({ followup_completed_at: now }).eq("id", c.id);
-    if (error) { alert(`Failed: ${error.message}`); return; }
+    const { data: upd, error } = await supabase.from("companies").update({ followup_completed_at: now }).eq("id", c.id).select("id");
+    if (error || !upd?.length) { toast.show(`Vistaðist ekki: ${error?.message || "engin heimild"}`, { tone: "bad" }); return; }
     setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, followup_completed_at: now } : x));
   };
   const [fin, setFin] = useState<Map<string, FinRow>>(new Map());
@@ -3206,21 +3267,22 @@ export default function AdminCompaniesPage() {
     } else {
       update.assessment_unit_price = Math.max(baseCheck - code.value, 0);
     }
-    const { error } = await supabase.from("companies").update(update).eq("id", c.id);
-    if (error) { alert(`Discount failed: ${error.message}`); return; }
+    const { data: upd, error } = await supabase.from("companies").update(update).eq("id", c.id).select("id");
+    if (error || !upd?.length) { toast.show(`Afsláttur var ekki settur á: ${error?.message || "engin heimild"}`, { tone: "bad" }); return; }
     setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, ...update } as CompanyRow : x));
   };
 
   const removeDiscount = async (c: CompanyRow) => {
-    if (!confirm(`Remove discount ${c.applied_discount_code}? All prices reset to tier/default.`)) return;
+    const ok = await dialog.confirm({ title: `Fjarlægja afsláttinn ${c.applied_discount_code}?`, body: "Öll verð fara aftur í sjálfgefið verð þrepsins.", confirmLabel: "Fjarlægja afslátt", cancelLabel: "Hætta við", tone: "danger" });
+    if (!ok) return;
     const update = {
       assessment_unit_price: null,
       followup_doctor_price: null,
       app_price_isk_monthly: 3490,
       applied_discount_code: null,
     };
-    const { error } = await supabase.from("companies").update(update).eq("id", c.id);
-    if (error) { alert(`Failed: ${error.message}`); return; }
+    const { data: upd, error } = await supabase.from("companies").update(update).eq("id", c.id).select("id");
+    if (error || !upd?.length) { toast.show(`Afsláttur var ekki fjarlægður: ${error?.message || "engin heimild"}`, { tone: "bad" }); return; }
     setCompanies((prev) => prev.map((x) => x.id === c.id ? { ...x, ...update } : x));
   };
 
@@ -3300,7 +3362,7 @@ export default function AdminCompaniesPage() {
     const res = await fetch(`/api/admin/companies/${companyId}/export`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
-    if (!res.ok) { alert("Export failed"); return; }
+    if (!res.ok) { toast.show(`Útflutningur mistókst: ${await failText(res)}`, { tone: "bad" }); return; }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
