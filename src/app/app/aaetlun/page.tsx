@@ -5,7 +5,7 @@
 //              and the controls for the plan itself (edit, print)
 //   Æfingar  — the exercise programme, arranged their way (days, swaps)
 //   Næring   — the nutrition programme with real meals and recipes
-//   Þjálfari — the coach (Hjúkrun on the care track), the thread and bookings
+//   Þjálfun — the coach or nurse, the thread and bookings
 //   Skýrslan — the health report, measurements between reports and a new
 //              report; reached from Ég (/app/eg), not from the tab bar
 //
@@ -855,7 +855,7 @@ function PlanPageInner() {
                 </div>
               )}
 
-              {/* ── Þjálfari / Hjúkrun ────────────────────────────── */}
+              {/* ── Þjálfun ─────────────────────────────────────────── */}
               {tab === "coach" && (
                 <div className="print:hidden">
                   {/* Keyed on the subpage so a link to ?sub=book opens on Bóka
