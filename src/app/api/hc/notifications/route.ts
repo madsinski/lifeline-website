@@ -216,7 +216,7 @@ export async function GET(req: NextRequest) {
     items.push({
       id: `consent:${jx.id}`, kind: "consent",
       title: "Má hjúkrunarfræðingur setja skýrsluna þína inn?",
-      body: "Veittu leyfi í skrefinu „Skýrslan þín“, eða settu skýrsluna inn sjálf. Þú ræður.",
+      body: "Veittu leyfi í skrefinu „Skýrslan þín“, eða settu skýrsluna inn í appinu. Þú ræður.",
       at: jx.staff_import_consent_requested_at,
       unread: !jx.staff_import_consent_request_seen_at,
       href: "/app?leyfi=1",

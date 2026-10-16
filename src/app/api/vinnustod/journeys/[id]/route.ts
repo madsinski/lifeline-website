@@ -258,9 +258,14 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
       url: "/app?leyfi=1",
       tag: `consent-${journey.id}`,
       sms: `Lifeline: Hjúkrunarfræðingurinn þinn biður um leyfi til að setja skýrsluna þína úr sjúklingagáttinni inn í appið. Opnaðu ${origin}/app?leyfi=1`,
+      email: {
+        subject: "Má hjúkrunarfræðingur setja skýrsluna þína inn?",
+        text: "Hjúkrunarfræðingurinn þinn hjá Lifeline biður um leyfi til að sækja skýrsluna þína úr sjúklingagáttinni og setja afrit af henni inn í appið, svo hægt sé að gera áætlunina þína. Þú getur líka sett hana inn í appinu. Þú ræður.",
+        cta: { label: "Opna appið", url: `${origin}/app?leyfi=1` },
+      },
     });
-    await hcAudit(actor.label, "staff_import_consent_requested", journey.id, { pushed: sent.pushed, texted: sent.texted });
-    return NextResponse.json({ ok: true, requested_at: now, pushed: sent.pushed, texted: sent.texted });
+    await hcAudit(actor.label, "staff_import_consent_requested", journey.id, { pushed: sent.pushed, texted: sent.texted, emailed: sent.emailed });
+    return NextResponse.json({ ok: true, requested_at: now, pushed: sent.pushed, texted: sent.texted, emailed: sent.emailed });
   }
 
   // Removed in the Medalia split: the Lifeline doctor workflow (review

@@ -18,6 +18,7 @@ import ClientThread from "@/app/components/hc/ClientThread";
 import EmptyState from "@/app/components/hc/EmptyState";
 import { hcTabs } from "@/app/components/hc/ui";
 import { useWsApi, WS_SESSION_EXPIRED } from "@/app/components/hc/ws-api";
+import { useToast } from "@/app/components/hc/Toast";
 import { Alert } from "@/app/components/account/ui";
 import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { age, cleanName, day, dayTime, isTest, wsBtn } from "../format";
@@ -68,6 +69,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
   onRead?: () => void;
 }) {
   const api = useWsApi();
+  const toast = useToast();
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState<{ text: string; retry: boolean } | null>(null);
   const isDoctor = me.role === "doctor" || me.role === "admin";
@@ -195,7 +197,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
      leave to fetch the report opens the message sheet on that template. */
   const runTask = () => {
     if (task.key === "doctor") { void record({ event: "doctor_interview_done" }).then((e) => { if (e) setTaskErr(e); }); return; }
-    if (task.key === "consent") { askConsent(); return; }
+    if (task.key === "consent") { void askConsent(); return; }
     go(target);
   };
 
@@ -204,7 +206,17 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
   const paid = d.orders.some((o) => o.paid_at);
   const code = d.orders.find((o) => o.activation_code);
   const ivLabel = j.interview_done_at ? "Eftirfylgd" : "Áætlunarsamtal";
-  const askConsent = () => { setMsgPreset("import_consent"); onNav({ sheet: "messages" }); };
+  /* Ask for leave to put the report in: the client gets it in the app (red
+     dot), as a push and by SMS, as their "Tilkynningar frá Lifeline" allow.
+     The message sheet's template stays for anything more personal. */
+  const askConsent = async () => {
+    const r = await api(`/api/vinnustod/journeys/${id}`, { method: "POST", body: JSON.stringify({ action: "request_staff_import_consent" }) }).catch(() => null);
+    const jj = r ? await r.json().catch(() => ({})) : {};
+    if (!r?.ok) { toast.show(typeof jj.error === "string" ? jj.error : "Tókst ekki að senda beiðnina.", { tone: "bad" }); return; }
+    const via = ["í appinu", jj.pushed ? "ýtitilkynning" : null, jj.texted ? "SMS" : null, jj.emailed ? "tölvupóstur" : null].filter(Boolean).join(", ");
+    toast.show(`Beiðni send: ${via}.`, { tone: "ok" });
+    await load(); onChanged();
+  };
 
   return (
     <div className="space-y-4">
@@ -346,7 +358,7 @@ export function PatientView({ id, nav, onNav, me, onBack, onChanged, onRead }: {
               <p className="text-xs text-hc-ink-2">{resultsStatus(d)}</p>
             </div>
           </div>
-          <ResultsStep d={d} api={api} reload={load} onAskConsent={askConsent} />
+          <ResultsStep d={d} api={api} reload={load} onAskConsent={() => void askConsent()} />
         </section>
       )}
 
