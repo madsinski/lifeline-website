@@ -111,7 +111,9 @@ function ClientDetailsEditor({ client, onSaved }: { client: Client; onSaved: () 
           });
           if (!res.ok) {
             const j = await res.json().catch(() => ({}));
-            throw new Error(j.error || "Email update failed");
+            throw new Error(j.error === "mfa_required" ? "Staðfestu með MFA til að breyta netfangi."
+              : j.error === "forbidden" ? "Aðeins stjórnandi getur breytt innskráningarnetfangi."
+              : j.error || "Ekki tókst að breyta netfanginu.");
           }
         }
       }

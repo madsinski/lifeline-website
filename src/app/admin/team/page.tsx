@@ -128,12 +128,6 @@ const roleOptions: StaffRole[] = ["coach", "doctor", "nurse", "psychologist", "a
 
 // ─── Fallback mock data ───────────────────────────────────────
 
-const fallbackTeam: TeamMember[] = [
-  { id: "staff-1", name: "Coach Sarah", email: "sarah@lifeline.is", phone: "+354 555 1001", role: "coach", employment_type: "salaried", active: true, permissions: defaultPermissions.coach, invited: true },
-  { id: "staff-2", name: "Dr. Gudmundur Sigurdsson", email: "gudmundur@lifeline.is", phone: "+354 555 1002", role: "doctor", employment_type: "piece_rate", active: true, permissions: defaultPermissions.doctor, invited: true },
-  { id: "staff-3", name: "Helga Jonsdottir", email: "helga@lifeline.is", phone: "+354 555 1003", role: "nurse", employment_type: "piece_rate", active: true, permissions: defaultPermissions.nurse, invited: true },
-  { id: "staff-4", name: "Dr. Anna Kristjansdottir", email: "anna.k@lifeline.is", phone: "+354 555 1004", role: "psychologist", employment_type: "piece_rate", active: true, permissions: defaultPermissions.psychologist, invited: true },
-];
 
 // ─── Connection status type ───────────────────────────────────
 
@@ -211,9 +205,9 @@ export default function TeamPage() {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.log("[Team] Supabase error loading staff:", error.message);
+        console.error("[Team] loading staff failed", error.code);
         setConnectionStatus("offline");
-        setTeam(fallbackTeam);
+        setTeam([]);
         return;
       }
 
@@ -233,44 +227,15 @@ export default function TeamPage() {
         );
         setConnectionStatus("connected");
       } else {
-        // Table exists but is empty — use fallback and seed the table
-        setTeam(fallbackTeam);
-        setConnectionStatus("connected");
-        // Seed fallback data into Supabase
-        for (const member of fallbackTeam) {
-          await supabase.from("staff").insert({
-            name: member.name,
-            email: member.email,
-            phone: member.phone,
-            role: member.role,
-            active: member.active,
-          });
-        }
-        // Reload to get proper UUIDs
-        const { data: seededData } = await supabase
-          .from("staff")
-          .select("*")
-          .order("created_at", { ascending: true });
-        if (seededData && seededData.length > 0) {
-          setTeam(
-            seededData.map((row) => ({
-              id: row.id,
-              name: row.name,
-              email: row.email,
-              phone: row.phone || "",
-              role: row.role as StaffRole,
-              employment_type: (row.employment_type as EmploymentType | null) ?? null,
-              active: row.active ?? true,
-              permissions: (row.permissions as Permission[]) || defaultPermissions[row.role as StaffRole] || [],
-              invited: row.invited ?? false,
-            }))
-          );
-        }
+        /* Nothing visible is NOT an empty team: it is usually a role that
+           cannot read staff. Never invent members (this used to seed four
+           placeholder people into the authorization table). */
+        setTeam([]);
+        setConnectionStatus("offline");
       }
     } catch {
-      console.log("[Team] Failed to connect to Supabase, using fallback data");
       setConnectionStatus("offline");
-      setTeam(fallbackTeam);
+      setTeam([]);
     }
   }, []);
 
@@ -1010,8 +975,7 @@ export default function TeamPage() {
       {/* Connection info note */}
       {connectionStatus === "offline" && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
-          <strong>Offline mode:</strong> Changes are stored locally and will not persist after page reload.
-          To enable persistence, run the SQL in <code>/supabase/staff.sql</code> in the Supabase SQL editor.
+          <strong>Ekki tókst að sækja starfsfólk.</strong> Ekkert sem breytt er hér vistast. Athugaðu að þú sért skráð inn með stjórnandaaðgang og MFA, og endurhlaðið síðuna.
         </div>
       )}
 
