@@ -16,6 +16,7 @@ import { generateText, Output } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -69,28 +70,9 @@ rationale: ONE sentence (≤ 18 words) explaining your call.
 
 Be conservative. The defaults are "moderate / any / [] / null" — only deviate from defaults when the data clearly justifies it.`;
 
-interface AdminCheckOk { ok: true; staffId: string; staffName: string | null; email: string }
-interface AdminCheckErr { ok: false; status: number; error: string }
-async function requireAdmin(req: Request): Promise<AdminCheckOk | AdminCheckErr> {
-  const auth = req.headers.get("authorization");
-  if (!auth?.startsWith("Bearer ")) return { ok: false, status: 401, error: "Not authenticated" };
-  const token = auth.slice("Bearer ".length);
-  const { data: userData } = await supabaseAdmin.auth.getUser(token);
-  if (!userData.user?.email) return { ok: false, status: 401, error: "Invalid session" };
-  const { data: staff } = await supabaseAdmin
-    .from("staff")
-    .select("id, role, name, active")
-    .eq("email", userData.user.email)
-    .maybeSingle();
-  if (!staff || !staff.active || staff.role !== "admin") {
-    return { ok: false, status: 403, error: "Admin role required" };
-  }
-  return { ok: true, staffId: staff.id, staffName: staff.name, email: userData.user.email };
-}
-
 export async function POST(req: Request) {
-  const adminCheck = await requireAdmin(req);
-  if (!adminCheck.ok) return NextResponse.json({ ok: false, error: adminCheck.error }, { status: adminCheck.status });
+  const gate = await requireStaffAAL2(req, { roles: ["admin"] });
+  if (typeof gate === "string") return gateError(gate);
 
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({
@@ -120,7 +102,8 @@ export async function POST(req: Request) {
     .select("id, label, category, details")
     .in("id", ids);
   if (loadErr || !rowsRaw) {
-    return NextResponse.json({ ok: false, error: `Load failed: ${loadErr?.message}` }, { status: 500 });
+    console.error("[program-actions/suggest-tags]", loadErr?.code);
+    return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
   }
   const rows = (rowsRaw as ActionRow[]).map((r) => ({
     ...r,

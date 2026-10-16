@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { createClient } from "@supabase/supabase-js";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 
-// Called by /admin/bookings after a refund_requests row is flipped to
-// approved or denied. Sends the client a short lifecycle email so they
-// know what happened.
+// Called by /admin/bookings to resolve a refund request in ONE server step:
+//   { requestId, decision: "approve", amount, adminNote }
+//       → admin_cancel_booking RPC (run as the caller, so its auth.uid()
+//         staff check still applies) → refund_requests row → approved
+//   { requestId, decision: "deny", adminNote } → row → denied
+// and only after that succeeded, email the client. Without `decision` it
+// just (re)sends the email for an already-resolved request.
+//
+// Gate: write-authorized staff + AAL2 (requireAdminAAL2).
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://cfnibfxzltxiriqxvvru.supabase.co";
+const ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmbmliZnh6bHR4aXJpcXh2dnJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NzQxMDgsImV4cCI6MjA5MDQ1MDEwOH0.LHBADsUdW7SBtrxZ9KikTmAl5brBGPb3gFTMuPYrmD8";
 
 export const maxDuration = 20;
 
@@ -14,13 +26,78 @@ function escapeHtml(s: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const requestId = (body?.requestId || "").trim();
   if (!requestId) return NextResponse.json({ error: "requestId_required" }, { status: 400 });
+  const decision: string | undefined = body?.decision;
+  const adminNote: string | null = typeof body?.adminNote === "string" && body.adminNote.trim() ? body.adminNote.trim().slice(0, 2000) : null;
+  let refundedIsk: number | null = null;
+
+  if (decision === "approve" || decision === "deny") {
+    const { data: pending } = await supabaseAdmin
+      .from("refund_requests")
+      .select("id, booking_id, status, reason, include_checkin_addon")
+      .eq("id", requestId)
+      .maybeSingle();
+    if (!pending) return NextResponse.json({ error: "Beiðnin fannst ekki." }, { status: 404 });
+    if (pending.status !== "pending") {
+      return NextResponse.json({ error: "Búið er að afgreiða þessa beiðni." }, { status: 409 });
+    }
+
+    if (decision === "approve") {
+      const amount = Number(body?.amount);
+      if (!Number.isFinite(amount) || amount < 0) {
+        return NextResponse.json({ error: "Ógild endurgreiðsluupphæð." }, { status: 400 });
+      }
+      if (!pending.booking_id) {
+        return NextResponse.json({ error: "Beiðnin tengist ekki bókun — afgreiddu hana handvirkt." }, { status: 400 });
+      }
+      // Run the RPC as the caller so its own auth.uid() staff check applies.
+      const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+      const asCaller = createClient(SUPABASE_URL, ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data, error } = await asCaller.rpc("admin_cancel_booking", {
+        p_booking_id: pending.booking_id,
+        p_reason: `Refund request approved: ${pending.reason ?? ""}${adminNote ? ` — ${adminNote}` : ""}`,
+        p_refund_isk: Math.round(amount),
+        p_include_checkin_addon: !!pending.include_checkin_addon,
+      });
+      const r = (Array.isArray(data) ? data[0] : data) as { ok?: boolean; error?: string; refunded_isk?: number } | null;
+      if (error || (r && r.ok === false)) {
+        console.error("[bookings/refund-request-resolved] cancel failed", error?.code ?? r?.error);
+        return NextResponse.json({ error: "Ekki tókst að afbóka og endurgreiða." }, { status: 500 });
+      }
+      refundedIsk = r?.refunded_isk ?? 0;
+    }
+
+    const { data: updated, error: updErr } = await supabaseAdmin
+      .from("refund_requests")
+      .update(
+        decision === "approve"
+          ? { status: "approved", approved_isk: Math.round(Number(body?.amount)), admin_note: adminNote, resolved_at: new Date().toISOString(), resolved_by: user.id }
+          : { status: "denied", admin_note: adminNote, resolved_at: new Date().toISOString(), resolved_by: user.id },
+      )
+      .eq("id", requestId)
+      .eq("status", "pending")
+      .select("id");
+    if (updErr || !updated?.length) {
+      console.error("[bookings/refund-request-resolved] status update failed", updErr?.code);
+      return NextResponse.json(
+        {
+          error: decision === "approve"
+            ? "Bókunin var afbókuð og endurgreidd en ekki tókst að merkja beiðnina samþykkta. Merktu hana handvirkt."
+            : "Ekki tókst að hafna beiðninni.",
+          refunded_isk: refundedIsk,
+        },
+        { status: 500 },
+      );
+    }
+  }
 
   const { data: rr } = await supabaseAdmin
     .from("refund_requests")
@@ -37,7 +114,7 @@ export async function POST(req: NextRequest) {
     .select("full_name, email")
     .eq("id", rr.client_id)
     .maybeSingle();
-  if (!client?.email) return NextResponse.json({ error: "no_client_email" }, { status: 400 });
+  if (!client?.email) return NextResponse.json({ ok: true, refunded_isk: refundedIsk, notified: false, skipped: "no_client_email" });
 
   const { data: booking } = rr.booking_id ? await supabaseAdmin
     .from("body_comp_bookings")
@@ -89,7 +166,10 @@ export async function POST(req: NextRequest) {
     : `${hello}\n\nThanks for the cancellation request for ${pkgLabel}${when ? ` on ${when}` : ""}.\n\nWe're not able to approve a refund in this case.${rr.admin_note ? `\n\nNote: ${rr.admin_note}` : ""}\n\nYour booking is still on the calendar. Reply here if we can help.\n\n— Lifeline Health`;
 
   const result = await sendEmail({ to: client.email, subject, html, text });
-  if (!result.ok) return NextResponse.json({ error: result.error || "send_failed" }, { status: 500 });
+  if (!result.ok) {
+    console.error("[bookings/refund-request-resolved] email failed");
+    return NextResponse.json({ ok: true, refunded_isk: refundedIsk, notified: false, notify_error: "Beiðnin var afgreidd en ekki tókst að senda skjólstæðingi tölvupóst." });
+  }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, refunded_isk: refundedIsk, notified: true });
 }

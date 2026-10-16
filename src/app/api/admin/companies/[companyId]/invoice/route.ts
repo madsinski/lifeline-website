@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { ensurePaydayCustomer, createPaydayInvoice, paydayPdfUrl } from "@/lib/payday";
 import { sendEmail as sendResendEmail, renderInvoiceContactEmail } from "@/lib/email";
 import { logAdminAction } from "@/lib/audit";
@@ -12,9 +12,8 @@ export async function POST(
   { params }: { params: Promise<{ companyId: string }> },
 ) {
   const { companyId } = await params;
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const overrideQuantity: number | undefined = body?.quantity;
@@ -228,7 +227,8 @@ export async function POST(
 
   if (error) {
     console.error("[invoice] DB insert failed:", error);
-    return NextResponse.json({ error: "db_insert_failed", detail: error.message }, { status: 500 });
+    console.error("[companies/[companyId]/invoice]", error?.code);
+    return NextResponse.json({ error: "db_insert_failed" }, { status: 500 });
   }
 
   // Mirror into the unified payments ledger so the company's billing panel

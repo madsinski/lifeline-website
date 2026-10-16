@@ -11,7 +11,7 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { aalFromToken } from "@/lib/auth-helpers";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 
@@ -46,6 +46,8 @@ interface RequestBody {
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: surveyId } = await ctx.params;
+  const user = await requireStaffAAL2(req, { roles: ["admin", "medical_advisor"] });
+  if (typeof user === "string") return gateError(user);
 
   let body: RequestBody = {};
   try { body = await req.json(); } catch {
@@ -61,38 +63,17 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ ok: false, error: "Note required for this action." }, { status: 400 });
   }
 
-  // Auth
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  }
-  const token = authHeader.slice("Bearer ".length);
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-  if (userErr || !userData.user?.email) {
-    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
-    .select("id, role, name, active")
-    .eq("email", userData.user.email)
+    .select("id, role, name, email")
+    .eq("id", user.id)
     .maybeSingle();
-  if (!staffRow || !staffRow.active) {
-    return NextResponse.json({ ok: false, error: "No active staff record" }, { status: 403 });
-  }
+  if (!staffRow) return gateError("forbidden");
   if (!rule.roles.includes(staffRow.role as StaffRole)) {
     return NextResponse.json({
       ok: false,
       error: `Action '${action}' requires role in [${rule.roles.join(", ")}], but you are '${staffRow.role}'.`,
     }, { status: 403 });
-  }
-  // Defence in depth: the /admin UI already requires AAL2, so a leaked
-  // AAL1 token must not be able to flip a survey to approved or archive
-  // it via direct API.
-  if (aalFromToken(token) !== "aal2") {
-    return NextResponse.json(
-      { ok: false, error: "MFA step-up required for survey status changes." },
-      { status: 403 },
-    );
   }
 
   // Verify current status
@@ -119,7 +100,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   };
   if (action === "approve") {
     patch.approved_by = staffRow.id;
-    patch.approved_by_name = staffRow.name || userData.user.email;
+    patch.approved_by_name = staffRow.name || user.email;
     patch.approved_at = new Date().toISOString();
   } else if (action === "reset_to_draft" || action === "request_changes" || action === "reopen") {
     // Clear prior approval metadata if any.
@@ -135,7 +116,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     .select()
     .single();
   if (updErr || !updated) {
-    return NextResponse.json({ ok: false, error: `Status change failed: ${updErr?.message}` }, { status: 500 });
+    console.error("[surveys/[id]/transition]", updErr?.code);
+    return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, survey: updated });

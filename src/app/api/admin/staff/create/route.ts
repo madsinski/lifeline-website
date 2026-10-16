@@ -10,6 +10,7 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireStaffAAL2, gateError, findAuthUserByEmail } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,10 @@ interface CreateBody {
 const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL || "https://www.lifelinehealth.is";
 
 export async function POST(req: Request) {
+  // Creates staff rows (incl. admins) — admin role + AAL2 only.
+  const caller = await requireStaffAAL2(req, { roles: ["admin"] });
+  if (typeof caller === "string") return gateError(caller);
+
   let body: CreateBody = {};
   try { body = await req.json(); } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
@@ -56,38 +61,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Invalid employment type" }, { status: 400 });
   }
 
-  // Verify caller is admin
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  }
-  const token = authHeader.slice("Bearer ".length);
-  const { data: callerData, error: callerErr } = await supabaseAdmin.auth.getUser(token);
-  if (callerErr || !callerData.user?.email) {
-    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
-  const { data: callerStaff } = await supabaseAdmin
-    .from("staff")
-    .select("role, active")
-    .eq("email", callerData.user.email)
-    .maybeSingle();
-  if (!callerStaff || !callerStaff.active || callerStaff.role !== "admin") {
-    return NextResponse.json({ ok: false, error: "Admin role required" }, { status: 403 });
-  }
-
   // Look up existing auth user by email — if they already exist (e.g.,
   // an existing client being upgraded to staff), reuse their id rather
   // than creating a duplicate.
   let authUserId: string | null = null;
   let authCreated = false;
   try {
-    const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const existing = list?.users?.find((u) => (u.email || "").toLowerCase() === email);
-    if (existing) {
-      authUserId = existing.id;
-    }
+    const existing = await findAuthUserByEmail(email);
+    if (existing) authUserId = existing.id;
   } catch {
-    // listUsers may paginate; if not found in first page we try invite below.
+    // Lookup failure — fall through to invite below.
   }
 
   if (!authUserId) {
@@ -176,6 +159,7 @@ export async function POST(req: Request) {
     .single();
 
   if (insErr || !staffRow) {
+    console.error("[staff/create] insert failed", insErr?.code);
     // If we created an auth user but staff insert failed, roll back BOTH
     // the auth user AND any auto-created clients row so we don't leave
     // a half-state that blocks the next attempt.
@@ -184,7 +168,7 @@ export async function POST(req: Request) {
       try { await supabaseAdmin.auth.admin.deleteUser(authUserId); } catch {}
     }
     return NextResponse.json(
-      { ok: false, error: `Could not create staff row: ${insErr?.message}` },
+      { ok: false, error: "Ekki tókst að stofna starfsmann." },
       { status: 500 },
     );
   }

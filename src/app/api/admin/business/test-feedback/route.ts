@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isAnyActiveStaff, requireAdminAAL2 } from "@/lib/auth-helpers";
+import { getUserFromRequest, isAnyActiveStaff, requireAdminAAL2, requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 import { withErrorReporting } from "@/lib/with-error-reporting";
 
 export const runtime = "nodejs";
@@ -41,10 +41,10 @@ async function staffContext(userId: string) {
 }
 
 export const POST = withErrorReporting(async (req: NextRequest) => {
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isAnyActiveStaff(user.id))) {
-    return NextResponse.json({ error: "staff_access_required" }, { status: 403 });
-  }
+  // Any active staff may submit tester notes (incl. read-only roles), but
+  // still only from an MFA-stepped-up session.
+  const user = await requireStaffAAL2(req, { anyActive: true });
+  if (typeof user === "string") return gateError(user);
   const ctx = await staffContext(user.id);
 
   const payload = (await req.json().catch(() => ({}))) as {
@@ -70,7 +70,8 @@ export const POST = withErrorReporting(async (req: NextRequest) => {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "insert_failed", detail: error.message }, { status: 500 });
+    console.error("[test-feedback] insert failed", error.code);
+    return NextResponse.json({ error: "Ekki tókst að vista athugasemdina." }, { status: 500 });
   }
   return NextResponse.json({ ok: true, feedback: row });
 }, { route: "POST /api/admin/business/test-feedback" });
@@ -97,7 +98,8 @@ export const GET = withErrorReporting(async (req: NextRequest) => {
 
   const { data, error } = await q;
   if (error) {
-    return NextResponse.json({ error: "list_failed", detail: error.message }, { status: 500 });
+    console.error("[test-feedback] list failed", error.code);
+    return NextResponse.json({ error: "Ekki tókst að sækja athugasemdir." }, { status: 500 });
   }
   return NextResponse.json({ feedback: data ?? [], isAdmin: !!ctx?.isAdmin });
 }, { route: "GET /api/admin/business/test-feedback" });
@@ -134,7 +136,8 @@ export const PATCH = withErrorReporting(async (req: NextRequest) => {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "update_failed", detail: error.message }, { status: 500 });
+    console.error("[test-feedback] update failed", error.code);
+    return NextResponse.json({ error: "Ekki tókst að uppfæra athugasemdina." }, { status: 500 });
   }
   return NextResponse.json({ ok: true, feedback: data });
 }, { route: "PATCH /api/admin/business/test-feedback" });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { gateError, requireStaffAAL2 } from "@/lib/auth-helpers";
 
 // Bulk-delete payments rows. Admin-only. The payments table is a
 // ledger mirror of real charges (PayDay / Straumur / Stripe-style
@@ -11,9 +11,9 @@ import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  // Destructive: admin or manage_team only (matches the ADMIN_ONLY nav), + AAL2.
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
   const { data: me } = await supabaseAdmin.from("staff").select("role").eq("id", user.id).maybeSingle();
   if (me?.role !== "admin") return NextResponse.json({ error: "admin_only" }, { status: 403 });
 
@@ -34,6 +34,9 @@ export async function POST(req: NextRequest) {
     q = q.in("id", ids);
   }
   const { error, count } = await q;
-  if (error) return NextResponse.json({ error: "delete_failed", detail: error.message }, { status: 500 });
+  if (error) {
+    console.error("[payments/bulk-delete]", error?.code);
+    return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, deleted: count ?? 0 });
 }

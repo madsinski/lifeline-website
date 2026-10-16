@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes, createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 
 // Generate a single-use claim token for an admin-created company and
@@ -29,9 +29,8 @@ export async function POST(
   { params }: { params: Promise<{ companyId: string }> },
 ) {
   const { companyId } = await params;
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const overrideEmail: string | undefined = (body?.email || "").trim().toLowerCase() || undefined;
@@ -70,7 +69,8 @@ export async function POST(
     })
     .eq("id", companyId);
   if (updErr) {
-    return NextResponse.json({ error: "persist_failed", detail: updErr.message }, { status: 500 });
+    console.error("[companies/[companyId]/invite-contact]", updErr?.code);
+    return NextResponse.json({ error: "persist_failed" }, { status: 500 });
   }
 
   const origin = req.headers.get("origin") || "https://www.lifelinehealth.is";

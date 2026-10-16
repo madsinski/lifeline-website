@@ -1,8 +1,8 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
 import { supabaseAdmin } from "./supabase-admin";
 
-export async function getUserFromRequest(req: NextRequest) {
+export async function getUserFromRequest(req: NextRequest | Request) {
   const auth = req.headers.get("authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "");
   if (!token) return null;
@@ -42,7 +42,7 @@ export function aalFromToken(token: string): "aal1" | "aal2" | null {
  * session token is used to call admin APIs directly. Returns the user on
  * success, or a string error code: 'unauthorized' | 'forbidden' | 'mfa_required'.
  */
-export async function requireAdminAAL2(req: NextRequest): Promise<User | "unauthorized" | "forbidden" | "mfa_required"> {
+export async function requireAdminAAL2(req: NextRequest | Request): Promise<User | "unauthorized" | "forbidden" | "mfa_required"> {
   const auth = req.headers.get("authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "");
   if (!token) return "unauthorized";
@@ -52,6 +52,63 @@ export async function requireAdminAAL2(req: NextRequest): Promise<User | "unauth
   if (!ok) return "forbidden";
   if (aalFromToken(token) !== "aal2") return "mfa_required";
   return data.user;
+}
+
+export type StaffGateError = "unauthorized" | "forbidden" | "mfa_required";
+
+/**
+ * Role/permission-scoped AAL2 gate for admin mutation endpoints that a
+ * non-admin staff role legitimately owns (e.g. medical_advisor editing
+ * surveys, lawyer drafting legal docs, staff accepting their own contract).
+ *
+ * Staff is looked up by auth user id (never by email). Requires an active
+ * staff row and an AAL2 token. Authorization:
+ *   - no opts                → write-authorized staff (same as isStaff():
+ *                              excludes medical_advisor / lawyer)
+ *   - roles                  → staff.role must be in the list
+ *   - permission             → role 'admin' or staff.permissions contains it
+ *   - roles + permission     → either one suffices
+ *   - anyActive: true        → any active staff (incl. read-only roles),
+ *                              for self-service writes on one's own row
+ *   - mfaExemptRoles         → roles that skip the AAL2 check. ONLY for
+ *                              'lawyer' on /admin/legal/* sign-off, mirroring
+ *                              the documented MFA exemption in
+ *                              src/app/admin/layout.tsx (external counsel,
+ *                              zero patient data). Don't widen casually.
+ */
+export async function requireStaffAAL2(
+  req: NextRequest | Request,
+  opts: { roles?: string[]; permission?: string; anyActive?: boolean; mfaExemptRoles?: string[] } = {},
+): Promise<User | StaffGateError> {
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.replace(/^Bearer\s+/i, "");
+  if (!token) return "unauthorized";
+  const { data } = await supabaseAdmin.auth.getUser(token);
+  if (!data.user) return "unauthorized";
+  const { data: staff } = await supabaseAdmin
+    .from("staff")
+    .select("active, role, permissions")
+    .eq("id", data.user.id)
+    .maybeSingle();
+  if (!staff || staff.active !== true) return "forbidden";
+  const role = String(staff.role || "");
+  const perms: string[] = Array.isArray(staff.permissions) ? staff.permissions : [];
+  let allowed: boolean;
+  if (opts.anyActive) allowed = true;
+  else if (opts.roles || opts.permission) {
+    allowed =
+      (!!opts.roles && opts.roles.includes(role)) ||
+      (!!opts.permission && (role === "admin" || perms.includes(opts.permission)));
+  } else allowed = role !== "medical_advisor" && role !== "lawyer";
+  if (!allowed) return "forbidden";
+  if (opts.mfaExemptRoles?.includes(role)) return data.user;
+  if (aalFromToken(token) !== "aal2") return "mfa_required";
+  return data.user;
+}
+
+/** Standard JSON response for a gate error string (401 / 403). */
+export function gateError(err: StaffGateError): NextResponse {
+  return NextResponse.json({ error: err }, { status: err === "unauthorized" ? 401 : 403 });
 }
 
 /**

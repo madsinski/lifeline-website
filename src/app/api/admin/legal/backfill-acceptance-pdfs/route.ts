@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { renderAcceptancePdf } from "@/lib/pdf-acceptance-renderer";
 import {
   TOS_KEY, TOS_VERSION, renderTermsOfService,
@@ -33,9 +33,8 @@ function resolveDoc(key: string, version: string): DocMeta | null {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   // Pull every row that's missing its PDF. In practice there won't be
   // thousands of these; cap at 500 to keep the request sane.
@@ -45,7 +44,10 @@ export async function POST(req: NextRequest) {
     .is("pdf_storage_path", null)
     .order("accepted_at", { ascending: true })
     .limit(500);
-  if (selErr) return NextResponse.json({ error: "query_failed", detail: selErr.message }, { status: 500 });
+  if (selErr) {
+    console.error("[legal/backfill-acceptance-pdfs]", selErr?.code);
+    return NextResponse.json({ error: "query_failed" }, { status: 500 });
+  }
 
   type Result = { id: string; status: "regenerated" | "skipped_version_not_found" | "skipped_text_hash_mismatch" | "failed"; error?: string };
   const results: Result[] = [];
@@ -99,7 +101,8 @@ export async function POST(req: NextRequest) {
         .upload(storagePath, pdfBytes, { contentType: "application/pdf", upsert: true });
       if (upErr) {
         console.error("[backfill] storage upload failed", r.id, upErr);
-        results.push({ id: r.id, status: "failed", error: `upload: ${upErr.message}` });
+        console.error("[legal/backfill-acceptance-pdfs]", upErr.name);
+        results.push({ id: r.id, status: "failed", error: "upload_failed" });
         continue;
       }
 
@@ -109,7 +112,8 @@ export async function POST(req: NextRequest) {
         .eq("id", r.id);
       if (updErr) {
         console.error("[backfill] row update failed", r.id, updErr);
-        results.push({ id: r.id, status: "failed", error: `update: ${updErr.message}` });
+        console.error("[legal/backfill-acceptance-pdfs]", updErr.code);
+        results.push({ id: r.id, status: "failed", error: "update_failed" });
         continue;
       }
       results.push({ id: r.id, status: "regenerated" });

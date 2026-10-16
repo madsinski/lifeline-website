@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff, findAuthUserByEmail } from "@/lib/auth-helpers";
+import { findAuthUserByEmail, requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 import { sendEmail, renderBrandedEmail } from "@/lib/email";
 import { logAdminAction } from "@/lib/audit";
 
@@ -187,9 +187,8 @@ async function inviteOne(origin: string, row: Invitee): Promise<ResultRow> {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const invitees: Invitee[] = Array.isArray(body?.invitees) ? body.invitees : [];

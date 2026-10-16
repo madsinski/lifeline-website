@@ -13,6 +13,7 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 
@@ -45,29 +46,20 @@ interface FeedbackQuestionRow {
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: sourceId } = await ctx.params;
+  const user = await requireStaffAAL2(req, { roles: ["admin"] });
+  if (typeof user === "string") return gateError(user);
 
   let body: RequestBody = {};
   try { body = await req.json(); } catch {
     // empty body is fine — we'll use defaults
   }
 
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
-  }
-  const token = authHeader.slice("Bearer ".length);
-  const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
-  if (userErr || !userData.user?.email) {
-    return NextResponse.json({ ok: false, error: "Invalid session" }, { status: 401 });
-  }
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
-    .select("id, role, name, active")
-    .eq("email", userData.user.email)
+    .select("id, role, name, email")
+    .eq("id", user.id)
     .maybeSingle();
-  if (!staffRow || !staffRow.active || staffRow.role !== "admin") {
-    return NextResponse.json({ ok: false, error: "Admin role required" }, { status: 403 });
-  }
+  if (!staffRow) return gateError("forbidden");
 
   // Load source survey
   const { data: source } = await supabaseAdmin
@@ -130,12 +122,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       estimated_minutes: source.estimated_minutes,
       status: "draft",
       created_by: staffRow.id,
-      created_by_name: staffRow.name || userData.user.email,
+      created_by_name: staffRow.name || user.email,
     })
     .select()
     .single();
   if (insErr || !cloned) {
-    return NextResponse.json({ ok: false, error: `Clone failed: ${insErr?.message}` }, { status: 500 });
+    console.error("[surveys/[id]/clone]", insErr?.code);
+    return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
   }
 
   // Copy questions unless explicitly disabled.
@@ -174,7 +167,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         try {
           await supabaseAdmin.from("feedback_surveys").delete().eq("id", cloned.id);
         } catch {}
-        return NextResponse.json({ ok: false, error: `Question copy failed: ${qInsErr.message}` }, { status: 500 });
+        console.error("[surveys/[id]/clone]", qInsErr?.code);
+        return NextResponse.json({ ok: false, error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
       }
     }
   }

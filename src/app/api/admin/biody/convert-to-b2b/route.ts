@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { getUserFromRequest, isStaff, requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 
 // Deferred: convert admin-created Biody placeholder clients into the
 // full B2B onboarding flow so they complete the Icelandic consent +
@@ -30,11 +30,16 @@ export async function GET(req: NextRequest) {
     .eq("biody_placeholder_data", true)
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("[biody/convert-to-b2b]", error?.code);
+    return NextResponse.json({ error: "Aðgerð mistókst. Reyndu aftur." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, pending: data || [] });
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const gate = await requireAdminAAL2(req);
+  if (typeof gate === "string") return gateError(gate);
   // Placeholder — the actual conversion flow (creates company_members
   // rows with encrypted kennitala + sends B2B onboarding invites) will
   // be added when the team is ready to collect the real data from the

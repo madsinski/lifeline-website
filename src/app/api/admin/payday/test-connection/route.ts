@@ -19,7 +19,7 @@
 //   error         — short string on failure (no body dump)
 
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs";
 
@@ -45,10 +45,8 @@ function previewClientId(id?: string): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
-  }
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const base = {
     baseUrl: BASE_URL,

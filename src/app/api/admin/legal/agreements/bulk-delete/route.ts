@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest } from "@/lib/auth-helpers";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 
 // Bulk-delete commercial B2B agreements. Also removes any per-
 // agreement purchase orders + storage blob. Admin-only.
@@ -12,10 +12,8 @@ import { getUserFromRequest } from "@/lib/auth-helpers";
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const { data: me } = await supabaseAdmin.from("staff").select("role, active").eq("id", user.id).maybeSingle();
-  if (!me?.active || me.role !== "admin") return NextResponse.json({ error: "admin_only" }, { status: 403 });
+  const user = await requireStaffAAL2(req, { roles: ["admin"] });
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const ids: string[] = Array.isArray(body?.ids) ? body.ids.filter((x: unknown) => typeof x === "string") : [];
@@ -43,7 +41,10 @@ export async function POST(req: NextRequest) {
     .from("b2b_agreements")
     .delete({ count: "exact" })
     .in("id", targetIds);
-  if (error) return NextResponse.json({ error: "delete_failed", detail: error.message }, { status: 500 });
+  if (error) {
+    console.error("[legal/agreements/bulk-delete]", error?.code);
+    return NextResponse.json({ error: "delete_failed" }, { status: 500 });
+  }
 
   // Storage cleanup best-effort. Bucket name "b2b-signed-documents"
   // per the existing download path in /admin/legal.

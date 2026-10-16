@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { gateError, requireStaffAAL2 } from "@/lib/auth-helpers";
 
 export const maxDuration = 60;
 
@@ -9,11 +9,9 @@ export async function DELETE(
   { params }: { params: Promise<{ companyId: string }> },
 ) {
   const { companyId } = await params;
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!(await isStaff(user.id))) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  // Destructive: admin or manage_team only (matches the ADMIN_ONLY nav), + AAL2.
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
+  if (typeof user === "string") return gateError(user);
 
   const url = new URL(req.url);
   const deleteEmployees = url.searchParams.get("delete_employees") === "true";

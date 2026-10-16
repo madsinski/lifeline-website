@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest } from "@/lib/auth-helpers";
+import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 import { renderAcceptancePdf } from "@/lib/pdf-acceptance-renderer";
 import { sendEmail } from "@/lib/email";
 import { STAFF_DOC_REGISTRY } from "@/lib/staff-terms-content";
@@ -21,8 +21,10 @@ type Body = {
 };
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // Self-service: any active staff signs their own onboarding docs, from an
+  // MFA-stepped-up session (the /admin/onboard gate runs after the MFA gate).
+  const user = await requireStaffAAL2(req, { anyActive: true });
+  if (typeof user === "string") return gateError(user);
 
   const { data: staffRow } = await supabaseAdmin
     .from("staff")
@@ -79,7 +81,8 @@ export async function POST(req: NextRequest) {
     .select("id, accepted_at")
     .single();
   if (insErr || !inserted) {
-    return NextResponse.json({ error: "insert_failed", detail: insErr?.message }, { status: 500 });
+    console.error("[staff/me/accept]", insErr?.code);
+    return NextResponse.json({ error: "insert_failed" }, { status: 500 });
   }
 
   // PDF certificate

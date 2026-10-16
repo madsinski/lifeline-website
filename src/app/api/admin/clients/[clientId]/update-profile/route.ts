@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getUserFromRequest, isStaff } from "@/lib/auth-helpers";
+import { requireAdminAAL2, gateError } from "@/lib/auth-helpers";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> },
 ) {
   const { clientId } = await params;
-  const user = await getUserFromRequest(req);
-  if (!user || !(await isStaff(user.id))) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
+  const user = await requireAdminAAL2(req);
+  if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));
   const { full_name, email, phone, address, date_of_birth, sex } = body;
@@ -39,7 +37,10 @@ export async function POST(
 
   if (Object.keys(clientUpdate).length > 0) {
     const { error } = await supabaseAdmin.from("clients_decrypted").update(clientUpdate).eq("id", clientId);
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error) {
+      console.error("[clients/[clientId]/update-profile]", error?.code);
+      return NextResponse.json({ error: "Aðgerð mistókst. Reyndu aftur." }, { status: 400 });
+    }
   }
 
   // 2. Update auth email if changed
