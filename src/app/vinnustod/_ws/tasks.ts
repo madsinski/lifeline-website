@@ -99,7 +99,7 @@ export function nextTask(r: Row | Journey, isDoctor: boolean): Task {
   if (isDoctor && r.doctor_review_requested_at && !r.doctor_reviewed_at)
     return { key: "review", label: "Beiðni um mat læknis", cta: "Meta", tone: "urgent", doctorOnly: true };
   if (isDoctor && "open_referrals" in r && (r.open_referrals ?? 0) > 0)
-    return { key: "referral", label: `${r.open_referrals} ${r.open_referrals === 1 ? "tilvísun bíður" : "tilvísanir bíða"} læknis`, cta: "Afgreiða", tone: "urgent", doctorOnly: true };
+    return { key: "referral", label: `${r.open_referrals} ${r.open_referrals === 1 ? "mál bíður" : "mál bíða"} læknis`, cta: "Afgreiða", tone: "urgent", doctorOnly: true };
   // An imported report waits for a doctor, whatever else is going on.
   if (isDoctor && r.report_imported_at && !r.report_generated_at)
     return { key: "report", label: "Innflutt skýrsla bíður staðfestingar", cta: "Staðfesta", tone: "urgent", doctorOnly: true };

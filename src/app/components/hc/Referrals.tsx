@@ -12,10 +12,10 @@
 // gets a text, because a referral sitting unseen in a web page is the exact
 // failure this is for.
 
-import { useState } from "react";
-import { Check, Loader2, Plus, Send, Stethoscope, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Loader2, Mail, Plus, RotateCw, Send, Stethoscope, X } from "lucide-react";
 import {
-  COMMON_REASONS, REFERRAL_TARGETS, STATUS_IS, TARGET_IS, isInHouse,
+  COMMON_REASONS, REFERRAL_TARGETS, STATUS_IS, TARGET_IS, isInHouse, isPartner, partnerStatus,
   type Referral, type ReferralTarget,
 } from "@/lib/hc/referrals";
 import { hcBtn, hcInput } from "./ui";
@@ -29,7 +29,10 @@ export interface ReferralSuggestion {
   why?: string | null;
 }
 
-interface Staged { target: ReferralTarget; reason: string; from: "ai" | "nurse" }
+interface Staged { target: ReferralTarget; reason: string; from: "ai" | "nurse"; partnerId?: string }
+
+/** A Vera heilsusetur partner, as the workstation sees it (no email). */
+interface PartnerLite { id: string; name: string; profession: string; organization: string }
 
 export default function Referrals({ api, journeyId, referrals, suggestions, isDoctor, onChanged }: {
   api: Api;
@@ -46,6 +49,19 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [over, setOver] = useState(false);
+  /* Vera partners: who can be contacted, and the nurse's confirmation that
+     the client agreed to their name, kennitala and contact details going out. */
+  const [partners, setPartners] = useState<PartnerLite[] | null>(null);
+  const [consent, setConsent] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void api("/api/vinnustod/partners").then((r) => r.ok ? r.json() : null).catch(() => null)
+      .then((j) => { if (live) setPartners(j?.partners ?? []); });
+    return () => { live = false; };
+  }, [api]);
+  const partnerName = (id: string | null | undefined) => partners?.find((p) => p.id === id)?.name ?? null;
+  const stagedPartner = staged.filter((x) => isPartner(x.target));
+  const needsPick = stagedPartner.some((x) => !x.partnerId);
 
   const add = (target: ReferralTarget, reason: string, from: "ai" | "nurse" = "nurse") => {
     setMsg(null);
@@ -74,7 +90,10 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
     const r = await api(`/api/vinnustod/journeys/${journeyId}/referrals`, {
       method: "POST",
       // A doctor adding a referral has made the decision already.
-      body: JSON.stringify({ items: staged.map((x) => ({ target: x.target, reason: x.reason, note: note || null, suggested_by: x.from })), decided: isDoctor }),
+      body: JSON.stringify({
+        items: staged.map((x) => ({ target: x.target, reason: x.reason, note: note || null, suggested_by: x.from, partner_id: x.partnerId ?? null })),
+        decided: isDoctor, consent: stagedPartner.length ? consent : undefined,
+      }),
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
@@ -84,7 +103,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
       setMsg({ ok: false, text: said || "Tókst ekki að skrá tilvísun. Reyndu aftur." });
       return;
     }
-    setStaged([]); setNote("");
+    setStaged([]); setNote(""); setConsent(false);
     setMsg({ ok: true, text: j.note ?? (j.notified ? "Skráð og skeyti sent til læknis." : "Skráð.") });
     onChanged();
   };
@@ -101,14 +120,51 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
     onChanged();
   };
 
-  const open = referrals.filter((x) => x.status === "requested");
-  const closed = referrals.filter((x) => x.status !== "requested");
+  /* Partner contacts: one action each (resend / contact made), any staff. */
+  const partnerAct = async (id: string, action: "resend" | "contacted") => {
+    if (busy) return;
+    setBusy(true); setMsg(null);
+    const r = await api(`/api/vinnustod/journeys/${journeyId}/referrals`, { method: "PATCH", body: JSON.stringify({ id, action }) }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (!r?.ok) { setMsg({ ok: false, text: typeof j.error === "string" && /[áéíóúýþæöð]/i.test(j.error) ? j.error : "Tókst ekki. Reyndu aftur." }); return; }
+    setMsg({ ok: true, text: action === "resend" ? "Sent aftur." : "Skráð: samband komið á." });
+    onChanged();
+  };
+
+  const partnerOpen = referrals.filter((x) => isPartner(x.target) && (x.status === "sent" || x.status === "failed"));
+  const open = referrals.filter((x) => x.status === "requested" && !isPartner(x.target));
+  const closed = referrals.filter((x) => x.status !== "requested" && !(isPartner(x.target) && (x.status === "sent" || x.status === "failed")));
   const fresh = (suggestions ?? []).filter(
     (s) => !referrals.some((r) => r.target === s.target && r.reason === s.reason) &&
            !staged.some((x) => x.target === s.target && x.reason === s.reason));
 
   return (
     <div className="space-y-3">
+      {/* Partner contacts in flight */}
+      {partnerOpen.length > 0 && (
+        <ul className="space-y-1.5">
+          {partnerOpen.map((r) => (
+            <li key={r.id} className={`rounded-hc-element p-2.5 ring-1 ${r.status === "failed" ? "bg-hc-bad-surface ring-hc-bad-ink/30" : "bg-hc-ok-surface ring-hc-ok-ink/30"}`}>
+              <p className={`flex items-center gap-1.5 text-sm font-semibold ${r.status === "failed" ? "text-hc-bad-ink" : "text-hc-ok-ink"}`}>
+                <Mail className="h-4 w-4 shrink-0" aria-hidden /> {partnerStatus(r, partnerName(r.partner_id))}
+              </p>
+              <p className="mt-0.5 text-xs text-hc-ink-2">{TARGET_IS[r.target].label} · {r.reason}{r.sent_at ? ` · ${new Date(r.sent_at).toISOString().slice(0, 10)}` : ""}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {r.status === "sent" && (
+                  <button type="button" disabled={busy} onClick={() => void partnerAct(r.id, "contacted")} className={hcBtn.primary}>
+                    <Check className="h-4 w-4" aria-hidden /> Samband komið á
+                  </button>
+                )}
+                <button type="button" disabled={busy} onClick={() => void partnerAct(r.id, "resend")} className={hcBtn.secondary}>
+                  <RotateCw className="h-4 w-4" aria-hidden /> Senda aftur
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* What is already on the doctor's desk */}
       {open.length > 0 && (
         <ul className="space-y-1.5">
@@ -156,7 +212,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         onDrop={onDrop}
         className={`rounded-hc-element border-2 border-dashed p-3 transition ${over ? "border-hc-brand-dark bg-hc-ok-surface" : "border-hc-control bg-hc-sunken"}`}
       >
-        <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Tilvísun</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Læknismat, ráðleggingar og samstarfsaðilar</p>
         {staged.length === 0 ? (
           <p className="mt-1 text-xs leading-snug text-hc-ink-2">
             Dragðu tillögu eða ástæðu hingað — eða veldu úr listanum fyrir neðan.
@@ -169,6 +225,21 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-hc-ink">{TARGET_IS[x.target].label}</span>
                   <span className="block text-xs text-hc-ink-2">{x.reason}</span>
+                  {isPartner(x.target) && (() => {
+                    const mine = (partners ?? []).filter((p) => p.profession === x.target);
+                    return mine.length ? (
+                      <select value={x.partnerId ?? ""} aria-label="Meðferðaraðili hjá Vera"
+                        onChange={(e) => setStaged(staged.map((y, k) => k === i ? { ...y, partnerId: e.target.value || undefined } : y))}
+                        className={`mt-1.5 ${hcInput}`}>
+                        <option value="">Veldu meðferðaraðila…</option>
+                        {mine.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.organization}</option>)}
+                      </select>
+                    ) : (
+                      <span className="mt-1 block text-xs font-semibold text-hc-bad-ink">
+                        {partners === null ? "Sæki samstarfsaðila…" : "Enginn skráður hjá Vera. Stjórnandi skráir undir Heilsuferð → Samstarfsaðilar."}
+                      </span>
+                    );
+                  })()}
                 </span>
                 <button type="button" aria-label="Fjarlægja" onClick={() => setStaged(staged.filter((_, k) => k !== i))}
                   className="-m-2 grid h-11 w-11 shrink-0 place-items-center rounded-hc-element text-hc-ink-3 hover:bg-hc-sunken-2 hover:text-hc-ink-2">
@@ -181,13 +252,25 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         {staged.length > 0 && (
           <>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
-              aria-label="Athugasemd til læknisins"
-              placeholder="Til læknisins — fer ekki til skjólstæðings"
+              aria-label="Innri athugasemd"
+              placeholder="Innri athugasemd — fer hvorki til skjólstæðings né meðferðaraðila"
               className={`mt-2 ${hcInput}`} />
-            <button type="button" disabled={busy} onClick={() => void send()}
+            {stagedPartner.length > 0 && (
+              <div className="mt-2 space-y-1.5 rounded-hc-element bg-hc-surface p-2.5 ring-1 ring-hc-hairline">
+                <p className="text-xs text-hc-ink-2">
+                  Meðferðaraðilinn fær aðeins nafn, kennitölu og samskiptaupplýsingar í tölvupósti. Ástæðan og athugasemdin fara ekki með. Skjólstæðingurinn fær afrit.
+                </p>
+                <label className="flex min-h-11 items-start gap-2 text-sm font-semibold text-hc-ink">
+                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[#047857]" />
+                  Skjólstæðingur hefur samþykkt að nafn, kennitala og samskiptaupplýsingar séu sendar meðferðaraðilanum
+                </label>
+              </div>
+            )}
+            <button type="button" disabled={busy || needsPick || (stagedPartner.length > 0 && !consent)} onClick={() => void send()}
               className={`${hcBtn.primary} mt-2 w-full`}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
-              {isDoctor ? "Skrá tilvísun" : "Senda til læknis"}
+              {stagedPartner.length === staged.length ? "Senda á samstarfsaðila"
+                : isDoctor ? "Skrá" : "Senda til læknis"}
             </button>
           </>
         )}
@@ -260,7 +343,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
             <li key={r.id} className="flex items-baseline gap-2 text-xs text-hc-ink-2">
               <span className="font-semibold text-hc-ink-2">{TARGET_IS[r.target].label}</span>
               <span className="min-w-0 flex-1 truncate">{r.reason}</span>
-              <span className="shrink-0">{STATUS_IS[r.status]}</span>
+              <span className="shrink-0">{isPartner(r.target) ? partnerStatus(r, partnerName(r.partner_id)) : STATUS_IS[r.status]}</span>
             </li>
           ))}
         </ul>

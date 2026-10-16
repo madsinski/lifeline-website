@@ -40,7 +40,7 @@ export function PatientSheet({ sheet, d, api, isDoctor, record, reload, onClose,
       );
     case "referral":
       return (
-        <Sheet title="Læknir og tilvísanir" onClose={onClose} max="max-w-2xl">
+        <Sheet title="Læknismat og samstarfsaðilar" onClose={onClose} max="max-w-2xl">
           {body(
             <div className="space-y-4">
               <DoctorReview d={d} isDoctor={isDoctor} record={record} />

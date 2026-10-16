@@ -12,6 +12,7 @@ import { useStaffGuard } from "@/lib/useStaffGuard";
 import AdminTabs from "../components/AdminTabs";
 import DiscountsTab from "./DiscountsTab";
 import CodesTab from "./CodesTab";
+import PartnersTab from "./PartnersTab";
 import { adminJson } from "../hc-api";
 import { useNow } from "@/app/components/account/ui/useNow";
 import { STAGE_LABELS } from "@/lib/hc/stages";
@@ -45,6 +46,7 @@ const TABS = [
   { key: "workers", label: "Vinnustöð" },
   { key: "discounts", label: "Afslættir" },
   { key: "codes", label: "Virkjunarkóðar" },
+  { key: "partners", label: "Samstarfsaðilar" },
 ];
 const FUNNEL = ["account", "profile", "welcome", "package", "protocol", "tests", "report", "interview", "plan", "action", "completed"];
 
@@ -96,6 +98,7 @@ export default function HeilsuferdAdmin() {
             {tab === "workers" && <WorkersTab locations={data.locations} />}
             {tab === "discounts" && <DiscountsTab />}
             {tab === "codes" && <CodesTab />}
+            {tab === "partners" && <PartnersTab />}
           </>
         )}
       </div>
