@@ -146,6 +146,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!rows.length) return NextResponse.json({ error: "Engin gild færsla." }, { status: 400 });
   const partnerRows = rows.filter((x: { target: string }) => isPartner(x.target));
   if (partnerRows.length) {
+    /* Each partner row is a kennitala decrypt and two emails: bounded. */
+    if (partnerRows.length > 3) return NextResponse.json({ error: "Í mesta lagi þrír samstarfsaðilar í einu." }, { status: 400 });
     if (body.consent !== true) {
       return NextResponse.json({ error: "Staðfestu að skjólstæðingurinn hafi samþykkt að upplýsingarnar séu sendar." }, { status: 400 });
     }
@@ -229,7 +231,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (body.action === "resend" || body.action === "contacted") {
     const refId = str(body.id, 64);
     const { data: ref } = refId
-      ? await supabaseAdmin.from("hc_referrals").select("id, client_id, target, partner_id, status").eq("id", refId).eq("journey_id", id).maybeSingle()
+      ? await supabaseAdmin.from("hc_referrals").select("id, client_id, target, partner_id, status, consent_at, sent_at").eq("id", refId).eq("journey_id", id).maybeSingle()
       : { data: null };
     if (!ref || !isPartner(ref.target)) return NextResponse.json({ error: "not_found" }, { status: 404 });
     if (body.action === "contacted") {
@@ -237,6 +239,16 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       await hcAudit(actor.label, "partner_contact_done", id, { referral: ref.id });
     } else {
       if (!ref.partner_id) return NextResponse.json({ error: "Enginn meðferðaraðili skráður." }, { status: 400 });
+      /* Never without a recorded consent, and not as a way to spam a partner:
+         at most once per two minutes and three times a day per contact. */
+      if (!ref.consent_at) return NextResponse.json({ error: "Ekkert samþykki skráð fyrir þessari sendingu." }, { status: 400 });
+      if (ref.sent_at && Date.now() - Date.parse(ref.sent_at) < 120_000) {
+        return NextResponse.json({ error: "Nýbúið að senda. Bíddu í tvær mínútur." }, { status: 429 });
+      }
+      const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
+      const { count: resends } = await supabaseAdmin.from("hc_audit").select("id", { count: "exact", head: true })
+        .eq("action", "partner_contact_resent").eq("journey_id", id).gte("created_at", dayAgo).contains("detail", { referral: ref.id });
+      if ((resends ?? 0) >= 3) return NextResponse.json({ error: "Of oft sent í dag. Hafðu samband við meðferðaraðilann beint." }, { status: 429 });
       const ok = await sendToPartner(req, actor.label, ref, ref.partner_id);
       await hcAudit(actor.label, "partner_contact_resent", id, { referral: ref.id, ok });
       if (!ok) return NextResponse.json({ error: "Tölvupósturinn fór ekki. Athugaðu netfang meðferðaraðilans." }, { status: 502 });

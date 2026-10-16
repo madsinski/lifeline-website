@@ -36,8 +36,8 @@ create index if not exists hc_partners_profession_idx on public.hc_partners (pro
 alter table public.hc_partners enable row level security;
 drop policy if exists "hc_partners no client access" on public.hc_partners;
 create policy "hc_partners no client access" on public.hc_partners for all using (false) with check (false);
+-- No direct staff read: the API is the only path (emails stay server-side).
 drop policy if exists "hc_partners staff read" on public.hc_partners;
-create policy "hc_partners staff read" on public.hc_partners for select using (public.is_active_staff());
 
 alter table public.hc_referrals add column if not exists partner_id   uuid references public.hc_partners(id) on delete set null;
 alter table public.hc_referrals add column if not exists consent_at   timestamptz;

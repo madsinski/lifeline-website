@@ -16,7 +16,7 @@ const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.
 
 function fields(b: Record<string, unknown>, partial: boolean) {
   const out: Record<string, unknown> = {};
-  const name = str(b.name, 120), email = str(b.email, 200)?.toLowerCase() ?? null;
+  const name = str(b.name, 120), email = str(b.email, 200)?.replace(/[\r\n]/g, "").toLowerCase() ?? null;
   const profession = typeof b.profession === "string" && (PARTNER_TARGETS as readonly string[]).includes(b.profession) ? b.profession : null;
   if (name || !partial) out.name = name;
   if (email || !partial) out.email = email;
