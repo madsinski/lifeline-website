@@ -30,6 +30,7 @@ import {
 } from "@/lib/hc/onboarding-modules";
 import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 import { X } from "lucide-react";
+import { usePromptForm } from "@/app/admin/components/PromptForm";
 
 interface Flow {
   slug: string; name: string; audience: "all" | "check" | "coach";
@@ -50,6 +51,7 @@ const newId = (kind: string) => `${kind}-${Date.now().toString(36)}-${seq++}`;
 
 export default function OnboardingAdminPage() {
   const { authorized, loading: guardLoading } = useStaffGuard();
+  const [promptNode, askPrompt] = usePromptForm();
   const [flows, setFlows] = useState<Flow[]>([]);
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [funnel, setFunnel] = useState<Record<string, Funnel>>({});
@@ -118,8 +120,13 @@ export default function OnboardingAdminPage() {
     await load();
   };
 
-  const createFlow = () => {
-    const name = window.prompt("Heiti á ferli?");
+  const createFlow = async () => {
+    const v = await askPrompt({
+      title: "Nýtt ferli",
+      fields: [{ name: "name", label: "Heiti á ferli" }],
+      submitLabel: "Búa til",
+    });
+    const name = (v?.name as string | undefined)?.trim();
     if (!name) return;
     const s = name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
       .replace(/ð/g, "d").replace(/þ/g, "th").replace(/æ/g, "ae").replace(/ö/g, "o")
@@ -139,6 +146,7 @@ export default function OnboardingAdminPage() {
 
   return (
     <div className="min-h-screen bg-[#ECF0F3]">
+      {promptNode}
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">

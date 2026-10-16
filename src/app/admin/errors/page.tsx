@@ -11,6 +11,7 @@ import { fmtDateTime } from "@/app/components/account/ui/dates";
 import { useToast } from "@/app/components/hc/Toast";
 import { useDialog } from "@/app/components/account/ui";
 import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { usePromptForm } from "@/app/admin/components/PromptForm";
 
 interface AppError {
   id: string;
@@ -106,6 +107,7 @@ function windowToCutoff(w: Window): Date | null {
 
 export default function ErrorsPage() {
   const dialog = useDialog();
+  const [promptNode, askPrompt] = usePromptForm();
   const toast = useToast();
   const guard = useStaffGuard({ role: "admin" });
   const [rows, setRows] = useState<AppError[]>([]);
@@ -379,9 +381,14 @@ export default function ErrorsPage() {
     if (targets.length === 0) return;
     // Shared note is required even for bulk — the history trigger
     // captures it per row so the audit trail stays defensible.
-    const note = prompt(`Mark ${targets.length} open group${targets.length === 1 ? "" : "s"} as resolved.\n\nShared resolution note (required — pasted into every row's resolution_note for MDR audit):`);
-    if (note === null) return;
-    if (!note.trim()) { toast.show("Resolution note is required.", { tone: "bad" }); return; }
+    const v = await askPrompt({
+      title: `Merkja ${targets.length} ${targets.length === 1 ? "opinn hóp" : "opna hópa"} leysta`,
+      description: "Sameiginleg skýring fer í resolution_note á hverri línu vegna MDR-rekjanleika.",
+      fields: [{ name: "note", label: "Skýring á lausn", hint: "Skylda." }],
+      submitLabel: "Merkja leyst",
+    });
+    if (!v) return;
+    const note = String(v.note);
     setBulkBusy(true);
     try {
       const resolverName = await resolverDisplayName();
@@ -471,6 +478,7 @@ export default function ErrorsPage() {
 
   return (
     <div className="space-y-5">
+      {promptNode}
       <div>
         <h1 className="text-2xl font-bold text-hc-ink">Error logs</h1>
         <p className="text-sm text-gray-500 mt-1 max-w-3xl">

@@ -7,6 +7,7 @@ import { useClientProgress, ProgressRing, type ClientProgressData, getNudgeStatu
 import { fmtDate } from "@/app/components/account/ui/dates";
 import { useToast } from "@/app/components/hc/Toast";
 import { useDialog } from "@/app/components/account/ui";
+import { usePromptForm } from "../components/PromptForm";
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
 }) {
   const dialog = useDialog();
   const toast = useToast();
+  const [promptNode, askPrompt] = usePromptForm();
   const router = useRouter();
   const { progress, loading: progressLoading } = useClientProgress(clientId);
   const [programs, setPrograms] = useState<Record<string, ProgramInfo>>({});
@@ -281,12 +283,17 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
   const handleSaveAsTemplate = async (categoryKey: string) => {
     const custom = customPrograms[categoryKey];
     if (!custom) return;
+    const v = await askPrompt({
+      title: "Vista sem sniðmát",
+      fields: [{ name: "name", label: "Heiti sniðmáts", initial: (custom.program_name as string) || "" }],
+      submitLabel: "Vista sniðmát",
+    });
+    const name = v?.name as string | undefined;
+    if (!name) return;
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const name = prompt("Template name:", (custom.program_name as string) || "");
-      if (!name) { setSaving(false); return; }
-      await supabase.from("program_templates").insert({
+      const { error: tmplErr } = await supabase.from("program_templates").insert({
         name, category_key: categoryKey, description: (custom.description as string) || "",
         tagline: (custom.tagline as string) || null, level: (custom.level as string) || null,
         exercise_type: (custom.exercise_type as string) || null,
@@ -295,10 +302,11 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
         duration: (custom.duration as number) || 8, actions: custom.actions || [],
         created_by: user?.id || null,
       });
+      if (tmplErr) { toast.show(`Sniðmát vistaðist ekki: ${tmplErr.message}`, { tone: "bad" }); return; }
       await loadPrograms();
-      toast.show(`Template "${name}" saved`, { tone: "ok" });
-    } catch { toast.show("Failed to save template", { tone: "bad" }); }
-    setSaving(false);
+      toast.show(`Sniðmátið „${name}“ var vistað.`, { tone: "ok" });
+    } catch { toast.show("Sniðmát vistaðist ekki – netvilla.", { tone: "bad" }); }
+    finally { setSaving(false); }
   };
 
   const handleLoadTemplate = async (categoryKey: string, templateId: string) => {
@@ -337,6 +345,7 @@ export default function ClientCategoryPanel({ clientId, clientName, tier, avatar
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
+      {promptNode}
       {/* Profile + weekly progress side by side */}
       <div className="flex items-start gap-4 mb-5 pb-5 border-b border-gray-200/60">
         {/* Left: avatar + details */}

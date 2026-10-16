@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { fmtNumericDate, fmtTime, fmtIsk } from "@/app/components/account/ui/dates";
 import { fmtNum } from "@/app/admin/components/ui/format";
 import { useDialog } from "@/app/components/account/ui";
+import { usePromptForm } from "@/app/admin/components/PromptForm";
 
 type Payment = {
   id: string;
@@ -68,6 +69,7 @@ function PaydayImportButton({ onImported }: { onImported?: () => void }) {
 
 export default function AdminPaymentsPage() {
   const dialog = useDialog();
+  const [promptNode, askPrompt] = usePromptForm();
   const [rows, setRows] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<Filter>("all");
@@ -266,18 +268,18 @@ export default function AdminPaymentsPage() {
     const related = p as { related_type?: string | null; related_id?: string | null; amount_isk?: number; description?: string } | null;
     if (related?.related_type === "body_comp_booking" && related.related_id) {
       const full = related.amount_isk ?? 0;
-      const amountStr = window.prompt(
-        `Refund amount in ISK (full = ${fmtNum(full)}, 0 = cancel without refund):`,
-        String(full),
-      );
-      if (amountStr === null) return;
-      const amount = parseInt(amountStr.replace(/[^\d-]/g, ""), 10);
-      if (Number.isNaN(amount) || amount < 0 || amount > full) {
-        setMsg(`Refund amount must be between 0 and ${fmtIsk(full)}.`);
-        return;
-      }
-      const reason = (window.prompt("Admin reason (saved on booking as audit trail — required):", "") || "").trim();
-      if (!reason) { setMsg("Reason is required."); return; }
+      const v = await askPrompt({
+        title: "Endurgreiða og afbóka",
+        description: `Fullt verð er ${fmtIsk(full)}. 0 afbókar án endurgreiðslu.`,
+        fields: [
+          { name: "amount", label: "Endurgreiðsla (kr.)", kind: "amount", initial: full, min: 0, max: full, hint: `Á bilinu 0 til ${fmtNum(full)}.` },
+          { name: "reason", label: "Ástæða", hint: "Vistast á bókuninni sem rekjanleg skráning. Skylda." },
+        ],
+        submitLabel: "Áfram",
+      });
+      if (!v) return;
+      const amount = v.amount as number;
+      const reason = String(v.reason).trim();
       const includeAddon = (await dialog.confirm({ title: "Also refund the Check-in doctor add-on (18.500 kr.) for this client, if any?", confirmLabel: "Yes", cancelLabel: "No" }));
       if (!(await dialog.confirm({ title: `Cancel booking and refund ${fmtIsk(amount)}${includeAddon ? " + 18.500 kr. doctor add-on" : ""}?`, body: `This also releases the measurement slot and any tied doctor consult.`, tone: "danger" }))) return;
       const { data, error } = await supabase.rpc("admin_cancel_booking", {
@@ -314,6 +316,7 @@ export default function AdminPaymentsPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+      {promptNode}
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold text-hc-ink">Payments</h1>

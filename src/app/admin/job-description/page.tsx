@@ -17,6 +17,7 @@ import { useToast } from "@/app/components/hc/Toast";
 import { useDialog } from "@/app/components/account/ui";
 import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
 import { X } from "lucide-react";
+import { usePromptForm } from "@/app/admin/components/PromptForm";
 
 const DEFAULT_DOC_ID = "framkvaemdastjori";
 
@@ -56,6 +57,7 @@ async function authHeaders(): Promise<Record<string, string>> {
 
 export default function JobDescriptionWorkspace() {
   const dialog = useDialog();
+  const [promptNode, askPrompt] = usePromptForm();
   const toast = useToast();
   const [docs, setDocs] = useState<DocMeta[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -155,8 +157,13 @@ export default function JobDescriptionWorkspace() {
 
   const createDoc = async () => {
     const DEFAULT_TITLE = "Boð um að ganga til liðs við Lifeline";
-    const title = prompt("Titill á nýju skjali:", DEFAULT_TITLE);
-    if (title === null) return;
+    const v = await askPrompt({
+      title: "Nýtt skjal",
+      fields: [{ name: "title", label: "Titill", initial: DEFAULT_TITLE, optional: true }],
+      submitLabel: "Búa til",
+    });
+    if (!v) return;
+    const title = (v.title as string | null) ?? "";
     try {
       const res = await fetch("/api/job-description", {
         method: "POST",
@@ -199,6 +206,7 @@ export default function JobDescriptionWorkspace() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      {promptNode}
       {/* ── Left rail: document list ─────────────────────────── */}
       <aside className="jd-noprint w-72 shrink-0 border-r border-gray-200 bg-white flex flex-col">
         <div className="px-3 pt-3">

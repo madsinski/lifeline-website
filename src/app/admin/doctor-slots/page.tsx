@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import SlotsBulkDeleteModal from "../components/SlotsBulkDeleteModal";
 import { fmtDate, fmtTime } from "@/app/components/account/ui/dates";
 import { useDialog } from "@/app/components/account/ui";
+import { usePromptForm } from "@/app/admin/components/PromptForm";
 
 type DoctorSlot = {
   id: string;
@@ -30,6 +31,7 @@ type CompanyOption = { id: string; name: string };
 
 export default function DoctorSlotsAdminPage() {
   const dialog = useDialog();
+  const [promptNode, askPrompt] = usePromptForm();
   const [slots, setSlots] = useState<DoctorSlot[]>([]);
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,14 @@ export default function DoctorSlotsAdminPage() {
     let reason = "";
     if (slot?.client_id) {
       if (!(await dialog.confirm({ title: "This slot is booked by a client.", body: "Deleting it will cancel their doctor consultation and email them a notification. Continue?", tone: "danger" }))) return;
-      reason = window.prompt("Optional: reason to include in the email (e.g. 'Doctor out sick — please rebook').") || "";
+      const v = await askPrompt({
+        title: "Ástæða í tölvupósti",
+        description: "Valfrjálst. Fylgir tilkynningunni til skjólstæðingsins.",
+        fields: [{ name: "reason", label: "Ástæða", optional: true, placeholder: "T.d. Læknir veikur – vinsamlegast bókaðu nýjan tíma" }],
+        submitLabel: "Eyða og láta vita",
+      });
+      if (!v) return;
+      reason = (v.reason as string | null) ?? "";
     } else {
       if (!(await dialog.confirm({ title: "Delete this slot?", tone: "danger" }))) return;
     }
@@ -131,6 +140,7 @@ export default function DoctorSlotsAdminPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+      {promptNode}
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-hc-ink">Doctor consultation slots</h1>

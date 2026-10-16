@@ -11,6 +11,8 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { fmtIsk } from "@/app/components/account/ui/dates";
 import { fmtNum } from "@/app/admin/components/ui/format";
+import { usePromptForm } from "../components/PromptForm";
+import { adminErrorText } from "../hc-api";
 
 interface Pace {
   annual_target: number;
@@ -107,6 +109,7 @@ function PaceCard({ title, hint, p, unit, extra }: {
 }
 
 export default function Plan() {
+  const [promptNode, askPrompt] = usePromptForm();
   const [data, setData] = useState<PlanData | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -134,25 +137,32 @@ export default function Plan() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Money settings are typed the Icelandic way ("1.250.000", "12,5"); keys
+  // ending in _isk are rounded to whole krónur.
   const editSetting = async (key: string, label: string, current: number) => {
-    const v = prompt(`${label}:`, String(current));
-    if (v === null) return;
-    const value = Number(v.replace(/[. ]/g, "").replace(",", "."));
-    if (!Number.isFinite(value)) { setErr("Not a number."); return; }
-    setBusy(true);
-    try {
-      const res = await authedFetch("/api/admin/accounting/plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
-      await load();
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    const isMoney = key.endsWith("_isk");
+    await askPrompt({
+      title: label,
+      fields: [{ name: "value", label: isMoney ? "Upphæð (kr.)" : "Gildi", kind: isMoney ? "amount" : "number", initial: current, allowNegative: true,
+        hint: isMoney ? "T.d. 1.250.000" : "T.d. 12 eða 12,5" }],
+      onSubmit: async ({ value }) => {
+        setBusy(true);
+        try {
+          const res = await authedFetch("/api/admin/accounting/plan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key, value }),
+          });
+          if (!res.ok) {
+            const j = await res.json().catch(() => ({}));
+            return adminErrorText((j as { error?: string }).error, `Villa ${res.status}`);
+          }
+          await load();
+        } finally {
+          setBusy(false);
+        }
+      },
+    });
   };
 
   if (err) return <div className="px-8 py-6 text-sm text-red-600">{err}</div>;
@@ -163,6 +173,7 @@ export default function Plan() {
 
   return (
     <div className="px-8 pb-10 space-y-4">
+      {promptNode}
       <p className="text-xs text-gray-400">
         Business plan {data.plan_version} · year {data.year} · targets from the Excel workbook (health check + coaching sheets, Snorri valuation, DCF).
       </p>

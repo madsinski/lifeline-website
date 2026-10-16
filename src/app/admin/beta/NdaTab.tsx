@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import AdminAppendNote from "../components/AdminAppendNote";
 import { fmtDateTime, fmtNumericDate } from "@/app/components/account/ui/dates";
 import { useToast } from "@/app/components/hc/Toast";
+import { usePromptForm } from "../components/PromptForm";
 
 interface BetaNdaRow {
   id: string;
@@ -28,6 +29,7 @@ interface BetaNdaRow {
 
 export default function NdaTab() {
   const toast = useToast();
+  const [promptNode, askPrompt] = usePromptForm();
   const [rows, setRows] = useState<BetaNdaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,21 +85,28 @@ export default function NdaTab() {
   };
 
   const revoke = async (row: BetaNdaRow) => {
-    const reason = prompt(`Revoke the NDA acceptance for ${row.user_email ?? row.user_id}?\n\nReason (optional):`);
-    if (reason === null) return;
-    const { error } = await supabase
-      .from("beta_nda_acceptances")
-      .update({ revoked_at: new Date().toISOString(), revoke_reason: reason || null })
-      .eq("id", row.id);
-    if (error) {
-      toast.show(`Revoke failed: ${error.message}`, { tone: "bad" });
-      return;
-    }
-    load();
+    await askPrompt({
+      title: "Afturkalla samþykki trúnaðarsamnings?",
+      description: `Samþykki ${row.user_email ?? row.user_id} verður afturkallað.`,
+      fields: [{ name: "reason", label: "Ástæða", optional: true }],
+      submitLabel: "Afturkalla",
+      onSubmit: async ({ reason }) => {
+        const { data, error } = await supabase
+          .from("beta_nda_acceptances")
+          .update({ revoked_at: new Date().toISOString(), revoke_reason: (reason as string | null) || null })
+          .eq("id", row.id)
+          .select("id");
+        if (error) return error.message;
+        if (!data?.length) return "Engin heimild til að afturkalla.";
+        toast.show("Samþykki afturkallað.");
+        load();
+      },
+    });
   };
 
   return (
     <>
+      {promptNode}
       <div className="mb-4 flex items-center gap-3 flex-wrap">
         <input
           type="text"

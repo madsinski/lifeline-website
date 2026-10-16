@@ -20,6 +20,7 @@ import { useToast } from "@/app/components/hc/Toast";
 import { useDialog } from "@/app/components/account/ui";
 import { X } from "lucide-react";
 import { useDialogA11y } from "@/app/admin/components/ui/useDialogA11y";
+import { usePromptForm } from "@/app/admin/components/PromptForm";
 
 interface SendClient {
   id: string;
@@ -41,6 +42,7 @@ interface SendResultRow {
 
 export default function SurveysHubPage() {
   const dialog = useDialog();
+  const [promptNode, askPrompt] = usePromptForm();
   const toast = useToast();
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
@@ -149,13 +151,14 @@ export default function SurveysHubPage() {
   // rather than versioning the same key.
   const duplicateSurvey = async (source: FeedbackSurvey) => {
     const defaultKey = `${source.key}-copy`;
-    const newKeyRaw = prompt(
-      "New key (slug) for the duplicate. Leave blank to cancel.",
-      defaultKey,
-    );
-    if (newKeyRaw === null) return;
-    const newKeyClean = newKeyRaw.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
-    if (!newKeyClean) { toast.show("Key required.", { tone: "bad" }); return; }
+    const v = await askPrompt({
+      title: `Afrita „${source.key}“ sem nýja könnun`,
+      fields: [{ name: "key", label: "Lykill (slóð) nýju könnunarinnar", initial: defaultKey, hint: "Litlir stafir, tölur og bandstrik." }],
+      submitLabel: "Afrita",
+    });
+    if (!v) return;
+    const newKeyClean = String(v.key).trim().toLowerCase().replace(/[^a-z0-9-]/g, "-");
+    if (!newKeyClean.replace(/-/g, "")) { toast.show("Lykill má ekki vera tómur.", { tone: "bad" }); return; }
     setBusy(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -392,6 +395,7 @@ export default function SurveysHubPage() {
 
   return (
     <div className="px-8 pt-6 pb-12 space-y-6">
+      {promptNode}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-hc-ink">Surveys</h1>
