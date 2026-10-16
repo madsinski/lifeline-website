@@ -484,4 +484,8 @@ export interface LectureRef {
   pillar: HcLecture["pillar"];
 }
 
-export const formatIsk = (n: number) => `${Math.round(n).toLocaleString("is-IS")} kr.`;
+/** 59.900 kr. — grouped by hand: browsers without Icelandic locale data fall back to "59,900". */
+export const formatIsk = (n: number) => {
+  const r = Math.round(n);
+  return `${r < 0 ? "−" : ""}${String(Math.abs(r)).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} kr.`;
+};

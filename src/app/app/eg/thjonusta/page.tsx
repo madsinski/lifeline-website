@@ -132,7 +132,7 @@ function Thjonusta() {
                     <h2 id="shop-bundle" className="text-lg font-bold text-hc-ink">{bundle.name}</h2>
                     {bundle.tagline && <p className="text-sm text-hc-ink-3">{bundle.tagline}</p>}
                   </div>
-                  <p className="text-xl font-bold text-hc-ink tabular-nums">{formatIsk(bundle.price_isk)}</p>
+                  <p className="w-full pl-14 text-xl font-bold text-hc-ink tabular-nums sm:w-auto sm:pl-0">{formatIsk(bundle.price_isk)}</p>
                 </div>
                 {bundle.description && <p className="mt-3 text-sm leading-relaxed text-hc-ink-2">{bundle.description}</p>}
 
