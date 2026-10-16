@@ -60,7 +60,7 @@ interface RecRow {
 }
 
 export async function POST(req: Request) {
-  const gate = await requireStaffAAL2(req, { roles: ["admin"] });
+  const gate = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
   if (typeof gate === "string") return gateError(gate);
 
   if (!process.env.OPENAI_API_KEY) {

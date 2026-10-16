@@ -46,7 +46,7 @@ interface FeedbackQuestionRow {
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: sourceId } = await ctx.params;
-  const user = await requireStaffAAL2(req, { roles: ["admin"] });
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
   if (typeof user === "string") return gateError(user);
 
   let body: RequestBody = {};

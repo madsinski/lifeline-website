@@ -34,7 +34,7 @@ const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL || "https://www.lifelinehealth.i
 
 export async function POST(req: Request) {
   // Creates staff rows (incl. admins) — admin role + AAL2 only.
-  const caller = await requireStaffAAL2(req, { roles: ["admin"] });
+  const caller = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
   if (typeof caller === "string") return gateError(caller);
 
   let body: CreateBody = {};

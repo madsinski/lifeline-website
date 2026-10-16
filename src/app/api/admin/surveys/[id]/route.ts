@@ -184,7 +184,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
 //     typed confirmation so accidental fetch()s can't wipe the record.
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: surveyId } = await ctx.params;
-  const user = await requireStaffAAL2(req, { roles: ["admin"] });
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
   if (typeof user === "string") return gateError(user);
 
   let body: { confirm?: string } = {};

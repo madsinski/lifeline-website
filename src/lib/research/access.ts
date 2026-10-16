@@ -9,20 +9,17 @@
 //           exempt), so they always hold an AAL2 token.
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, requireStaffAAL2 } from "@/lib/auth-helpers";
 
 type ResearchUser = NonNullable<Awaited<ReturnType<typeof getUserFromRequest>>>;
 
 const READ_ROLES = ["admin", "doctor", "medical_advisor"];
 
-/** Read access: active admin, doctor or medical advisor. */
+/** Read access: active admin, doctor or medical advisor, with AAL2. */
 export async function requireResearchRead(req: NextRequest): Promise<ResearchUser | null> {
-  const user = await getUserFromRequest(req);
-  if (!user) return null;
-  const { data } = await supabaseAdmin.from("staff").select("active, role").eq("id", user.id).maybeSingle();
-  if (!data || data.active !== true || !READ_ROLES.includes(String(data.role))) return null;
-  return user;
+  // Patient-level cohort data: MFA (AAL2) for reads too, not only writes.
+  const r = await requireStaffAAL2(req, { roles: READ_ROLES });
+  return typeof r === "string" ? null : r;
 }
 
 /** Write access: admin or medical advisor, with AAL2. */

@@ -28,7 +28,7 @@ function sha256Hex(s: string): string {
 }
 
 export async function POST(req: Request) {
-  const user = await requireStaffAAL2(req, { roles: ["admin"] });
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
   if (typeof user === "string") return gateError(user);
 
   let body: DraftBody = {};

@@ -43,11 +43,11 @@ export async function POST(
     }
   }
 
-  // 2. Update auth email if changed
+  // 2. The login email is NOT changed here. It is the key to the account, so
+  //    it has its own route with a stricter gate, a staff-account refusal,
+  //    notices to both addresses and an audit row: update-email.
   if (email && email !== oldEmail) {
-    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(clientId, { email });
-    if (authErr) return NextResponse.json({ error: authErr.message }, { status: 400 });
-    await supabaseAdmin.from("clients_decrypted").update({ email }).eq("id", clientId);
+    return NextResponse.json({ error: "Innskráningarnetfangi er breytt sérstaklega (stjórnandi)." }, { status: 400 });
   }
 
   // 3. Sync to company_members (B2B roster) using OLD email for matching
@@ -57,7 +57,6 @@ export async function POST(
     const memberUpdate: Record<string, unknown> = {};
     if (full_name) memberUpdate.full_name = full_name;
     if (phone !== undefined) memberUpdate.phone = phone;
-    if (email && email !== oldEmail) memberUpdate.email = email;
 
     if (Object.keys(memberUpdate).length > 0) {
       await supabaseAdmin.from("company_members")

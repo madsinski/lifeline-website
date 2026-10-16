@@ -45,7 +45,7 @@ function newToken(): string {
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id: surveyId } = await ctx.params;
   // Admin + AAL2: a leaked AAL1 token must not fire mass-email assignments.
-  const user = await requireStaffAAL2(req, { roles: ["admin"] });
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
   if (typeof user === "string") return gateError(user);
 
   let body: RequestBody = {};

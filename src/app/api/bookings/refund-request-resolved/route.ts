@@ -55,6 +55,14 @@ export async function POST(req: NextRequest) {
       if (!pending.booking_id) {
         return NextResponse.json({ error: "Beiðnin tengist ekki bókun — afgreiddu hana handvirkt." }, { status: 400 });
       }
+      /* Claim first: only the request that moves pending → approved here
+         runs the refund, so two clicks or two admins can never refund twice. */
+      const now = new Date().toISOString();
+      const { data: claimed } = await supabaseAdmin.from("refund_requests")
+        .update({ status: "approved", approved_isk: Math.round(amount), admin_note: adminNote, resolved_at: now, resolved_by: user.id })
+        .eq("id", requestId).eq("status", "pending").select("id");
+      if (!claimed?.length) return NextResponse.json({ error: "Búið er að afgreiða þessa beiðni." }, { status: 409 });
+
       // Run the RPC as the caller so its own auth.uid() staff check applies.
       const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
       const asCaller = createClient(SUPABASE_URL, ANON_KEY, {
@@ -70,32 +78,25 @@ export async function POST(req: NextRequest) {
       const r = (Array.isArray(data) ? data[0] : data) as { ok?: boolean; error?: string; refunded_isk?: number } | null;
       if (error || (r && r.ok === false)) {
         console.error("[bookings/refund-request-resolved] cancel failed", error?.code ?? r?.error);
+        // Nothing was refunded: put the request back so it can be retried.
+        await supabaseAdmin.from("refund_requests")
+          .update({ status: "pending", approved_isk: null, resolved_at: null, resolved_by: null })
+          .eq("id", requestId).eq("status", "approved");
         return NextResponse.json({ error: "Ekki tókst að afbóka og endurgreiða." }, { status: 500 });
       }
       refundedIsk = r?.refunded_isk ?? 0;
-    }
-
-    const { data: updated, error: updErr } = await supabaseAdmin
-      .from("refund_requests")
-      .update(
-        decision === "approve"
-          ? { status: "approved", approved_isk: Math.round(Number(body?.amount)), admin_note: adminNote, resolved_at: new Date().toISOString(), resolved_by: user.id }
-          : { status: "denied", admin_note: adminNote, resolved_at: new Date().toISOString(), resolved_by: user.id },
-      )
-      .eq("id", requestId)
-      .eq("status", "pending")
-      .select("id");
-    if (updErr || !updated?.length) {
-      console.error("[bookings/refund-request-resolved] status update failed", updErr?.code);
-      return NextResponse.json(
-        {
-          error: decision === "approve"
-            ? "Bókunin var afbókuð og endurgreidd en ekki tókst að merkja beiðnina samþykkta. Merktu hana handvirkt."
-            : "Ekki tókst að hafna beiðninni.",
-          refunded_isk: refundedIsk,
-        },
-        { status: 500 },
-      );
+    } else {
+      // Deny: one atomic pending → denied step; nothing else to undo.
+      const { data: updated, error: updErr } = await supabaseAdmin
+        .from("refund_requests")
+        .update({ status: "denied", admin_note: adminNote, resolved_at: new Date().toISOString(), resolved_by: user.id })
+        .eq("id", requestId)
+        .eq("status", "pending")
+        .select("id");
+      if (updErr || !updated?.length) {
+        console.error("[bookings/refund-request-resolved] deny failed", updErr?.code);
+        return NextResponse.json({ error: updated && !updated.length ? "Búið er að afgreiða þessa beiðni." : "Ekki tókst að hafna beiðninni." }, { status: updated && !updated.length ? 409 : 500 });
+      }
     }
   }
 

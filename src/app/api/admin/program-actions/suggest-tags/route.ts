@@ -71,7 +71,7 @@ rationale: ONE sentence (≤ 18 words) explaining your call.
 Be conservative. The defaults are "moderate / any / [] / null" — only deviate from defaults when the data clearly justifies it.`;
 
 export async function POST(req: Request) {
-  const gate = await requireStaffAAL2(req, { roles: ["admin"] });
+  const gate = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
   if (typeof gate === "string") return gateError(gate);
 
   if (!process.env.OPENAI_API_KEY) {

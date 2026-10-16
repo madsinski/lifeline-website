@@ -10,7 +10,7 @@ import { requireStaffAAL2, gateError } from "@/lib/auth-helpers";
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  const user = await requireStaffAAL2(req, { roles: ["admin"] });
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
   if (typeof user === "string") return gateError(user);
 
   const body = await req.json().catch(() => ({}));

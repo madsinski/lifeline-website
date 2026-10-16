@@ -41,7 +41,7 @@ async function requireAdmin(req: NextRequest) {
 }
 
 export const POST = withErrorReporting(async (req: NextRequest) => {
-  const user = await requireStaffAAL2(req, { roles: ["admin"] });
+  const user = await requireStaffAAL2(req, { roles: ["admin"], permission: "manage_team" });
   if (typeof user === "string") return gateError(user);
 
   const contentType = req.headers.get("content-type") ?? "";
