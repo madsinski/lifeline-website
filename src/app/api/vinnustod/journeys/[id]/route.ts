@@ -23,6 +23,7 @@ import { sendSms } from "@/lib/sms";
 import { actorLocationFilter, actorWorkerId, getHcActor, type HcActor } from "@/lib/hc/ws-auth";
 import { sameOrigin } from "@/lib/hc/secrets";
 import type { HcJourney } from "@/lib/hc/types";
+import { notifyClient } from "@/lib/hc/notify";
 import { coachingRemaining, coachingSubscription, coachingPackage } from "@/lib/hc/coaching";
 
 export const runtime = "nodejs";
@@ -224,7 +225,7 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
         accentLabel: "Áminning",
         bodyHtml: `<p style="margin:0 0 12px;">Heilsufarsskoðunin þín er greidd. Næsta skref er að virkja hana í sjúklingagáttinni með kóðanum:</p>
           <div style="font-family:ui-monospace,monospace;font-size:24px;letter-spacing:.12em;text-align:center;background:#ECFDF5;border-radius:10px;padding:14px;margin:16px 0;color:#065F46;font-weight:700;">${order.activation_code}</div>
-          <p style="margin:0;">Þar bókar þú líka blóðprufu og mælingar.</p>`,
+          <p style="margin:0;">Þá er blóðprufan pöntuð fyrir þig. Mælingartímann bókar þú í Lifeline appinu.</p>`,
         ctaLabel: "Opna heilsuferðina",
         ctaUrl: `${origin}/app`,
       }),
@@ -233,6 +234,33 @@ async function handleAction(req: NextRequest, actor: HcActor, journey: HcJourney
     if (!r.ok) return NextResponse.json({ error: r.error || "Sending mistókst." }, { status: 502 });
     await hcAudit(actor.label, "reminder_sent", journey.id);
     return NextResponse.json({ ok: true });
+  }
+
+  /*
+   * Ask the client for leave to put their report in (staff import is
+   * consent-gated). In-app: the notification + red dots light from
+   * staff_import_consent_requested_at until they look; push and SMS go as
+   * the client's "Tilkynningar frá Lifeline" allow. Once a day at most.
+   */
+  if (body.action === "request_staff_import_consent") {
+    const j = journey as HcJourney & { staff_import_consent_at?: string | null; staff_import_consent_requested_at?: string | null };
+    if (j.staff_import_consent_at) return NextResponse.json({ error: "Leyfið er þegar veitt." }, { status: 409 });
+    if (j.staff_import_consent_requested_at && Date.now() - Date.parse(j.staff_import_consent_requested_at) < 86_400_000) {
+      return NextResponse.json({ error: "Beiðni var send síðasta sólarhringinn. Bíddu aðeins." }, { status: 429 });
+    }
+    const now = new Date().toISOString();
+    const { error } = await db.from("hc_journeys")
+      .update({ staff_import_consent_requested_at: now, staff_import_consent_request_seen_at: null }).eq("id", journey.id);
+    if (error) return NextResponse.json({ error: "Tókst ekki að vista beiðnina." }, { status: 500 });
+    const sent = await notifyClient(journey.client_id, {
+      title: "Má hjúkrunarfræðingur setja skýrsluna inn?",
+      body: "Opnaðu appið til að veita leyfi eða setja skýrsluna inn.",
+      url: "/app?leyfi=1",
+      tag: `consent-${journey.id}`,
+      sms: `Lifeline: Hjúkrunarfræðingurinn þinn biður um leyfi til að setja skýrsluna þína úr sjúklingagáttinni inn í appið. Opnaðu ${origin}/app?leyfi=1`,
+    });
+    await hcAudit(actor.label, "staff_import_consent_requested", journey.id, { pushed: sent.pushed, texted: sent.texted });
+    return NextResponse.json({ ok: true, requested_at: now, pushed: sent.pushed, texted: sent.texted });
   }
 
   // Removed in the Medalia split: the Lifeline doctor workflow (review

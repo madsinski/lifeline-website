@@ -37,7 +37,12 @@ function Row({ href, Icon, title, body, count }: {
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2 font-semibold text-hc-ink">
             {title}
-            {!!count && <span className={badgeClass("count")}>{count > 9 ? "9+" : count}<span className="sr-only"> {count === 1 ? "ný tilkynning" : "nýjar tilkynningar"}</span></span>}
+            {!!count && (
+              <span className="relative inline-flex">
+                <span className="absolute inset-0 rounded-full bg-hc-bad-ink/50 motion-safe:animate-ping" aria-hidden />
+                <span className={`${badgeClass("count")} relative`}>{count > 9 ? "9+" : count}<span className="sr-only"> {count === 1 ? "ný tilkynning" : "nýjar tilkynningar"}</span></span>
+              </span>
+            )}
           </span>
           <span className="mt-0.5 block text-sm leading-snug text-hc-ink-2">{body}</span>
         </span>

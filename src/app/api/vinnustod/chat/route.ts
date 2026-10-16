@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
       body: text.length > 90 ? `${text.slice(0, 90)}…` : text,
       url: "/app/aaetlun?tab=coach",
       tag: `chat-${journeyId}`,
-    }).catch(() => {});
+    }, { purpose: "message" }).catch(() => {});
   });
   return NextResponse.json({ ok: true });
 }
