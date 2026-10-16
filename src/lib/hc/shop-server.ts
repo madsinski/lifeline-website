@@ -34,5 +34,6 @@ export async function releaseSlot(kind: string, slotId: string | null | undefine
   await supabaseAdmin.from(table)
     .update({ client_id: null, booked_at: null, updated_at: new Date().toISOString() })
     .eq("id", slotId).eq("client_id", clientId).is("completed_at", null)
-    .then(() => {}, () => {});
+    .then(({ error }) => { if (error) console.warn("[shop] releaseSlot failed", table, slotId, error.message); },
+      (e) => console.warn("[shop] releaseSlot failed", table, slotId, e));
 }

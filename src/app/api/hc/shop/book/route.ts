@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     freeSlots(kind, profile?.company_id ?? null),
     doctorConfig(),
     supabaseAdmin.from("hc_bookings").select("id, order_id, kind, starts_at, minutes, status, slot_id")
-      .eq("order_id", order.id).eq("kind", kind).neq("status", "cancelled").maybeSingle(),
+      .eq("order_id", order.id).eq("client_id", user.id).eq("kind", kind).neq("status", "cancelled").maybeSingle(),
   ]);
   /* Where the held time is, from its slot. */
   let location: string | null = null;
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
   /* One active booking per order — checked first for a clear answer; the
      unique index is what actually guarantees it. */
   const { data: existing } = await supabaseAdmin.from("hc_bookings").select("id")
-    .eq("order_id", order.id).eq("kind", kind).neq("status", "cancelled").limit(1);
+    .eq("order_id", order.id).eq("client_id", user.id).eq("kind", kind).neq("status", "cancelled").limit(1);
   if (existing?.length) {
     return NextResponse.json({ error: "Tími hefur þegar verið bókaður fyrir þessa pöntun. Afbókaðu hann fyrst til að velja annan." }, { status: 409 });
   }

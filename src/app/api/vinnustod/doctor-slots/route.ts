@@ -18,7 +18,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { getHcActor } from "@/lib/hc/ws-auth";
+import { getHcActor, type HcActor } from "@/lib/hc/ws-auth";
 import { hcAudit } from "@/lib/hc/server";
 import { doctorConfig } from "@/lib/hc/shop-server";
 import { WEEKDAY_DAT_PL } from "@/lib/hc/coaching-config";
@@ -27,6 +27,16 @@ export const runtime = "nodejs";
 
 const DEFAULT_LOCATION = "Lifeline";
 const MODES = new Set(["in_person", "video", "phone"]);
+
+/*
+ * The doctor's day is Lifeline's own rota, shared across every place (the
+ * table has no location), and the list names who is booked. Partner
+ * workers (Vera, heilsugæsla) see their own clients' times elsewhere; they
+ * neither read nor change this one. Security review, 2026-10-16.
+ */
+function lifelineOwn(actor: HcActor): boolean {
+  return actor.kind === "staff" || actor.worker.organization === "lifeline";
+}
 
 async function doctors() {
   const { data } = await supabaseAdmin.from("staff")
@@ -37,6 +47,7 @@ async function doctors() {
 export async function GET(req: NextRequest) {
   const actor = await getHcActor(req);
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!lifelineOwn(actor)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const days = Math.min(Math.max(Number(req.nextUrl.searchParams.get("days") ?? 90), 1), 120);
   const until = new Date(Date.now() + days * 86400_000).toISOString();
@@ -73,6 +84,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const actor = await getHcActor(req);
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!lifelineOwn(actor)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const b = await req.json().catch(() => null);
   const date = typeof b?.date === "string" ? b.date : "";
@@ -125,6 +137,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const actor = await getHcActor(req);
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!lifelineOwn(actor)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const b = await req.json().catch(() => null);
   const id = typeof b?.id === "string" ? b.id : "";
   if (!id) return NextResponse.json({ error: "bad_request" }, { status: 400 });
@@ -142,6 +155,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const actor = await getHcActor(req);
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!lifelineOwn(actor)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const id = req.nextUrl.searchParams.get("id") ?? "";
   if (!id) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   /* Only a free time is removed, in one statement, so a booking that lands
