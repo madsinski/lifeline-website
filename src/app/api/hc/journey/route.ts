@@ -10,6 +10,11 @@
 //      { journey: null } also carries { b2b, start_track } so /app knows
 //      whether it still has to ask.
 // POST { action: "welcome_seen" } | { action: "set_booking", kind, at }
+//      | { action: "allow_staff_import" } | { action: "revoke_staff_import" }
+//        → the participant allows (or stops allowing) a nurse to put their
+//          Medalia report in on their behalf (staff_import_consent_at,
+//          migration-hc-medalia-split.sql). Staff import routes refuse
+//          without it.
 // Schema: supabase/migration-health-journey.sql
 
 import { NextRequest, NextResponse } from "next/server";
@@ -20,6 +25,8 @@ import {
 } from "@/lib/hc/server";
 import { journeySteps } from "@/lib/hc/stages";
 import { appAccess } from "@/lib/hc/subscription";
+import { STAFF_IMPORT_CONSENT_VERSION } from "@/lib/hc/consent";
+import { stripCiphertext } from "@/lib/hc/notes";
 import type { HcJourney } from "@/lib/hc/types";
 
 export const runtime = "nodejs";
@@ -99,7 +106,10 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     access,
-    journey,
+    // Ciphertext columns never leave the server. staff_import_consent_at is
+    // on the row: whether a nurse may put the report in for them.
+    journey: stripCiphertext(journey),
+    staff_import_consent_at: journey.staff_import_consent_at ?? null,
     steps: journeySteps(journey, complete),
     profile: {
       email: profile?.email ?? user.email,
@@ -170,7 +180,27 @@ export async function POST(req: NextRequest) {
 
   if (body.action === "welcome_seen") {
     const j = journey.welcome_seen_at ? journey : await patchJourney(journey.id, { welcome_seen_at: new Date().toISOString() }, actor, "welcome_seen");
-    return NextResponse.json({ journey: j });
+    return NextResponse.json({ journey: j && stripCiphertext(j) });
+  }
+
+  /*
+   * The participant allows a nurse to put their Medalia report in for them,
+   * or withdraws that. Their own session, their own tap: the staff import
+   * routes refuse without it. Withdrawing stops future imports; it does not
+   * remove a report already in (they can delete that in Aðgangur).
+   */
+  if (body.action === "allow_staff_import") {
+    const j = await patchJourney(journey.id, {
+      staff_import_consent_at: new Date().toISOString(),
+      staff_import_consent_version: STAFF_IMPORT_CONSENT_VERSION,
+    }, actor, "staff_import_allowed", { version: STAFF_IMPORT_CONSENT_VERSION });
+    if (!j) return NextResponse.json({ error: "Tókst ekki að vista." }, { status: 500 });
+    return NextResponse.json({ journey: stripCiphertext(j), staff_import_consent_at: j.staff_import_consent_at ?? null });
+  }
+  if (body.action === "revoke_staff_import") {
+    const j = await patchJourney(journey.id, { staff_import_consent_at: null, staff_import_consent_version: null }, actor, "staff_import_revoked");
+    if (!j) return NextResponse.json({ error: "Tókst ekki að vista." }, { status: 500 });
+    return NextResponse.json({ journey: stripCiphertext(j), staff_import_consent_at: null });
   }
 
   // The customer confirms they entered the activation code in the patient
@@ -179,7 +209,7 @@ export async function POST(req: NextRequest) {
   if (body.action === "confirm_activated") {
     if (!journey.paid_at) return NextResponse.json({ error: "Greiðsla vantar." }, { status: 409 });
     const j = journey.protocol_activated_at ? journey : await patchJourney(journey.id, { protocol_activated_at: new Date().toISOString() }, actor, "protocol_confirmed_by_client");
-    return NextResponse.json({ journey: j });
+    return NextResponse.json({ journey: j && stripCiphertext(j) });
   }
 
   // The customer books blood test / measurements in the patient portal and
@@ -195,7 +225,7 @@ export async function POST(req: NextRequest) {
     const at = body.at ? new Date(body.at) : null;
     if (at && Number.isNaN(at.getTime())) return NextResponse.json({ error: "bad_date" }, { status: 400 });
     const j = await patchJourney(journey.id, { [key]: at ? at.toISOString() : null } as Partial<HcJourney>, actor, "set_booking", { kind: body.kind });
-    return NextResponse.json({ journey: j });
+    return NextResponse.json({ journey: j && stripCiphertext(j) });
   }
 
   return NextResponse.json({ error: "unknown_action" }, { status: 400 });

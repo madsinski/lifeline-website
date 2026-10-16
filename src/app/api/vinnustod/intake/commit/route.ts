@@ -5,9 +5,18 @@
 // plus { values?, measured_at?, location? }
 //
 // Creating a client makes the same thing the bulk invite makes: an auth user,
-// a clients row, and an invite email — so the person can open /account and
-// see their plan. The journey is stamped as "report in hand" because that is
-// what having the report means.
+// a clients row, and an invite email — so the person can open /app. Nothing
+// from the report is stored for a NEW client: they have not allowed anyone to
+// put their report in, so they bring it themselves (or allow a nurse to) from
+// the app.
+//
+// For an EXISTING client the report is stored only if they have allowed a
+// nurse to do it (hc_journeys.staff_import_consent_at, set by the client in
+// the app; migration-hc-medalia-split.sql) — otherwise 403. It is stored as
+// the parsed report (hc_reports, on their behalf, awaiting their
+// confirmation) and NOT copied value-by-value into hc_results: surfaces read
+// the values from the report payload (loadReport). Blood-test and
+// measurement flags are Medalia's and are no longer stamped from a report.
 //
 // Actor: workstation session or Lifeline staff.
 // Schema: supabase/migration-health-journey.sql, migration-hc-results.sql
@@ -15,7 +24,8 @@
 import { after, NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
-import { DEFAULT_LOCATION, getOrCreateJourney, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
+import { DEFAULT_LOCATION, currentJourney, getOrCreateJourney, hcAudit, patchJourney, siteOrigin } from "@/lib/hc/server";
+import { STAFF_IMPORT_REFUSED } from "@/lib/hc/consent";
 import { renderBrandedEmail, sendEmail } from "@/lib/email";
 import { buildProposal } from "@/lib/hc/propose";
 
@@ -117,10 +127,19 @@ export async function POST(req: NextRequest) {
 
   if (!clientId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
-  // The report states the client's sex; our reference bands need it.
-  if (body.sex === "m" || body.sex === "f") {
-    const { data: prof } = await supabaseAdmin.from("clients_decrypted").select("sex").eq("id", clientId).maybeSingle();
-    if (!prof?.sex) await supabaseAdmin.from("clients_decrypted").update({ sex: body.sex === "m" ? "male" : "female" }).eq("id", clientId);
+  const hasReportData = !!(body.grunnheilsa && typeof body.grunnheilsa === "object")
+    || (Array.isArray(body.values) && body.values.length > 0);
+
+  /*
+   * An existing client: their report only with their own permission. Checked
+   * before anything is created or changed, so a refusal leaves no trace.
+   */
+  if (!created && hasReportData) {
+    const current = await currentJourney(clientId);
+    if (!current?.staff_import_consent_at) {
+      await hcAudit(actor.label, "report_intake_refused_no_consent", current?.id ?? null, {});
+      return NextResponse.json({ error: STAFF_IMPORT_REFUSED }, { status: 403 });
+    }
   }
 
   const journey = await getOrCreateJourney(clientId, str(body.location, 60) || DEFAULT_LOCATION);
@@ -129,40 +148,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Skjólstæðingurinn er ekki á þínu svæði." }, { status: 403 });
   }
 
-  // Having the report means the tests are done and the report is in. It is
-  // not confirmed: that is the doctor's (report_generated_at).
-  const measuredAt = /^\d{4}-\d{2}-\d{2}$/.test(String(body.measured_at)) ? `${body.measured_at}T09:00:00.000Z` : new Date().toISOString();
-  const patch: Record<string, string> = {};
-  if (!journey.blood_results_at && !journey.blood_test_done_at) patch.blood_results_at = measuredAt;
-  if (!journey.measurements_done_at) patch.measurements_done_at = measuredAt;
-  if (!journey.report_imported_at) patch.report_imported_at = new Date().toISOString();
-  if (Object.keys(patch).length) await patchJourney(journey.id, patch, actor.label, "report_intake");
+  // A new client: the account and the invite, nothing from the report.
+  if (created) {
+    await hcAudit(actor.label, "client_created_from_intake", journey.id, { report_discarded: hasReportData });
+    return NextResponse.json({
+      journey_id: journey.id, client_id: clientId, created, saved: 0,
+      report_stored: false,
+      note: hasReportData
+        ? "Aðgangur stofnaður og boð sent. Skýrslan var ekki vistuð: skjólstæðingurinn setur hana inn sjálfur í appinu, eða leyfir hjúkrunarfræðingi að gera það."
+        : "Aðgangur stofnaður og boð sent.",
+    });
+  }
 
-  // Store the values the nurse kept.
-  const values = Array.isArray(body.values) ? body.values : [];
-  const rows = values
-    .filter((v: Record<string, unknown>) => v && typeof v === "object" && Number.isFinite(Number(v.value)))
-    .map((v: Record<string, unknown>) => ({
-      journey_id: journey.id,
-      client_id: clientId,
-      marker: str(v.marker, 60) || "x:unknown",
-      value: Number(v.value),
-      unit: str(v.unit, 30),
-      measured_at: /^\d{4}-\d{2}-\d{2}$/.test(String(body.measured_at)) ? String(body.measured_at) : null,
-      source: "medalia",
-      note: str(v.note, 300),
-      entered_by: actor.label,
-      updated_at: new Date().toISOString(),
-    }));
-  if (rows.length) {
-    const { error } = await supabaseAdmin.rpc("hc_results_upsert", { p_rows: rows }); // encrypted upsert (migration-hc-encrypt-results-plans-2.sql)
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  // The report states the client's sex; our reference bands need it.
+  if (body.sex === "m" || body.sex === "f") {
+    const { data: prof } = await supabaseAdmin.from("clients_decrypted").select("sex").eq("id", clientId).maybeSingle();
+    if (!prof?.sex) await supabaseAdmin.from("clients_decrypted").update({ sex: body.sex === "m" ? "male" : "female" }).eq("id", clientId);
   }
 
   // Keep the whole parsed report: the workstation and the client's account
   // both render it, and the next one gives us the comparison for free.
+  // Values are read from this payload; they are not copied into hc_results.
+  let stored = false;
   if (body.grunnheilsa && typeof body.grunnheilsa === "object") {
-    await supabaseAdmin.from("hc_reports").insert({
+    const now = new Date().toISOString();
+    const { error } = await supabaseAdmin.from("hc_reports").insert({
       journey_id: journey.id,
       client_id: clientId,
       report_date: /^\d{4}-\d{2}-\d{2}$/.test(String(body.measured_at)) ? String(body.measured_at) : null,
@@ -170,14 +180,21 @@ export async function POST(req: NextRequest) {
       method: String(body.method ?? "").startsWith("ai") ? "ai" : "local",
       payload: body.grunnheilsa,
       imported_by: actor.label,
-      source: "intake",
+      // On their behalf, with their permission; shown to them once they
+      // confirm it is theirs (client_approved_at).
+      source: "staff_on_behalf",
+      approval_requested_at: now,
+      approval_requested_by: actor.label,
     });
+    if (error) return NextResponse.json({ error: "Tókst ekki að vista skýrsluna." }, { status: 400 });
+    stored = true;
+    if (!journey.report_imported_at) await patchJourney(journey.id, { report_imported_at: now }, actor.label, "report_intake");
+    proposeInBackground(journey.id, actor.label);
   }
 
-  // Values are in, so the model has something to work from: start now and the
-  // proposal is ready by the time the nurse has read the report.
-  if (rows.length || body.grunnheilsa) proposeInBackground(journey.id, actor.label);
-
-  await hcAudit(actor.label, created ? "client_created_from_report" : "report_intake", journey.id, { values: rows.length, report: !!body.grunnheilsa });
-  return NextResponse.json({ journey_id: journey.id, client_id: clientId, created, saved: rows.length });
+  await hcAudit(actor.label, "report_intake", journey.id, { report: stored, consent_at: journey.staff_import_consent_at ?? null });
+  return NextResponse.json({
+    journey_id: journey.id, client_id: clientId, created, saved: 0, report_stored: stored,
+    note: stored ? null : "Aðeins Grunnheilsa-skýrsla úr sjúklingagáttinni er vistuð. Stök gildi eru ekki skráð.",
+  });
 }

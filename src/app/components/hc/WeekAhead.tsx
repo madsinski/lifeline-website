@@ -38,7 +38,7 @@ interface Ev {
 }
 
 const KIND_IS: Record<string, string> = {
-  interview: "Viðtal", followup: "Eftirfylgd", blood: "Blóðprufa",
+  interview: "Áætlunarsamtal", followup: "Eftirfylgd", blood: "Blóðprufa",
   measurements: "Mælingar", video: "Myndsímtal", measurement: "Mæling",
 };
 

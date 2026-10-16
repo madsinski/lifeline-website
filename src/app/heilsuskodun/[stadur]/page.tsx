@@ -39,7 +39,7 @@ export default async function LocationLanding({ params }: { params: Promise<{ st
     { t: "Stofnaðu frían aðgang", d: "Þar heldur þú utan um alla ferðina og sérð alltaf næsta skref." },
     { t: "Veldu pakka og greiðsluleið", d: "Greiddu sjálf(ur), fáðu endurgreiðslu frá stéttarfélagi eða notaðu kóða frá vinnuveitanda." },
     { t: "Blóðprufa og mælingar", d: `Blóðprufa á ${loc.blood_test_site || "Heilsugæslunni"} og mælingar hjá ${loc.measurement_site || "samstarfsaðila"}.` },
-    { t: "Skýrsla og viðtal", d: "Læknir staðfestir skýrsluna og þú ferð yfir hana með hjúkrunarfræðingi." },
+    { t: "Skýrsla og viðtöl", d: "Læknir fer yfir niðurstöðurnar með þér í sjúklingagáttinni og Lifeline gerir áætlunina með þér." },
     { t: "Aðgerðaáætlun til 3 mánaða", d: "Svefn, hreyfing, næring og andleg líðan. Í símanum eða útprentuð." },
   ];
 

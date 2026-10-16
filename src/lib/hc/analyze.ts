@@ -6,7 +6,7 @@
 //      decides whether a number is out of range.
 //   2. The model only PROPOSES which actions to put in front of the client,
 //      ranked, drawn from our own action library. The nurse edits the result
-//      and the doctor confirms the report.
+//      and the doctor discusses the report with them in Medalia.
 //
 // Server-only: needs OPENAI_API_KEY.
 

@@ -103,13 +103,31 @@ export interface HcJourney {
   measurements_booked_for: string | null;
   measurements_done_at: string | null;
   blood_results_at: string | null;
+  /**
+   * HISTORIC: a Lifeline doctor confirmed the report. That workflow was
+   * removed in the Medalia split (2026-10-16) — Medalia releases the report
+   * now — so nothing sets this any more; old rows keep it for display.
+   */
   report_generated_at: string | null;
-  /** Parsed report is in (import); report_generated_at = a doctor confirmed it. */
+  /** A report was put in by staff on the client's behalf (consent-gated: staff_import_consent_at). */
   report_imported_at?: string | null;
   /** The participant's own report is in (self upload or staff on their behalf) — visible without a doctor's confirmation. */
   own_report_at?: string | null;
   report_generated_by: string | null;
   report_sms_sent_at: string | null;
+  /**
+   * The client allowed a nurse to put their Medalia report in for them
+   * (POST /api/hc/journey {action:"allow_staff_import"}). Null = not allowed;
+   * staff import routes refuse. Version names the wording shown.
+   */
+  staff_import_consent_at?: string | null;
+  staff_import_consent_version?: string | null;
+  /** The doctor's interview took place in Medalia (event doctor_interview_done). */
+  doctor_interview_done_at?: string | null;
+  /*
+   * The interview_* columns are Lifeline's own Áætlunarsamtal (plan session)
+   * since the Medalia split; the doctor's interview is in Medalia.
+   */
   interview_booked_for: string | null;
   interview_mode: "in_person" | "video" | null;
   /** Video-call link for the interview or follow-up (Meet, Teams, Zoom). */
@@ -131,7 +149,9 @@ export interface HcJourney {
   reevaluation_due_at: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
+  /** Decrypted by the server (src/lib/hc/notes.ts); stored encrypted. Lifestyle notes only. */
   interview_notes?: InterviewNotes | null;
+  followup_notes?: InterviewNotes | null;
   doctor_review_requested_at?: string | null;
   doctor_review_note?: string | null;
   doctor_reviewed_at?: string | null;
@@ -139,7 +159,7 @@ export interface HcJourney {
   updated_at: string;
 }
 
-/** Nurse's structured interview notes (workstation), one free-text field per topic. */
+/** Lifestyle notes from the Áætlunarsamtal (workstation), one free-text field per topic. No clinical content — that lives in Medalia. Stored encrypted. */
 export interface InterviewNotes {
   sleep?: string;
   exercise?: string;

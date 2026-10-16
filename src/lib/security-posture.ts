@@ -24,8 +24,8 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.18";
-export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-09";
+export const SECURITY_POSTURE_VERSION = "v1.19";
+export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-16";
 
 export function renderSecurityPosture(): string {
   return `LIFELINE HEALTH — SECURITY & PRIVACY POSTURE STATEMENT
@@ -121,6 +121,13 @@ Heilsufarsgögn / Art. 9 sérflokkar:
   (hc_reports.source, imported_by, on_behalf_consent_at), og
   skjólstæðingurinn sér það í sínum aðgangi og getur andmælt. Það er
   5. gr. (2) ábyrgðarskylda, ekki lagagrundvöllur.
+
+  Frá v1.19 (skipting Lifeline og Medalia): skjólstæðingurinn setur
+  skýrsluna sína inn sjálfur. Starfsmaður má aðeins gera það fyrir hans
+  hönd eftir að skjólstæðingurinn hefur leyft það í appinu, í eigin
+  innskráðri lotu (hc_journeys.staff_import_consent_at + útgáfa textans).
+  Án þess hafna innflutningsleiðir starfsfólks beiðninni (HTTP 403).
+  Leyfið má afturkalla hvenær sem er.
 
 Markaðs- og rannsóknartilgangur:
   6. gr. (1)(a) GDPR — sérstakt opt-in samþykki, hvenær sem er afturkallanlegt.
@@ -384,8 +391,9 @@ Vinnsluaðilar (28. gr. GDPR):
   - OpenAI, L.L.C. — **vinnslusamningur ógerður, í forgangi.**
     Notkun er tvíþætt og afmörkuð:
       (a) Tillaga að lífsstílsáætlun. Mæligildi, aldur, kyn og
-          viðtalsnótur fara út. Engin bein auðkenni: hvorki nafn,
-          kennitala, netfang né símanúmer.
+          samantekt skýrslunnar (stig og ráðleggingar) fara út.
+          Viðtalsnótur fara EKKI út (frá v1.19). Engin bein auðkenni:
+          hvorki nafn, kennitala, netfang né símanúmer.
       (b) Varalestur skjals sem við lesum ekki sjálf. Krefst
           staðfestingar heilbrigðisstarfsmanns í hvert sinn. Sé texti
           í skjalinu er hann hreinsaður af kennitölu, netfangi og
@@ -585,6 +593,43 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.19 (2026-10-16)
+  Skipting Lifeline og Medalia. Medalia (sjúkraskráin) annast klíníska
+  hlutann: skýrsluna, læknisviðtalið og að birta skýrsluna sjúklingi.
+  Lifeline annast þjálfunarhlutann: mælingar, áætlunarsamtal, áætlun og
+  eftirfylgd. Í samræmi við það:
+  - Læknisferli Lifeline fjarlægt: „staðfesting“ læknis á skýrslu
+    (report_generated) og tölvupósturinn um hana, SMS-áframsending
+    (cron hc-report-escalation, eytt), beiðni um mat læknis, deiling
+    skýrslu (Medalia birtir hana) og tilvísanir á lækni Lifeline,
+    heilsugæslu eða sérfræðing. Eftir stendur samband við
+    samstarfsaðila hjá Vera (með samþykki, aðeins nafn, kennitala og
+    samskiptaupplýsingar). Eldri færslur eru varðveittar og lesanlegar.
+  - Starfsfólk setur skýrslu aðeins inn með leyfi skjólstæðings í appinu
+    (staff_import_consent_at); annars HTTP 403. Nýr skjólstæðingur sem
+    stofnaður er úr skýrslu fær aðgang og boð, en skýrslan er ekki
+    vistuð. Gildi úr skýrslu eru ekki lengur afrituð í hc_results, og
+    þegar skýrsla er fjarlægð (varðveislu-cron eða af skjólstæðingi)
+    fara afleidd gildi (source 'medalia'/'report') með.
+  - Starfsfólk skráir ekki blóðgildi; aðeins mælingar Lifeline
+    (líkamssamsetning, BMI, fita, vöðvar, VO2max, styrkur,
+    blóðþrýstingur), merktar source 'station'.
+  - LEIÐRÉTTING á v1.11: þar stóð að engin klartextagögn væru eftir í
+    heilsuferðartöflunum. Það var rangt — viðtalsnótur, athugasemdir
+    eftirfylgdar, beiðni um mat læknis, tilvísunarathugasemdir og
+    hc_referrals.note/reason voru í klartexta. Þær eru nú dulkóðaðar í
+    dálki (pgcrypto + Vault, sama lykill), kveikja dulkóðar allt sem
+    skrifað er í klartextadálkana og tæmir þá, og lestur fer um
+    SECURITY DEFINER föll/sýn sem aðeins service_role hefur aðgang að.
+    Viðtalsnótur eru lífsstílsnótur fyrir áætlunina, ekki klínískt efni.
+  - Viðtalsnótur eru ekki lengur sendar til OpenAI (tillagan er gerð án
+    sérstaks samþykkis, svo frjáls texti á ekki erindi út).
+  - Samstarfsaðila-API (/api/hc/partner/*) er EKKI virkt:
+    HC_PARTNER_API_KEY er ekki stillt í framleiðslu og allar beiðnir fá
+    401. Virkjun er staðfest af þátttakanda sjálfum.
+  - Virkjunarkóði ekki lengur í efnislínu né forskoðun tölvupósts (sést
+    á læstum skjá).
 
 v1.18 (2026-10-10)
   Skráð samþykki fyrir skýrslu sem þátttakandi setur inn sjálfur. Skýrsla
@@ -872,6 +917,12 @@ Health data / Art. 9 special categories:
   GDPR Art. 9(2)(h) — healthcare provided by health professionals
                       bound by confidentiality under Act 34/2012.
 
+  Since v1.19 (the Lifeline / Medalia split) the client brings their own
+  report. Staff may import it on their behalf only after the client has
+  allowed it in the app, in their own authenticated session
+  (hc_journeys.staff_import_consent_at + the wording's version). Without
+  it the staff import paths refuse (HTTP 403). Revocable at any time.
+
 Marketing and research purposes:
   GDPR Art. 6(1)(a) — separate opt-in consent, revocable at any time.
 
@@ -1137,9 +1188,10 @@ Processors (GDPR Art. 28):
     revokes the old one.
   - OpenAI, L.L.C. — **DPA not yet in place; being prioritised.**
     Two narrow uses:
-      (a) Lifestyle-plan proposal. Measured values, age, sex and
-          interview notes are sent. No direct identifiers: no name,
-          kennitala, email or phone number.
+      (a) Lifestyle-plan proposal. Measured values, age, sex and a
+          summary of the report (scores and recommendations) are sent.
+          Interview notes are NOT sent (since v1.19). No direct
+          identifiers: no name, kennitala, email or phone number.
       (b) Fallback reading of a document we cannot parse ourselves.
           Requires a health professional to confirm each time. Where
           the document has extractable text, that text is stripped of
@@ -1344,6 +1396,43 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.19 (2026-10-16)
+  The Lifeline / Medalia split. Medalia (the medical record) runs the
+  clinical side: the report, the doctor's interview, releasing the report
+  to the patient. Lifeline runs the coaching side: measurements, the plan
+  session (Áætlunarsamtal), the plan and the follow-up. Accordingly:
+  - Lifeline's doctor workflow removed: a doctor "confirming" the report
+    (report_generated) and its email, the SMS escalation (cron
+    hc-report-escalation, deleted), doctor-review requests, sharing the
+    report (Medalia releases it) and referrals to a Lifeline doctor,
+    heilsugæsla or a specialist. What remains is contacting a Vera
+    partner (with consent; name, kennitala and contact details only).
+    Historic rows are kept and readable.
+  - Staff import a report only with the client's in-app permission
+    (staff_import_consent_at); otherwise HTTP 403. A new client created
+    from a report gets an account and an invite, but the report is not
+    stored. Report values are no longer copied into hc_results, and when
+    a report is removed (retention cron or by the client) its derived
+    values (source 'medalia'/'report') go with it.
+  - Staff no longer enter blood values; only Lifeline's own
+    measurements (body composition, BMI, fat, muscle, VO2max, strength,
+    blood pressure), recorded with source 'station'.
+  - CORRECTION to v1.11, which said no plaintext health data was left in
+    the heilsuferð tables. That was wrong: interview notes, follow-up
+    notes, doctor-review notes, referral notes and hc_referrals.note /
+    reason were plaintext. They are now column-encrypted (pgcrypto +
+    Vault, same key); a trigger encrypts anything written to the
+    plaintext columns and nulls them, and reads go through SECURITY
+    DEFINER functions / a view granted to service_role only. Interview
+    notes are lifestyle notes for the plan, not clinical content.
+  - Interview notes are no longer sent to OpenAI (proposals run without
+    a separate consent step, so free text has no business leaving).
+  - The partner API (/api/hc/partner/*) is NOT live: HC_PARTNER_API_KEY
+    is not set in production and every call gets 401. Activation is
+    confirmed by the participant themselves.
+  - The activation code is no longer in the email subject or preheader
+    (visible on lock screens).
 
 v1.18 (2026-10-10)
   Recorded consent for a self-uploaded report. A report a nurse imports is

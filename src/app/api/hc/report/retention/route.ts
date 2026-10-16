@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { removeReportDerivedResults } from "@/lib/hc/report-store";
 import { currentJourney, hcAudit, requireUser } from "@/lib/hc/server";
 import { retentionState } from "@/lib/hc/retention";
 
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
 
   if (decision === "remove") {
     await supabaseAdmin.from("hc_reports").delete().eq("id", row.id);
+    await removeReportDerivedResults(journey.id);
     await hcAudit(`self:${user.id}`, "report_removed_by_client", journey.id, {
       report_date: row.report_date, reason: "retention_review",
     });

@@ -1,28 +1,39 @@
-// Where a health check sends people, and what for.
+// Where Lifeline puts a client in touch with someone else, and what for.
 //
-// A health check is a screening, so a good share of them end in "somebody
-// else should look at this". Five destinations cover almost all of it, and
-// the common reasons are worth having as one click rather than free text —
-// both so the nurse is quick and so the doctor gets the same words every
-// time.
+// Since the Medalia split (2026-10-16) that is only Vera heilsusetur's
+// partners — physio, psychologist, nutritionist — contacted on the client's
+// behalf with their consent. Referrals to heilsugæsla or a specialist and
+// in-house doctor assessments are the doctor's, in Medalia; old rows of those
+// kinds are still readable here, but cannot be created.
 //
-// Nothing here is a diagnosis. A reason is what the doctor is being asked to
-// look at ("Fastandi blóðsykur yfir viðmiðum"), never a conclusion we drew.
-// The nurse proposes; the doctor decides.
+// Nothing here is a diagnosis. A reason is what the client wants help with
+// ("Verkur í hné"), never a conclusion we drew.
 //
 // Client-safe: no imports.
 
-// "lifeline_doctor" is the in-house one: a Lifeline doctor looks at a result
-// or a question before the plan goes further (it replaced the separate
-// "biðja lækni að meta" flag; the journey's doctor_review_* fields mirror it).
-export const REFERRAL_TARGETS = ["lifeline_doctor", "heilsugaesla", "physio", "psychologist", "nutritionist", "specialist"] as const;
-export type ReferralTarget = (typeof REFERRAL_TARGETS)[number];
+/*
+ * Medalia split (Mads, 2026-10-16): Lifeline no longer refers anyone or asks
+ * its own doctor for an assessment — the doctor's side is Medalia's. The only
+ * thing that can be created now is a Vera partner contact (physio,
+ * psychologist, nutritionist), done on the client's behalf with consent.
+ *
+ * lifeline_doctor / heilsugaesla / specialist remain in the TYPE and the
+ * labels so historic rows still render, but REFERRAL_TARGETS — the list the
+ * API accepts and the UI offers — is the partner list only.
+ */
+export const ALL_REFERRAL_TARGETS = ["lifeline_doctor", "heilsugaesla", "physio", "psychologist", "nutritionist", "specialist"] as const;
+/** Any target a stored row may have (display). */
+export type ReferralTarget = (typeof ALL_REFERRAL_TARGETS)[number];
+/** Legacy doctor-path targets: readable, never creatable. */
+export const LEGACY_REFERRAL_TARGETS = ["lifeline_doctor", "heilsugaesla", "specialist"] as const;
+export const isLegacyTarget = (t: string) => (LEGACY_REFERRAL_TARGETS as readonly string[]).includes(t);
 
-/* requested/approved/declined: the doctor's path (in-house review and advice
-   to seek heilsugæsla or a specialist). sent/failed/done: a Vera partner
-   contacted on the client's behalf — no doctor in between. */
-export const REFERRAL_STATUSES = ["requested", "approved", "declined", "done", "sent", "failed"] as const;
-export type ReferralStatus = (typeof REFERRAL_STATUSES)[number];
+/* sent/failed/done: a Vera partner contacted on the client's behalf.
+   requested/approved/declined: the removed doctor path — historic rows only. */
+export const ALL_REFERRAL_STATUSES = ["requested", "approved", "declined", "done", "sent", "failed"] as const;
+export type ReferralStatus = (typeof ALL_REFERRAL_STATUSES)[number];
+/** Statuses a row can still be moved to. */
+export const REFERRAL_STATUSES = ["sent", "failed", "done"] as const;
 
 export interface Referral {
   id: string;
@@ -64,8 +75,10 @@ export interface Partner {
  */
 export const PARTNER_TARGETS = ["physio", "psychologist", "nutritionist"] as const;
 export type PartnerProfession = (typeof PARTNER_TARGETS)[number];
+/** What can be created: the Vera partner contacts, nothing else. */
+export const REFERRAL_TARGETS: readonly ReferralTarget[] = PARTNER_TARGETS;
 export const isPartner = (t: string): t is PartnerProfession => (PARTNER_TARGETS as readonly string[]).includes(t);
-/** Heilsugæsla / specialist: advice to the client, which a doctor confirms. */
+/** Heilsugæsla / specialist (legacy): advice to the client, which a doctor confirmed. */
 export const isAdvice = (t: string) => t === "heilsugaesla" || t === "specialist";
 
 export const PROFESSION_IS: Record<PartnerProfession, { one: string; service: string }> = {
@@ -75,15 +88,15 @@ export const PROFESSION_IS: Record<PartnerProfession, { one: string; service: st
 };
 
 export const TARGET_IS: Record<ReferralTarget, { label: string; blurb: string; color: string }> = {
-  lifeline_doctor: { label: "Læknir Lifeline", blurb: "Læknir metur niðurstöðu eða spurningu áður en lengra er haldið", color: "#0F172A" },
-  heilsugaesla: { label: "Heilsugæslan", blurb: "Ráðlegging til skjólstæðings um að leita til heilsugæslu. Læknir staðfestir.", color: "#E11D48" },
+  lifeline_doctor: { label: "Læknir Lifeline (eldra ferli)", blurb: "Eldra ferli: læknir Lifeline mat niðurstöðu. Læknisþátturinn er nú í Medalia.", color: "#0F172A" },
+  heilsugaesla: { label: "Heilsugæslan (eldra ferli)", blurb: "Eldra ferli: ráðlegging um að leita til heilsugæslu. Nú í höndum læknis í Medalia.", color: "#E11D48" },
   physio: { label: "Sjúkraþjálfari (Vera)", blurb: "Samstarfsaðili (Vera heilsusetur) hefur samband við skjólstæðinginn.", color: "#F59E0B" },
   psychologist: { label: "Sálfræðingur (Vera)", blurb: "Samstarfsaðili (Vera heilsusetur) hefur samband við skjólstæðinginn.", color: "#8B5CF6" },
   nutritionist: { label: "Næringarfræðingur (Vera)", blurb: "Samstarfsaðili (Vera heilsusetur) hefur samband við skjólstæðinginn.", color: "#10B981" },
-  specialist: { label: "Sérfræðingur", blurb: "Ráðlegging til skjólstæðings um að leita til sérfræðings. Læknir staðfestir.", color: "#0EA5E9" },
+  specialist: { label: "Sérfræðingur (eldra ferli)", blurb: "Eldra ferli: ráðlegging um að leita til sérfræðings. Nú í höndum læknis í Medalia.", color: "#0EA5E9" },
 };
 
-/** In-house assessment: the doctor's answer is "assessed", not approve/decline. */
+/** In-house assessment (legacy): the doctor's answer was "assessed", not approve/decline. */
 export const isInHouse = (t: ReferralTarget) => t === "lifeline_doctor";
 
 export const STATUS_IS: Record<ReferralStatus, string> = {
@@ -140,30 +153,12 @@ export function clientShareEmail(o: { clientName: string; partnerName: string; p
 /**
  * The reasons that come up again and again, so they are one click.
  *
- * Phrased as findings, not conclusions: "Fastandi blóðsykur yfir viðmiðum"
- * rather than "sykursýki". The doctor names the condition, we do not.
+ * Phrased as what the client wants help with, not as a diagnosis. The
+ * reason stays in Lifeline (encrypted); the partner only gets contact details.
  */
 export const COMMON_REASONS: Record<ReferralTarget, string[]> = {
-  lifeline_doctor: [
-    "Óviss niðurstaða — læknir meti",
-    "Gildi á mörkum — þarf að endurtaka?",
-    "Einkenni sem skjólstæðingur lýsti í viðtali",
-    "Lyf eða saga sem gæti haft áhrif á áætlunina",
-    "Má skjólstæðingurinn hefja æfingaáætlunina?",
-  ],
-  heilsugaesla: [
-    "Fastandi blóðsykur yfir viðmiðum",
-    "HbA1c yfir viðmiðum",
-    "Insúlínviðnám (HOMA-IR yfir mörkum)",
-    "Blóðþrýstingur yfir viðmiðum",
-    "Blóðfitur yfir viðmiðum",
-    "Lifrargildi yfir viðmiðum",
-    "Þekkt sykursýki — eftirfylgd",
-    "Þekktur háþrýstingur — eftirfylgd",
-    "D-vítamín undir viðmiðum",
-    "Járnbúskapur — frekari rannsókn",
-    "Skjaldkirtill — frekari rannsókn",
-  ],
+  lifeline_doctor: [], // legacy target: not creatable
+  heilsugaesla: [], // legacy target: not creatable
   physio: [
     "Verkur í hné",
     "Verkur í baki",
@@ -190,20 +185,5 @@ export const COMMON_REASONS: Record<ReferralTarget, string[]> = {
     "Prótein undir viðmiðum",
     "Næring við styrktarþjálfun",
   ],
-  specialist: [
-    "Hjartalæknir",
-    "Innkirtlalæknir",
-    "Meltingarlæknir",
-    "Svefnrannsókn",
-    "Húðlæknir",
-    "Bæklunarlæknir",
-  ],
+  specialist: [], // legacy target: not creatable
 };
-
-/** The SMS the responsible doctor gets. ASCII-safe: Icelandic letters force
- *  UCS-2 and halve the characters per segment (see src/lib/sms.ts). */
-export function referralSms(opts: { clientName: string; target: ReferralTarget; reason: string; count: number; url: string }): string {
-  const who = TARGET_IS[opts.target].label;
-  const more = opts.count > 1 ? ` (+${opts.count - 1} onnur)` : "";
-  return `Lifeline: ny tilvisun bidur mats. ${opts.clientName} - ${who}: ${opts.reason}${more}. ${opts.url}`;
-}

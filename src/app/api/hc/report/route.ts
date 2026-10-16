@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { decryptKennitala, getClientProfile, getOrCreateJourney, hcAudit, requireUser } from "@/lib/hc/server";
+import { decryptKennitala, getClientProfile, getOrCreateJourney, hcAudit, patchJourney, requireUser } from "@/lib/hc/server";
 import { readReport } from "@/lib/hc/report-local";
 import type { ReportFile } from "@/lib/hc/report-import";
 import { SELF_CONSENT_VERSION } from "@/lib/hc/consent";
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
 
   const now = new Date().toISOString();
   const { error } = await supabaseAdmin.from("hc_reports").insert({
-    self_consent_at: now,
+    self_consent_at: now, client_approved_at: now,
     self_consent_version: SELF_CONSENT_VERSION,
     journey_id: journey.id,
     client_id: user.id,
@@ -105,7 +105,10 @@ export async function POST(req: NextRequest) {
     source: "self",
   });
   if (error) return NextResponse.json({ error: "Tókst ekki að vista skýrsluna." }, { status: 500 });
-  await supabaseAdmin.from("hc_journeys").update({ own_report_at: now }).eq("id", journey.id);
+  // Through patchJourney so the stage moves on (report → doctor's interview).
+  if (!(await patchJourney(journey.id, { own_report_at: now }, `self:${user.id}`, "own_report_in"))) {
+    await supabaseAdmin.from("hc_journeys").update({ own_report_at: now }).eq("id", journey.id);
+  }
   await hcAudit(`self:${user.id}`, "report_self_upload", journey.id, { items: read.report.items.length, date: read.reportDate });
   return NextResponse.json({ ok: true, report_date: read.reportDate, items: read.report.items.length });
 }

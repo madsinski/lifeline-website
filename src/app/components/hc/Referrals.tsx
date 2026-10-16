@@ -1,22 +1,21 @@
 "use client";
 
-// "Þarf tilvísun?" — the question a health check keeps asking.
+// Samstarfsaðilar (Vera): putting a client in touch with a Vera heilsusetur
+// partner — physio, psychologist, nutritionist — on their behalf, with
+// their consent.
 //
-// A screening finds things it is not meant to treat, so a good share of these
-// end in "somebody else should look at this". Before, that was one free-text
-// box and one destination. Now there are five destinations, the reasons that
-// come up again and again are one click, and whatever the plan proposal
-// suggested arrives as a draggable chip.
-//
-// The nurse proposes and the doctor decides — she cannot set a status, and he
-// gets a text, because a referral sitting unseen in a web page is the exact
-// failure this is for.
+// Since the Medalia split (2026-10-16) that is all this does. Advice to see
+// heilsugæsla or a specialist, and a Lifeline doctor's assessment, are the
+// doctor's, in Medalia: they cannot be created here and there is nothing to
+// decide. Rows from before the split are still listed, read-only, under the
+// settled ones. The reasons that come up again and again are one click, and
+// whatever the plan proposal suggested for a partner arrives as a chip.
 
 import { useEffect, useState } from "react";
-import { Check, Loader2, Mail, Plus, RotateCw, Send, Stethoscope, X } from "lucide-react";
+import { Check, Loader2, Mail, Plus, RotateCw, Send, Sparkles, X } from "lucide-react";
 import {
-  COMMON_REASONS, REFERRAL_TARGETS, STATUS_IS, TARGET_IS, isInHouse, isPartner, partnerStatus,
-  type Referral, type ReferralTarget,
+  COMMON_REASONS, PARTNER_TARGETS, STATUS_IS, TARGET_IS, isPartner, partnerStatus,
+  type PartnerProfession, type Referral, type ReferralTarget,
 } from "@/lib/hc/referrals";
 import { hcBtn, hcInput } from "./ui";
 
@@ -34,18 +33,19 @@ interface Staged { target: ReferralTarget; reason: string; from: "ai" | "nurse";
 /** A Vera heilsusetur partner, as the workstation sees it (no email). */
 interface PartnerLite { id: string; name: string; profession: string; organization: string }
 
-export default function Referrals({ api, journeyId, referrals, suggestions, isDoctor, onChanged }: {
+export default function Referrals({ api, journeyId, referrals, suggestions, onChanged }: {
   api: Api;
   journeyId: string;
   referrals: Referral[];
-  /** From the plan proposal, when one has been made. */
+  /** From the plan proposal, when one has been made. Only partner ones are offered. */
   suggestions?: ReferralSuggestion[];
-  isDoctor: boolean;
+  /** Kept for callers; nothing here is a doctor's decision any more. */
+  isDoctor?: boolean;
   onChanged: () => void;
 }) {
   const [staged, setStaged] = useState<Staged[]>([]);
   const [note, setNote] = useState("");
-  const [pick, setPick] = useState<ReferralTarget>("lifeline_doctor");
+  const [pick, setPick] = useState<PartnerProfession>("physio");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [over, setOver] = useState(false);
@@ -64,6 +64,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
   const needsPick = stagedPartner.some((x) => !x.partnerId);
 
   const add = (target: ReferralTarget, reason: string, from: "ai" | "nurse" = "nurse") => {
+    if (!isPartner(target)) return;
     setMsg(null);
     setStaged((prev) =>
       prev.some((x) => x.target === target && x.reason === reason) ? prev : [...prev, { target, reason, from }]);
@@ -89,34 +90,21 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
     setBusy(true); setMsg(null);
     const r = await api(`/api/vinnustod/journeys/${journeyId}/referrals`, {
       method: "POST",
-      // A doctor adding a referral has made the decision already.
       body: JSON.stringify({
         items: staged.map((x) => ({ target: x.target, reason: x.reason, note: note || null, suggested_by: x.from, partner_id: x.partnerId ?? null })),
-        decided: isDoctor, consent: stagedPartner.length ? consent : undefined,
+        consent,
       }),
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
-    if (!r) { setMsg({ ok: false, text: "Engin tenging. Tilvísunin var ekki skráð — reyndu aftur." }); return; }
+    if (!r) { setMsg({ ok: false, text: "Engin tenging. Ekkert var sent — reyndu aftur." }); return; }
     if (!r.ok) {
       const said = typeof j.error === "string" && /[áéíóúýþæöð]/i.test(j.error) ? j.error : null;
-      setMsg({ ok: false, text: said || "Tókst ekki að skrá tilvísun. Reyndu aftur." });
+      setMsg({ ok: false, text: said || "Tókst ekki að senda. Reyndu aftur." });
       return;
     }
     setStaged([]); setNote(""); setConsent(false);
-    setMsg({ ok: true, text: j.note ?? (j.notified ? "Skráð og skeyti sent til læknis." : "Skráð.") });
-    onChanged();
-  };
-
-  const DECIDED_IS = { approved: "Tilvísun samþykkt.", declined: "Skráð: ekki þörf á tilvísun.", done: "Skráð sem metið." } as const;
-  const decide = async (id: string, status: "approved" | "declined" | "done") => {
-    if (busy) return;
-    setBusy(true); setMsg(null);
-    const r = await api(`/api/vinnustod/journeys/${journeyId}/referrals`, { method: "PATCH", body: JSON.stringify({ id, status }) }).catch(() => null);
-    setBusy(false);
-    if (!r) { setMsg({ ok: false, text: "Engin tenging. Reyndu aftur." }); return; }
-    if (!r.ok) { setMsg({ ok: false, text: "Tókst ekki að uppfæra. Reyndu aftur." }); return; }
-    setMsg({ ok: true, text: DECIDED_IS[status] });
+    setMsg({ ok: true, text: j.note ?? "Sent á samstarfsaðila." });
     onChanged();
   };
 
@@ -133,10 +121,12 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
   };
 
   const partnerOpen = referrals.filter((x) => isPartner(x.target) && (x.status === "sent" || x.status === "failed"));
-  const open = referrals.filter((x) => x.status === "requested" && !isPartner(x.target));
-  const closed = referrals.filter((x) => x.status !== "requested" && !(isPartner(x.target) && (x.status === "sent" || x.status === "failed")));
+  // Everything else is settled — including doctor-path rows from before the
+  // split, which nobody decides here any more and are shown as history.
+  const closed = referrals.filter((x) => !partnerOpen.includes(x));
   const fresh = (suggestions ?? []).filter(
-    (s) => !referrals.some((r) => r.target === s.target && r.reason === s.reason) &&
+    (s) => isPartner(s.target) &&
+           !referrals.some((r) => r.target === s.target && r.reason === s.reason) &&
            !staged.some((x) => x.target === s.target && x.reason === s.reason));
 
   return (
@@ -165,46 +155,6 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         </ul>
       )}
 
-      {/* What is already on the doctor's desk */}
-      {open.length > 0 && (
-        <ul className="space-y-1.5">
-          {open.map((r) => (
-            <li key={r.id} className="rounded-hc-element bg-hc-warn-surface p-2.5 ring-1 ring-hc-warn-ink/30">
-              <p className="text-sm font-semibold text-hc-warn-ink">
-                {TARGET_IS[r.target].label}
-                <span className="ml-1.5 font-normal">· {r.reason}</span>
-              </p>
-              <p className="mt-0.5 text-[11px] text-hc-warn-ink">
-                {STATUS_IS[r.status]}
-                {r.doctor_notified_at ? " · skeyti sent" : " · skeyti ekki sent"}
-                {r.suggested_by === "ai" ? " · tillaga AI" : ""}
-              </p>
-              {r.note && <p className="mt-1 text-xs text-hc-warn-ink">{r.note}</p>}
-              {isDoctor && isInHouse(r.target) && (
-                <div className="mt-2">
-                  <button type="button" disabled={busy} onClick={() => decide(r.id, "done")}
-                    className={hcBtn.primary}>
-                    <Check className="h-4 w-4" aria-hidden /> Metið
-                  </button>
-                </div>
-              )}
-              {isDoctor && !isInHouse(r.target) && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <button type="button" disabled={busy} onClick={() => decide(r.id, "approved")}
-                    className={hcBtn.primary}>
-                    <Check className="h-4 w-4" aria-hidden /> Samþykkja
-                  </button>
-                  <button type="button" disabled={busy} onClick={() => decide(r.id, "declined")}
-                    className={hcBtn.secondary}>
-                    Ekki þörf
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
       {/* The field itself */}
       <div
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
@@ -212,7 +162,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         onDrop={onDrop}
         className={`rounded-hc-element border-2 border-dashed p-3 transition ${over ? "border-hc-brand-dark bg-hc-ok-surface" : "border-hc-control bg-hc-sunken"}`}
       >
-        <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Læknismat, ráðleggingar og samstarfsaðilar</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-hc-ink-2">Samstarfsaðilar (Vera)</p>
         {staged.length === 0 ? (
           <p className="mt-1 text-xs leading-snug text-hc-ink-2">
             Dragðu tillögu eða ástæðu hingað — eða veldu úr listanum fyrir neðan.
@@ -255,22 +205,19 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
               aria-label="Innri athugasemd"
               placeholder="Innri athugasemd — fer hvorki til skjólstæðings né meðferðaraðila"
               className={`mt-2 ${hcInput}`} />
-            {stagedPartner.length > 0 && (
-              <div className="mt-2 space-y-1.5 rounded-hc-element bg-hc-surface p-2.5 ring-1 ring-hc-hairline">
-                <p className="text-xs text-hc-ink-2">
-                  Meðferðaraðilinn fær aðeins nafn, kennitölu og samskiptaupplýsingar í tölvupósti. Ástæðan og athugasemdin fara ekki með. Skjólstæðingurinn fær afrit.
-                </p>
-                <label className="flex min-h-11 items-start gap-2 text-sm font-semibold text-hc-ink">
-                  <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[#047857]" />
-                  Skjólstæðingur hefur samþykkt að nafn, kennitala og samskiptaupplýsingar séu sendar meðferðaraðilanum
-                </label>
-              </div>
-            )}
-            <button type="button" disabled={busy || needsPick || (stagedPartner.length > 0 && !consent)} onClick={() => void send()}
+            <div className="mt-2 space-y-1.5 rounded-hc-element bg-hc-surface p-2.5 ring-1 ring-hc-hairline">
+              <p className="text-xs text-hc-ink-2">
+                Meðferðaraðilinn fær aðeins nafn, kennitölu og samskiptaupplýsingar í tölvupósti. Ástæðan og athugasemdin fara ekki með. Skjólstæðingurinn fær afrit.
+              </p>
+              <label className="flex min-h-11 items-start gap-2 text-sm font-semibold text-hc-ink">
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1 h-4 w-4 shrink-0 accent-[#047857]" />
+                Skjólstæðingur hefur samþykkt að nafn, kennitala og samskiptaupplýsingar séu sendar meðferðaraðilanum
+              </label>
+            </div>
+            <button type="button" disabled={busy || needsPick || !consent} onClick={() => void send()}
               className={`${hcBtn.primary} mt-2 w-full`}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
-              {stagedPartner.length === staged.length ? "Senda á samstarfsaðila"
-                : isDoctor ? "Skrá" : "Senda til læknis"}
+              Senda á samstarfsaðila
             </button>
           </>
         )}
@@ -284,7 +231,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
       {fresh.length > 0 && (
         <div>
           <p className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
-            <Stethoscope className="h-3.5 w-3.5" aria-hidden /> Tillögur úr greiningunni
+            <Sparkles className="h-3.5 w-3.5" aria-hidden /> Tillögur úr greiningunni
           </p>
           <ul className="space-y-1">
             {fresh.map((s) => (
@@ -312,7 +259,7 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
       <div>
         <p className="mb-1 text-xs font-bold uppercase tracking-wide text-hc-ink-2">Algengar ástæður</p>
         <div className="flex flex-wrap gap-1">
-          {REFERRAL_TARGETS.map((t) => (
+          {PARTNER_TARGETS.map((t) => (
             /* Selected is brand-dark for every target: white on the
                targets' own colours (amber, emerald, sky) failed AA, and the
                navy one vanished in the dark theme. The colour stays as a dot. */
@@ -341,9 +288,9 @@ export default function Referrals({ api, journeyId, referrals, suggestions, isDo
         <ul className="space-y-1 border-t border-hc-hairline pt-2">
           {closed.map((r) => (
             <li key={r.id} className="flex items-baseline gap-2 text-xs text-hc-ink-2">
-              <span className="font-semibold text-hc-ink-2">{TARGET_IS[r.target].label}</span>
+              <span className="font-semibold text-hc-ink-2">{TARGET_IS[r.target]?.label ?? r.target}</span>
               <span className="min-w-0 flex-1 truncate">{r.reason}</span>
-              <span className="shrink-0">{isPartner(r.target) ? partnerStatus(r, partnerName(r.partner_id)) : STATUS_IS[r.status]}</span>
+              <span className="shrink-0">{isPartner(r.target) ? partnerStatus(r, partnerName(r.partner_id)) : STATUS_IS[r.status] ?? r.status}</span>
             </li>
           ))}
         </ul>

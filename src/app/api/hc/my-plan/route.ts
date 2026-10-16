@@ -20,6 +20,7 @@ import { loadReport } from "@/lib/hc/report-store";
 import { pillarPriorities, selfServiceModule, suggestModules } from "@/lib/hc/self-plan";
 import { startPlanTrial } from "@/lib/hc/subscription";
 import { PILLARS, type Pillar, type PlanGoal, type PlanItem, type PlanModule } from "@/lib/hc/types";
+import { reportOnFile } from "@/lib/hc/stages";
 
 export const runtime = "nodejs";
 
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest) {
     library(),
     supabaseAdmin.from("hc_action_plans_decrypted").select("id, status, goals, modules, lecture_slugs, headline, version, edited_by_client_at, exercise, nutrition").eq("journey_id", journey.id).maybeSingle(),
   ]);
-  const canSee = !!(journey.report_generated_at || journey.own_report_at);
+  const canSee = !!reportOnFile(journey);
   // approvedOnly: a staff upload is not shown to the person until they
   // have confirmed it is theirs.
   const stored = canSee ? await loadReport(journey.id, user.id, true) : null;

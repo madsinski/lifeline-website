@@ -2,7 +2,9 @@
 // (the *_reminded_at / *_invited_at stamps on hc_journeys,
 // supabase/migration-hc-followup-video.sql).
 //
-//   • interview / follow-up tomorrow → time, place or video link
+//   • Áætlunarsamtal (the interview_* columns) / follow-up tomorrow → time,
+//     place or video link. The doctor's interview happens in Medalia, which
+//     sends its own reminders.
 //   • three months after the plan (plan review_date) with no follow-up booked
 //     → invitation to book the follow-up
 //   • a month before reevaluation_due_at → the re-evaluation is coming up
@@ -56,11 +58,11 @@ export async function GET(req: NextRequest) {
       const when = whenIs(j[at]!);
       const video = (kind === "interview" ? j.interview_mode : j.followup_mode ?? j.interview_mode) === "video";
       const link = kind === "interview" ? j.meeting_url : j.followup_meeting_url;
-      const what = kind === "interview" ? "Viðtalið þitt við hjúkrunarfræðing" : "Eftirfylgdarviðtalið þitt";
+      const what = kind === "interview" ? "Áætlunarsamtalið þitt" : "Eftirfylgdarviðtalið þitt";
       const body = `${what} er ${when}. ` + (video
         ? `Það fer fram í myndsímtali.${link ? ` Þú tengist hér: ${link}` : " Hlekkurinn er á heilsuferðinni þinni."} Gott er að vera á rólegum stað með heyrnartól.`
         : "Það fer fram á staðnum. Heimilisfangið er á heilsuferðinni þinni.");
-      if (await send(j.client_id!, kind === "interview" ? "Áminning: viðtal á morgun" : "Áminning: eftirfylgd á morgun", body)) {
+      if (await send(j.client_id!, kind === "interview" ? "Áminning: áætlunarsamtal á morgun" : "Áminning: eftirfylgd á morgun", body)) {
         await supabaseAdmin.from("hc_journeys").update({ [stamp]: new Date().toISOString() }).eq("id", j.id!);
         await hcAudit("system", `${kind}_reminder_sent`, j.id!);
         sent[kind]++;

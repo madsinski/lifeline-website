@@ -172,7 +172,6 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
     const q = new URLSearchParams(window.location.search);
     return q.has("google") || q.has("cal");
   });
-  const isDoctor = me.role === "doctor" || me.role === "admin";
 
   /* …and take them out of the address bar once read. CalendarConnect reads
      ?google= while rendering, so this runs after it has; left in place, a
@@ -344,7 +343,7 @@ function Workstation({ me, mode, onLogout, onPinSet }: { me: Me; mode: "worker" 
                 </section>
               </div>
             ) : (
-              <TodayView rows={rows} me={me} isDoctor={isDoctor} onOpen={open} inbox={inbox} />
+              <TodayView rows={rows} me={me} onOpen={open} inbox={inbox} />
             )}
           </div>
         )}

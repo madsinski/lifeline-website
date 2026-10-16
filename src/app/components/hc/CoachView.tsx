@@ -138,8 +138,14 @@ const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.g
 const when = (iso: string) => { const d = new Date(iso); return `${d.getDate()}. ${MO[d.getMonth()]} kl. ${hhmm(d)}`; };
 const longWhen = (iso: string) => { const d = new Date(iso); return `${DAYS_LONG[d.getDay()]} ${d.getDate()}. ${MO[d.getMonth()]}, kl. ${hhmm(d)}`; };
 
-export default function CoachView({ api, startOn, focusNewest = false, portalUrl, track }: {
+export default function CoachView({ api, startOn, startChoice, focusNewest = false, portalUrl, track }: {
   api: Api;
+  /**
+   * Open Bóka with this already picked. The health-check journey links
+   * here with "measurement" from its „Bóka mælingartíma“ button, so the
+   * person lands on the measurement list rather than the menu.
+   */
+  startChoice?: "measurement";
   /** The journey's track: "care" (health check, a nurse) or "app" (coaching). */
   track?: "care" | "app";
   /** The location's Medalia portal, for the clinical path in AskFlow. */
@@ -310,7 +316,7 @@ export default function CoachView({ api, startOn, focusNewest = false, portalUrl
       <div id={`coach-panel-${tab}`} role="tabpanel" className="space-y-4">
         {tab === "talk" && <Talk data={data} draft={draft} setDraft={setDraft} busy={busy} pending={pending}
           box={box} end={end} onSend={send} onPost={post} portalUrl={portalUrl} forms={forms} err={err} />}
-        {tab === "book" && <Book data={data} busy={busy} onPost={post} forms={forms} />}
+        {tab === "book" && <Book data={data} busy={busy} onPost={post} forms={forms} startChoice={startChoice} />}
       </div>
     </div>
   );
@@ -636,10 +642,11 @@ function Talk({ data, draft, setDraft, busy, pending, box, end, onSend, onPost, 
 
 /* ── Bóka: a menu, then a day, then a time ─────────────────────────────── */
 
-function Book({ data, busy, onPost, forms }: {
+function Book({ data, busy, onPost, forms, startChoice }: {
   data: CoachData; busy: boolean; onPost: (p: Record<string, unknown>) => Promise<boolean>; forms: RoleForms;
+  startChoice?: "measurement";
 }) {
-  const [choice, setChoice] = useState<"video" | "measurement" | null>(null);
+  const [choice, setChoice] = useState<"video" | "measurement" | null>(startChoice ?? null);
   const [picked, setPicked] = useState<string[]>([]);
   const [openBooking, setOpenBooking] = useState<Booking | null>(null);
   const { allowance, left } = data.consults;

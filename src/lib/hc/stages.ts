@@ -4,9 +4,23 @@
 // workstation queues; the account page renders the same list.
 //
 // Nothing here is advanced by an admin. Each step's "done" comes from the
-// customer (profile, welcome, checkout), the patient-portal partner API
-// (activation, blood test, results, measurements) or the workstation
-// (report, interview, plan).
+// customer (profile, welcome, checkout, activation, their own report upload)
+// or the workstation (measurements, the doctor-interview tick, the
+// Áætlunarsamtal, the plan).
+//
+// The Medalia split (Mads, 2026-10-16). Medalia is the sjúkraskrá and runs
+// the clinical side; Lifeline runs the coaching side. The check-track order:
+//
+//   activation → measurements (booked with Lifeline)
+//     → the report on file (the participant's own upload, or a nurse's
+//       import that the participant allowed in the app)
+//     → the doctor's interview in Medalia (doctor_interview_done_at, ticked)
+//     → Áætlunarsamtal with Lifeline (the interview_* columns)
+//     → plan → follow-up
+//
+// Blood-test and measurement flags are Medalia's information. They are shown
+// when present but never hold the journey back: a report on file means the
+// tests are behind the person.
 
 import type { HcJourney } from "./types";
 
@@ -16,11 +30,14 @@ export type StepKey =
   // done off the back of the same code, in the same week, and splitting them
   // into three made a customer think they were three separate errands.
   | "tests"
-  // Fetching the PDF out of the sjúklingagátt and putting it in here is the
-  // participant's own errand, on another website, with a file. It was hidden
-  // inside "report", which is about the doctor confirming the numbers.
+  /** @deprecated merged into "report" (the report step IS the upload now). Kept so old switches compile. */
   | "upload"
-  | "report" | "interview" | "plan"
+  | "report"
+  /** The doctor's interview in Medalia — Lifeline only records that it happened. */
+  | "doctor"
+  /** Lifeline's Áætlunarsamtal (plan session). The key stays "interview" for the columns behind it. */
+  | "interview"
+  | "plan"
   | "followup" | "reevaluation"
   // The app, which is a subscription and not part of the check's single fee.
   | "subscription";
@@ -41,24 +58,16 @@ const DEFS: { key: StepKey; title: string; blurb: string; optional?: boolean }[]
   { key: "profile", title: "Upplýsingar um þig", blurb: "Kennitala, sími og heimilisfang. Þú getur líka sett upp PIN og tengt dagatal." },
   { key: "welcome", title: "Móttökufyrirlestur", blurb: "Stutt kynning á ferlinu og fjórum stoðum heilsu." },
   { key: "package", title: "Pakki og greiðsla", blurb: "Veldu pakka. Stéttarfélag eða vinnuveitandi getur tekið þátt í kostnaði." },
-  { key: "tests", title: "Heilsufarsskoðunin", blurb: "Virkjaðu í sjúklingagáttinni (Medalia), bókaðu mælingar og farðu fastandi í blóðprufu." },
+  { key: "tests", title: "Virkjun og mælingar", blurb: "Virkjaðu heilsufarsskoðunina í sjúklingagáttinni (Medalia) og bókaðu mælingar hjá Lifeline." },
   /*
-   * The upload is its own step because it is its own piece of work.
-   *
-   * The health check happens in the sjúklingagátt (Medalia). The report
-   * comes out there, and it only reaches this app because somebody fetches
-   * the PDF and puts it in — which is a thing the participant does, with a
-   * file, on a different website, and it was buried inside the step about
-   * the doctor confirming the numbers. Two different people's work under
-   * one heading, so neither was clear.
-   *
-   * Satisfied by any route to a report on file: the participant's own
-   * upload (own_report_at), a nurse importing it, or one generated here.
-   * Somebody whose nurse already has it is not asked to fetch a PDF.
+   * The report is the participant's own errand: fetch the Grunnheilsa PDF
+   * from the sjúklingagátt and put it in. A nurse may do it for them, but
+   * only once they have allowed it in the app (staff_import_consent_at).
+   * Medalia releases the report; nobody at Lifeline "confirms" it.
    */
-  { key: "upload", title: "Settu skýrsluna inn", blurb: "Sæktu Grunnheilsa-skýrsluna (PDF úr sjúklingagáttinni) og settu hana hér inn." },
-  { key: "report", title: "Skýrslan þín", blurb: "Læknir Lifeline staðfestir skýrsluna þegar niðurstöður liggja fyrir." },
-  { key: "interview", title: "Viðtal", blurb: "Þú og hjúkrunarfræðingur farið yfir niðurstöðurnar og gerið áætlun." },
+  { key: "report", title: "Skýrslan þín (úr sjúklingagáttinni)", blurb: "Sæktu Grunnheilsa-skýrsluna (PDF) í sjúklingagáttina og settu hana hér inn." },
+  { key: "doctor", title: "Læknisviðtal", blurb: "Viðtal við lækni um niðurstöðurnar. Það er bókað og fer fram í sjúklingagáttinni (Medalia)." },
+  { key: "interview", title: "Áætlunarsamtal", blurb: "Þú og hjúkrunarfræðingur Lifeline gerið áætlun út frá lífsstíl þínum og markmiðum." },
   { key: "plan", title: "Aðgerðaáætlun", blurb: "Áætlunin þín til næstu þriggja mánaða." },
   /*
    * Optional, and last, because it is a different purchase.
@@ -74,27 +83,46 @@ const DEFS: { key: StepKey; title: string; blurb: string; optional?: boolean }[]
   { key: "reevaluation", title: "Endurmat eftir ár", blurb: "Eða aukaviðtal við hjúkrunarfræðing.", optional: true },
 ];
 
+/**
+ * When a report came to be on file, by any allowed route: the participant's
+ * own upload, a nurse's import with their consent, or (historic) one a
+ * Lifeline doctor confirmed. Null when there is none.
+ */
+export function reportOnFile(j: Pick<HcJourney, "own_report_at" | "report_imported_at" | "report_generated_at">): string | null {
+  return j.own_report_at ?? j.report_imported_at ?? j.report_generated_at ?? null;
+}
+
+/**
+ * When the doctor's interview (in Medalia) was recorded as done.
+ *
+ * Journeys from before the split have no tick, but a later milestone means
+ * it is behind them — historically the doctor's confirmation, the
+ * Áætlunarsamtal or a published plan — so those count rather than leaving
+ * an old journey stuck on a step that no longer exists for it.
+ */
+export function doctorInterviewDoneAt(j: HcJourney): string | null {
+  return j.doctor_interview_done_at ?? j.report_generated_at ?? j.interview_done_at ?? j.plan_published_at ?? null;
+}
+
+/** Whether a nurse may put the report in for this participant. */
+export function staffImportAllowed(j: Pick<HcJourney, "staff_import_consent_at">): boolean {
+  return !!j.staff_import_consent_at;
+}
+
 function doneAtFor(key: StepKey, j: HcJourney, profileComplete: boolean, subscribed?: boolean): string | null {
   switch (key) {
     case "account": return j.created_at;
     case "profile": return profileComplete ? (j.profile_completed_at ?? j.created_at) : null;
     case "welcome": return j.welcome_seen_at;
     case "package": return j.paid_at;
-    // Done only when all three are: the code is redeemed, the measurements
-    // are taken and the blood is drawn. The step's date is the last of them.
-    case "tests": {
-      const blood = j.blood_test_done_at ?? j.blood_results_at;
-      const all = [j.protocol_activated_at, blood, j.measurements_done_at];
-      if (all.every(Boolean)) return all.filter((x): x is string => !!x).sort().at(-1)!;
-      // The participant brought their own report in: the tests are behind them.
-      return j.own_report_at ?? null;
-    }
-    // For the journey, the report is there once it is in; the doctor's
-    // confirmation is tracked on its own (report_generated_at).
-    // Any route to a report on file counts: their own upload, a nurse's
-    // import, or one generated here.
-    case "upload": return j.own_report_at ?? j.report_imported_at ?? j.report_generated_at ?? null;
-    case "report": return j.report_generated_at ?? j.report_imported_at ?? j.own_report_at ?? null;
+    // Activation opens the step's work (measurements with Lifeline, the
+    // blood draw in Medalia). The blood/measurement flags are information,
+    // never a gate: activated is enough to move on to waiting for the
+    // report, and a report on file means the tests are behind the person.
+    case "tests": return j.protocol_activated_at ?? reportOnFile(j);
+    case "upload":
+    case "report": return reportOnFile(j);
+    case "doctor": return doctorInterviewDoneAt(j);
     case "interview": return j.interview_done_at;
     case "plan": return j.plan_published_at;
     /*
@@ -191,11 +219,12 @@ export const STEP_SHORT: Record<StepKey, string> = {
   profile: "Upplýsingar",
   welcome: "Fyrirlestur",
   package: "Greiðsla",
-  tests: "Heilsufarsskoðun",
-  upload: "Skýrslan inn",
+  tests: "Virkjun",
+  upload: "Skýrslan",
   subscription: "Appið",
-  report: "Skýrsla",
-  interview: "Viðtal",
+  report: "Skýrslan",
+  doctor: "Læknisviðtal",
+  interview: "Áætlunarsamtal",
   plan: "Áætlun",
   followup: "Eftirfylgd",
   reevaluation: "Endurmat",
@@ -227,24 +256,21 @@ export function journeyCheckpoints(steps: JourneyStep[]): JourneyCheckpoint[] {
 }
 
 /**
- * The earliest the interview can be booked.
+ * The earliest the Áætlunarsamtal (interview_* columns) should be booked.
  *
- * The lab needs time to return the blood work, and an interview held before
- * the numbers are in is an interview held twice. Two clear days after the
- * later of the blood draw and the measurements.
+ * It comes after the doctor's interview in Medalia, because the plan is
+ * built on what the doctor and the participant agreed. So: from the day the
+ * doctor's interview is recorded as done. Null until then.
  *
- * Returns null while either is still outstanding — there is nothing to count
- * from yet.
+ * INTERVIEW_WAIT_DAYS is 0 since the split — the lab wait it used to cover
+ * is Medalia's now, before the doctor's interview. Kept as an export so
+ * existing imports compile.
  */
-export const INTERVIEW_WAIT_DAYS = 2;
+export const INTERVIEW_WAIT_DAYS = 0;
 
 export function interviewEligibleFrom(j: HcJourney): Date | null {
-  const blood = j.blood_test_done_at ?? j.blood_results_at;
-  if (!blood || !j.measurements_done_at) return null;
-  const later = [blood, j.measurements_done_at].sort().at(-1)!;
-  const d = new Date(later);
-  d.setDate(d.getDate() + INTERVIEW_WAIT_DAYS);
-  return d;
+  const at = doctorInterviewDoneAt(j);
+  return at ? new Date(at) : null;
 }
 
 /** Compact stage name stored on the journey row (for queues and filters). */
@@ -253,38 +279,32 @@ export function stageFor(j: HcJourney, profileComplete: boolean): string {
   if (j.completed_at) return "completed";
   const current = journeySteps(j, profileComplete).find((s) => s.state === "current");
   if (!current) return j.plan_published_at ? "action" : "completed";
-  // A client created from a dropped-in report (or booked by staff) has
-  // clinical milestones before the customer-only steps are done. The
-  // workstation works from the clinical side, so that wins; otherwise the
-  // client sits in "profile" for ever and never reaches the to-do list.
-  //
-  // own_report_at is deliberately NOT one of those milestones.
-  //
-  // A person who uploads their own Medalia report is reading their own data.
-  // That is the viewer relationship: the report lives in Medalia, this
-  // account shows it to them. It is not a care relationship, nobody at
-  // Lifeline has taken them on, and 9(2)(h) covers processing for care BY a
-  // health professional — which has not started.
-  //
-  // Counting it here advanced such a person to "interview", and "interview"
-  // is inside the vinnustöð queue filter. That put somebody who only looked
-  // at their own results into a clinician's worklist, waiting for an
-  // appointment they never booked and have not paid for. Wrong clinically,
-  // wrong operationally, and the wrong story about what the relationship is.
-  //
-  // A clinician-side report (generated or imported by staff) still advances
-  // the journey, because that one does mean somebody has taken them on.
-  const reportIn = j.report_generated_at || j.report_imported_at;
-  if (CUSTOMER_ONLY.has(current.key) && (reportIn || j.blood_results_at || j.measurements_done_at || j.interview_booked_for || j.plan_published_at)) {
-    if (!(j.blood_test_done_at || j.blood_results_at) || !j.measurements_done_at) {
-      if (!reportIn && !j.interview_booked_for && !j.plan_published_at) return "tests";
-    }
-    if (!reportIn && !j.plan_published_at) return "report";
+  /*
+   * A client a nurse has already started with (a report she put in with
+   * their consent, measurements, a booked Áætlunarsamtal) can have those
+   * before the customer-only steps are done. The workstation works from
+   * that side, so it wins; otherwise the client sits in "profile" for ever
+   * and never reaches the to-do list.
+   *
+   * own_report_at alone is deliberately NOT one of those milestones: a
+   * person who uploads their own Medalia report without having bought the
+   * check is a viewer of their own data, not somebody Lifeline has taken
+   * on, and must not land in the vinnustöð queue. Once they have paid, the
+   * ordinary step order carries them forward and the upload counts there.
+   *
+   * Blood-test flags are Medalia's and never decide the stage.
+   */
+  const staffStarted = j.report_generated_at || j.report_imported_at || j.measurements_done_at
+    || j.doctor_interview_done_at || j.interview_booked_for || j.plan_published_at;
+  if (CUSTOMER_ONLY.has(current.key) && staffStarted) {
+    if (!reportOnFile(j) && !j.doctor_interview_done_at && !j.interview_booked_for && !j.plan_published_at) return "report";
+    if (!doctorInterviewDoneAt(j) && !j.interview_booked_for) return "doctor";
     if (!j.interview_done_at && !j.plan_published_at) return "interview";
     if (!j.plan_published_at) return "plan";
     return "action";
   }
-  return current.key;
+  // "upload" is not a stage of its own any more.
+  return current.key === "upload" ? "report" : current.key;
 }
 
 const CUSTOMER_ONLY = new Set(["account", "profile", "welcome", "package"]);
@@ -294,9 +314,10 @@ export const STAGE_LABELS: Record<string, string> = {
   profile: "Upplýsingar",
   welcome: "Móttaka",
   package: "Greiðsla",
-  tests: "Heilsufarsskoðun",
+  tests: "Virkjun og mælingar",
   report: "Bíður skýrslu",
-  interview: "Bíður viðtals",
+  doctor: "Bíður læknisviðtals (Medalia)",
+  interview: "Bíður áætlunarsamtals",
   plan: "Bíður áætlunar",
   action: "Í aðgerð",
   completed: "Lokið",

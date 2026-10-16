@@ -46,6 +46,7 @@ import { upcomingAppointments } from "@/lib/hc/upcoming";
 import { withWhen } from "@/lib/hc/plan-when";
 import type { HcJourney } from "@/lib/hc/types";
 import type { KnowledgeEntry } from "@/lib/hc/knowledge";
+import { reportOnFile } from "@/lib/hc/stages";
 
 export const runtime = "nodejs";
 
@@ -55,7 +56,7 @@ async function visibleJourney(req: NextRequest, journeyId: string) {
   if (!actor) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
 
   let q = supabaseAdmin.from("hc_journeys")
-    .select("id, client_id, location_id, report_generated_at, own_report_at")
+    .select("id, client_id, location_id, report_generated_at, report_imported_at, own_report_at")
     .eq("id", journeyId);
   /* A partner worker only sees their own sites. An empty list means "no
      sites assigned", which must deny rather than match everything. */
@@ -66,7 +67,7 @@ async function visibleJourney(req: NextRequest, journeyId: string) {
   }
   const { data } = await q.maybeSingle<{
     id: string; client_id: string; location_id: string | null;
-    report_generated_at: string | null; own_report_at: string | null;
+    report_generated_at: string | null; report_imported_at: string | null; own_report_at: string | null;
   }>();
   if (!data) return { error: NextResponse.json({ error: "not_found" }, { status: 404 }) };
   return { actor, journey: data };
@@ -169,7 +170,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       client_name: profile?.full_name ?? null,
       lectures: lectures.map((l) => ({ ...l, completed: doneSlugs.has(l!.slug) })),
       appointments: j ? upcomingAppointments(j as HcJourney, loc) : [],
-      has_report: !!j?.report_generated_at,
+      has_report: !!(j && reportOnFile(j as HcJourney)),
     });
   }
 
@@ -200,12 +201,12 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     ]);
 
   const rows = (results || []).map((r) => ({ marker: r.marker, value: Number(r.value), unit: r.unit }));
-  const flagged = journey.report_generated_at ? trafficLights(rows, (entries || []) as KnowledgeEntry[], sexOf(profile?.sex)) : [];
+  const flagged = reportOnFile(journey) ? trafficLights(rows, (entries || []) as KnowledgeEntry[], sexOf(profile?.sex)) : [];
   /* Read for the consultation, under 9(2)(h) — not gated on the client's
      confirmation, which is about their own copy. consent.visible_to_client
      tells the screen what the client can see, so the coach is never
      surprised by a report the client has not got. */
-  const report = journey.report_generated_at || journey.own_report_at
+  const report = reportOnFile(journey)
     ? await loadReport(journey.id, journey.client_id, true)
     : null;
 

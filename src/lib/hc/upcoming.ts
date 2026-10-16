@@ -38,7 +38,7 @@ export function upcomingAppointments(j: J, loc: Partial<Pick<HcLocation, "blood_
   if (live(j.interview_booked_for, 45) && !j.interview_done_at) {
     const video = j.interview_mode === "video";
     out.push({
-      kind: "interview", title: "Viðtal við hjúkrunarfræðing", at: j.interview_booked_for!, minutes: 45, video,
+      kind: "interview", title: "Áætlunarsamtal", at: j.interview_booked_for!, minutes: 45, video,
       link: video ? j.meeting_url : null, place: video ? null : place(loc?.interview_site, loc?.interview_address),
       note: "Þið farið yfir niðurstöðurnar og gerið áætlunina þína saman.",
     });

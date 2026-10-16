@@ -51,3 +51,24 @@ export const SELF_CONSENT_POINTS = [
 /** The sentence beside the tick. Short on purpose: it is the agreement. */
 export const SELF_CONSENT_LABEL =
   "Ég set þessa skýrslu inn sjálf(ur) og samþykki að Lifeline vinni með heilsufarsupplýsingarnar í henni eins og lýst er hér að ofan.";
+
+/*
+ * Letting a nurse put the report in for you (Medalia split, 2026-10-16).
+ *
+ * The report is the participant's to bring. A nurse may fetch-and-import it
+ * on their behalf only after they have allowed it here, in their own
+ * authenticated session — never on the nurse's say-so. Stored on the journey
+ * as staff_import_consent_at + staff_import_consent_version; revocable at
+ * any time (POST /api/hc/journey {action:"revoke_staff_import"}), which stops
+ * further staff imports but does not remove a report already in.
+ *
+ * Change the words, bump the version.
+ */
+export const STAFF_IMPORT_CONSENT_VERSION = "staff-import-v1";
+
+export const STAFF_IMPORT_CONSENT_LABEL =
+  "Ég leyfi hjúkrunarfræðingi Lifeline að setja Grunnheilsa-skýrsluna mína úr sjúklingagáttinni (Medalia) inn í heilsuferðina fyrir mína hönd.";
+
+/** Refusal staff see when the participant has not allowed it. */
+export const STAFF_IMPORT_REFUSED =
+  "Skjólstæðingurinn hefur ekki veitt leyfi í appinu til að hjúkrunarfræðingur setji skýrsluna inn.";

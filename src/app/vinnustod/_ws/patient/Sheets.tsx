@@ -3,29 +3,28 @@
 // What opens over a client's workspace.
 //
 // The four tabs are places; these are things you do and close again —
-// the interview, a referral, a message, a payment, the audit trail. All of
+// the Áætlunarsamtal, a Vera partner, a message, a payment, the audit trail. All of
 // them use the shared hc Sheet (portal, scroll lock, Escape, drag to
 // dismiss, aria-modal) instead of the hand-rolled overlay this page had.
 
-import { useState } from "react";
-import { Stethoscope } from "lucide-react";
 import Sheet from "@/app/components/hc/Sheet";
 import Referrals from "@/app/components/hc/Referrals";
-import { Alert } from "@/app/components/account/ui";
 import type { WsApi } from "@/app/components/hc/ws-api";
-import { dayTime, wsBtn } from "../format";
+import { dayTime } from "../format";
 import type { Detail, Record_, SheetKey } from "../tasks";
 import { InterviewSheet, interviewSheetTitle } from "./Interview";
-import { Messages } from "./Messages";
+import { Messages, type MessagePreset } from "./Messages";
 import { History, Orders } from "./steps";
 
-export function PatientSheet({ sheet, d, api, isDoctor, record, reload, onClose, onPlan }: {
+export function PatientSheet({ sheet, d, api, isDoctor, record, reload, onClose, onPlan, messagePreset }: {
   sheet: SheetKey | null | undefined;
   d: Detail; api: WsApi; isDoctor: boolean;
   record: Record_; reload: () => Promise<void>;
   onClose: () => void;
   /** Leave the interview for the plan tab. */
   onPlan: () => void;
+  /** Open the message sheet on this template rather than the default. */
+  messagePreset?: MessagePreset | null;
 }) {
   if (!sheet) return null;
   const j = d.journey;
@@ -35,15 +34,15 @@ export function PatientSheet({ sheet, d, api, isDoctor, record, reload, onClose,
     case "interview":
       return (
         <Sheet title={interviewSheetTitle(j)} onClose={onClose} max="max-w-4xl" draggable={false}>
-          {body(<InterviewSheet d={d} isDoctor={isDoctor} record={record} onPlan={onPlan} onChanged={() => void reload()} />)}
+          {body(<InterviewSheet d={d} record={record} onPlan={onPlan} />)}
         </Sheet>
       );
     case "referral":
       return (
-        <Sheet title="Læknismat og samstarfsaðilar" onClose={onClose} max="max-w-2xl">
+        <Sheet title="Samstarfsaðilar (Vera)" onClose={onClose} max="max-w-2xl">
           {body(
             <div className="space-y-4">
-              <DoctorReview d={d} isDoctor={isDoctor} record={record} />
+              <DoctorReviewHistory d={d} />
               <Referrals api={api} journeyId={j.id} referrals={d.referrals ?? []}
                 suggestions={d.ai_referrals ?? []} isDoctor={isDoctor} onChanged={() => void reload()} />
             </div>,
@@ -53,7 +52,7 @@ export function PatientSheet({ sheet, d, api, isDoctor, record, reload, onClose,
     case "messages":
       return (
         <Sheet title="SMS og tölvupóstur" onClose={onClose} max="max-w-3xl">
-          {body(<Messages d={d} reload={reload} onClose={onClose} />)}
+          {body(<Messages d={d} reload={reload} onClose={onClose} preset={messagePreset} />)}
         </Sheet>
       );
     case "orders":
@@ -72,38 +71,25 @@ export function PatientSheet({ sheet, d, api, isDoctor, record, reload, onClose,
 }
 
 /*
- * A nurse's "biðja um mat læknis", and the doctor's answer.
+ * An old "biðja um mat læknis", read-only.
  *
- * The doctor's queue has said "Beiðni um mat læknis" since the request
- * existed, but nothing in the workstation showed the request's note or let
- * a doctor record that it had been looked at — the task could be seen and
- * never cleared. It sits at the top of the referral sheet because a review
- * usually ends in a referral or in nothing, and both are decided here.
+ * The doctor's part of the health check — the interview and anything
+ * clinical — happens in Medalia since the split (2026-10-16), so nobody
+ * asks for or records a doctor's review here any more. A request made
+ * before then is still part of this person's history, so it is shown,
+ * without a button.
  */
-function DoctorReview({ d, isDoctor, record }: { d: Detail; isDoctor: boolean; record: Record_ }) {
+function DoctorReviewHistory({ d }: { d: Detail }) {
   const j = d.journey;
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
   if (!j.doctor_review_requested_at) return null;
-  if (j.doctor_reviewed_at) {
-    return (
-      <Alert tone="ok" compact title="Læknir hefur metið">
-        Beiðni frá {dayTime(j.doctor_review_requested_at)} var afgreidd {dayTime(j.doctor_reviewed_at)}.
-      </Alert>
-    );
-  }
   return (
-    <Alert tone="warn" title="Beiðni um mat læknis"
-      actions={isDoctor ? (
-        <button type="button" disabled={busy} className={wsBtn.primary}
-          onClick={async () => { setBusy(true); setErr(""); const e = await record({ action: "doctor_reviewed" }); setBusy(false); if (e) setErr(e); }}>
-          <Stethoscope className="h-4 w-4" aria-hidden /> Merkja metið
-        </button>
-      ) : undefined}>
-      <p>Send {dayTime(j.doctor_review_requested_at)}.</p>
+    <div className="rounded-xl bg-hc-sunken p-3 text-sm text-hc-ink-2">
+      <p className="font-semibold text-hc-ink">Eldri beiðni um mat læknis</p>
+      <p>
+        Send {dayTime(j.doctor_review_requested_at)}
+        {j.doctor_reviewed_at ? `, afgreidd ${dayTime(j.doctor_reviewed_at)}.` : ". Klínísk atriði eru nú skráð í Medalia."}
+      </p>
       {j.doctor_review_note && <p className="mt-1 whitespace-pre-line">„{j.doctor_review_note}“</p>}
-      {!isDoctor && <p className="mt-1">Læknir fær skeyti og afgreiðir hana hér.</p>}
-      {err && <p role="alert" className="mt-1 font-semibold">{err}</p>}
-    </Alert>
+    </div>
   );
 }

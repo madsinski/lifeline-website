@@ -145,6 +145,8 @@ function PlanPageInner() {
   const urlTab = asTab(search.get("tab"));
   /** Which Þjálfari subpage: an appointment belongs on Bóka. */
   const coachSub: "talk" | "book" = search.get("sub") === "book" ? "book" : "talk";
+  /** ?maela=1: Bóka opens on the measurement list (the journey's „Bóka mælingartíma“). */
+  const coachMeasure = coachSub === "book" && search.get("maela") === "1";
   const toast = useToast();
   const dialog = useDialog();
   const { saving, run } = useSaveStatus();
@@ -844,7 +846,7 @@ function PlanPageInner() {
                     <div className="space-y-4">
                       {next && <AppointmentCard a={next} />}
                       <EmptyState variant="waiting" title="Áætlunin er ekki tilbúin enn"
-                        body="Hún verður til í viðtalinu við hjúkrunarfræðinginn. Þú getur líka sett skýrsluna þína inn og búið áætlunina til sjálf(ur)."
+                        body="Hún verður til í áætlunarsamtalinu með hjúkrunarfræðingi Lifeline. Þú getur líka sett skýrsluna þína inn og búið áætlunina til sjálf(ur)."
                         action={{ label: "Sjá heilsuferðina", href: "/app?ferd=1" }} />
                       <ReportUpload api={api} onDone={reload} />
                       <button type="button" onClick={() => setEditing(true)} className={`${hcBtn.secondary} w-full`}>Búa til áætlun sjálf(ur) án skýrslu</button>
@@ -858,7 +860,8 @@ function PlanPageInner() {
                 <div className="print:hidden">
                   {/* Keyed on the subpage so a link to ?sub=book opens on Bóka
                       even when the coach tab is already showing. */}
-                  <CoachView key={coachSub} api={api} startOn={coachSub} focusNewest={coachFocus}
+                  <CoachView key={`${coachSub}${coachMeasure ? "-maela" : ""}`} api={api} startOn={coachSub}
+                    startChoice={coachMeasure ? "measurement" : undefined} focusNewest={coachFocus}
                     track={coaching === undefined ? undefined : coaching ? "app" : "care"} />
                   {/* Beiðnir, under the conversation: the things that need a
                       decision and an answer, tracked with a status, which a
@@ -996,7 +999,7 @@ function PlanPageInner() {
                         <p className="text-sm text-emerald-100">
                           {coaching
                             ? "Tillögur byggðar á skýrslunni. Þú velur, raðar og breytir, og getur breytt henni hvenær sem er."
-                            : "Tillögur byggðar á skýrslunni. Þú velur, raðar og breytir, og hjúkrunarfræðingurinn fer yfir hana með þér í viðtalinu."}
+                            : "Tillögur byggðar á skýrslunni. Þú velur, raðar og breytir, og hjúkrunarfræðingurinn fer yfir hana með þér í áætlunarsamtalinu."}
                         </p>
                       </div>
                       <button type="button" onClick={() => setEditing(true)} className="inline-flex min-h-11 items-center rounded-hc-element bg-hc-surface px-5 font-bold text-hc-hero-to hover:bg-hc-ok-surface">Byrja →</button>
@@ -1013,7 +1016,7 @@ function PlanPageInner() {
                       <span className="text-hc-ink-2">
                         {data.report.source === "staff_on_behalf"
                           ? "Starfsmaður Lifeline setti þessa skýrslu inn að þinni beiðni."
-                          : "Starfsmaður Lifeline las þessa skýrslu inn fyrir viðtalið þitt."}
+                          : "Starfsmaður Lifeline setti þessa skýrslu inn fyrir áætlunarsamtalið þitt."}
                       </span>
                       <button type="button" onClick={() => setTab("coach")}
                         className="ml-auto inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken">
@@ -1029,7 +1032,7 @@ function PlanPageInner() {
                       <p className="px-1 text-xs leading-relaxed text-hc-ink-3">
                         {coaching
                           ? "Þetta er skýrslan þín í einfaldaðri mynd; fullbúna skýrslan er í sjúklingagáttinni. Spurningum um niðurstöðurnar svarar læknir, ekki þjálfari."
-                          : "Þetta er heilsufarsskýrslan þín í einfaldaðri mynd. Læknir fer yfir niðurstöðurnar með þér og fullbúna skýrslan er í sjúklingagáttinni."}
+                          : "Þetta er heilsufarsskýrslan þín í einfaldaðri mynd. Fullbúna skýrslan er í sjúklingagáttinni og læknir fer yfir niðurstöðurnar með þér í læknisviðtalinu þar."}
                       </p>
                     </>
                   )}

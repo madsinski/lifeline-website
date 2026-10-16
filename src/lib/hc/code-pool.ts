@@ -67,7 +67,7 @@ async function availableFor(kind: string): Promise<number | null> {
 async function alertedRecently(action: string, kind: string): Promise<boolean> {
   const since = new Date(Date.now() - 24 * 3600_000).toISOString();
   const { count } = await supabaseAdmin.from("hc_audit").select("id", { count: "exact", head: true })
-    .eq("actor", "system:code-pool").eq("action", action).gte("created_at", since).contains("detail", { kind });
+    .eq("actor", "system:code-pool").eq("action", action).gte("at", since) /* hc_audit has "at", not created_at */.contains("detail", { kind });
   return (count ?? 0) > 0;
 }
 
@@ -105,11 +105,13 @@ async function alertEmpty(kind: string, orderId: string) {
 export function codeEmail(opts: { pkgName: string; kind: string; code: string; origin: string }) {
   const what = opts.kind === "health_check" || opts.kind === "reevaluation" ? "heilsufarsskoðunina" : "eftirfylgdina";
   return {
-    subject: `Virkjunarkóðinn þinn: ${opts.code}`,
+    // No code in the subject or preheader: both show on lock screens and in
+    // inbox previews, where anyone glancing at the phone could read it.
+    subject: "Virkjunarkóðinn þinn er tilbúinn",
     html: renderBrandedEmail({
       title: `${opts.pkgName} er greidd`,
       accentLabel: "Næsta skref",
-      preheader: `Virkjunarkóði: ${opts.code}`,
+      preheader: "Virkjunarkóðinn þinn er tilbúinn",
       bodyHtml: `<p style="margin:0 0 12px;">Takk fyrir. Næsta skref er að virkja ${what} í sjúklingagáttinni (Medalia) með þessum kóða:</p>
         <div style="font-family:ui-monospace,monospace;font-size:26px;letter-spacing:.12em;text-align:center;background:#ECFDF5;border-radius:10px;padding:16px;margin:16px 0;color:#065F46;font-weight:700;">${opts.code}</div>
         <p style="margin:0;">Þú finnur kóðann líka alltaf í heilsuferðinni í appinu.</p>`,

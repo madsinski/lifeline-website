@@ -15,15 +15,24 @@
 // the workstation and the client's account both render. The individual values
 // still wait for the nurse to tick them (POST /api/vinnustod/results).
 //
+// Consent (Medalia split, 2026-10-16): the report is the participant's to
+// bring. Staff may import it only as assistance, and only when the
+// participant has allowed it in the app (hc_journeys.staff_import_consent_at,
+// POST /api/hc/journey {action:"allow_staff_import"}). Without it: 403. Every
+// staff import is recorded as on the participant's behalf (staff_on_behalf)
+// and waits for them to confirm it is theirs before it shows in their app.
+//
 // Actor: workstation session or Lifeline staff, limited to their locations.
 
 import { after, NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { actorLocationFilter, getHcActor } from "@/lib/hc/ws-auth";
-import { hcAudit } from "@/lib/hc/server";
+import { hcAudit, refreshStage } from "@/lib/hc/server";
+import type { HcJourney } from "@/lib/hc/types";
 import { type ReportFile } from "@/lib/hc/report-import";
 import { readReport } from "@/lib/hc/report-local";
 import { buildProposal } from "@/lib/hc/propose";
+import { STAFF_IMPORT_REFUSED } from "@/lib/hc/consent";
 
 /**
  * Start the plan proposal without making anyone wait for it.
@@ -58,14 +67,20 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!actor) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await ctx.params;
 
+  // select("*") so a missing consent column reads as "no consent" rather
+  // than failing the query.
   const { data: journey } = await supabaseAdmin
     .from("hc_journeys")
-    .select("id, client_id, location_id")
+    .select("*")
     .eq("id", id)
-    .maybeSingle();
+    .maybeSingle<{ id: string; client_id: string; location_id: string | null; staff_import_consent_at?: string | null }>();
   const locs = actorLocationFilter(actor);
   if (!journey || (locs && (!journey.location_id || !locs.includes(journey.location_id)))) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  if (!journey.staff_import_consent_at) {
+    await hcAudit(actor.label, "report_import_refused_no_consent", id, {});
+    return NextResponse.json({ error: STAFF_IMPORT_REFUSED }, { status: 403 });
   }
   const form = await req.formData().catch(() => null);
   const uploaded = form?.getAll("files").filter((f): f is File => f instanceof File) ?? [];
@@ -81,8 +96,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   }
 
   const allowAi = String(form?.get("allow_ai") ?? "") === "true";
-  // Staff put the participant's own report in, at the participant's request.
-  const onBehalf = String(form?.get("on_behalf") ?? "") === "true";
+  // Always on the participant's behalf now: they allowed it in the app.
+  const onBehalf = true;
 
   try {
     const read = await readReport(files, { allowAi });
@@ -134,6 +149,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         .update({ report_imported_at: new Date().toISOString() })
         .eq("id", journey.id)
         .is("report_imported_at", null);
+      await hcAudit(actor.label, "report_imported_with_consent", id, { consent_at: journey.staff_import_consent_at });
+      // The report being in moves the stage (report → doctor).
+      const { data: fresh } = await supabaseAdmin.from("hc_journeys").select("*").eq("id", journey.id).maybeSingle();
+      if (fresh) await refreshStage(fresh as HcJourney).catch(() => null);
     
       // The report is in; start thinking about the plan now.
       proposeInBackground(journey.id, actor.label);

@@ -58,7 +58,13 @@ const today = () => new Date().toISOString().slice(0, 10);
 /** Sex-specific bands with no sex on file: we must not pick one and pretend. */
 const sexUnknown = (e: KnowledgeEntry, sex: "m" | "f" | null) => !sex && e.bands.some((b) => b.sex);
 
-export default function ResultsCard({ api, journeyId, sex, results, onSaved, reportShown, endpoint = "/api/vinnustod/results", audience = "staff" }: {
+type Category = "blood" | "body";
+const ALL_CATEGORIES: Category[] = ["blood", "body"];
+
+export default function ResultsCard({
+  api, journeyId, sex, results, onSaved, reportShown, endpoint = "/api/vinnustod/results", audience = "staff",
+  categories = ALL_CATEGORIES, title, allowImport = true, importOnBehalf = false, emptyText,
+}: {
   /** The full report is already rendered above, so listing every value here
    *  again just repeats it — a second "Niðurstöður" heading under the first. */
   reportShown?: boolean;
@@ -75,6 +81,25 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   endpoint?: string;
   /** Changes the wording, not the maths. */
   audience?: "staff" | "client";
+  /**
+   * Which markers can be entered and are listed. Since the Medalia split
+   * the workstation passes ["body"]: the health check's blood and
+   * measurement results are entered in Medalia, and what a coach records
+   * here is a follow-up measurement. Values read out of a report are still
+   * matched against every entry.
+   */
+  categories?: Category[];
+  /** Heading, in place of the default. */
+  title?: string;
+  /** Staff only: show "Lesa inn skýrslu" (the report import). */
+  allowImport?: boolean;
+  /**
+   * The client has allowed staff to fetch their copy, so the import is on
+   * their behalf by definition — no "how did it get here?" question.
+   */
+  importOnBehalf?: boolean;
+  /** What to say when nothing is recorded, in place of the default. */
+  emptyText?: string;
 }) {
   const [entries, setEntries] = useState<KnowledgeEntry[] | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
@@ -118,7 +143,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
     const fd = new FormData();
     for (const f of list) fd.append("files", f);
     if (allowAi) fd.append("allow_ai", "true");
-    if (onBehalf === true) fd.append("on_behalf", "true");
+    if (onBehalf === true || importOnBehalf) fd.append("on_behalf", "true");
     const r = await api(`/api/vinnustod/journeys/${journeyId}/import`, { method: "POST", body: fd }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setReading(false);
@@ -173,10 +198,15 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
     return () => { live = false; };
   }, [api, client, endpoint]);
 
-  // Markers a nurse can record: reference entries with numeric bands.
-  const markers = useMemo(
+  // Every marker with numeric bands: what a report's values are matched to.
+  const known = useMemo(
     () => (entries ?? []).filter((e) => (e.category === "blood" || e.category === "body") && e.bands.length > 0),
     [entries],
+  );
+  // Markers a nurse can record here and that are listed: the categories asked for.
+  const markers = useMemo(
+    () => known.filter((e) => (categories as string[]).includes(e.category)),
+    [known, categories],
   );
   const byMarker = useMemo(() => new Map(results.map((r) => [r.marker, r])), [results]);
 
@@ -204,8 +234,8 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   const recorded = markers.filter((e) => { const v = valueOf(e.slug); return v != null && Number.isFinite(v); });
   // Values read out of a report that our reference book does not cover.
   const extras = useMemo(
-    () => results.filter((r) => !markers.some((m) => m.slug === r.marker)),
-    [results, markers],
+    () => results.filter((r) => !known.some((m) => m.slug === r.marker)),
+    [results, known],
   );
 
   const save = async () => {
@@ -238,6 +268,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
   if (entries === null) return null;
 
   const pick = (v: boolean) => { setOnBehalf(v); setAsking(false); fileRef.current?.click(); };
+  const startImport = () => (importOnBehalf ? fileRef.current?.click() : setAsking(true));
 
   return (
     <section className={`${hcCard.base} p-4 sm:p-5`}>
@@ -264,7 +295,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
       )}
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="font-bold text-hc-ink">
-          {audience === "client" ? "Mínar mælingar" : reportShown ? "Skrá eða lesa gildi" : "Niðurstöður"}
+          {title ?? (audience === "client" ? "Mínar mælingar" : reportShown ? "Skrá eða lesa gildi" : "Niðurstöður")}
         </h3>
         {recorded.length > 0 && (
           <span className={badgeClass("neutral", "md")}>{recorded.length} skráð</span>
@@ -280,16 +311,16 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             {/* Staff only: it reads through the workstation's import route
                 and asks a question a participant cannot answer. A
                 participant's report goes in through ReportUpload. */}
-            {!client && <button type="button" onClick={() => setAsking(true)} disabled={reading}
+            {!client && allowImport && <button type="button" onClick={startImport} disabled={reading}
               className={hcBtn.primary}>
               {reading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <FileUp className="h-4 w-4" aria-hidden />}
-              {reading ? "Les skýrsluna…" : "Lesa úr skýrslu"}
+              {reading ? "Les skýrsluna…" : importOnBehalf ? "Lesa inn skýrslu" : "Lesa úr skýrslu"}
             </button>}
             {/* Was a pre-ticked checkbox. A box that arrives already ticked
                 records the default, not the person — so the question is asked
                 when the file is chosen instead, and this only reports back
                 what was answered. */}
-            {onBehalf !== null && (
+            {onBehalf !== null && !importOnBehalf && (
               <span className="inline-flex items-center gap-1.5 text-xs text-hc-ink-2">
                 {onBehalf ? "Skráð: að beiðni skjólstæðings" : "Skráð: lesið fyrir viðtalið"}
               </span>
@@ -330,7 +361,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
 
           <ul className="mt-2 divide-y divide-hc-hairline rounded-hc-element bg-hc-surface ring-1 ring-hc-hairline">
             {found.map((v, i) => {
-              const entry = markers.find((m) => m.slug === v.slug);
+              const entry = known.find((m) => m.slug === v.slug);
               const b = entry && !sexUnknown(entry, sex) ? bandForValue(entry, v.value, sex) : null;
               return (
                 <li key={`${v.code}-${i}`}>
@@ -371,7 +402,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
 
       {recorded.length === 0 && !editing && !found && (
         <p className="mt-2 text-sm text-hc-ink-2">
-          Engin gildi skráð. Skráðu lykilgildin úr blóðprufunni og mælingunni — þau eru þá við höndina í viðtalinu og merkt við viðmið Lifeline.
+          {emptyText ?? "Engin gildi skráð. Skráðu lykilgildin úr blóðprufunni og mælingunni — þau eru þá við höndina í viðtalinu og merkt við viðmið Lifeline."}
         </p>
       )}
 
@@ -432,7 +463,7 @@ export default function ResultsCard({ api, journeyId, sex, results, onSaved, rep
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={hcInput.replace("w-full", "w-auto")} />
           </label>
 
-          {(["blood", "body"] as const).map((cat) => {
+          {categories.map((cat) => {
             const group = markers.filter((m) => m.category === cat);
             if (!group.length) return null;
             return (

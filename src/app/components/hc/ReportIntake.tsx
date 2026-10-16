@@ -35,7 +35,7 @@ interface Identity { name: string | null; kennitala: string | null; kennitala_la
 interface Match { client_id: string; full_name: string | null; email: string | null; kennitala_last4: string | null; journey_id: string | null; confident: boolean }
 interface Value { slug: string | null; code: string; label: string; value: number; unit: string; confidence: "high" | "medium" | "low"; converted_from?: string }
 
-export default function ReportIntake({ api, onOpen, narrow = false, expanded = false }: {
+export default function ReportIntake({ api, onOpen, narrow = false, expanded = false, inviteOnly = false }: {
   api: Api;
   /**
    * Rendered in a narrow column rather than across a page.
@@ -50,12 +50,22 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
   expanded?: boolean;
   /** Open the client's workspace once the report has landed. */
   onOpen: (journeyId: string) => void;
+  /**
+   * Only the invite: create the account and send the welcome, nothing else.
+   *
+   * Since the Medalia split (2026-10) the health check's report is produced
+   * and signed in Medalia, and the copy here is the client's — their own
+   * upload, or a staff import they have allowed. Taking a new person on by
+   * dropping their clinical report in is not that, so the workstation's
+   * "Nýr skjólstæðingur" shows the invite and no dropzone.
+   */
+  inviteOnly?: boolean;
 }) {
   const [over, setOver] = useState(false);
   /* The invite half. Separate state from the dropzone's, because the two
      paths fail differently and a shared `msg` would show a parse error
      under an invite form. */
-  const [invite, setInvite] = useState(expanded);
+  const [invite, setInvite] = useState(expanded || inviteOnly);
   const [iName, setIName] = useState("");
   const [iEmail, setIEmail] = useState("");
   const [iPhone, setIPhone] = useState("");
@@ -154,10 +164,10 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
 
   return (
     <section
-      onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+      onDragOver={(e) => { e.preventDefault(); if (!inviteOnly) setOver(true); }}
       onDragLeave={() => setOver(false)}
-      onDrop={(e) => { e.preventDefault(); setOver(false); if (!busy && !result && e.dataTransfer.files?.length) void read(e.dataTransfer.files); }}
-      className={`rounded-hc-hero border-2 border-dashed p-5 transition ${over ? "border-hc-brand-dark bg-hc-ok-surface" : "border-hc-control bg-hc-surface"}`}
+      onDrop={(e) => { e.preventDefault(); setOver(false); if (!inviteOnly && !busy && !result && e.dataTransfer.files?.length) void read(e.dataTransfer.files); }}
+      className={inviteOnly ? "" : `rounded-hc-hero border-2 border-dashed p-5 transition ${over ? "border-hc-brand-dark bg-hc-ok-surface" : "border-hc-control bg-hc-surface"}`}
     >
       {/* Stacked or in a row, decided by the caller.
           My first attempt used sm:, which reads the viewport — and the
@@ -171,13 +181,13 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
           It read as a file dropper that happened to create people, so the
           only way to take somebody on was to already have their report —
           fine when the report arrived first, useless after a phone call. */}
-      {!result && (
+      {!result && !inviteOnly && (
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wide text-hc-ink-2">
           Nýr skjólstæðingur
         </h2>
       )}
 
-      {!result && (
+      {!result && !inviteOnly && (
         <div className={narrow
           ? "flex flex-col gap-3"
           : "flex flex-wrap items-center gap-4"}>
@@ -203,7 +213,7 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
           one thing: dropping a report is the common case and should not
           have to share the first screen with a form. */}
       {!result && (
-        <div className="mt-4 border-t border-hc-hairline pt-3">
+        <div className={inviteOnly ? "" : "mt-4 border-t border-hc-hairline pt-3"}>
           {!invite ? (
             <button type="button" onClick={() => setInvite(true)}
               className={`${hcBtn.ghost} w-full`}>
@@ -212,6 +222,11 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
           ) : (
             <div className="space-y-2">
               <p className="text-sm font-semibold text-hc-ink">Bjóða skjólstæðingi</p>
+              {inviteOnly && (
+                <p className="text-xs leading-snug text-hc-ink-2">
+                  Aðgangur er stofnaður og boð sent. Skýrslan kemur síðar: skjólstæðingurinn setur afritið inn sjálfur eða leyfir okkur að sækja það.
+                </p>
+              )}
               <input value={iName} onChange={(e) => setIName(e.target.value)} placeholder="Nafn"
                 aria-label="Nafn" className={hcInput} />
               <input value={iEmail} onChange={(e) => setIEmail(e.target.value)} placeholder="Netfang" type="email"
@@ -260,10 +275,12 @@ export default function ReportIntake({ api, onOpen, narrow = false, expanded = f
                   {iBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
                   Senda boð
                 </button>
-                <button type="button" onClick={() => { setInvite(false); setIMsg(""); }}
-                  className={hcBtn.ghost}>
-                  Hætta við
-                </button>
+                {!inviteOnly && (
+                  <button type="button" onClick={() => { setInvite(false); setIMsg(""); }}
+                    className={hcBtn.ghost}>
+                    Hætta við
+                  </button>
+                )}
               </div>
               {iMsg.text && (
                 <p role={iMsg.bad ? "alert" : "status"}
