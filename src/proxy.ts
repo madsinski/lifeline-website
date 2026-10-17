@@ -106,10 +106,13 @@ function guessLocale(acceptLanguage: string | null): "is" | "en" {
   return langs.length ? "en" : "is";
 }
 
-function localeGuessInit(request: NextRequest): { request: { headers: Headers } } | undefined {
-  if (request.cookies.has("ll-locale")) return undefined;
+function localeGuessInit(request: NextRequest): { request: { headers: Headers } } {
+  // Ours alone: a guess the browser sent itself is always dropped.
   const headers = new Headers(request.headers);
-  headers.set("x-ll-locale-guess", guessLocale(request.headers.get("accept-language")));
+  headers.delete("x-ll-locale-guess");
+  if (!request.cookies.has("ll-locale")) {
+    headers.set("x-ll-locale-guess", guessLocale(request.headers.get("accept-language")));
+  }
   return { request: { headers } };
 }
 

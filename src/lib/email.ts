@@ -172,7 +172,10 @@ export function renderWelcomeEmail(params: {
   /** The account's language (user_metadata.locale). Default Icelandic. */
   locale?: string | null;
 }) {
-  const { companyName, recipientName, welcomeUrl, loginUrl, appAccess } = params;
+  const { companyName, recipientName, loginUrl, appAccess } = params;
+  // Built from the request's Origin upstream, so only a plain http(s) URL
+  // goes into an href; anything else falls back to the account page.
+  const welcomeUrl = /^https?:\/\/[^\s"'<>]+$/.test(params.welcomeUrl) ? params.welcomeUrl : "https://www.lifelinehealth.is/account";
   const isB2B = !!companyName;
   const enFirst = params.locale === "en";
 
