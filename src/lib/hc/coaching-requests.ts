@@ -244,7 +244,8 @@ export async function cancelRequest(clientId: string): Promise<boolean> {
 /** The subscription started: the approval is spent. Called from activateSubscription. */
 export async function markRequestUsed(clientId: string, subscriptionId: string): Promise<void> {
   const { data: live } = await supabaseAdmin.from("hc_coaching_requests").select("id")
-    .eq("client_id", clientId).eq("status", "approved").order("decided_at", { ascending: false }).limit(1);
+    .eq("client_id", clientId).eq("status", "approved").gt("expires_at", new Date().toISOString())
+    .order("decided_at", { ascending: false }).limit(1);
   const id = live?.[0]?.id as string | undefined;
   if (!id) return;
   await supabaseAdmin.from("hc_coaching_requests")
