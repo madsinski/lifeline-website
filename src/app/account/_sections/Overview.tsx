@@ -7,7 +7,9 @@ import { useI18n } from "@/lib/i18n";
 import AccountPromoCard from "@/app/components/AccountPromoCard";
 import { Alert, Button, ButtonLink, fmtDateTime, fmtIsk } from "@/app/components/account/ui";
 import CurrentBookings from "../_components/CurrentBookings";
-import { AppCard, NextStepCard, WelcomeHero } from "../_components/OverviewCards";
+import { AppCard, ContinueCard, NextStepCard, StartChoices, WelcomeHero } from "../_components/OverviewCards";
+import { useSearchParams } from "next/navigation";
+import { safeNextPath } from "@/lib/signup-consent";
 import { packageName } from "../_components/packages";
 import type { SectionProps } from "../_components/context";
 
@@ -16,6 +18,10 @@ export default function OverviewSection({ user, state: s, patch, actions, open, 
   const isB2C = !s.companyId;
   const rr = s.resolvedRefund;
   const pending = isB2C && s.bodyCompStatus === "none" ? s.pendingBooking : null;
+  /* Nothing booked, bought or started yet: a new personal account. */
+  const isNew = isB2C && s.bodyCompStatus === "none" && !s.pendingBooking && !s.subscription
+    && Object.keys(s.journeyChecks ?? {}).length === 0;
+  const next = safeNextPath(useSearchParams().get("next"));
 
   return (
     <>
@@ -51,7 +57,12 @@ export default function OverviewSection({ user, state: s, patch, actions, open, 
         </Alert>
       )}
 
-      {!pending && (
+      {/* Signup carried a purchase intent (?next=): one tap back to it. */}
+      {next && <ContinueCard next={next} />}
+
+      {/* A new account chooses where to start; nothing opens by itself. */}
+      {!pending && isNew && <StartChoices />}
+      {!pending && !isNew && (
         <NextStepCard journey={journey} hasBooking={!isB2C || s.bodyCompStatus !== "none"} sectionHref={hrefFor("heilsumat")} />
       )}
 

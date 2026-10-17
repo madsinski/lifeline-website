@@ -20,7 +20,7 @@ import LoginAudienceTabs from "@/app/components/LoginAudienceTabs";
 import PinPad from "@/app/components/hc/PinPad";
 import { useI18n } from "@/lib/i18n";
 import { authErrorIs, isEmailNotConfirmed } from "@/lib/auth-errors-is";
-import { ensureSignupConsentRecorded, safeNextPath } from "@/lib/signup-consent";
+import { accountLandingPath, ensureSignupConsentRecorded, safeNextPath } from "@/lib/signup-consent";
 import { ResendConfirmation } from "@/app/byrja/CheckEmail";
 
 export default function AccountLoginPage() {
@@ -70,7 +70,7 @@ function NewPassword() {
   const { t } = useI18n();
   const router = useRouter();
   /* Business admins reset from /business/login with next=/business/account;
-     everyone else lands in the app. */
+     everyone else lands on /account. */
   const next = safeNextPath(useSearchParams().get("next"));
   const [ready, setReady] = useState<boolean | null>(null);
   const [pw, setPw] = useState("");
@@ -87,14 +87,14 @@ function NewPassword() {
   }, []);
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw.length < 12) { setErr(t("acct.login.min12", "Lykilorðið þarf að vera minnst 12 stafir.")); return; }
+    if (pw.length < 12) { setErr(t("acct.login.min12", "Lykilorðið þarf að vera að minnsta kosti 12 stafir.")); return; }
     if (pw !== pw2) { setErr(t("acct.login.nomatch", "Lykilorðin eru ekki eins.")); return; }
     setBusy(true);
     setErr("");
     const { error } = await supabase.auth.updateUser({ password: pw });
     setBusy(false);
     if (error) { setErr(authErrorIs(error)); return; }
-    router.push(next || "/app");
+    router.push(next || "/account");
   };
   return (
     <AuthShell>
@@ -107,9 +107,9 @@ function NewPassword() {
       ) : (
         <form onSubmit={save} className="mt-5 space-y-4">
           <label className="block">
-            <span className={authLabel}>Nýtt lykilorð</span>
+            <span className={authLabel}>{t("acct.login.newpw", "Nýtt lykilorð")}</span>
             <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" className={authInput} />
-            <span className="mt-1 block text-xs text-hc-ink-3">Minnst 12 stafir</span>
+            <span className="mt-1 block text-xs text-hc-ink-3">{t("byrja.password.hint", "Að minnsta kosti 12 stafir")}</span>
           </label>
           <label className="block">
             <span className={authLabel}>{t("acct.login.newpwagain", "Nýtt lykilorð aftur")}</span>
@@ -159,12 +159,12 @@ function AccountLoginContent() {
       .catch(() => {});
   }, []);
 
-  /* Where to go once signed in: a validated same-origin next, else the app.
+  /* Where to go once signed in: a validated same-origin next, else /account.
      The consent copy runs first so the opt-outs are on the row before any
      page reads them. */
   const proceed = async () => {
     await ensureSignupConsentRecorded();
-    router.push(nextPath || "/app");
+    router.push(nextPath || "/account");
   };
 
   const handlePin = async (value: string) => {
@@ -178,7 +178,7 @@ function AccountLoginContent() {
     if (!r) {
       setLoading(false);
       setPin("");
-      setPinError("Engin tenging. Athugaðu netið og reyndu aftur.");
+      setPinError(t("byrja.err.offline", "Engin tenging. Athugaðu netið og reyndu aftur."));
       return;
     }
     const j = await r.json().catch(() => ({}));
@@ -186,11 +186,11 @@ function AccountLoginContent() {
       setLoading(false);
       setPin("");
       if (j.locked || j.error === "no_device") {
-        setPinError("Of margar rangar tilraunir. Skráðu þig inn með lykilorði.");
+        setPinError(t("acct.login.pin-locked", "Of margar rangar tilraunir. Skráðu þig inn með lykilorði."));
         setPinAvailable(null);
         setUsePin(false);
       } else {
-        setPinError("Rangt PIN. Reyndu aftur.");
+        setPinError(t("acct.login.pin-wrong", "Rangt PIN. Reyndu aftur."));
       }
       return;
     }
@@ -245,7 +245,7 @@ function AccountLoginContent() {
       above={<LoginAudienceTabs active="personal" />}
       footer={
         <>
-          Ekki með aðgang? <Link href={signupHref} className={authLink}>Stofna aðgang</Link>
+          {t("acct.login.no-account", "Ekki með aðgang?")} <Link href={signupHref} className={authLink}>{t("byrja.title", "Stofna aðgang")}</Link>
         </>
       }
     >
@@ -257,7 +257,7 @@ function AccountLoginContent() {
       {usePin && pinAvailable ? (
         <div className="mt-6">
           <p className="text-center text-sm text-hc-ink-2">
-            Sláðu inn PIN{pinAvailable.email_hint ? <> {t("acct.q.for", "fyrir")} <span className="font-medium text-hc-ink">{pinAvailable.email_hint}</span></> : null}
+            {t("acct.login.enter-pin", "Sláðu inn PIN")}{pinAvailable.email_hint ? <> {t("acct.q.for", "fyrir")} <span className="font-medium text-hc-ink">{pinAvailable.email_hint}</span></> : null}
           </p>
           <div className="mt-5">
             <PinPad value={pin} onChange={setPin} onComplete={handlePin} disabled={loading} error={!!pinError} accent="#047857" />
@@ -278,7 +278,7 @@ function AccountLoginContent() {
             <input
               type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
               autoComplete="email" placeholder="nafn@netfang.is"
-              onInvalid={(e) => e.currentTarget.setCustomValidity("Sláðu inn gilt netfang.")}
+              onInvalid={(e) => e.currentTarget.setCustomValidity(t("byrja.email.invalid", "Sláðu inn gilt netfang."))}
               onInput={(e) => e.currentTarget.setCustomValidity("")}
               className={authInput}
             />
@@ -289,12 +289,12 @@ function AccountLoginContent() {
               <input
                 type={showPw ? "text" : "password"} required value={password}
                 onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
-                onInvalid={(e) => e.currentTarget.setCustomValidity("Sláðu inn lykilorðið.")}
+                onInvalid={(e) => e.currentTarget.setCustomValidity(t("acct.login.pw-required", "Sláðu inn lykilorðið."))}
                 onInput={(e) => e.currentTarget.setCustomValidity("")}
                 className={`${authInput} pr-12`}
               />
               <button type="button" onClick={() => setShowPw((v) => !v)}
-                aria-label={showPw ? "Fela lykilorð" : "Sýna lykilorð"} aria-pressed={showPw}
+                aria-label={showPw ? t("byrja.password.hide", "Fela lykilorð") : t("byrja.password.show", "Sýna lykilorð")} aria-pressed={showPw}
                 className="absolute right-1 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-hc-element text-hc-ink-2 hover:bg-hc-sunken-2">
                 {showPw ? <EyeOff className="h-5 w-5" aria-hidden /> : <Eye className="h-5 w-5" aria-hidden />}
               </button>
@@ -314,7 +314,7 @@ function AccountLoginContent() {
               email={email}
               /* No fragment: the confirmation link puts its own tokens in the
                  hash, and a #askrift there would collide with them. */
-              redirectTo={typeof window !== "undefined" ? `${window.location.origin}${(nextPath || "/app").split("#")[0]}` : ""}
+              redirectTo={typeof window !== "undefined" ? `${window.location.origin}${accountLandingPath(nextPath)}` : ""}
             />
           )}
         </form>

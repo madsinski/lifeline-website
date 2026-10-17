@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Building2, CheckCircle2, Hourglass, ShieldCheck, Smartphone } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, FileText, Hourglass, ShieldCheck, Smartphone, Stethoscope } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
@@ -145,11 +145,100 @@ export function NextStepCard({ journey, hasBooking, sectionHref }: {
   );
 }
 
+/**
+ * A new account's first screen: three clear ways to start, nothing opened
+ * for them. Each is a plain link; the setup wizard (/app/uppsetning) and the
+ * shop (/app/eg/thjonusta) take it from there.
+ */
+export function StartChoices() {
+  const { t } = useI18n();
+  const choices = [
+    {
+      href: "/app/uppsetning",
+      icon: Smartphone,
+      title: t("acc.start.app.title", "Setja upp appið"),
+      body: t("acc.start.app.body", "Veldu markmið og fáðu daglega áætlun í appinu."),
+    },
+    {
+      href: "/app/eg/thjonusta",
+      icon: Stethoscope,
+      title: t("acc.start.check.title", "Heilsufarsskoðun"),
+      body: t("acc.start.check.body", "Mæling, blóðprufa og læknisviðtal. Keyptu skoðunina í heild eða stakan hluta."),
+    },
+    {
+      href: "/app/uppsetning?skref=skyrsla",
+      icon: FileText,
+      title: t("acc.start.report.title", "Ég er með skýrslu úr heilsufarsskoðun"),
+      body: t("acc.start.report.body", "Settu inn skýrsluna og byrjaðu á áætlun sem byggir á henni."),
+    },
+  ];
+  return (
+    <section aria-labelledby="start-choices-title" className="rounded-hc-card bg-hc-surface p-5 shadow-hc-raised ring-1 ring-slate-200 sm:p-6">
+      <h2 id="start-choices-title" className="text-xl font-bold text-hc-ink">{t("acc.start.title", "Hvar viltu byrja?")}</h2>
+      <p className="mt-1 text-sm leading-relaxed text-hc-ink-2">
+        {t("acc.start.lede", "Veldu það sem hentar þér núna. Þú getur alltaf bætt hinu við síðar.")}
+      </p>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+        {choices.map((c) => (
+          <li key={c.href}>
+            <Link
+              href={c.href}
+              className="flex h-full min-h-11 flex-col gap-2 rounded-hc-element border-2 border-hc-border bg-hc-surface p-4 transition hover:border-hc-brand-dark hover:bg-hc-brand-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-hc-brand"
+            >
+              <c.icon className="h-6 w-6 text-hc-brand-text" aria-hidden />
+              <span className="font-bold leading-snug text-hc-ink">{c.title}</span>
+              <span className="text-sm leading-relaxed text-hc-ink-2">{c.body}</span>
+              <span className="mt-auto inline-flex items-center gap-1 pt-1 text-sm font-semibold text-hc-brand-text">
+                {t("acc.start.go", "Áfram")} <ArrowRight className="h-4 w-4" aria-hidden />
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Where a signup started from a purchase button was headed (?next=). */
+function continueLabel(next: string, t: (k: string, f?: string) => string): string | null {
+  const path = next.split(/[?#]/)[0];
+  if (path.startsWith("/app/eg/thjonusta")) return t("acc.continue.check", "Heilsufarsskoðun");
+  if (path.startsWith("/app/askrift") || next.includes("askrift")) return t("acc.continue.subscription", "Áskrift að appinu");
+  if (path.startsWith("/app")) return t("acc.continue.app", "Appið");
+  return null;
+}
+
+/**
+ * „Halda áfram þar sem frá var horfið“ — shown on /account when signup
+ * carried a purchase intent (?next=, already validated same-origin). The
+ * account comes first; this card is one tap back to what they were doing.
+ */
+export function ContinueCard({ next }: { next: string }) {
+  const { t, tv } = useI18n();
+  const what = continueLabel(next, t);
+  return (
+    <section aria-labelledby="continue-title" className="rounded-hc-card bg-hc-brand-surface p-5 shadow-hc-raised ring-2 ring-hc-brand-dark sm:p-6">
+      <p className={`${hcKicker} flex items-center gap-1.5 text-hc-brand-text`}>
+        <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+        {t("acc.continue.kicker", "Halda áfram")}
+      </p>
+      <h2 id="continue-title" className="mt-1.5 text-xl font-bold text-hc-ink">
+        {what
+          ? tv("acc.continue.title-what", "Halda áfram þar sem frá var horfið: {{what}}", { what })
+          : t("acc.continue.title", "Halda áfram þar sem frá var horfið")}
+      </h2>
+      <div className="mt-4">
+        <ButtonLink href={next}>{t("acc.continue.cta", "Halda áfram")}</ButtonLink>
+      </div>
+    </section>
+  );
+}
+
 /** The app, prominently: it is where the day-to-day happens. */
 export function AppCard({ sectionHref }: { sectionHref: string }) {
   const { t } = useI18n();
   return (
-    <SectionCard icon={Smartphone} title={t("acct.p.lifeline-appid", "Lifeline appið")}
+    <SectionCard icon={Smartphone} title={t("acct.p.lifeline-appid", "Lifeline-appið")}
       description={t("acc.app.card-desc", "Daglegar aðgerðir, æfingar, næring, svefn og andleg líðan, með áætlun sem er þín. Appið keyrir í vafranum, engin uppsetning úr verslun.")}>
       <div className="flex flex-wrap gap-2">
         <ButtonLink href="/app">{t("acct.p.opna-appid", "Opna appið")}</ButtonLink>

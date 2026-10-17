@@ -30,7 +30,7 @@ const DOC_TITLE_IS = (t: (k: string, f?: string) => string): Record<string, stri
   "terms-of-service": t("acct.docs.tos", "Notkunarskilmálar (TOS)"),
   "data-processing-agreement": "Vinnslusamningur (DPA)",
   "employee-terms-of-service": t("acct.docs.stafftos", "Notkunarskilmálar fyrir starfsmenn"),
-  "health-assessment-consent": t("acct.doc.consent", "Upplýst samþykki fyrir heilsumat"),
+  "health-assessment-consent": t("acct.doc.consent", "Upplýst samþykki fyrir heilsufarsskoðun"),
   "biody-import-v1": t("acct.docs.biody", "Samþykki fyrir Biody-innflutning í app"),
   "privacy-policy": t("acct.docs.privacy", "Persónuverndarstefna"),
 }
@@ -91,7 +91,7 @@ export default function SignedDocumentsList() {
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-2" aria-busy="true" aria-label={t("acct.docs.loading", "Hleð skjölum")}>
+      <div className="animate-pulse space-y-2" aria-busy="true" aria-label={t("acct.docs.loading", "Sæki skjöl")}>
         <div className="h-12 rounded-hc-element bg-hc-sunken-2" />
         <div className="h-12 rounded-hc-element bg-hc-sunken" />
       </div>

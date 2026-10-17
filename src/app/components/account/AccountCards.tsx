@@ -106,7 +106,7 @@ export function ProfileCard() {
       </div>
       {!p && loadError && <Alert tone="bad" compact className="mt-3">{t("comp.ac.loadfailed", "Tókst ekki að sækja persónuupplýsingarnar. Endurhlaððu síðuna til að reyna aftur.")}</Alert>}
       {!p && !loadError && (
-        <div className="mt-3 grid animate-pulse gap-x-6 gap-y-3 sm:grid-cols-2" aria-busy="true" aria-label={t("comp.ac.loading", "Hleð persónuupplýsingum")}>
+        <div className="mt-3 grid animate-pulse gap-x-6 gap-y-3 sm:grid-cols-2" aria-busy="true" aria-label={t("comp.ac.loading", "Sæki persónuupplýsingar")}>
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i}>
               <div className="h-3 w-20 rounded bg-hc-sunken-2" />
@@ -227,7 +227,7 @@ export function DeleteAccountCard() {
     if (text !== t("comp.ac.deleteword", "EYÐA")) return;
     setBusy(true); setErr("");
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setErr(t("comp.ac.notsignedin", "Þú ert ekki innskráð(ur).")); setBusy(false); return; }
+    if (!session) { setErr(t("comp.ac.notsignedin", "Skráðu þig inn til að halda áfram.")); setBusy(false); return; }
     const r = await fetch("https://cfnibfxzltxiriqxvvru.supabase.co/functions/v1/delete-user", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },

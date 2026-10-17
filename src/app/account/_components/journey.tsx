@@ -433,7 +433,7 @@ function WhatsNext({ isB2C }: { isB2C: boolean }) {
       </p>
       <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-hc-card bg-hc-surface p-4 ring-1 ring-slate-200">
-          <p className="flex items-center gap-2 font-semibold text-hc-ink"><Smartphone className="h-5 w-5 text-hc-brand-text" aria-hidden />{t("acc.wn.daily", "Daglega: Lifeline appið")}</p>
+          <p className="flex items-center gap-2 font-semibold text-hc-ink"><Smartphone className="h-5 w-5 text-hc-brand-text" aria-hidden />{t("acc.wn.daily", "Daglega: Lifeline-appið")}</p>
           <ul className="mt-3 space-y-3 text-sm">
             <li>
               <p className="font-semibold text-hc-ink">{t("acct.q.selfmanaged", "Sjálfstýrð vegferð")}</p>
@@ -469,7 +469,7 @@ function WhatsNext({ isB2C }: { isB2C: boolean }) {
             ) : (
               <>
                 <p className="text-xs leading-relaxed text-hc-ink-2">{t("acc.wn.employer", "Vinnuveitandinn þinn skipuleggur næstu heildarumferð. Við sendum þér póst þegar opnað er fyrir bókanir.")}</p>
-                <p className="text-xs leading-relaxed text-hc-ink-3">{t("acct.q.extracheckin", "Viltu aukaeftirfylgd fyrr? Þú getur greitt fyrir hana sjálf(ur) á milli umferða hjá vinnuveitanda.")}</p>
+                <p className="text-xs leading-relaxed text-hc-ink-3">{t("acct.q.extracheckin", "Viltu aukaeftirfylgd fyrr? Þú getur greitt fyrir hana á milli umferða hjá vinnuveitanda.")}</p>
                 <ButtonLink href="/account/book" size="sm" variant="secondary">{t("acct.q.bookextra", "Bóka aukaeftirfylgd")}</ButtonLink>
               </>
             )}

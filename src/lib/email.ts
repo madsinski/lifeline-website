@@ -149,6 +149,19 @@ export function renderBrandedEmail(input: BrandedEmailInput): string {
 </body></html>`;
 }
 
+/** Subject for renderWelcomeEmail: Icelandic unless the account chose English. */
+export function welcomeEmailSubject(companyName: string | null, locale?: string | null): string {
+  const base = locale === "en"
+    ? "Your Lifeline Health account is ready"
+    : "Aðgangurinn þinn hjá Lifeline Health er tilbúinn";
+  return companyName ? `${base} — ${companyName}` : base;
+}
+
+/**
+ * Welcome mail after onboarding. Icelandic first with an English version
+ * below it; an account that chose English (user_metadata.locale = "en")
+ * gets English first and Icelandic below.
+ */
 export function renderWelcomeEmail(params: {
   companyName: string | null;
   recipientName: string;
@@ -156,92 +169,158 @@ export function renderWelcomeEmail(params: {
   loginUrl: string;
   /** Employer included Lifeline app access (an active subscription was created). */
   appAccess?: boolean;
+  /** The account's language (user_metadata.locale). Default Icelandic. */
+  locale?: string | null;
 }) {
   const { companyName, recipientName, welcomeUrl, loginUrl, appAccess } = params;
   const isB2B = !!companyName;
+  const enFirst = params.locale === "en";
 
-  // Steps + copy differ by flow. B2B assumes the employer scheduled an
-  // on-site measurement day and authorised Sameind days. B2C books their
-  // own Foundational assessment + walks in at any Sameind station.
-  const steps: Array<{ title: string; body: string }> = isB2B
-    ? [
-        { title: "Book your body-composition slot.", body: "Your employer scheduled an on-site measurement day. Pick a 5-minute time that works for you." },
-        { title: "Book a blood-test day.", body: "Choose one of the days your employer authorised for a walk-in at Sameind (08:00–12:00)." },
-        { title: "Doctor review.", body: "A Lifeline doctor reviews your results and creates your personal health plan." },
-        { title: "See your results.", body: "View them in your Lifeline portal and in Medalia, our secure medical record system." },
-      ]
-    : [
-        { title: "Book your assessment.", body: "Pick a package and a 20-minute slot at the Lifeline station in Reykjavík." },
-        { title: "Walk in for your blood test.", body: "Your standing Sameind referral lets you walk in at any Sameind station during opening hours. Fast from midnight the night before — water only." },
-        { title: "Doctor review.", body: "A Lifeline doctor reviews your results and creates your personal health plan." },
-        { title: "See your results.", body: "View them in your Lifeline dashboard and in Medalia, our secure medical record system." },
-      ];
+  type Lang = "is" | "en";
+  type Step = { title: string; body: string };
 
-  const viaLine = companyName ? ` via ${companyName}` : "";
-  const privacyLine = companyName
-    ? `All your health data stays confidential — ${companyName} never sees individual results.`
-    : "All your health data stays confidential — only you and your Lifeline clinician see your individual results.";
+  // Steps differ by flow. B2B: the employer scheduled an on-site measurement
+  // day and authorised Sameind days. B2C: the person buys the check (or a
+  // part of it) on their Lifeline account and books from there.
+  const STEPS: Record<Lang, Step[]> = isB2B
+    ? {
+        is: [
+          { title: "Bókaðu tíma í mælingu.", body: "Vinnuveitandinn þinn hefur skipulagt mælingadag á vinnustaðnum. Veldu 5 mínútna tíma sem hentar þér." },
+          { title: "Veldu dag fyrir blóðprufu.", body: "Veldu einn af þeim dögum sem vinnuveitandinn hefur samþykkt og mættu hjá Sameind (kl. 08:00–12:00)." },
+          { title: "Yfirferð læknis.", body: "Læknir Lifeline fer yfir niðurstöðurnar og útbýr persónulega heilsuáætlun." },
+          { title: "Skoðaðu niðurstöðurnar.", body: "Þú sérð þær á aðganginum þínum hjá Lifeline og í Medalia, öruggri sjúkraskrá." },
+        ],
+        en: [
+          { title: "Book your body-composition slot.", body: "Your employer scheduled an on-site measurement day. Pick a 5-minute time that works for you." },
+          { title: "Book a blood-test day.", body: "Choose one of the days your employer authorised for a walk-in at Sameind (08:00–12:00)." },
+          { title: "Doctor review.", body: "A Lifeline doctor reviews your results and creates your personal health plan." },
+          { title: "See your results.", body: "View them in your Lifeline account and in Medalia, our secure medical record system." },
+        ],
+      }
+    : {
+        is: [
+          { title: "Veldu heilsufarsskoðun.", body: "Þú kaupir skoðunina í heild eða stakan hluta á aðganginum þínum og færð virkjunarkóða fyrir sjúklingagáttina." },
+          { title: "Mæling.", body: "Líkamssamsetning og blóðþrýstingur á stöð Lifeline. Þú bókar tímann í appinu." },
+          { title: "Blóðprufa.", body: "Þú mætir fastandi á hvaða blóðprufustöð Sameindar sem er. Vatn er í lagi." },
+          { title: "Yfirferð læknis.", body: "Læknir Lifeline fer yfir niðurstöðurnar og ræðir þær við þig í læknisviðtali." },
+        ],
+        en: [
+          { title: "Choose your health check.", body: "Buy the full check or a single part on your account and get an activation code for the patient portal." },
+          { title: "Measurement.", body: "Body composition and blood pressure at a Lifeline station. Book your time in the app." },
+          { title: "Blood test.", body: "Walk in, fasting, at any Sameind blood collection station. Water is fine." },
+          { title: "Doctor review.", body: "A Lifeline doctor reviews your results and goes over them with you in a doctor interview." },
+        ],
+      };
 
-  // App-access section — only when the employer included the Lifeline app.
-  // Until the stores are live (APP_LIVE) we promise the link rather than ship
-  // one that 404s.
-  const appText = appAccess
-    ? (APP_LIVE
-        ? `\nYour plan includes the Lifeline app — your personal plan, daily actions, programmes and coaching, in your pocket. Sign in with this same email and password.
-Download: App Store ${APP_STORE_URL} · Google Play ${PLAY_STORE_URL}\n`
-        : `\nYour plan includes the Lifeline app — your personal plan, daily actions, programmes and coaching, in your pocket. It launches soon on iPhone and Android; we'll email you the download link, and you'll sign in with this same email and password.\n`)
-    : "";
+  const COPY: Record<Lang, {
+    hi: string; ready: string; stepsTitle: string; privacy: string; app: string; appSoon: string;
+    start: string; later: string; questions: string; heading: string;
+  }> = {
+    is: {
+      hi: `Hæ ${recipientName},`,
+      heading: `Aðgangurinn þinn er tilbúinn, ${recipientName}`,
+      // Said about the account, not the person: „Þú ert skráð/ur“ is gendered.
+      ready: companyName
+        ? `Aðgangurinn þinn hjá Lifeline Health er tilbúinn í gegnum ${companyName}.`
+        : "Aðgangurinn þinn hjá Lifeline Health er tilbúinn.",
+      stepsTitle: "Skrefin fjögur í heilsufarsskoðuninni",
+      privacy: companyName
+        ? `Heilsufarsupplýsingarnar þínar eru trúnaðarmál. ${companyName} sér aldrei einstakar niðurstöður, aðeins hvort skoðuninni sé lokið.`
+        : "Heilsufarsupplýsingarnar þínar eru trúnaðarmál. Aðeins þú og læknir Lifeline sjáið einstakar niðurstöður.",
+      app: "Lifeline-appið fylgir áskriftinni: áætlunin þín, daglegar aðgerðir, æfingakerfi og þjálfun. Þú skráir þig inn með sama netfangi og lykilorði.",
+      appSoon: "Appið kemur bráðlega fyrir iPhone og Android og við sendum þér hlekkinn í tölvupósti.",
+      start: "Byrja hér",
+      later: "Eða skráðu þig inn síðar",
+      questions: "Spurningar? Svaraðu þessum pósti eða skrifaðu á",
+    },
+    en: {
+      hi: `Hi ${recipientName},`,
+      heading: `Your account is ready, ${recipientName}`,
+      ready: companyName
+        ? `You're registered with Lifeline Health via ${companyName}.`
+        : "Your Lifeline Health account is ready.",
+      stepsTitle: "The four steps of your health check",
+      privacy: companyName
+        ? `Your health data stays confidential. ${companyName} never sees individual results — only whether you've completed the check.`
+        : "Your health data stays confidential — only you and your Lifeline doctor see your individual results.",
+      app: "Your plan includes the Lifeline app: your personal plan, daily actions, programmes and coaching. Sign in with this same email and password.",
+      appSoon: "It launches soon on iPhone and Android; we'll email you the download link.",
+      start: "Start here",
+      later: "Or sign in later",
+      questions: "Questions? Reply to this email or write to",
+    },
+  };
+  const order: Lang[] = enFirst ? ["en", "is"] : ["is", "en"];
 
-  const text = `Hi ${recipientName},
+  const textBlock = (l: Lang) => {
+    const c = COPY[l];
+    const appText = appAccess ? `\n${c.app}${APP_LIVE ? `\nApp Store ${APP_STORE_URL} · Google Play ${PLAY_STORE_URL}` : ` ${c.appSoon}`}\n` : "";
+    return `${c.hi}
 
-You're registered with Lifeline Health${viaLine}. 🎉
+${c.ready}
 
-Your health assessment has four steps:
+${c.stepsTitle}:
 
-${steps.map((s, i) => `  ${i + 1}. ${s.title} ${s.body}`).join("\n")}
+${STEPS[l].map((s, i) => `  ${i + 1}. ${s.title} ${s.body}`).join("\n")}
 
-${privacyLine}
+${c.privacy}
 ${appText}
-Start here: ${welcomeUrl}
-Or sign in later: ${loginUrl}
+${c.start}: ${welcomeUrl}
+${c.later}: ${loginUrl}`;
+  };
 
-— Lifeline Health`;
+  const text = `${textBlock(order[0])}
+
+— Lifeline Health
+
+──────────
+${order[1] === "en" ? "In English" : "Á íslensku"}
+
+${textBlock(order[1])}`;
 
   const logoUrl = lifelineLogoUrl(welcomeUrl);
-  const privacyHtml = companyName
-    ? `🔒 All health data stays confidential. ${escapeHtml(companyName)} never sees individual results — only whether you've completed the assessment.`
-    : "🔒 Your health data stays confidential — only you and your Lifeline clinician see your individual results.";
+  const primary = order[0];
+  const second = order[1];
+  const c1 = COPY[primary];
+  const c2 = COPY[second];
 
-  const html = `<!doctype html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
-  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
-    ${lifelineLogoHeaderHtml(logoUrl, welcomeUrl)}
-    <div style="padding:32px;">
-    <h1 style="margin:0 0 8px;font-size:22px;color:#111827;">You&apos;re in, ${escapeHtml(recipientName)} 🎉</h1>
-    <p style="margin:0 0 20px;color:#4b5563;">
-      Your Lifeline Health account is ready${companyName ? ` — welcomed aboard by <strong>${escapeHtml(companyName)}</strong>` : ""}.
-    </p>
-    <p style="margin:0 0 12px;color:#4b5563;"><strong>Your four steps</strong></p>
-    <ol style="margin:0 0 20px;padding-left:20px;color:#4b5563;line-height:1.7;">
-      ${steps.map((s) => `<li><strong>${escapeHtml(s.title)}</strong> ${escapeHtml(s.body)}</li>`).join("\n      ")}
-    </ol>
-    <p style="margin:0 0 20px;color:#4b5563;font-size:13px;background:#F0FDF4;border:1px solid #BBF7D0;padding:10px 14px;border-radius:8px;">
-      ${privacyHtml}
-    </p>
-    ${appAccess ? `<div style="margin:0 0 20px;padding:16px;border:1px solid #DDD6FE;background:#F5F3FF;border-radius:12px;">
-      <p style="margin:0 0 6px;font-weight:600;color:#5B21B6;">📱 The Lifeline app is included in your plan</p>
+  const appHtml = (c: typeof c1) => appAccess ? `<div style="margin:0 0 20px;padding:16px;border:1px solid #DDD6FE;background:#F5F3FF;border-radius:12px;">
       <p style="margin:0 0 ${APP_LIVE ? "12" : "0"}px;color:#4b5563;font-size:13px;line-height:1.6;">
-        Your personal plan, daily actions, programmes and coaching live in the mobile app — sign in with this same email and password.${APP_LIVE ? "" : " It launches soon on iPhone and Android; we'll email you the download link."}
+        ${escapeHtml(c.app)}${APP_LIVE ? "" : ` ${escapeHtml(c.appSoon)}`}
       </p>
       ${APP_LIVE ? `<div>
         <a href="${APP_STORE_URL}" style="display:inline-block;margin-right:8px;padding:8px 16px;background:#111827;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px;">App Store</a>
         <a href="${PLAY_STORE_URL}" style="display:inline-block;padding:8px 16px;background:#111827;color:white;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px;">Google Play</a>
       </div>` : ""}
-    </div>` : ""}
+    </div>` : "";
+
+  const html = `<!doctype html>
+<html lang="${primary}"><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;padding:40px 0;margin:0;">
+  <div style="max-width:560px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);">
+    ${lifelineLogoHeaderHtml(logoUrl, welcomeUrl)}
+    <div style="padding:32px;">
+    <h1 style="margin:0 0 8px;font-size:22px;color:#111827;">${escapeHtml(c1.heading)}</h1>
+    <p style="margin:0 0 20px;color:#4b5563;">${escapeHtml(c1.ready)}</p>
+    <p style="margin:0 0 12px;color:#4b5563;"><strong>${escapeHtml(c1.stepsTitle)}</strong></p>
+    <ol style="margin:0 0 20px;padding-left:20px;color:#4b5563;line-height:1.7;">
+      ${STEPS[primary].map((s) => `<li><strong>${escapeHtml(s.title)}</strong> ${escapeHtml(s.body)}</li>`).join("\n      ")}
+    </ol>
+    <p style="margin:0 0 20px;color:#4b5563;font-size:13px;background:#F0FDF4;border:1px solid #BBF7D0;padding:10px 14px;border-radius:8px;">
+      ${escapeHtml(c1.privacy)}
+    </p>
+    ${appHtml(c1)}
     <div style="text-align:center;margin:28px 0;">
-      <a href="${welcomeUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">Start here</a>
+      <a href="${welcomeUrl}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#3b82f6,#10b981);color:white;border-radius:10px;text-decoration:none;font-weight:600;">${escapeHtml(c1.start)}</a>
     </div>
-    <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">Questions? Reply to this email or write to <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.</p>
+    <p style="margin:20px 0 0;color:#6b7280;font-size:13px;">${escapeHtml(c1.questions)} <a href="mailto:contact@lifelinehealth.is">contact@lifelinehealth.is</a>.</p>
+    <div lang="${second}" style="margin:26px 0 0;padding-top:18px;border-top:1px solid #F1F5F9;">
+      <p style="margin:0 0 6px;color:#94A3B8;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;">${second === "en" ? "In English" : "Á íslensku"}</p>
+      <p style="margin:0 0 8px;color:#64748B;font-size:12px;line-height:1.6;">${escapeHtml(c2.ready)}</p>
+      <ol style="margin:0 0 8px;padding-left:18px;color:#64748B;font-size:12px;line-height:1.6;">
+        ${STEPS[second].map((s) => `<li><strong>${escapeHtml(s.title)}</strong> ${escapeHtml(s.body)}</li>`).join("\n        ")}
+      </ol>
+      <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">${escapeHtml(c2.privacy)}${appAccess ? ` ${escapeHtml(c2.app)}` : ""} <a href="${welcomeUrl}" style="color:#10B981;">${escapeHtml(c2.start)}</a></p>
+    </div>
     </div>
   </div>
 </body></html>`;

@@ -141,7 +141,7 @@ function Onboard() {
     }
   };
 
-  if (loading) return <AccountLoading label={t("acct.ob.loading", "Hleð…")} />;
+  if (loading) return <AccountLoading label={t("acct.ob.loading", "Augnablik…")} />;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-hc-brand-surface via-white to-white">
@@ -152,7 +152,7 @@ function Onboard() {
         {email && (
           <div className={`${accountInset} flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-xs`}>
             <span className="text-hc-ink-2">
-              {t("acct.ob.signedinas", "Skráð(ur) inn sem")} <strong className="font-mono text-hc-ink">{email}</strong>
+              {t("acct.ob.signedinas", "Innskráning:")} <strong className="font-mono text-hc-ink">{email}</strong>
             </span>
             <Button variant="link" onClick={async () => {
               const ok = await confirm({
@@ -226,14 +226,14 @@ function StageIndicator({ stage }: { stage: Stage }) {
 function WelcomeStage({ firstName, onContinue }: { firstName: string; onContinue: () => void }) {
   const { t, tv } = useI18n();
   const after = [
-    { icon: ShieldCheck, title: t("account.steps.1.title", "Farðu í heilsumat"), body: t("acct.ob.s1desc", "Bókaðu grunnheilsufarsskoðunina þína á mælingastöð Lifeline í Reykjavík.") },
+    { icon: ShieldCheck, title: t("account.steps.1.title", "Farðu í heilsufarsskoðun"), body: t("acct.ob.s1desc", "Bókaðu grunnheilsufarsskoðunina þína á mælingastöð Lifeline í Reykjavík.") },
     { icon: ClipboardCheck, title: t("account.steps.2.title", "Fáðu skýrsluna þína"), body: t("acct.ob.s2desc", "Lifeline-læknir fer yfir niðurstöðurnar þínar og setur saman persónulega áætlun.") },
     { icon: Zap, title: t("account.steps.3.title", "Byrjaðu þjálfun"), body: t("acct.ob.s3desc", "Daglegar aðgerðir í hreyfingu, næringu, svefni og andlegri líðan — í appinu.") },
   ];
   return (
     <div className="space-y-5">
-      <PageHero kicker={t("acct.ob.welcome", "Velkomin(n) til Lifeline Health")}
-        title={firstName ? tv("acct.ob.hi", "Hæ, {{name}}", { name: firstName }) : t("acct.ob.welcome", "Velkomin(n) til Lifeline Health")}
+      <PageHero kicker={t("acct.ob.welcome", "Gott að sjá þig hjá Lifeline Health")}
+        title={firstName ? tv("acct.ob.hi", "Hæ, {{name}}", { name: firstName }) : t("acct.ob.welcome", "Gott að sjá þig hjá Lifeline Health")}
         body={t("acct.ob.lede", "Lifeline Health sameinar markvissa heilsufarsskoðun og persónulega daglega þjálfun. Þekktu tölurnar þínar, byggðu upp betri venjur og fylgstu með framförum — með leiðsögn íslenskra lækna og þjálfara.")} />
 
       <SectionCard title={t("acct.ob.next", "Hvað gerist næst")} description={t("acct.ob.twosteps", "Tvö stutt skref svo við getum sett upp Lifeline-aðganginn þinn og líkamssamsetningarsniðið.")}>
@@ -270,10 +270,10 @@ function ConsentStage({ acceptHealth, setAcceptHealth, onBack, onContinue }: {
 }) {
   const { t, tv } = useI18n();
   return (
-    <SectionCard title={t("acct.doc.consent", "Upplýst samþykki fyrir heilsumat")}
-      description={t("acct.ob.gdpr", "Áður en þú getur hafið heilsumat þarftu að veita upplýst samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga. Samþykkið er skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni. Þú færð staðfestingarskjal með tölvupósti.")}>
+    <SectionCard title={t("acct.doc.consent", "Upplýst samþykki fyrir heilsufarsskoðun")}
+      description={t("acct.ob.gdpr", "Áður en þú getur hafið heilsufarsskoðun þarftu að veita upplýst samþykki fyrir vinnslu heilsufarsupplýsinga skv. 9. gr. GDPR og laga nr. 74/1997 um réttindi sjúklinga. Samþykkið er skráð rafrænt með tímastimpli, IP-tölu og vafraauðkenni. Þú færð staðfestingarskjal með tölvupósti.")}>
       <h3 className="mb-2 text-sm font-semibold text-hc-ink">
-        {tv("acct.p.consent-version", "Upplýst samþykki fyrir heilsumat ({{v}})", { v: HEALTH_CONSENT_VERSION })}
+        {tv("acct.p.consent-version", "Upplýst samþykki fyrir heilsufarsskoðun ({{v}})", { v: HEALTH_CONSENT_VERSION })}
       </h3>
       <pre className="max-h-72 overflow-y-auto whitespace-pre-wrap rounded-hc-element bg-hc-sunken p-4 font-sans text-[12px] leading-relaxed text-hc-ink-2 ring-1 ring-hc-hairline">
 {renderHealthAssessmentConsent()}

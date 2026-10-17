@@ -61,7 +61,7 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="text-center md:text-left">
               <h3 className="text-lg font-semibold text-white mb-1">
-                {t('footer.newsletter.title', 'Vertu uppfærð/ur')}
+                {t('footer.newsletter.title', 'Fáðu fréttir frá okkur')}
               </h3>
               <p className="text-sm text-gray-400">
                 {t('footer.newsletter.desc', 'Fáðu heilsuráð og Lifeline fréttir beint í pósthólfið þitt.')}
@@ -110,7 +110,7 @@ export default function Footer() {
             </div>
             <p className="text-gray-400 text-sm font-semibold mb-1">Lifeline Health ehf.</p>
             <p className="text-gray-400 text-sm leading-relaxed">
-              {t('footer.tagline', 'Yfirgripsmikið heilsumat og persónuleg dagleg þjálfun.')}
+              {t('footer.tagline', 'Heilsufarsskoðun og persónuleg dagleg þjálfun.')}
             </p>
           </div>
 
@@ -122,7 +122,7 @@ export default function Footer() {
             <ul className="space-y-3">
               {[
                 { href: "/", key: "footer.home", fallback: "Heim" },
-                { href: "/assessment", key: "footer.health_assessment", fallback: "Heilsumat" },
+                { href: "/assessment", key: "footer.health_assessment", fallback: "Heilsufarsskoðun" },
                 { href: "/coaching", key: "footer.coaching", fallback: "Þjálfun" },
                 { href: "/contact", key: "footer.contact_link", fallback: "Hafa samband" },
               ].map((link) => (
@@ -143,7 +143,7 @@ export default function Footer() {
             <ul className="space-y-3">
               <li>
                 <Link href="/assessment" className="text-sm text-gray-300 hover:text-white transition-colors duration-200">
-                  {t('footer.health_assessment', 'Heilsumat')}
+                  {t('footer.health_assessment', 'Heilsufarsskoðun')}
                 </Link>
               </li>
               <li>

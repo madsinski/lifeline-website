@@ -1,17 +1,22 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "./supabase";
-
-type Locale = "en" | "is";
+import { icelandicOnly, isLocale, readLocaleCookie, writeLocaleCookie, type Locale } from "./locale";
 
 interface TranslationMap {
   [key: string]: { en: string; is: string };
 }
 
+interface SetLocaleOptions {
+  /** Also store it on the signed-in account (default true). */
+  saveToAccount?: boolean;
+}
+
 interface I18nContextType {
   locale: Locale;
-  setLocale: (locale: Locale) => void;
+  setLocale: (locale: Locale, opts?: SetLocaleOptions) => void;
   t: (key: string, fallback?: string) => string;
   /**
    * A string with values in it.
@@ -27,8 +32,8 @@ interface I18nContextType {
 }
 
 const I18nContext = createContext<I18nContextType>({
-  // Icelandic, like DEFAULT_LOCALE below: a component rendered outside the
-  // provider should not quietly fall back to English.
+  // Icelandic: a component rendered outside the provider should not quietly
+  // fall back to English.
   locale: "is",
   setLocale: () => {},
   t: (_key: string, fallback?: string) => fallback || "",
@@ -37,54 +42,90 @@ const I18nContext = createContext<I18nContextType>({
   loading: true,
 });
 
-// Default locale used on both server and client during the first render.
-// The user's saved preference is applied in a post-mount effect — reading
-// localStorage inside the useState initializer caused a server/client
-// hydration mismatch (server returned "is", client returned the saved
-// value), surfacing as React error #418 on virtually every route.
-const DEFAULT_LOCALE: Locale = "is";
+/*
+ * The language comes from the server.
+ *
+ * The root layout reads the ll-locale cookie (src/lib/i18n-server.ts),
+ * renders <html lang> with it and passes the language plus that language's
+ * translations in here, so server and client agree on the first render. The
+ * old localStorage read in a post-mount effect painted Icelandic for a frame
+ * and then swapped; reading it any earlier tore hydration (React #418).
+ *
+ * Changing language writes the cookie and asks the server for the page again
+ * (router.refresh), which brings the other language's strings. Until they
+ * arrive the inline fallbacks show.
+ *
+ * /app is Icelandic-only for now, whatever the cookie says.
+ */
+export function I18nProvider({ children, initialLocale = "is", initialTranslations, chosen = true }: {
+  children: ReactNode;
+  initialLocale?: Locale;
+  /** That language's strings, { key: text }, fetched on the server. */
+  initialTranslations?: Record<string, string>;
+  /** False when the visitor has not picked a language yet (no cookie). */
+  chosen?: boolean;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [picked, setPicked] = useState<Locale>(initialLocale);
+  /* A new server render (after router.refresh, or a cookie copied from the
+     account on login) brings a new initialLocale: follow it. Adjusted during
+     render, the documented way to reset state from a prop. */
+  const [seenInitial, setSeenInitial] = useState<Locale>(initialLocale);
+  if (seenInitial !== initialLocale) {
+    setSeenInitial(initialLocale);
+    setPicked(initialLocale);
+  }
+  const locale: Locale = icelandicOnly(pathname) ? "is" : picked;
 
-export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
-  const [translations, setTranslations] = useState<TranslationMap>({});
-  const [loading, setLoading] = useState(true);
+  /* Fallback only: when the server could not load translations, fetch both
+     languages in the browser as before. */
+  const serverHasMap = !!initialTranslations && Object.keys(initialTranslations).length > 0;
+  const [clientMap, setClientMap] = useState<TranslationMap | null>(null);
+  const [loading, setLoading] = useState(!serverHasMap);
 
-  // Apply the saved locale only after first render so SSR and the
-  // initial hydration agree on `is`. If the user previously picked
-  // `en`, the page paints Icelandic for one frame then swaps — that's
-  // acceptable and far better than tearing the whole React tree.
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("ll-locale");
-      if (saved === "en" || saved === "is") {
-        setLocaleState(saved as Locale);
-        document.documentElement.lang = saved;
-      }
-    } catch { /* ignore */ }
-  }, []);
+    document.documentElement.lang = locale;
+  }, [locale]);
 
-  const setLocale = useCallback((l: Locale) => {
-    setLocaleState(l);
-    try { localStorage.setItem("ll-locale", l); } catch {}
+  /* Visitors from before the cookie existed have their choice in
+     localStorage: move it into the cookie once, and render in it. */
+  useEffect(() => {
+    if (chosen || readLocaleCookie()) return;
+    let saved: string | null = null;
+    try { saved = localStorage.getItem("ll-locale"); } catch { /* private mode */ }
+    if (!isLocale(saved)) return;
+    writeLocaleCookie(saved);
+    if (saved !== initialLocale) router.refresh();
+  }, [chosen, initialLocale, router]);
+
+  const setLocale = useCallback((l: Locale, opts?: SetLocaleOptions) => {
+    setPicked(l);
+    writeLocaleCookie(l);
+    try { localStorage.setItem("ll-locale", l); } catch { /* private mode */ }
     document.documentElement.lang = l;
-  }, []);
+    router.refresh();
+    if (opts?.saveToAccount !== false) {
+      void supabase.auth.getSession().then(({ data }) => {
+        const u = data.session?.user;
+        if (u && u.user_metadata?.locale !== l) {
+          void supabase.auth.updateUser({ data: { locale: l } }).catch(() => null);
+        }
+      }).catch(() => null);
+    }
+  }, [router]);
 
   /*
-   * Load translations from Supabase, in pages.
+   * Load translations from Supabase, in pages — only when the server did not.
    *
-   * This used to be one unpaginated select, which worked right up until the
-   * table passed a thousand rows. PostgREST caps a response at max-rows
-   * (1000 by default) and says nothing about it: you get 1000 rows and no
-   * error. Every key past the cap then fell through to its inline fallback,
-   * so the interface silently reverted to Icelandic for part of itself —
-   * and which part depended on whatever order Postgres felt like returning.
-   *
-   * It is ordered by key so the pages tile without gaps or repeats; an
-   * unordered range query can return the same row twice and miss another.
+   * PostgREST caps a response at max-rows (1000 by default) and says nothing
+   * about it, so this is ordered by key and paged; an unordered range query
+   * can return the same row twice and miss another.
    */
   useEffect(() => {
+    if (serverHasMap) return;
+    let alive = true;
     (async () => {
-      setLoading(true);
       try {
         const PAGE = 1000;
         const map: TranslationMap = {};
@@ -97,32 +138,35 @@ export function I18nProvider({ children }: { children: ReactNode }) {
           if (error || !data) break;
           for (const row of data) {
             const r = row as { key: string; en: string; is_text: string | null; approved: boolean };
-            map[r.key] = {
-              en: r.en,
-              is: r.is_text || r.en,
-            };
+            map[r.key] = { en: r.en, is: r.is_text || r.en };
           }
           if (data.length < PAGE) break;
         }
-        if (Object.keys(map).length) setTranslations(map);
-      } catch {}
-      setLoading(false);
+        if (alive && Object.keys(map).length) setClientMap(map);
+      } catch { /* inline fallbacks stay */ }
+      if (alive) setLoading(false);
     })();
-  }, []);
+    return () => { alive = false; };
+  }, [serverHasMap]);
 
   const t = useCallback((key: string, fallback?: string) => {
-    const entry = translations[key];
-    if (!entry) return fallback || key;
-    return locale === "is" ? entry.is : entry.en;
-  }, [translations, locale]);
+    if (serverHasMap && initialTranslations && locale === initialLocale) {
+      return initialTranslations[key] ?? (fallback || key);
+    }
+    const entry = clientMap?.[key];
+    if (entry) return locale === "is" ? entry.is : entry.en;
+    return fallback || key;
+  }, [serverHasMap, locale, initialLocale, initialTranslations, clientMap]);
 
   const tv = useCallback(
     (key: string, fallback: string, vars: Record<string, string | number>) =>
       t(key, fallback).replace(/\{\{(\w+)\}\}/g, (_m, k: string) => String(vars[k] ?? "")),
     [t]);
 
+  const value = useMemo(() => ({ locale, setLocale, t, tv, loading }), [locale, setLocale, t, tv, loading]);
+
   return (
-    <I18nContext.Provider value={{ locale, setLocale, t, tv, loading }}>
+    <I18nContext.Provider value={value}>
       {children}
     </I18nContext.Provider>
   );
@@ -135,9 +179,9 @@ export function useI18n() {
 // Language picker — a segmented pill toggle (IS | EN) with a clear active
 // state in the brand emerald. `className` is applied to the wrapper so callers
 // can stretch it full-width (mobile) or leave it inline (desktop).
-const LOCALE_OPTIONS: { value: Locale; flag: string; label: string }[] = [
-  { value: "is", flag: "🇮🇸", label: "IS" },
-  { value: "en", flag: "🇬🇧", label: "EN" },
+const LOCALE_OPTIONS: { value: Locale; label: string; name: string }[] = [
+  { value: "is", label: "IS", name: "Íslenska" },
+  { value: "en", label: "EN", name: "English" },
 ];
 
 export function LanguagePicker({ className = "" }: { className?: string }) {
@@ -146,7 +190,7 @@ export function LanguagePicker({ className = "" }: { className?: string }) {
   return (
     <div
       role="group"
-      aria-label="Language / Tungumál"
+      aria-label="Tungumál / Language"
       className={`inline-flex items-center gap-0.5 rounded-full border border-gray-200 bg-gray-50/80 p-0.5 ${className}`}
     >
       {LOCALE_OPTIONS.map((o) => {
@@ -157,15 +201,16 @@ export function LanguagePicker({ className = "" }: { className?: string }) {
             type="button"
             onClick={() => setLocale(o.value)}
             aria-pressed={active}
-            title={o.value === "is" ? "Íslenska" : "English"}
-            className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+            aria-label={o.name}
+            title={o.name}
+            lang={o.value}
+            className={`inline-flex min-h-9 flex-1 items-center justify-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
               active
-                ? "bg-[#10B981] text-white shadow-sm"
-                : "text-gray-500 hover:text-gray-800"
+                ? "bg-[#047857] text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            <span className="text-sm leading-none">{o.flag}</span>
-            <span>{o.label}</span>
+            {o.label}
           </button>
         );
       })}

@@ -124,7 +124,7 @@ export const COACHING_DEFAULTS_IS: LocaleContent = {
   ...COACHING_HREFS,
   hero_title: "Daglegur heilsuþjálfari þinn",
   hero_subtitle:
-    "Lifeline appið veitir persónulega daglega þjálfun þvert á fjórar stoðir heilsu. Byggt á niðurstöðum heilsumatsins þíns aðlagast þjálfunin eftir því sem þér fer fram.",
+    "Lifeline-appið veitir persónulega daglega þjálfun þvert á fjórar stoðir heilsu. Byggt á niðurstöðum heilsufarsskoðunarinnar aðlagast þjálfunin eftir því sem þér fer fram.",
 
   why_title: "Af hverju heilsuþjálfun virkar",
   why_subtitle: "Þekking ein og sér skapar ekki breytingar. Þjálfun brúar bilið milli þess að vita og að gera.",
@@ -165,24 +165,24 @@ export const COACHING_DEFAULTS_IS: LocaleContent = {
   d6_title: "Kvöldró", d6_desc: "Kvöldrútína fyrir betri hvíld",
 
   how_title: "Hvernig þjálfun virkar",
-  how_subtitle: "Heilsumatið þitt knýr þjálfunarupplifunina",
-  h1_title: "Heilsumat fyrst", h1_desc: "Þjálfunin þín byrjar á heilsumati. Niðurstöðurnar móta allar ráðleggingar sem appið gefur.",
+  how_subtitle: "Heilsufarsskoðunin liggur til grundvallar þjálfuninni",
+  h1_title: "Heilsufarsskoðun fyrst", h1_desc: "Þjálfunin þín byrjar á heilsufarsskoðun. Niðurstöðurnar móta allar ráðleggingar sem appið gefur.",
   h2_title: "Daglegar aðgerðaáætlanir", h2_desc: "Á hverjum degi færðu persónulegt safn aðgerða þvert á hreyfingu, næringu, svefn og andlega líðan.",
   h3_title: "Fylgstu með og aðlagaðu", h3_desc: "Skráðu virknina þína, fylgstu með framförum og sjáðu heilsueinkunnina batna með tímanum. Appið aðlagast vegferðinni þinni.",
   h4_title: "Regluleg endurmöt", h4_desc: "Skipuleggðu reglulegt endurmat til að mæla raunverulegar líkamlegar breytingar og uppfæra áætlunina þína.",
 
   pricing_title: "Áskrift",
-  pricing_subtitle: "Byrjaðu frítt. Veldu svo appið eitt og sér eða með heilsuþjálfa.",
+  pricing_subtitle: "Byrjaðu ókeypis. Veldu svo appið eitt og sér eða með heilsuþjálfara.",
   pricing_popular_badge: "Með heilsuþjálfa",
-  pricing_cta: "Byrja frítt",
+  pricing_cta: "Byrja ókeypis",
   pricing_free_label: "Ókeypis",
   pricing_soon_label: "Verð væntanlegt",
-  plan1_name: "Prufutími", plan1_desc: "Allt appið frítt í 14 daga", plan1_price: "Frítt í 14 daga",
+  plan1_name: "Prufutími", plan1_desc: "Allt appið ókeypis í 14 daga", plan1_price: "Ókeypis í 14 daga",
   plan1_features: ["Allt appið í 14 daga", "Dagleg áætlun og gátlisti", "Æfingar og næring", "Engin skuldbinding"].join("\n"),
-  plan2_name: "Lifeline appið", plan2_desc: "Allt appið, á þínum hraða", plan2_price: "3.490 kr./mán.",
+  plan2_name: "Lifeline-appið", plan2_desc: "Allt appið, á þínum hraða", plan2_price: "3.490 kr./mán.",
   plan2_features: ["Dagleg áætlun og gátlisti", "Æfingar sem aðlagast þér", "Næring og máltíðir", "Fræðsla", "Uppsegjanlegt hvenær sem er"].join("\n"),
-  plan3_name: "Lifeline þjálfun", plan3_desc: "Appið og heilsuþjálfi í Vestmannaeyjum", plan3_price: "7.990 kr./mán.",
-  plan3_features: ["Allt í Lifeline appinu", "Skilaboð við heilsuþjálfa (hjúkrunarfræðing)", "20 mínútna myndsamtal á mánuði", "Mæling á staðnum á 2 mánaða fresti", "Í boði í Vestmannaeyjum", "Skilaboðum svarað á þjónustudegi vikunnar"].join("\n"),
+  plan3_name: "Lifeline-þjálfun", plan3_desc: "Appið og heilsuþjálfari í Vestmannaeyjum", plan3_price: "7.990 kr./mán.",
+  plan3_features: ["Allt í Lifeline-appinu", "Skilaboð við heilsuþjálfara (hjúkrunarfræðing)", "20 mínútna myndsamtal á mánuði", "Mæling á staðnum á 2 mánaða fresti", "Í boði í Vestmannaeyjum", "Skilaboðum svarað á þjónustudegi vikunnar"].join("\n"),
 
   compare_title: "Bera saman",
   compare_subtitle: "Hvað fylgir hverri leið",
@@ -192,12 +192,12 @@ export const COACHING_DEFAULTS_IS: LocaleContent = {
   compare_h_premium: "Þjálfun",
   compare_best: "Best",
 
-  download_title: "Sæktu Lifeline appið",
-  download_desc: "Fáanlegt fyrir iOS og Android. Byrjaðu með ókeypis áætluninni og upplifðu persónulega heilsuþjálfun knúna af heilsumatsgögnunum þínum.",
+  download_title: "Sæktu Lifeline-appið",
+  download_desc: "Fáanlegt fyrir iOS og Android. Byrjaðu á ókeypis áætluninni og prófaðu daglega þjálfun sem byggir á niðurstöðum heilsufarsskoðunarinnar.",
 
   al_title: "Betri þjálfun byrjar á betri gögnum",
-  al_desc: "Niðurstöður heilsumatsins þíns knýja hverja ráðleggingu í appinu. Farðu fyrst í heilsumat fyrir bestu þjálfunarupplifunina.",
-  al_cta: "Skoða heilsumatspakka",
+  al_desc: "Niðurstöður heilsufarsskoðunarinnar liggja til grundvallar ráðleggingunum í appinu. Byrjaðu á heilsufarsskoðun til að fá sem mest út úr þjálfuninni.",
+  al_cta: "Skoða pakka",
 };
 
 // English defaults = what an English visitor sees today.

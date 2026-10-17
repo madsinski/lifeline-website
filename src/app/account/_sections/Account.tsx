@@ -116,7 +116,7 @@ export default function AccountSection({ user, state: s, patch }: SectionProps) 
       {/* App subscription — only while a paid plan is active (or cancelled with
           the paid period still running); it is bought in the app (/app/adgangur). */}
       {sub && paidTier && (
-        <SectionCard id="subscription" icon={BadgeCheck} title={t("acct.p.askrift-ad-lifeline-appinu", "Áskrift að Lifeline appinu")}
+        <SectionCard id="subscription" icon={BadgeCheck} title={t("acct.p.askrift-ad-lifeline-appinu", "Áskrift að Lifeline-appinu")}
           description={<>
             <span className="mr-2 rounded-full bg-hc-brand-surface px-2.5 py-0.5 text-xs font-semibold text-hc-brand-text ring-1 ring-emerald-200">{paidTier}</span>
             {cancelled

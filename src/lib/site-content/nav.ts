@@ -17,7 +17,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { id: "assessment", href: "/assessment", key: "nav.assessment", fallback: "Heilsumat" },
+  { id: "assessment", href: "/assessment", key: "nav.assessment", fallback: "Heilsufarsskoðun" },
   { id: "coaching", href: "/coaching", key: "nav.coaching", fallback: "Þjálfun" },
   { id: "business", href: "/business", key: "nav.companies", fallback: "Fyrirtæki" },
   { id: "contact", href: "/contact", key: "nav.contact", fallback: "Hafa samband" },

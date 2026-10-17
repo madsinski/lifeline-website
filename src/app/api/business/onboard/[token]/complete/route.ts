@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import * as Sentry from "@/lib/error-reporter";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { sendEmail, renderWelcomeEmail } from "@/lib/email";
+import { sendEmail, renderWelcomeEmail, welcomeEmailSubject } from "@/lib/email";
 import { findAuthUserByEmail } from "@/lib/auth-helpers";
 import { signBiodyHeaders } from "@/lib/biody";
 import {
@@ -372,14 +372,14 @@ async function handle(
       .from("companies").select("name").eq("id", memberRow.company_id).maybeSingle();
     const { text, html } = renderWelcomeEmail({
       companyName: companyRow?.name || null,
-      recipientName: (memberRow.full_name || "").split(" ")[0] || "there",
+      recipientName: (memberRow.full_name || "").split(" ")[0] || email.split("@")[0],
       welcomeUrl: `${origin.replace(/\/$/, "")}/account/login?next=${encodeURIComponent("/app")}`,
       loginUrl: `${origin.replace(/\/$/, "")}/account/login`,
       appAccess,
     });
     await sendEmail({
       to: email,
-      subject: `Welcome to Lifeline Health${companyRow?.name ? ` — ${companyRow.name}` : ""}`,
+      subject: welcomeEmailSubject(companyRow?.name || null),
       text,
       html,
     });

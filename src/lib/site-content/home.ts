@@ -147,11 +147,11 @@ export const HOME_FIELDS: SiteField[] = [
 // the translator.
 const HOME_HREFS: LocaleContent = {
   hero_cta_signup_href: "/byrja",
-  hero_cta_app_href: "/coaching#download",
+  hero_cta_app_href: "/assessment",
   app_cta_app_href: "/coaching#download",
   app_cta_coaching_href: "/coaching",
   cta_signup_href: "/byrja",
-  cta_app_href: "/coaching#download",
+  cta_app_href: "/assessment",
   ind_cta_href: "/assessment",
   biz_cta_href: "/business",
   app_device: "phone",
@@ -163,13 +163,13 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
   ...HOME_HREFS,
   hero_title: "Taktu stjórnina á heilsu þinni",
   hero_subtitle:
-    "Lifeline Health sameinar markvisst heilsumat og persónulega daglega þjálfun. Þekktu tölurnar þínar, byggðu upp betri venjur og fylgstu með framförunum.",
-  hero_cta_signup: "Stofnaðu Lifeline-aðgang",
-  hero_cta_app: "Sækja appið",
+    "Lifeline Health sameinar markvissa heilsufarsskoðun og persónulega daglega þjálfun. Þekktu tölurnar þínar, byggðu upp betri venjur og fylgstu með framförunum.",
+  hero_cta_signup: "Stofna aðgang",
+  hero_cta_app: "Skoða pakka",
 
   how_title: "Hvernig Lifeline virkar",
-  how_subtitle: "Þrjú skref til að umbreyta heilsu þinni",
-  how_s1_title: "Farðu í heilsumat",
+  how_subtitle: "Þrjú einföld skref",
+  how_s1_title: "Farðu í heilsufarsskoðun",
   how_s1_desc:
     "Ljúktu líkamssamsetningarmælingu, blóðprufum og lífsstílsgreiningu á stöðvum okkar eða í gegnum Sameind.",
   how_s2_title: "Fáðu skýrsluna þína",
@@ -184,17 +184,17 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
   ind_body:
     "Einföld og hagkvæm leið til að þekkja heilsuna þína. Þú mætir í mælingar, ferð í blóðprufu og hittir lækni í myndsímtali — allt á þínum forsendum.",
   ind_bullets: [
-    "Mælingar á mælingastöðinni í Lyfju, Smáratorgi í Reykjavík",
+    "Mælingar á mælingastöðinni í Lyfju, Smáratorgi í Kópavogi",
     "Blóðprufur hjá Sameind",
     "Læknisviðtal í myndsímtali",
     "Á viðráðanlegu verði og einstaklega þægilegt",
   ].join("\n"),
-  ind_cta: "Skoða heilsufarsskoðun",
+  ind_cta: "Skoða pakka",
 
   biz_kicker: "Fyrir fyrirtæki",
   biz_title: "Fjárfestu í ==starfsfólkinu þínu==",
   biz_body:
-    "Lifeline kemur til fyrirtækisins og gerir heilsufarsskoðun einfalda fyrir allt starfsfólkið. Fjárfesting í heilsu starfsfólks er fjárfesting í fyrirtækinu — færri veikindadagar og betri líkamleg og andleg líðan.",
+    "Lifeline kemur til fyrirtækisins og gerir heilsufarsskoðun einfalda fyrir allt starfsfólkið. Starfsfólk fær skýra mynd af eigin heilsu og stuðning við að fylgja henni eftir.",
   biz_bullets: [
     "Lifeline kemur og gerir mælingar á staðnum",
     "Starfsfólk fer í blóðprufu á völdum dögum",
@@ -204,7 +204,7 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
   biz_cta: "Lausnir fyrir fyrirtæki",
 
   method_kicker: "Af hverju Lifeline",
-  method_title: "Tölur eru ekki nóg. Þú færð ==áætlun sem breytir þeim.==",
+  method_title: "Tölur eru ekki nóg. Þú færð ==áætlun til að vinna eftir.==",
   method_intro:
     "Stök blóðprufa sýnir þér stöðuna — en ekki hvað þú átt að gera. Lifeline byggir á þremur einföldum þrepum, læknastýrt frá upphafi til enda.",
   method_l1_title: "Grunnurinn",
@@ -215,25 +215,25 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
     "Líkamssamsetning, blóðþrýstingur og markvissar blóðprufur gefa skýra mynd sem byggir á gögnum.",
   method_l3_title: "Yfirferð læknis",
   method_l3_body:
-    "Læknir tengir allt saman og skrifar skýra áætlun — mestu áhrifin fyrir minnstu fyrirhöfnina.",
+    "Læknir tengir allt saman og skrifar skýra áætlun með forgangsröðuðum skrefum.",
   method_bottom_text:
-    "Það er þriðja þrepið sem raunverulega breytir hegðun — og það er einmitt það sem ódýrari skoðanir sleppa.",
+    "Þriðja þrepið tengir tölurnar við daglegt líf — skýr næstu skref sem þú getur fylgt eftir.",
 
-  app_label: "Lifeline appið",
-  app_title: "Félagi þinn í ==heilsubreytingunni==",
+  app_label: "Lifeline-appið",
+  app_title: "Stuðningur við ==daglegar venjur==",
   app_desc:
-    "Lifeline appið sameinar heilsumatsgögnin þín, þjálfunarkerfi og daglegar aðgerðir á einum stað — og gerir raunverulega heilsubreytingu einfalda og sjálfbæra.",
+    "Lifeline-appið sameinar niðurstöður heilsufarsskoðunarinnar, æfingakerfi og daglegar aðgerðir á einum stað — svo auðveldara sé að halda í góðar venjur.",
   app_f1_title: "Persónulegar aðgerðaáætlanir",
   app_f1_desc:
     "Dagleg verkefni þvert á hreyfingu, næringu, svefn og andlega líðan — byggð á niðurstöðunum þínum.",
-  app_f2_title: "Heilsuþjálfun og fræðsla",
+  app_f2_title: "Kerfi og fræðsla",
   app_f2_desc:
-    "Skipulögð kerfi, fræðslunámskeið og persónulegur þjálfari sem leiðir þig frá fyrsta degi.",
-  app_f3_title: "Fylgstu með framförum",
+    "Skipulögð kerfi og fræðsluefni sem styðja þig frá fyrsta degi. Persónulegur heilsuþjálfari fylgir Lifeline-þjálfun í Vestmannaeyjum.",
+  app_f3_title: "Fylgstu með þróuninni",
   app_f3_desc:
-    "Sjáðu heilsueinkunnirnar þínar batna með tímanum við hverja skráningu og lokna aðgerð.",
+    "Sjáðu hvernig heilsueinkunnirnar þínar þróast með hverri skráningu og lokinni aðgerð.",
   app_f4_title: "Samfélag",
-  app_f4_desc: "Taktu þátt í áskorunum, safnaðu röðum og tengstu öðrum á sömu heilsuvegferð.",
+  app_f4_desc: "Taktu þátt í áskorunum, haltu dampinum dag eftir dag og tengstu öðrum á sömu heilsuvegferð.",
   app_cta_app: "Skoða appið",
   app_cta_coaching: "Kynntu þér þjálfunina",
 
@@ -258,11 +258,11 @@ export const HOME_DEFAULTS_IS: LocaleContent = {
     "Lyfja | Mælingastöð | https://www.lyfja.is/ | /partner-lyfja.png",
   ].join("\n"),
 
-  cta_title: "Tilbúin að byrja?",
+  cta_title: "Viltu taka fyrsta skrefið í átt að betri heilsu?",
   cta_desc:
-    "Veldu leiðina að betri heilsu. Farðu í yfirgripsmikið heilsumat eða byrjaðu þjálfun strax með appinu.",
-  cta_signup: "Stofnaðu Lifeline-aðgang",
-  cta_app: "Sækja appið",
+    "Stofnaðu aðgang og veldu svo hvort þú byrjir á heilsufarsskoðun eða í appinu.",
+  cta_signup: "Stofna aðgang",
+  cta_app: "Skoða pakka",
 };
 
 // English defaults = what an English visitor sees today.
@@ -270,13 +270,13 @@ export const HOME_DEFAULTS_EN: LocaleContent = {
   ...HOME_HREFS,
   hero_title: "Take control of your health",
   hero_subtitle:
-    "Lifeline Health combines targeted health assessments with personalised daily coaching. Know your numbers, build better habits, track your progress.",
-  hero_cta_signup: "Create your Lifeline account",
-  hero_cta_app: "Download the App",
+    "Lifeline Health combines targeted health checks with personalised daily coaching. Know your numbers, build better habits, track your progress.",
+  hero_cta_signup: "Create account",
+  hero_cta_app: "View packages",
 
   how_title: "How Lifeline works",
-  how_subtitle: "Three steps to transform your health",
-  how_s1_title: "Get assessed",
+  how_subtitle: "Three simple steps",
+  how_s1_title: "Get a health check",
   how_s1_desc:
     "Complete body composition, blood tests and lifestyle screening at our stations or through Sameind.",
   how_s2_title: "Get your report",
@@ -291,17 +291,17 @@ export const HOME_DEFAULTS_EN: LocaleContent = {
   ind_body:
     "A simple, affordable way to get to know your health. Take your measurements, get your blood tests, and meet a doctor over video — all on your schedule.",
   ind_bullets: [
-    "Measurements at the Lyfja station, Smáratorg, Reykjavík",
+    "Measurements at the Lyfja station, Smáratorg, Kópavogur",
     "Blood tests at Sameind",
     "Doctor consultation over video call",
     "Affordable and remarkably convenient",
   ].join("\n"),
-  ind_cta: "Explore the assessment",
+  ind_cta: "View packages",
 
   biz_kicker: "For companies",
   biz_title: "Invest in ==your people==",
   biz_body:
-    "Lifeline comes to your company and makes health assessments effortless for your whole team. Investing in your staff's health is investing in your company — fewer sick days and better physical and mental wellbeing.",
+    "Lifeline comes to your company and makes health checks effortless for your whole team. Employees get a clear picture of their own health and support to follow it up.",
   biz_bullets: [
     "Lifeline visits and does measurements on-site",
     "Employees do blood tests on allocated days",
@@ -311,7 +311,7 @@ export const HOME_DEFAULTS_EN: LocaleContent = {
   biz_cta: "Solutions for companies",
 
   method_kicker: "Why Lifeline",
-  method_title: "Numbers aren't enough. You get a ==plan that changes them.==",
+  method_title: "Numbers aren't enough. You get ==a plan to act on.==",
   method_intro:
     "A one-off blood test shows you where you stand — not what to do about it. Lifeline is built in three simple steps, doctor-led from start to finish.",
   method_l1_title: "The foundation",
@@ -322,25 +322,25 @@ export const HOME_DEFAULTS_EN: LocaleContent = {
     "Body composition, blood pressure and targeted blood tests give a clear picture grounded in data.",
   method_l3_title: "Doctor review",
   method_l3_body:
-    "A doctor ties it all together and writes a clear action plan — the highest impact for the least effort.",
+    "A doctor ties it all together and writes a clear plan with prioritised steps.",
   method_bottom_text:
-    "It's the third step that actually changes behaviour — and it's exactly what cheaper checks skip.",
+    "The third step connects the numbers to daily life — clear next steps you can follow up on.",
 
-  app_label: "The Lifeline App",
-  app_title: "Your health change ==partner==",
+  app_label: "The Lifeline app",
+  app_title: "Support for your ==daily habits==",
   app_desc:
-    "The Lifeline app brings your assessment data, coaching programs, and daily actions into one place — making real health change simple and sustainable.",
+    "The Lifeline app brings your health check results, training programmes and daily actions into one place — making good habits easier to keep.",
   app_f1_title: "Personalised action plans",
   app_f1_desc:
     "Daily tasks across exercise, nutrition, sleep and mental wellness — built on your results.",
-  app_f2_title: "Health coaching and education",
+  app_f2_title: "Programmes and education",
   app_f2_desc:
-    "Structured programs, educational courses, and a personal coach to guide your journey from day one.",
-  app_f3_title: "Track your progress",
+    "Structured programmes and educational content to support you from day one. A personal health coach is part of Lifeline coaching in Vestmannaeyjar.",
+  app_f3_title: "Follow your progress",
   app_f3_desc:
-    "See your health scores improve over time with every check-in and completed action.",
+    "See how your health scores change with every check-in and completed action.",
   app_f4_title: "Community",
-  app_f4_desc: "Join challenges, earn streaks, and connect with others on the same health journey.",
+  app_f4_desc: "Join challenges, keep your momentum day after day, and connect with others on the same health journey.",
   app_cta_app: "Check out the app",
   app_cta_coaching: "Explore coaching",
 
@@ -365,11 +365,11 @@ export const HOME_DEFAULTS_EN: LocaleContent = {
     "Lyfja | Measurement station | https://www.lyfja.is/ | /partner-lyfja.png",
   ].join("\n"),
 
-  cta_title: "Ready to start?",
+  cta_title: "Want to take the first step towards better health?",
   cta_desc:
-    "Choose your path to better health. Get a comprehensive assessment or start coaching right away with the app.",
-  cta_signup: "Create your Lifeline account",
-  cta_app: "Download App",
+    "Create an account, then choose whether to start with a health check or in the app.",
+  cta_signup: "Create account",
+  cta_app: "View packages",
 };
 
 /** Split a "list"-type field value into rows of trimmed pipe-separated cells. */
