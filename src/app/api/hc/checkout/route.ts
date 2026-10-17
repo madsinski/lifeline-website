@@ -15,26 +15,35 @@
 //                                            computed reimbursement, code check
 // POST { package_key, use_company?, company_code?, use_union?, union_id?,
 //        (legacy: route: self|union|company)
-//        union_consent?, accept_terms }     → charges (Straumur), issues the
-//                                            activation code, advances journey
+//        union_consent?, accept_terms,
+//        test_code? }                      → nothing to pay (employer, test
+//                                            code): fulfilled now (src/lib/hc/fulfil.ts).
+//                                            Something to pay: { pending, checkout_url }
+//                                            — Straumur's payment page; the order is
+//                                            created when the payment is confirmed
+//                                            (src/lib/straumur-checkouts.ts).
 //
 // Schema: supabase/migration-health-journey.sql
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { createStraumurCharge } from "@/lib/straumur";
-import { sendEmail, renderBrandedEmail } from "@/lib/email";
+import { isStraumurConfigured, PAYMENTS_CLOSED_MESSAGE } from "@/lib/straumur-server";
+import { startStraumurCheckout } from "@/lib/straumur-checkouts";
 import { normalizeCode } from "@/lib/hc/codes";
-import { claimActivationCode, codeEmail } from "@/lib/hc/code-pool";
 import { quote as buildQuote, computeReimbursement, type UnionRules } from "@/lib/hc/reimbursement";
 import {
-  approvedUnions, currentJourney, getClientProfile, getOrCreateJourney, hcAudit, isProfileComplete, patchJourney,
-  refreshStage, requireUser, siteOrigin, type ClientProfile,
+  approvedUnions, currentJourney, getClientProfile, getOrCreateJourney, hcAudit, isProfileComplete,
+  requireUser, siteOrigin, type ClientProfile,
 } from "@/lib/hc/server";
-import { AFTER_PURCHASE, isStandaloneKind } from "@/lib/hc/shop";
+import { isStandaloneKind } from "@/lib/hc/shop";
 import { companyLockedPrice } from "@/lib/hc/shop-server";
 import type { HcJourney, HcPackage, PaymentRoute } from "@/lib/hc/types";
-import { recordWaiver, requireWaiver } from "@/lib/hc/waiver";
+import { requireWaiver } from "@/lib/hc/waiver";
+import { fulfilOrder, type OrderContext } from "@/lib/hc/fulfil";
+import {
+  attachTestCode, claimTestCode, normaliseTestCode, releaseTestCode, TEST_CODE_INVALID, TEST_CODE_PROVIDER,
+  testCodeRateLimited, type TestCodeClaim,
+} from "@/lib/hc/test-codes";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -167,9 +176,6 @@ export async function POST(req: NextRequest) {
   const noWaiver = requireWaiver(req, b);
   if (noWaiver) return noWaiver;
   const waiverAt = b.withdrawal_waiver === true ? new Date().toISOString() : null;
-  const waiver = waiverAt
-    ? { withdrawal_waiver: true, withdrawal_waiver_recorded_at: waiverAt }
-    : { withdrawal_waiver: false };
 
   const pkg = await loadPackage(String(b.package_key || ""));
   if (!pkg) return NextResponse.json({ error: "package_not_found" }, { status: 404 });
@@ -214,24 +220,20 @@ export async function POST(req: NextRequest) {
     unionCategory: pkg.union_category,
   });
 
-  // Re-evaluation starts a new cycle: close the old journey, open a fresh one.
-  if (pkg.kind === "reevaluation") {
-    await patchJourney(journey.id, { completed_at: new Date().toISOString() }, actor, "journey_completed_by_reevaluation");
-    const { data: fresh, error } = await supabaseAdmin
-      .from("hc_journeys")
-      .insert({
-        client_id: user.id,
-        location_id: journey.location_id,
-        entry: journey.entry,
-        company_id: journey.company_id,
-        profile_completed_at: new Date().toISOString(),
-        welcome_seen_at: new Date().toISOString(),
-      })
-      .select("*")
-      .single();
-    if (error || !fresh) return NextResponse.json({ error: "journey_create_failed" }, { status: 500 });
-    journey = fresh as HcJourney;
+  /*
+   * A test code (admin → Heilsuferð → Prófunarkóðar) makes this purchase
+   * free and is recorded as such: provider 'test_code', no payments row,
+   * not revenue. Not combined with an employer or union — a test is a test.
+   */
+  const rawTest = normaliseTestCode(b.test_code);
+  let testClaim: TestCodeClaim | null = null;
+  if (rawTest) {
+    if (useCompany || useUnion) return NextResponse.json({ error: "Prófunarkóði er ekki notaður með vinnuveitanda eða stéttarfélagi." }, { status: 400 });
+    if (await testCodeRateLimited(user.id)) return NextResponse.json({ error: "Of margar tilraunir. Reyndu aftur eftir smástund." }, { status: 429 });
+    testClaim = await claimTestCode(rawTest, user.id, "purchase", pkg.key);
+    if (!testClaim) return NextResponse.json({ error: TEST_CODE_INVALID }, { status: 400 });
   }
+  const chargedIsk = testClaim ? 0 : q.chargedIsk;
 
   // Claim the company code before charging anything (atomic: only one wins).
   if (companyCode) {
@@ -246,117 +248,65 @@ export async function POST(req: NextRequest) {
       if (again?.redeemed_by !== user.id) return NextResponse.json({ error: "Kóðinn hefur þegar verið notaður." }, { status: 409 });
     }
   }
+  const releaseCompany = async () => {
+    if (companyCode) await supabaseAdmin.from("company_hc_codes").update({ redeemed_by: null, redeemed_at: null }).eq("id", companyCode.id).eq("redeemed_by", user.id);
+  };
 
-  // Payment
-  let providerReference: string | null = null;
-  if (q.chargedIsk > 0) {
-    const charge = await createStraumurCharge({
-      amountIsk: q.chargedIsk,
-      reference: journey.id,
-      description: pkg.name,
-      customer: { name: profile!.full_name || user.email || "", email: user.email || "", phone: profile!.phone },
-      returnUrl: `${siteOrigin(req)}${standalone ? "/app/eg/thjonusta" : "/app"}`,
-    });
-    if (!charge.ok) {
-      if (companyCode) await supabaseAdmin.from("company_hc_codes").update({ redeemed_by: null, redeemed_at: null }).eq("id", companyCode.id);
-      return NextResponse.json({ error: charge.error || "Greiðsla tókst ekki." }, { status: 402 });
-    }
-    providerReference = charge.providerReference;
-  }
-
-  // The order first; its Medalia activation code is drawn from the pool
-  // right after (src/lib/hc/code-pool.ts). The loop is a single pass now —
-  // there is no generated code left to collide.
-  const now = new Date().toISOString();
-  let order: Record<string, unknown> | null = null;
-  for (let attempt = 0; attempt < 1 && !order; attempt++) {
-    const { data, error } = await supabaseAdmin
-      .from("hc_orders")
-      .insert({
-        journey_id: journey.id,
-        client_id: user.id,
-        package_key: pkg.key,
-        kind: pkg.kind,
-        price_isk: priceIsk,
-        payment_route: route,
-        union_id: unionRow?.id ?? null,
-        union_reimbursement_isk: q.reimbursementIsk,
-        union_direct_grant_isk: q.directGrantIsk,
-        company_id: companyCode?.company_id ?? null,
-        company_code_id: companyCode?.id ?? null,
-        amount_charged_isk: q.chargedIsk,
-        provider: q.chargedIsk > 0 ? "straumur" : companyCode ? "company_invoice" : null,
-        company_contribution_isk: q.employerIsk,
-        provider_reference: providerReference,
-        status: "paid",
-        paid_at: now,
-        activation_code: null,
-        consent_text: unionRow?.settlement === "direct" ? `Beingreiðsla: ${unionRow.name}` : null,
-      })
-      .select("*")
-      .single();
-    if (data) order = data;
-    else if (error?.code !== "23505") return NextResponse.json({ error: error?.message || "order_failed" }, { status: 500 });
-  }
-  if (!order) return NextResponse.json({ error: "order_failed" }, { status: 500 });
-
-  /* One Medalia code for this order. An empty pool leaves the order paid
-     without a code: the customer is told it is on its way, staff are
-     alerted, and the next import assigns it. Never an invented code. */
-  const claimed = await claimActivationCode(order.id as string, user.id, pkg.kind);
-  if (claimed.code) {
-    await supabaseAdmin.from("hc_orders").update({ activation_code: claimed.code }).eq("id", order.id as string);
-    order = { ...order, activation_code: claimed.code };
-  }
-  if (waiverAt) await recordWaiver("hc_orders", order.id as string, waiverAt);
-
-  if (unionRow && q.reimbursementIsk > 0) {
-    await supabaseAdmin.from("hc_union_claims").insert({
-      order_id: order.id,
-      union_id: unionRow.id,
-      client_id: user.id,
-      amount_paid_isk: q.chargedIsk,
-      reimbursable_isk: q.reimbursementIsk,
-      status: "draft",
-    });
-  }
-
-  if (standalone) {
-    /* A product on its own: the journey's stage does not move. */
-    await hcAudit(actor, "paid_product", journey.id, { order_id: order.id, kind: pkg.kind, ...waiver });
-  } else if (pkg.kind === "health_check" || pkg.kind === "reevaluation") {
-    journey = (await patchJourney(journey.id, {
-      paid_at: now,
-      ...(companyCode ? { entry: "b2b" as const, company_id: companyCode.company_id }
-        /* Bought from the shop on the coaching/app track: paying for the
-           check is choosing it, same as choose_track 'check'. */
-        : journey.entry === "coach" || journey.entry === "app" ? { entry: "b2c" as const } : {}),
-    }, actor, "paid", { order_id: order.id, route, ...waiver })) ?? journey;
-  } else {
-    await hcAudit(actor, "paid_followup", journey.id, { order_id: order.id, kind: pkg.kind, ...waiver });
-    journey = await refreshStage(journey);
-  }
-
-  // Confirmation email: the code, or word that it is on its way.
   const origin = siteOrigin(req);
-  const code = order.activation_code as string | null;
-  const next = standalone ? AFTER_PURCHASE[pkg.kind] ?? null : null;
-  if (code) {
-    await sendEmail({ to: user.email!, ...codeEmail({ pkgName: pkg.name, kind: pkg.kind, code, origin }) });
-  } else {
-    await sendEmail({
-      to: user.email!,
-      subject: `Greiðsla móttekin: ${pkg.name}`,
-      html: renderBrandedEmail({
-        title: `Greiðsla móttekin: ${pkg.name}`,
-        accentLabel: "Næsta skref",
-        bodyHtml: `<p style="margin:0 0 12px;">Takk fyrir. Virkjunarkóðinn fyrir sjúklingagáttina (Medalia) berst þér í tölvupósti innan eins virks dags. Þú sérð hann líka ${standalone ? "undir Þjónusta" : "í heilsuferðinni"} í appinu um leið og hann er tilbúinn.</p>${next ? `<p style="margin:0;">${next}</p>` : ""}`,
-        ctaLabel: standalone ? "Opna Þjónustu" : "Opna heilsuferðina",
-        ctaUrl: `${origin}${standalone ? "/app/eg/thjonusta" : "/app"}`,
-      }),
-      text: `Greiðsla móttekin: ${pkg.name}. Virkjunarkóðinn berst þér í tölvupósti innan eins virks dags.${next ? ` ${next}` : ""} ${origin}${standalone ? "/app/eg/thjonusta" : "/app"}`,
+  const ctx: OrderContext = {
+    clientId: user.id,
+    email: user.email || "",
+    packageKey: pkg.key,
+    route,
+    union: unionRow ? { id: unionRow.id, name: unionRow.name, settlement: unionRow.settlement } : null,
+    company: companyCode ? { id: companyCode.company_id, codeId: companyCode.id } : null,
+    priceIsk,
+    quote: { chargedIsk, reimbursementIsk: testClaim ? 0 : q.reimbursementIsk, directGrantIsk: q.directGrantIsk, employerIsk: q.employerIsk },
+    waiverAt,
+    provider: testClaim ? TEST_CODE_PROVIDER : chargedIsk > 0 ? "straumur" : companyCode ? "company_invoice" : null,
+    providerReference: testClaim ? testClaim.codeId : null,
+    origin,
+  };
+
+  /*
+   * Something to pay: Straumur's hosted payment page. Nothing is created
+   * here — the order exists once Straumur confirms the payment (verified
+   * webhook or our own status check; src/lib/straumur-checkouts.ts). Until
+   * Straumur is configured this refuses, and nothing completes unpaid.
+   */
+  if (chargedIsk > 0) {
+    if (!isStraumurConfigured()) {
+      await releaseCompany();
+      return NextResponse.json({ error: PAYMENTS_CLOSED_MESSAGE }, { status: 402 });
+    }
+    /* The mobile app does not follow a payment-page redirect yet: it would
+       read { ok: true } as done. Card payments start from the website only. */
+    if (req.headers.get("x-lifeline-client") !== "web") {
+      await releaseCompany();
+      return NextResponse.json({ error: "Greiðsla með korti fer fram á vefnum, lifelinehealth.is." }, { status: 402 });
+    }
+    const s = await startStraumurCheckout({
+      kind: "hc_order", clientId: user.id, email: user.email ?? null, amountIsk: chargedIsk,
+      description: pkg.name, payload: { ctx }, origin,
+      returnPath: standalone ? "/app/eg/thjonusta" : "/app",
     });
+    if (!s.ok) {
+      await releaseCompany();
+      return NextResponse.json({ error: s.error }, { status: 402 });
+    }
+    await hcAudit(actor, "checkout_started", journey.id, { package: pkg.key, amount: chargedIsk, reference: s.reference });
+    return NextResponse.json({ ok: true, pending: true, checkout_url: s.url, reference: s.reference, quote: q });
   }
 
-  return NextResponse.json({ ok: true, order, journey, quote: q });
+  // Nothing to pay (employer covers it, or a test code): fulfil now.
+  try {
+    const { order, journey: j } = await fulfilOrder(ctx);
+    if (testClaim) await attachTestCode(testClaim, { orderId: order.id as string });
+    return NextResponse.json({ ok: true, order, journey: j, quote: { ...q, chargedIsk }, test_code: !!testClaim });
+  } catch (e) {
+    await releaseTestCode(testClaim);
+    await releaseCompany();
+    const msg = e instanceof Error ? e.message : "order_failed";
+    return NextResponse.json({ error: msg === "journey_create_failed" ? msg : "order_failed" }, { status: 500 });
+  }
 }

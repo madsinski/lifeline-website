@@ -29,6 +29,7 @@ import { ToastProvider, useToast } from "../components/hc/Toast";
 import ContextSwitcher from "../components/ContextSwitcher";
 import { SignOutButton } from "../components/account/AccountCards";
 import { AccountLoading, AccountShell, DialogProvider, type ShellNavItem } from "../components/account/ui";
+import PaymentReturn from "../components/hc/PaymentReturn";
 import SlotPicker from "./welcome/SlotPicker";
 import WellbeingSurveyModal from "./surveys/WellbeingSurveyModal";
 import SatisfactionSurveyModal from "./surveys/SatisfactionSurveyModal";
@@ -198,6 +199,7 @@ export default function AccountPage() {
       <ToastProvider dockOffset="env(safe-area-inset-bottom, 0px)">
         <DialogProvider>
           <AccountPageInner />
+          <PaymentReturn />
         </DialogProvider>
       </ToastProvider>
     </Suspense>

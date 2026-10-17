@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useStaffGuard } from "@/lib/useStaffGuard";
 import AdminTabs from "../components/AdminTabs";
 import DiscountsTab from "./DiscountsTab";
+import TestCodesTab from "./TestCodesTab";
 import CodesTab from "./CodesTab";
 import PartnersTab from "./PartnersTab";
 import { adminJson, adminErrorText } from "../hc-api";
@@ -20,7 +21,8 @@ import { formatIsk, type HcLocation, type HcPackage } from "@/lib/hc/types";
 
 interface Overview {
   funnel: Record<string, number>;
-  revenue: { self: number; union: number; company: number; count: number };
+  /** Paid orders; `test` counts the test-code ones, which are in no total. */
+  revenue: { self: number; union: number; company: number; count: number; test?: number };
   journeys: { id: string; client_name: string | null; stage: string; entry: string; created_at: string; updated_at: string; report_sms_sent_at: string | null; referral_to_heilsugaesla: boolean }[];
   packages: (HcPackage & { active: boolean })[];
   locations: (HcLocation & { active: boolean })[];
@@ -45,6 +47,7 @@ const TABS = [
   { key: "locations", label: "Staðir" },
   { key: "workers", label: "Vinnustöð" },
   { key: "discounts", label: "Afslættir" },
+  { key: "testcodes", label: "Prófunarkóðar" },
   { key: "codes", label: "Virkjunarkóðar" },
   { key: "partners", label: "Samstarfsaðilar" },
 ];
@@ -109,6 +112,7 @@ export default function HeilsuferdAdmin() {
             {tab === "locations" && <LocationsTab locations={data.locations} onSaved={load} />}
             {tab === "workers" && <WorkersTab locations={data.locations} />}
             {tab === "discounts" && <DiscountsTab />}
+            {tab === "testcodes" && <TestCodesTab />}
             {tab === "codes" && <CodesTab />}
             {tab === "partners" && <PartnersTab />}
           </>
@@ -123,7 +127,7 @@ function OverviewTab({ data }: { data: Overview }) {
   return (
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-4">
-        <Stat label="Greiddar pantanir" value={String(data.revenue.count)} />
+        <Stat label="Greiddar pantanir" value={`${data.revenue.count}${data.revenue.test ? ` (+${data.revenue.test} prófun)` : ""}`} />
         <Stat label="Greitt af einstaklingum" value={formatIsk(data.revenue.self)} />
         <Stat label="Greitt með stéttarfélagi" value={formatIsk(data.revenue.union)} />
         <Stat label="Reikningsfært fyrirtækjum" value={formatIsk(data.revenue.company)} />

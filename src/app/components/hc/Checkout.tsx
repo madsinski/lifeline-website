@@ -72,6 +72,8 @@ export default function Checkout({ packages, profileComplete, reload, onPaid }: 
   const [useUnion, setUseUnion] = useState(false);
   const [unionId, setUnionId] = useState("");
   const [code, setCode] = useState("");
+  /** Internal test code (admin → Heilsuferð → Prófunarkóðar): the server makes this purchase free. */
+  const [testCode, setTestCode] = useState("");
   const [codeState, setCodeState] = useState<CheckoutInfo["company_code"]>(null);
   const [consent, setConsent] = useState(false);
   const [terms, setTerms] = useState(false);
@@ -117,6 +119,8 @@ export default function Checkout({ packages, profileComplete, reload, onPaid }: 
     else setCodeState({ ok: false, error: "Ekki tókst að athuga kóðann – reyndu aftur." });
   };
 
+  const usingTest = testCode.trim().length > 0;
+
   const pay = async () => {
     if (busy) return;
     setBusy(true); setErr("");
@@ -129,12 +133,16 @@ export default function Checkout({ packages, profileComplete, reload, onPaid }: 
         use_union: useUnion, union_id: useUnion ? unionId : undefined,
         union_consent: consent, accept_terms: terms,
         withdrawal_waiver: waiver, withdrawal_waiver_at: waiver ? new Date().toISOString() : null,
+        test_code: usingTest ? testCode.trim() : undefined,
       }),
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
+    if (!r || !r.ok) { setBusy(false); setErr(humanError(j.error, "Greiðsla tókst ekki. Reyndu aftur.")); return; }
+    /* Something to pay: Straumur's payment page. The order is created when
+       the payment is confirmed; PaymentReturn picks it up on the way back. */
+    if (typeof j.checkout_url === "string") { window.location.assign(j.checkout_url); return; }
     setBusy(false);
-    if (!r || !r.ok) { setErr(humanError(j.error, "Greiðsla tókst ekki. Reyndu aftur.")); return; }
-    toast.show("Gengið frá kaupum", { tone: "ok" });
+    toast.show(j.test_code ? "Gengið frá kaupum með prófunarkóða" : "Gengið frá kaupum", { tone: "ok" });
     if (j.order && onPaid) onPaid(j.order as HcOrder);
     await reload();
   };
@@ -151,7 +159,7 @@ export default function Checkout({ packages, profileComplete, reload, onPaid }: 
   if (!info) return <p className="text-sm text-hc-ink-3">Hleð…</p>;
 
   const companyCovers = company ? (company.contribution_isk != null ? formatIsk(company.contribution_isk) : `${company.contribution_percent}%`) : "";
-  const canPay = terms && waiver && !busy && !info.eligibility_error &&
+  const canPay = terms && waiver && !busy && !info.eligibility_error && (!usingTest || (!useCompany && !useUnion)) &&
     (!useCompany || codeState?.ok === true) &&
     (!useUnion || (!!union && (union.settlement !== "direct" || consent)));
 
@@ -237,6 +245,19 @@ export default function Checkout({ packages, profileComplete, reload, onPaid }: 
         )}
       </div>
 
+      <details className="text-sm text-hc-ink-2" open={usingTest || undefined}>
+        <summary className="cursor-pointer text-xs font-semibold text-hc-ink-3">Ertu með prófunarkóða?</summary>
+        <label className="mt-2 block text-xs font-medium text-hc-ink-2" htmlFor="test-code">Prófunarkóði</label>
+        <input id="test-code" value={testCode} onChange={(e) => { setTestCode(e.target.value.toUpperCase()); setErr(""); }}
+          autoComplete="off" spellCheck={false} placeholder="TEST-XXXX-XXXX"
+          className="mt-1 w-full rounded-lg border border-hc-control px-3 py-2.5 font-mono uppercase tracking-wider" />
+        <p className="mt-1 text-xs text-hc-ink-3">
+          {usingTest && (useCompany || useUnion)
+            ? "Prófunarkóði er ekki notaður með vinnuveitanda eða stéttarfélagi. Taktu hakið af þeim fyrst."
+            : "Fyrir prófanir starfsfólks. Kaupin fara í gegnum allt ferlið án greiðslu."}
+        </p>
+      </details>
+
       <label className="flex items-start gap-2 text-sm text-hc-ink-2">
         <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#047857]" />
         <span>Ég samþykki <a href="/soluskilmalar" target="_blank" rel="noopener noreferrer" className="underline">söluskilmála</a> Lifeline Health.</span>
@@ -248,7 +269,7 @@ export default function Checkout({ packages, profileComplete, reload, onPaid }: 
       {info.eligibility_error && <p className="text-sm text-hc-warn-ink">{info.eligibility_error}</p>}
       {err && <p role="alert" className="text-sm text-hc-bad-ink">{err}</p>}
       <button type="button" onClick={pay} disabled={!canPay} className={`${hcBtn.cta} w-full`}>
-        {busy ? "Augnablik…" : q.chargedIsk > 0 ? `Greiða ${formatIsk(q.chargedIsk)}` : "Staðfesta"}
+        {busy ? "Augnablik…" : usingTest ? "Staðfesta með prófunarkóða" : q.chargedIsk > 0 ? `Greiða ${formatIsk(q.chargedIsk)}` : "Staðfesta"}
       </button>
     </div>
   );

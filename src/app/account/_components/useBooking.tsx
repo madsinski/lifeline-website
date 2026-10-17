@@ -4,12 +4,12 @@
 // Heilsufarsskoðun so both tabs cancel, refund and confirm the same way.
 // Native confirm()/alert() are replaced by the styled dialog (useDialog).
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/lib/i18n";
-import { createStraumurCharge, refundStraumurCharge } from "@/lib/straumur";
+import { refundStraumurCharge } from "@/lib/straumur";
 import { useDialog, fmtIsk, friendlyError } from "@/app/components/account/ui";
 import { useToast } from "@/app/components/hc/Toast";
 import type { AccountState, JourneyCheckKey, Patch } from "./types";
@@ -261,53 +261,53 @@ export function useBooking({ user, state, patch, openRefundRequest }: {
     toast.show(t("acc.video.cleared", "Staðfestingin var hreinsuð."));
   }, [confirm, alert, patch, t, toast]);
 
-  /** The doctor add-on to an Endurmat (checkin) package. */
+  /**
+   * The doctor add-on to an Endurmat (checkin) package. Paid on the server
+   * (/api/account/checkin-addon): Straumur's payment page, or a test code.
+   * The browser never marks it paid — the column is guarded in the DB.
+   */
+  const addonTestCode = useRef("");
   const payDoctorAddon = useCallback(async () => {
     if (!user) return;
+    addonTestCode.current = "";
     const ok = await confirm({
       title: t("acc.addon.title", "Bæta við viðtali við lækni?"),
-      body: tv("acc.addon.body", "Viðtalið kostar {{amount}} og er greitt með korti í gegnum Straum.", { amount: fmtIsk(DOCTOR_ADDON_ISK) }),
+      body: (
+        <>
+          <p>{tv("acc.addon.body", "Viðtalið kostar {{amount}} og er greitt með korti í gegnum Straum.", { amount: fmtIsk(DOCTOR_ADDON_ISK) })}</p>
+          <details className="mt-3">
+            <summary className="cursor-pointer text-xs font-semibold text-hc-ink-3">{t("acc.addon.testcode", "Ertu með prófunarkóða?")}</summary>
+            <input aria-label={t("acc.addon.testcode-label", "Prófunarkóði")} autoComplete="off" spellCheck={false} placeholder="TEST-XXXX-XXXX"
+              onChange={(e) => { addonTestCode.current = e.target.value; }}
+              className="mt-2 w-full rounded-lg border border-hc-control px-3 py-2 font-mono uppercase" />
+          </details>
+        </>
+      ),
       confirmLabel: t("acc.addon.confirm", "Greiða og bæta við"),
       cancelLabel: t("acct.cancel", "Hætta við"),
     });
     if (!ok) return;
     setPayingDoctorAddon(true);
     try {
-      const { profile, companyId, companyName } = state;
-      const res = await createStraumurCharge({
-        amountIsk: DOCTOR_ADDON_ISK,
-        reference: `checkin-doctor-${user.id}-${Date.now()}`,
-        description: "Lifeline Health — Tími doctor consultation",
-        customer: { name: `${profile.firstName} ${profile.lastName}`.trim() || user.email || "", email: user.email || "", phone: profile.phone || null },
-        returnUrl: typeof window !== "undefined" ? window.location.href : "",
-      });
-      if (!res.ok) { await alert({ title: t("acc.addon.failed", "Greiðslan tókst ekki"), body: friendlyError(res.error, t("acc.addon.failed-body", "Ekkert var skuldfært. Reyndu aftur.")) }); return; }
-      const paidAt = new Date().toISOString();
-      const { error: updErr } = await supabase
-        .from("clients_decrypted")
-        .update({ checkin_doctor_addon_paid_at: paidAt })
-        .eq("id", user.id);
-      if (updErr) { await alert({ title: t("acc.addon.record-failed", "Ekki tókst að skrá greiðsluna"), body: friendlyError(updErr, tv("acc.addon.record-failed-body", "Sendu línu á {{email}} og við leiðréttum þetta.", { email: SUPPORT })) }); return; }
-      await supabase.from("payments").insert({
-        owner_type: "client",
-        owner_id: user.id,
-        owner_company_id: companyId ?? null,
-        owner_company_name: companyName ?? null,
-        amount_isk: DOCTOR_ADDON_ISK,
-        currency: "ISK",
-        description: "Lifeline Health — Tími doctor consultation",
-        provider: "straumur",
-        provider_reference: res.providerReference,
-        status: "succeeded",
-        related_type: "checkin_doctor_addon",
-        paid_at: paidAt,
-      });
-      patch({ checkinDoctorAddonPaidAt: paidAt });
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      const r = await fetch("/api/account/checkin-addon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ test_code: addonTestCode.current.trim() || undefined }),
+      }).catch(() => null);
+      const j = (r ? await r.json().catch(() => ({})) : {}) as { ok?: boolean; paid_at?: string; checkout_url?: string; error?: string };
+      if (!r || !r.ok || !j.ok) {
+        await alert({ title: t("acc.addon.failed", "Greiðslan tókst ekki"), body: friendlyError(j.error, t("acc.addon.failed-body", "Ekkert var skuldfært. Reyndu aftur.")) });
+        return;
+      }
+      if (j.checkout_url) { window.location.assign(j.checkout_url); return; }
+      patch({ checkinDoctorAddonPaidAt: j.paid_at ?? new Date().toISOString() });
       toast.show(t("acc.addon.paid", "Greitt. Viðtali við lækni hefur verið bætt við."));
     } finally {
       setPayingDoctorAddon(false);
     }
-  }, [user, state, confirm, alert, patch, t, tv, toast]);
+  }, [user, confirm, alert, patch, t, tv, toast]);
 
   /** Manual journey ticks: optimistic, rolled back if the save fails. */
   const toggleJourneyCheck = useCallback(async (key: JourneyCheckKey) => {

@@ -96,6 +96,8 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
   trialEndsAt?: string | null;
 }) {
   const [code, setCode] = useState("");
+  /** Internal test code (admin → Heilsuferð → Prófunarkóðar): one period free. */
+  const [testCode, setTestCode] = useState("");
   const [applied, setApplied] = useState<{ label: string; price: number; monthsFree: number } | null>(null);
   const [codeMsg, setCodeMsg] = useState<string | null>(null);
   const [terms, setTerms] = useState(false);
@@ -139,12 +141,15 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
       headers: WEB_CLIENT_HEADER,
       body: JSON.stringify({
         accept_terms: terms, withdrawal_waiver: waiver, package: packageKey,
-        ...(trial ? { start_trial: true } : { code: applied ? code : undefined }),
+        ...(trial ? { start_trial: true } : testCode.trim() ? { test_code: testCode.trim() } : { code: applied ? code : undefined }),
       }),
     }).catch(() => null);
     const j = await r?.json().catch(() => ({}));
+    if (!r?.ok) { setBusy(null); setErr(errorText(r?.status, j?.error)); toast.show(errorText(r?.status, j?.error), { tone: "bad" }); return; }
+    /* Something to pay: Straumur's payment page. The subscription starts
+       when the payment is confirmed; PaymentReturn picks it up on the way back. */
+    if (typeof j?.checkout_url === "string") { window.location.assign(j.checkout_url); return; }
     setBusy(null);
-    if (!r?.ok) { setErr(errorText(r?.status, j?.error)); toast.show(errorText(r?.status, j?.error), { tone: "bad" }); return; }
     // The paywall unmounts on the reload; the toast is what says it worked.
     toast.show(trial ? "Kortið er skráð" : "Áskriftin er hafin", { tone: "ok" });
     await onDone();
@@ -214,6 +219,18 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
         {codeMsg && <p className="mt-1 text-sm text-hc-ink-2" role="status">{codeMsg}</p>}
       </div>}
 
+      {!trial && (
+        <details className="mt-3 text-sm text-hc-ink-2" open={testCode.trim() ? true : undefined}>
+          <summary className="cursor-pointer text-xs font-semibold text-hc-ink-2">Ertu með prófunarkóða?</summary>
+          <label htmlFor={`test-${packageKey ?? "app"}`} className="mt-2 block text-xs font-semibold text-hc-ink-2">Prófunarkóði</label>
+          <input id={`test-${packageKey ?? "app"}`} value={testCode}
+            onChange={(e) => { setTestCode(e.target.value.toUpperCase()); setErr(null); }}
+            autoComplete="off" spellCheck={false} placeholder="TEST-XXXX-XXXX"
+            className={`${hcInput} mt-1 min-h-11 w-full font-mono uppercase`} />
+          <p className="mt-1 text-xs text-hc-ink-2">Fyrir prófanir starfsfólks: fyrsti mánuðurinn án greiðslu, ekkert kort.</p>
+        </details>
+      )}
+
       <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-sm text-hc-ink-2">
         <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)}
           className="mt-0.5 h-4 w-4 shrink-0 accent-[#047857]" />
@@ -236,7 +253,7 @@ export default function Paywall({ api, pkg, onDone, trialEndsAt, embedded = fals
       <button type="button" onClick={() => void subscribe()} disabled={busy !== null || !terms || !waiver}
         className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-hc-brand-dark px-5 py-3 font-bold text-white transition disabled:opacity-40">
         {busy === "pay" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-        {trial ? "Skrá kort og hefja prufutíma" : price === 0 ? "Hefja áskrift" : `Hefja áskrift — ${kr(price)}/mán.`}
+        {trial ? "Skrá kort og hefja prufutíma" : testCode.trim() ? "Hefja áskrift með prófunarkóða" : price === 0 ? "Hefja áskrift" : `Hefja áskrift — ${kr(price)}/mán.`}
       </button>
 
       {!embedded && (

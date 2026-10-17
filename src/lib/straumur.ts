@@ -1,7 +1,13 @@
-// Straumur.is payment provider — integration stub.
-// The Straumur API is still pending; this module exposes the shape we need
-// from the rest of the app so we can wire the real calls in one place when
-// credentials + docs arrive.
+// Straumur.is — the CLIENT-SAFE half. Imported by "use client" files, so it
+// holds no secrets and makes no API calls.
+//
+// The real integration (Hosted Checkout, webhook verification, token
+// payments, refunds) is server-only in src/lib/straumur-server.ts and
+// src/lib/straumur-checkouts.ts; /api/hc/checkout, /api/hc/subscribe and
+// /api/account/checkin-addon use it. createStraumurCharge below is what the
+// legacy browser-side booking flow (/account/book) still calls: it always
+// refuses, and the DB refuses browser writes that would mark a booking or a
+// payment paid (supabase/migration-test-codes-straumur.sql).
 
 export type StraumurChargeArgs = {
   amountIsk: number;
