@@ -6,13 +6,17 @@
 // nurse/health coach, in Vestmannaeyjar only for now. So instead of an empty
 // thread this says what coaching is, what it costs, and whether it can be
 // bought where the person lives — and, if not yet, why (no address yet, or
-// an address elsewhere). The purchase itself is /app/askrift.
+// an address elsewhere). The purchase itself is /app/askrift, once Lifeline
+// has approved the request sent from here or there (CoachingRequest.tsx).
 
+import { useState } from "react";
 import Link from "next/link";
 import { Check, MapPin } from "lucide-react";
 import { hcBtn, hcCard, hcKicker } from "./ui";
 import { fmtIsk } from "@/app/components/account/ui/dates";
-import { NOT_IN_REGION_COPY, SERVICE_DAY_COPY } from "@/lib/hc/coaching-config";
+import { NO_REQUEST, NOT_IN_REGION_COPY, SERVICE_DAY_COPY, type CoachingRequestView } from "@/lib/hc/coaching-config";
+import CoachingRequestPanel from "./CoachingRequest";
+import * as cache from "@/lib/hc/client-cache";
 
 export interface CoachingOfferData {
   available: boolean;
@@ -22,9 +26,12 @@ export interface CoachingOfferData {
   name: string;
   includes: string[] | null;
   service_weekday: number;
+  /** Approved by Lifeline before payment (src/lib/hc/coaching-requests.ts). */
+  request?: CoachingRequestView;
 }
 
 export default function CoachingOffer({ offer }: { offer: CoachingOfferData }) {
+  const [request, setRequest] = useState<CoachingRequestView>(offer.request ?? NO_REQUEST);
   return (
     <section className={`${hcCard.base} p-5 sm:p-6`} aria-labelledby="coaching-offer-title">
       {/* The tab is „Þjálfun“; the product is „Lifeline þjálfun“. Said in so
@@ -51,7 +58,10 @@ export default function CoachingOffer({ offer }: { offer: CoachingOfferData }) {
 
       <div className="mt-5">
         {offer.available ? (
-          <Link href="/app/askrift?pakki=thjalfun" className={hcBtn.cta}>Velja {offer.name}</Link>
+          /* Same states as /app/askrift: ask first, pay once approved. */
+          <CoachingRequestPanel request={request}
+            onChange={(v) => { setRequest(v); cache.invalidate("/api/hc/coach", "/api/hc/subscribe"); }}
+            payAction={<Link href="/app/askrift?pakki=thjalfun" className={hcBtn.cta}>Velja {offer.name}</Link>} />
         ) : offer.reason === "no_address" ? (
           <>
             {/* Straight to the one field that decides it, not to Stillingar. */}

@@ -102,3 +102,40 @@ export const NOT_IN_REGION_COPY = "Í boði í Vestmannaeyjum – fleiri staðir
 
 /** Weekday names, plural dative, for "á miðvikudögum". */
 export const WEEKDAY_DAT_PL = ["sunnudögum", "mánudögum", "þriðjudögum", "miðvikudögum", "fimmtudögum", "föstudögum", "laugardögum"];
+
+// ── Approval before payment (Mads, 2026-10-17) ───────────────────────
+//
+// Nobody pays for "Lifeline þjálfun" until Lifeline has confirmed the
+// request (hc_coaching_requests, supabase/migration-coaching-requests.sql;
+// server logic in src/lib/hc/coaching-requests.ts). An approval is good for
+// APPROVAL_DAYS; after that the person asks again.
+
+export const APPROVAL_DAYS = 14;
+
+/** Where the person stands, as the app shows it. Expired approvals and used or withdrawn requests read "none". */
+export type CoachingRequestState = "none" | "pending" | "approved" | "declined";
+
+export interface CoachingRequestView {
+  state: CoachingRequestState;
+  id: string | null;
+  created_at: string | null;
+  decided_at: string | null;
+  /** Approved only: pay before this. */
+  expires_at: string | null;
+  /** Declined only: the worker's reason, shown as written. */
+  decline_reason: string | null;
+}
+
+export const NO_REQUEST: CoachingRequestView = {
+  state: "none", id: null, created_at: null, decided_at: null, expires_at: null, decline_reason: null,
+};
+
+/** The one line beside „Senda beiðni um Lifeline þjálfun“ (wording from Mads). */
+export const REQUEST_INTRO_COPY =
+  "Lifeline þjálfun er í boði fyrir íbúa í Vestmannaeyjum. Við staðfestum beiðnina, yfirleitt innan sólarhrings, og þá getur þú greitt.";
+
+/** What /api/hc/subscribe answers when coaching is bought without an approval. */
+export const NOT_APPROVED_COPY =
+  "Staðfesta þarf beiðni um Lifeline þjálfun áður en greitt er. Sendu beiðni undir Áskrift og við svörum yfirleitt innan sólarhrings.";
+
+export const CONTACT_EMAIL = "contact@lifelinehealth.is";

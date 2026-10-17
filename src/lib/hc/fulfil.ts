@@ -20,6 +20,7 @@ import { redeem } from "@/lib/hc/discount";
 import { isMissingSchema, TRIAL_TIER, warnOnce } from "@/lib/hc/subscription";
 import { COACHING_TIER, tierForPackage, type SubscriptionPackageKey } from "@/lib/hc/coaching-config";
 import { assignCoachIfNone } from "@/lib/hc/coaching";
+import { markRequestUsed } from "@/lib/hc/coaching-requests";
 
 export type Provider = "straumur" | "company_invoice" | "test_code" | null;
 
@@ -246,6 +247,9 @@ export async function activateSubscription(ctx: SubscriptionContext) {
   if (pkErr && isMissingSchema(pkErr)) warnOnce("subscriptions.package_key", "subscriptions.package_key missing — run supabase/migration-coaching-tier.sql.");
 
   if (tier === COACHING_TIER) {
+    /* The approval is spent (src/lib/hc/coaching-requests.ts). */
+    await markRequestUsed(ctx.clientId, subId).catch((e) =>
+      console.error("[hc] coaching request not marked used", e instanceof Error ? e.message : e));
     try {
       const journey = await getOrCreateJourney(ctx.clientId);
       if (journey.entry === "app") {

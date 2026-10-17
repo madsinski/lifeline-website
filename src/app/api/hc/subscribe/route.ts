@@ -58,10 +58,11 @@ import { cancelledButRunning, pickCurrent } from "@/lib/hc/subscription-state";
 import { isMissingSchema, TRIAL_DAYS, TRIAL_TIER, warnOnce } from "@/lib/hc/subscription";
 import { recordWaiver, requireWaiver } from "@/lib/hc/waiver";
 import {
-  APP_PACKAGE_KEY, COACHING_PACKAGE_KEY, COACHING_TIER, NOT_IN_REGION_COPY,
+  APP_PACKAGE_KEY, COACHING_PACKAGE_KEY, COACHING_TIER, NOT_APPROVED_COPY, NOT_IN_REGION_COPY,
   tierForPackage, type SubscriptionPackageKey,
 } from "@/lib/hc/coaching-config";
 import { coachingEligibility, coachingPackage } from "@/lib/hc/coaching";
+import { approvedRequest, requestView } from "@/lib/hc/coaching-requests";
 
 export const runtime = "nodejs";
 
@@ -152,7 +153,7 @@ export async function GET(req: NextRequest) {
     pkg(), coachingPackage(), shown(user.id),
     supabaseAdmin.from("subscriptions").select("id", { count: "exact", head: true }).eq("client_id", user.id),
   ]);
-  const eligibility = await coachingEligibility(user.id, coaching.quota);
+  const [eligibility, request] = await Promise.all([coachingEligibility(user.id, coaching.quota), requestView(user.id)]);
   const trial = sub?.tier === TRIAL_TIER;
   return NextResponse.json({
     /* `package` stays the app tier: the RN app reads it as "the" package. */
@@ -166,6 +167,10 @@ export async function GET(req: NextRequest) {
       reason: eligibility.reason,
       in_catalogue: coaching.in_catalogue,
       service_weekday: coaching.quota.service_weekday,
+      /* Approved by Lifeline before payment (src/lib/hc/coaching-requests.ts):
+         `available` says it may be asked for; `request.state === "approved"`
+         says it may be paid for. */
+      request,
     },
     subscription: sub ? { ...sub, trial, card_saved_at: trial ? await cardSavedAt(sub.id) : null } : null,
     /* Whether a card can be saved yet; while false the trial runs without one. */
@@ -227,6 +232,19 @@ export async function POST(req: NextRequest) {
 
   /* Cancelled but still inside its paid period. */
   const runningCancelled = running?.cancelled ? running : null;
+
+  /*
+   * Approved before paid (Mads, 2026-10-17). Every path that can start
+   * coaching — Straumur, a test code, a free-months code — goes through here.
+   * Exempt only what starts nothing new: resuming a coaching month already
+   * paid for, or answering "already" for a running one.
+   */
+  if (key === COACHING_PACKAGE_KEY) {
+    const ongoing = (runningCancelled?.tier === COACHING_TIER) || (existing?.tier === COACHING_TIER);
+    if (!ongoing && !(await approvedRequest(user.id))) {
+      return NextResponse.json({ error: NOT_APPROVED_COPY, code: "coaching_not_approved" }, { status: 403 });
+    }
+  }
   if (runningCancelled && runningCancelled.tier === tier) {
     // Same tier again: undo "Segja upp" rather than charge for a month paid.
     await supabaseAdmin.from("subscriptions").update({ status: "active" }).eq("id", runningCancelled.id);

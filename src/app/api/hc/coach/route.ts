@@ -21,6 +21,7 @@ import {
   isDate, measurementBlockedUntil, nextMonthStart, type CoachingAccess,
 } from "@/lib/hc/coaching";
 import { WEEKDAY_DAT_PL } from "@/lib/hc/coaching-config";
+import { requestView } from "@/lib/hc/coaching-requests";
 import type { HcJourney } from "@/lib/hc/types";
 
 export const runtime = "nodejs";
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
   const access = await coachingAccess(user.id, journey);
   if (!access.ok) {
     /* The offer instead of the thread: whether it can be bought here, and for how much. */
-    const [pkg, el] = await Promise.all([coachingPackage(), coachingEligibility(user.id)]);
+    const [pkg, el, request] = await Promise.all([coachingPackage(), coachingEligibility(user.id), requestView(user.id)]);
     return NextResponse.json({
       journeyId: journey.id,
       access: {
@@ -85,6 +86,8 @@ export async function GET(req: NextRequest) {
           available: pkg.in_catalogue && el.eligible, eligible: el.eligible, reason: el.reason,
           price_isk: pkg.price_isk, name: pkg.name, includes: pkg.includes,
           service_weekday: pkg.quota.service_weekday,
+          /* Approved by Lifeline before payment (src/lib/hc/coaching-requests.ts). */
+          request,
         },
       },
       coach: null, coaches: [], thread: [], unread: 0, bookings: [],

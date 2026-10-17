@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { hcInput } from "./ui";
+import { NO_REQUEST, type CoachingRequestView } from "@/lib/hc/coaching-config";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -51,6 +52,8 @@ export type CoachingAvailability = {
   available: boolean;
   reason: "no_address" | "outside_region" | null;
   in_catalogue: boolean;
+  /** Approved by Lifeline before payment: only "approved" may pay. */
+  request: CoachingRequestView;
 };
 
 export type SubState = {
@@ -75,7 +78,10 @@ export function useSubscriptionState(api: Api) {
           cards_live: !!j.cards_live, trial_available: !!j.trial_available, trial_days: j.trial_days ?? 14,
           coachingPkg: j.packages?.coaching ?? null,
           coaching: j.coaching
-            ? { available: !!j.coaching.available, reason: j.coaching.reason ?? null, in_catalogue: !!j.coaching.in_catalogue }
+            ? {
+                available: !!j.coaching.available, reason: j.coaching.reason ?? null, in_catalogue: !!j.coaching.in_catalogue,
+                request: (j.coaching.request as CoachingRequestView | undefined) ?? NO_REQUEST,
+              }
             : null,
         });
         setFailed(false);
@@ -83,7 +89,11 @@ export function useSubscriptionState(api: Api) {
     }, 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
-  return { state, failed, load, retry: () => { setFailed(false); void load(); } };
+  /** After sending or withdrawing a coaching request: the new state without a reload. */
+  const setRequest = useCallback((request: CoachingRequestView) => {
+    setState((s) => (s?.coaching ? { ...s, coaching: { ...s.coaching, request } } : s));
+  }, []);
+  return { state, failed, load, setRequest, retry: () => { setFailed(false); void load(); } };
 }
 
 /** A live, paid subscription — not a trial, not one that was cancelled. */

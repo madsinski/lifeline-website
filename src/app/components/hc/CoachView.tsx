@@ -294,7 +294,7 @@ export default function CoachView({ api, startOn, startChoice, focusNewest = fal
   }
   if (!data) return <div className="h-40 animate-pulse rounded-hc-card bg-hc-surface/70" aria-busy="true" aria-label="Hleð samtalinu" />;
   /* The app tier alone has nobody on the other end: the offer, not a thread. */
-  if (data.access && !data.access.ok && data.access.offer) return <CoachingOffer offer={data.access.offer} />;
+  if (data.access && !data.access.ok && data.access.offer) return <CoachingOffer key={`${data.access.offer.request?.state ?? "none"}:${data.access.offer.request?.id ?? ""}`} offer={data.access.offer} />;
 
   return (
     <div className="space-y-4">
