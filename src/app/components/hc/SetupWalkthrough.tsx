@@ -22,7 +22,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import Sheet from "./Sheet";
 import CalendarConnect, { type CalendarApi } from "./CalendarConnect";
-import InstallGuide from "./InstallGuide";
+import Link from "next/link";
 import NudgeSettings from "./NudgeSettings";
 import PartnerCard from "./PartnerCard";
 import { CoachStep, SETUP_ROWS } from "./SetupFlow";
@@ -155,7 +155,10 @@ export default function SetupWalkthrough({ api, onClose, data, reload, entry }: 
 
   /* Intro steps only where the caller can supply what they need. */
   const intro = data && reload ? INTRO : INTRO.filter((x) => x.key === "track");
-  const four = entry === "app" ? SETUP_ROWS.filter((r) => r.key !== "coach") : SETUP_ROWS;
+  /* The coach step only when there is a choice to make (SetupFlow's rule). */
+  const coachChoice = d.coaches !== null
+    && [...(d.myCoach ? [d.myCoach] : []), ...d.coaches.filter((c) => c.id !== d.myCoach?.id)].length > 1;
+  const four = SETUP_ROWS.filter((r) => r.key !== "coach" || (entry !== "app" && coachChoice));
   const steps: { key: string; title: string; why: string }[] = [
     ...intro.map((x) => (x.key === "profile" ? { ...x, why: profileWhy(entry) } : x)),
     ...four,
@@ -296,21 +299,19 @@ export function SetupStepBody({ rowKey, d, api, data, reload, entry }: {
                     Android and desktop take notifications in the browser and
                     carry them into the installed app, so there the reminder
                     comes first and the install is the follow-up. */}
+                {/* The install guide itself lives in one place, the guided
+                    setup's „Appið á heimaskjáinn“ step (and under
+                    Stillingar); here it is a link the person can follow. */}
                 {iosNeedsInstall ? (
-                  <>
-                    <InstallGuide bare defaultOpen />
-                    <div className="rounded-2xl bg-hc-sunken p-3">
-                      <p className="text-xs text-hc-ink-2">
-                        Þegar Lifeline er á heimaskjánum opnarðu appið þaðan og velur áminningu hér.
-                      </p>
-                      <div className="mt-2 opacity-60"><NudgeSettings api={api} /></div>
-                    </div>
-                  </>
+                  <div className="rounded-2xl bg-hc-sunken p-3">
+                    <p className="text-xs text-hc-ink-2">
+                      Á iPhone berast tilkynningar aðeins þegar Lifeline er á heimaskjánum. Áminning í tölvupósti virkar strax.{" "}
+                      <Link href="/app/uppsetning?skref=app" className="font-semibold underline">Sjá hvernig appið fer á heimaskjáinn</Link>
+                    </p>
+                    <div className="mt-2"><NudgeSettings api={api} /></div>
+                  </div>
                 ) : (
-                  <>
-                    <NudgeSettings api={api} />
-                    <InstallGuide bare />
-                  </>
+                  <NudgeSettings api={api} />
                 )}
               </div>
             )}

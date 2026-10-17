@@ -1,6 +1,13 @@
 "use client";
 
 /*
+ * NOTE (2026-10-17): no longer mounted on /app. Onboarding that starts by
+ * itself broke the rule that every step is the person's own choice, so the
+ * participant now opts into the guided setup at /app/uppsetning, and the
+ * training screen below (TrainingStart, exported) is asked there or before
+ * the first training session (MovementSafety). The player stays for the
+ * composer's preview at /admin/onboarding.
+ *
  * Plays whatever the admin arranged — minus whatever is already answered.
  *
  * The composer at /admin/onboarding produces an ordered list of modules;
@@ -440,11 +447,16 @@ export default function OnboardingPlayer({ api, onFinished, preview }: {
  * same path the programme settings use, so the setup wizard on the plan
  * page does not open again asking the same thing.
  */
-function TrainingStart({ api, preview, answers, onSaved }: {
+export function TrainingStart({ api, preview, answers, onSaved, days, bare = false, submitLabel = "Áfram" }: {
   api: Api;
   preview: boolean;
   answers: Record<string, string>;
   onSaved: (move: MoveKey, limits: string[]) => Promise<void>;
+  /** Training days chosen earlier (the guided setup), used instead of the default spread. */
+  days?: number[];
+  /** Without its own heading, inside a screen that already has one. */
+  bare?: boolean;
+  submitLabel?: string;
 }) {
   const [move, setMove] = useState<MoveKey | undefined>(answers.move as MoveKey | undefined);
   const [limits, setLimits] = useState<string[]>(() => (answers.limits ?? "").split(",").filter(Boolean));
@@ -461,7 +473,10 @@ function TrainingStart({ api, preview, answers, onSaved }: {
     setBusy(true); setErr("");
     const r = await api("/api/hc/training", {
       method: "POST",
-      body: JSON.stringify(trainingFrom(move, limits, answers.goal as GoalKey | undefined)),
+      body: JSON.stringify({
+        ...trainingFrom(move, limits, answers.goal as GoalKey | undefined),
+        ...(days && days.length >= 2 ? { training_days: days } : {}),
+      }),
     }).catch(() => null);
     if (!r?.ok) { setBusy(false); setErr("Tókst ekki að vista. Reyndu aftur."); return; }
     await onSaved(move, limits);
@@ -474,10 +489,14 @@ function TrainingStart({ api, preview, answers, onSaved }: {
 
   return (
     <section>
-      <h1 className="text-2xl font-bold leading-tight text-hc-ink">Hreyfing og það sem þarf að varast</h1>
-      <p className="mt-1.5 text-sm text-hc-ink-2">Æfingarnar þínar eru byggðar á þessum tveimur svörum.</p>
+      {!bare && (
+        <>
+          <h1 className="text-2xl font-bold leading-tight text-hc-ink">Hreyfing og það sem þarf að varast</h1>
+          <p className="mt-1.5 text-sm text-hc-ink-2">Æfingarnar þínar eru byggðar á þessum tveimur svörum.</p>
+        </>
+      )}
 
-      <h2 className="mt-6 text-sm font-bold text-hc-ink">Hvað hreyfir þú þig mikið núna?</h2>
+      <h2 className={`${bare ? "" : "mt-6 "}text-sm font-bold text-hc-ink`}>Hvað hreyfir þú þig mikið núna?</h2>
       <div className="mt-2 flex flex-wrap gap-2">
         {MOVES.map((m) => (
           <button key={m.key} type="button" aria-pressed={move === m.key} onClick={() => setMove(m.key)} className={chip(move === m.key)}>
@@ -512,7 +531,7 @@ function TrainingStart({ api, preview, answers, onSaved }: {
       <button type="button" onClick={() => void save()} disabled={busy || !move || !limits.length}
         className={`${hcBtn.cta} mt-6 w-full`}>
         {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-        Áfram <ArrowRight className="h-4 w-4" aria-hidden />
+        {submitLabel} <ArrowRight className="h-4 w-4" aria-hidden />
       </button>
       <p className="mt-2 text-center text-xs text-hc-ink-3">Þú getur breytt þessu hvenær sem er í æfingastillingunum.</p>
     </section>

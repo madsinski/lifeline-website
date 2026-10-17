@@ -62,7 +62,10 @@ export const SETUP_ROWS: { key: Key; title: string; why: string; icon: typeof Be
      "samherji", which fits the meaning but is the name of one of Iceland's
      best-known companies, scandal attached. */
   { key: "partner", title: "Veldu félaga", why: "Einn sem sér hvaða daga þú gerðir eitthvað. Ekkert annað.", icon: Users },
-  { key: "nudge", title: "Áminning og appið", why: "Lítil ýting á þeim tíma sem þú velur — og Lifeline á heimaskjáinn, sem þarf til að tilkynningar berist í iPhone.", icon: Bell },
+  /* The app on the home screen is asked in one place only, the guided setup
+     (/app/uppsetning?skref=app), and stays open under Stillingar; this row
+     is the reminder alone. */
+  { key: "nudge", title: "Áminning", why: "Lítil ýting á þeim tíma sem þú velur.", icon: Bell },
 ];
 
 export default function SetupFlow({ api, place = "onboarding" }: {
@@ -141,7 +144,15 @@ export default function SetupFlow({ api, place = "onboarding" }: {
    * complete, about a person who is not part of what they chose. Where the
    * track is unknown the row stays, which is the old behaviour.
    */
-  const rows = entry === "app" ? SETUP_ROWS.filter((r) => r.key !== "coach") : SETUP_ROWS;
+  /*
+   * No coach row when there is nothing to do in it either: no coach to pick
+   * from, or only the one already assigned. A row that can only say "þú
+   * þarft ekki að gera neitt hér" is not a to-do. The coach is still named,
+   * read-only, under the heading.
+   */
+  const pickable = [...(setupData.myCoach ? [setupData.myCoach] : []), ...(setupData.coaches ?? []).filter((c) => c.id !== setupData.myCoach?.id)];
+  const coachActionable = setupData.coaches !== null && pickable.length > 1;
+  const rows = SETUP_ROWS.filter((r) => r.key !== "coach" || (entry !== "app" && coachActionable));
   const count = rows.filter((r) => done[r.key]).length;
   const all = count === rows.length;
   const settings = place === "settings";
@@ -155,12 +166,19 @@ export default function SetupFlow({ api, place = "onboarding" }: {
           </p>
           <h3 className="mt-0.5 text-xl font-bold text-hc-ink">
             {settings
-              ? (all ? "Allt er uppsett" : "Fjögur atriði, ein mínúta hvert")
-              : "Fjögur atriði, ein mínúta hvert"}
+              ? (all ? "Allt er uppsett" : "Nokkur atriði, ein mínúta hvert")
+              : "Nokkur atriði, ein mínúta hvert"}
           </h3>
         </div>
         <p className="text-sm font-semibold tabular-nums text-hc-ink-2">{count}/{rows.length}</p>
       </div>
+      {setupData.myCoach && !rows.some((r) => r.key === "coach") && (
+        <p className="mt-1 flex items-center gap-1.5 text-sm text-hc-ink-2">
+          <UserRound className="h-4 w-4 text-hc-ink-3" aria-hidden />
+          Þjálfarinn þinn: <span className="font-semibold text-hc-ink">{setupData.myCoach.name ?? "Þjálfari"}</span>
+          {setupData.myCoach.role && <span className="text-hc-ink-3">· {ROLE_IS[setupData.myCoach.role] ?? setupData.myCoach.role}</span>}
+        </p>
+      )}
       <p className="mt-1.5 text-sm text-hc-ink-2">
         {settings
           ? (all

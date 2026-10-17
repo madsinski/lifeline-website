@@ -21,6 +21,7 @@ import { pillarPriorities, selfServiceModule, suggestModules } from "@/lib/hc/se
 import { startPlanTrial } from "@/lib/hc/subscription";
 import { PILLARS, type Pillar, type PlanGoal, type PlanItem, type PlanModule } from "@/lib/hc/types";
 import { reportOnFile } from "@/lib/hc/stages";
+import { resolveScenarios, type ResolvedScenario } from "@/lib/hc/first-plan";
 
 export const runtime = "nodejs";
 
@@ -90,8 +91,31 @@ export async function GET(req: NextRequest) {
     markerTitles[item.slug] = item.title;
   }
 
+  /*
+   * A first plan starts from a goal (src/lib/hc/first-plan.ts): the staff
+   * templates' actions, narrowed and renamed into something a participant
+   * recognises. Only built when there is no plan yet — the editor for an
+   * existing plan does not use them.
+   */
+  let scenarios: ResolvedScenario[] = [];
+  if (plan?.status !== "published") {
+    const [{ data: templates }, { data: ex }, { data: nu }] = await Promise.all([
+      supabaseAdmin.from("hc_plan_templates").select("key, module_keys, lecture_slugs").eq("active", true),
+      supabaseAdmin.from("hc_exercise_templates").select("key").eq("active", true),
+      supabaseAdmin.from("hc_nutrition_templates").select("key").eq("active", true),
+    ]);
+    scenarios = resolveScenarios(
+      (templates ?? []) as { key: string; module_keys: string[] | null; lecture_slugs: string[] | null }[],
+      lib.modules,
+      new Set((ex ?? []).map((x) => x.key as string)),
+      new Set((nu ?? []).map((x) => x.key as string)),
+      new Set((lib.lectures as { slug: string }[]).map((l) => l.slug)),
+    );
+  }
+
   return NextResponse.json({
     ...lib,
+    scenarios,
     plan: plan?.status === "published" ? plan : null,
     staff_drafting: plan?.status === "draft",
     has_report: !!stored,

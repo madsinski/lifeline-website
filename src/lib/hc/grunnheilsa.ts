@@ -63,6 +63,9 @@ export interface ReportPatient {
   sex: "m" | "f" | null;
   email: string | null;
   phone: string | null;
+  /** "Gata 1, 900 Vestmannaeyjum" when the report carries a "Heimilisfang:"
+   *  line; the reports seen so far do not, so this is usually absent. */
+  address?: string | null;
 }
 
 export interface Grunnheilsa {
@@ -323,6 +326,7 @@ function parsePatient(text: string): ReportPatient {
   const email = head.match(/Netfang:\s*(\S+@\S+)/)?.[1] ?? null;
   const phone = head.match(/Sími:\s*([+\d\s]{5,20})/g)?.at(-1)?.replace(/Sími:\s*/, "").trim() ?? null;
   const sexWord = nameLine?.[2]?.toLowerCase();
+  const address = head.match(/Heimilisfang:\s*([^\n]{3,120})/)?.[1]?.trim() ?? null;
   return {
     name: nameLine?.[1]?.trim() ?? null,
     // The first kennitala is the clinic's; the client's is the second.
@@ -331,6 +335,7 @@ function parsePatient(text: string): ReportPatient {
     sex: sexWord === "karl" ? "m" : sexWord === "kona" ? "f" : null,
     email,
     phone,
+    address,
   };
 }
 

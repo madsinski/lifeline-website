@@ -4,6 +4,10 @@
 // POST { full_name, phone, address, postcode, town, kennitala?, accept_health_consent? }
 // PUT  { accept_health_consent: true } — consent alone, for people whose
 //      profile was complete before consent was part of this step.
+// PATCH { address, postcode } — the address alone (AddressFields, the guided
+//      setup at /app/uppsetning). The town is never taken from the request:
+//      the postcode must be in Pósturinn's list (src/lib/is-postcodes.ts) and
+//      the stored town is that list's official name for it.
 // GET  → the participant's own profile for "Aðgangur" (kennitala as last four only).
 
 import { NextRequest, NextResponse } from "next/server";
@@ -11,6 +15,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { cleanKennitala, isValidKennitala, isValidIcelandicPhone } from "@/lib/kennitala";
 import { currentJourney, getClientProfile, hcAudit, isProfileComplete, patchJourney, refreshStage, requireUser, profileTrackOf } from "@/lib/hc/server";
 import { hasHealthConsent, recordHealthConsent } from "@/lib/health-consent";
+import { isValidPostcode, placeForPostcode } from "@/lib/is-postcodes";
+import { formatAddress } from "@/lib/hc/address";
 
 export const runtime = "nodejs";
 
@@ -78,7 +84,10 @@ export async function POST(req: NextRequest) {
   if (!appOnly || sentAddress) {
     if (street.length < 3) errors.address = "Sláðu inn heimilisfang.";
     if (!/^\d{3}$/.test(postcode)) errors.postcode = "Póstnúmer er þrír tölustafir.";
-    if (town.length < 2) errors.town = "Sláðu inn bæjarfélag.";
+    else if (!isValidPostcode(postcode)) errors.postcode = "Þetta póstnúmer er ekki til.";
+    // The town follows from the postcode and is stored as Pósturinn names
+    // it; what was typed only matters when there is no postcode to go on.
+    if (!placeForPostcode(postcode) && town.length < 2) errors.town = "Sláðu inn bæjarfélag.";
   }
 
   const existing = await getClientProfile(user.id);
@@ -97,7 +106,7 @@ export async function POST(req: NextRequest) {
   };
   // Not overwritten with blanks by a form that never showed the fields.
   if (!appOnly || phone) update.phone = phone;
-  if (!appOnly || sentAddress) update.address = `${street}, ${postcode} ${town}`;
+  if (!appOnly || sentAddress) update.address = formatAddress(street, postcode);
   if (ktRaw) {
     const { data: enc, error: encErr } = await supabaseAdmin.rpc("enc_kennitala", { p_text: ktRaw });
     if (encErr || !enc) return NextResponse.json({ error: "encrypt_failed" }, { status: 500 });
@@ -147,4 +156,33 @@ export async function PUT(req: NextRequest) {
   if (!ok) return NextResponse.json({ error: "save_failed" }, { status: 500 });
   await hcAudit(`client:${user.id}`, "health_consent_accepted", null);
   return NextResponse.json({ ok: true });
+}
+
+/** The address on its own: street + a postcode from Pósturinn's list. */
+export async function PATCH(req: NextRequest) {
+  const user = await requireUser(req);
+  if (user instanceof NextResponse) return user;
+  const b = await req.json().catch(() => ({}));
+  const street = String(b.address || "").trim().slice(0, 120);
+  const postcode = String(b.postcode || "").trim();
+  const errors: Record<string, string> = {};
+  if (street.length < 3) errors.address = "Sláðu inn götu og húsnúmer.";
+  if (!/^\d{3}$/.test(postcode)) errors.postcode = "Póstnúmer er þrír tölustafir.";
+  else if (!isValidPostcode(postcode)) errors.postcode = "Þetta póstnúmer er ekki til.";
+  if (Object.keys(errors).length) return NextResponse.json({ error: "validation", errors }, { status: 400 });
+
+  const address = formatAddress(street, postcode);
+  const existing = await getClientProfile(user.id);
+  const now = new Date().toISOString();
+  const { error } = existing
+    ? await supabaseAdmin.from("clients_decrypted").update({ address, updated_at: now }).eq("id", user.id)
+    : await supabaseAdmin.from("clients_decrypted").insert({ id: user.id, email: user.email, address, updated_at: now });
+  if (error) {
+    console.error("[hc/profile] address save failed", error.message);
+    return NextResponse.json({ error: "save_failed" }, { status: 500 });
+  }
+  await hcAudit(`client:${user.id}`, "address_saved", null, { postcode });
+  const journey = await currentJourney(user.id);
+  if (journey) await refreshStage(journey);
+  return NextResponse.json({ ok: true, address, postcode, town: placeForPostcode(postcode) });
 }

@@ -7,17 +7,22 @@
 // that differed between phone and desktop, and the journey itself was only
 // reachable through it. One page of plain links instead: each is one tap
 // from the bar, and none of them competes with Í dag for room.
+//
+// Somebody new (no plan, no report, setup not finished) gets the setup card
+// first, and the rows that would only open empty pages wait behind a note.
 
 import { Suspense, useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, BookOpen, ChevronRight, Compass, ExternalLink, FileHeart, History, Settings, ShoppingBag, type LucideIcon } from "lucide-react";
+import { Bell, BookOpen, ChevronRight, Compass, ExternalLink, FileHeart, History, Settings, ShoppingBag, Sparkles, type LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import JourneyNav, { JourneyHeader } from "@/app/components/hc/JourneyNav";
 import { useNotifications } from "@/app/components/hc/Notifications";
 import { badgeClass } from "@/app/components/hc/Badge";
-import { PageHero, accountCard } from "@/app/components/account/ui";
-import { hcPage } from "@/app/components/hc/ui";
+import { PageHero } from "@/app/components/account/ui";
+import { hcCard, hcPage } from "@/app/components/hc/ui";
+import SetupCard, { useSetupState } from "@/app/components/hc/SetupCard";
+import { setupCount } from "@/lib/hc/setup-steps";
 import * as cache from "@/lib/hc/client-cache";
 
 export default function EgPage() {
@@ -56,6 +61,7 @@ function Eg() {
   const router = useRouter();
   const [name, setName] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const api = useCallback(async (url: string, init: RequestInit = {}) => {
     const { data } = await supabase.auth.getSession();
@@ -76,6 +82,9 @@ function Eg() {
   }, [api, router]);
 
   const { unread } = useNotifications(api);
+  const { state: setup } = useSetupState(api);
+  const isNew = !!setup && !setup.context.has_plan && !setup.context.has_report && !setup.progress.completed_at;
+  const setupLeft = setup && !setup.progress.completed_at ? setupCount(setup.progress, setup.context) : null;
 
   return (
     <div className={hcPage.participant}>
@@ -90,27 +99,44 @@ function Eg() {
           <div className="h-80 rounded-hc-card hc-shimmer" aria-busy="true" aria-label="Hleð" />
         ) : (
           <>
-            <section aria-labelledby="eg-mine" className={`${accountCard} overflow-hidden`}>
+            {isNew && setup && <SetupCard api={api} state={setup} />}
+
+            <section aria-labelledby="eg-mine" className={`${hcCard.base} overflow-hidden`}>
               <h2 id="eg-mine" className="sr-only">Mitt</h2>
               <ul className="divide-y divide-hc-hairline">
-                <Row href="/app/aaetlun?tab=report" Icon={FileHeart} title="Skýrslan og mælingar"
-                  body="Niðurstöðurnar þínar, mælingar milli skýrslna og ný skýrsla." />
-                <Row href="/app/eg/saga" Icon={History} title="Vikan þín"
-                  body="Æfingar, máltíðir og venjur sem þú hefur skráð síðustu 14 daga." />
-                <Row href="/app?ferd=1" Icon={Compass} title="Heilsuferðin"
-                  body="Skrefin, fyrri áætlanir, virkjunarkóði og umsóknir til stéttarfélags." />
-                <Row href="/app/eg/thjonusta" Icon={ShoppingBag} title="Þjónusta"
-                  body="Heilsufarsskoðun, mæling, blóðprufa og læknisviðtal. Kaup, kóðar og bókanir." />
+                {(!isNew || showAll) && (
+                  <>
+                    <Row href="/app/aaetlun?tab=report" Icon={FileHeart} title="Skýrslan og mælingar"
+                      body="Niðurstöðurnar þínar, mælingar milli skýrslna og ný skýrsla." />
+                    <Row href="/app/eg/saga" Icon={History} title="Vikan þín"
+                      body="Æfingar, máltíðir og venjur sem þú hefur skráð síðustu 14 daga." />
+                    <Row href="/app?ferd=1" Icon={Compass} title="Heilsuferðin"
+                      body="Skrefin, fyrri áætlanir, virkjunarkóði og umsóknir til stéttarfélags." />
+                  </>
+                )}
                 <Row href="/app/fraedsla" Icon={BookOpen} title="Fræðsla"
                   body="Fyrirlestrarnir í áætluninni þinni og allt safnið." />
                 <Row href="/app/tilkynningar" Icon={Bell} title="Tilkynningar" count={unread}
                   body="Á döfinni og það sem hefur borist." />
+                {/* The shop stays, but it is not the first thing a new person meets. */}
+                <Row href="/app/eg/thjonusta" Icon={ShoppingBag} title="Þjónusta"
+                  body="Heilsufarsskoðun, mæling, blóðprufa og læknisviðtal. Kaup, kóðar og bókanir." />
               </ul>
+              {isNew && !showAll && (
+                <p className="border-t border-hc-hairline px-4 py-2 text-sm text-hc-ink-3 sm:px-5">
+                  Skýrslan, vikan þín og heilsuferðin bætast við hér þegar þær hafa eitthvað að sýna.{" "}
+                  <button type="button" onClick={() => setShowAll(true)} className="min-h-11 font-semibold text-hc-ink-2 underline">Sýna samt</button>
+                </p>
+              )}
             </section>
 
-            <section aria-labelledby="eg-account" className={`${accountCard} overflow-hidden`}>
+            <section aria-labelledby="eg-account" className={`${hcCard.base} overflow-hidden`}>
               <h2 id="eg-account" className="sr-only">Aðgangur</h2>
               <ul className="divide-y divide-hc-hairline">
+                {!isNew && setupLeft && (
+                  <Row href="/app/uppsetning" Icon={Sparkles} title="Uppsetning appsins"
+                    body={`${setupLeft.handled} af ${setupLeft.total} skrefum að baki. Heimilisfang, áætlun, appið á heimaskjáinn og áminningar.`} />
+                )}
                 <Row href="/app/adgangur" Icon={Settings} title="Stillingar og áskrift"
                   body="Upplýsingar, innskráning, áminningar, dagatal, áskrift og greiðslur." />
                 <Row href="/account" Icon={ExternalLink} title="Mínar síður"

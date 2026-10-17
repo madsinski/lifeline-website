@@ -14,13 +14,12 @@ import { useState } from "react";
 import { renderHealthAssessmentConsent } from "@/lib/platform-terms-content";
 import { hcBtn, hcInput } from "./ui";
 import { SAVE_FAILED, useToast } from "./Toast";
+import { AddressFields } from "./AddressFields";
+import { splitAddress } from "@/lib/hc/address";
+import { placeForPostcode } from "@/lib/is-postcodes";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
-function splitAddress(a: string | null) {
-  const m = /^(.*),\s*(\d{3})\s+(.+)$/.exec(a || "");
-  return m ? { street: m[1], postcode: m[2], town: m[3] } : { street: a || "", postcode: "", town: "" };
-}
 
 /** Only what the form needs, so a caller does not have to hold a whole journey. */
 export interface ProfileFormData {
@@ -92,7 +91,8 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
     e.preventDefault();
     if (busy) return;
     setBusy(true); setErrors({}); setSaved(false);
-    const r = await api("/api/hc/profile", { method: "POST", body: JSON.stringify({ ...f, accept_health_consent: consent }) }).catch(() => null);
+    // The town is Pósturinn's name for the postcode; the server sets it the same way.
+    const r = await api("/api/hc/profile", { method: "POST", body: JSON.stringify({ ...f, town: placeForPostcode(f.postcode) ?? f.town, accept_health_consent: consent }) }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
     if (!r || !r.ok) {
@@ -140,9 +140,11 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
           <>
             {field("kennitala", data.profile.kennitala_last4 ? `Kennitala (skráð: ••••••-${data.profile.kennitala_last4})` : "Kennitala", { inputMode: "numeric", placeholder: data.profile.kennitala_last4 ? "Sláðu inn til að breyta" : "000000-0000" })}
             {field("phone", "Farsími", { autoComplete: "tel", inputMode: "tel" })}
-            {field("address", "Heimilisfang", { autoComplete: "street-address" })}
-            {field("postcode", "Póstnúmer", { autoComplete: "postal-code", inputMode: "numeric", maxLength: 3 })}
-            {field("town", "Bæjarfélag", { autoComplete: "address-level2" })}
+            <div className="sm:col-span-2">
+              <AddressFields value={{ street: f.address, postcode: f.postcode }}
+                onChange={(v) => setF({ ...f, address: v.street, postcode: v.postcode })}
+                errors={{ address: errors.address, postcode: errors.postcode ?? errors.town }} />
+            </div>
           </>
         )}
       </div>
@@ -155,7 +157,7 @@ export default function ProfileForm({ data, reload, api, track = "care" }: {
         {saved && <span className="text-sm text-hc-ok-ink">Vistað</span>}
       </div>
       {track === "care" && (
-        <p className="text-xs text-hc-ink-2">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir sjálf(ur).</p>
+        <p className="text-xs text-hc-ink-2">Kennitalan er dulkóðuð og aðeins notuð fyrir heilbrigðisþjónustuna og umsóknir sem þú sendir.</p>
       )}
       <div className="rounded-hc-element bg-hc-sunken p-3 text-xs text-hc-ink-2">
         Ábending: Í stillingum hér til hliðar getur þú sett upp <strong>PIN</strong> fyrir fljótlegri innskráningu og tengt ferðina við <strong>Google eða Apple dagatal</strong>.

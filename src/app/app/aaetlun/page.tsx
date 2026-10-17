@@ -21,7 +21,7 @@ import { Alert, Button, useDialog } from "@/app/components/account/ui";
 import NextStepCard from "@/app/components/hc/NextStepCard";
 import { DayMealsProvider } from "@/app/components/hc/useDayMeals";
 import { actionForSession, isoDay } from "@/lib/hc/adherence";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import PlanView from "@/app/components/hc/PlanView";
@@ -47,6 +47,7 @@ import { LoadingBar, Skeleton } from "@/app/components/hc/Loading";
 import type { Upcoming } from "@/lib/hc/upcoming";
 import * as cache from "@/lib/hc/client-cache";
 import PlanEditor from "@/app/components/hc/PlanEditor";
+import MovementSafety from "@/app/components/hc/MovementSafety";
 import ReportUpload from "@/app/components/hc/ReportUpload";
 import { useToday } from "@/app/components/hc/TodayCards";
 import { NotificationBell, NotificationSheet, useNotifications } from "@/app/components/hc/Notifications";
@@ -73,9 +74,6 @@ type Tab = "today" | "exercise" | "nutrition" | "coach" | "report";
 const TABS: Tab[] = ["today", "exercise", "nutrition", "coach", "report"];
 /** "results" was a tab of its own; its content lives on the report tab now. */
 const asTab = (v: string | null): Tab | null => (v === "results" ? "report" : TABS.find((t) => t === v) ?? null);
-
-/** Set once the training wizard has opened by itself, so a reload does not open it again. */
-const WIZARD_SEEN_KEY = "hc-training-wizard-seen";
 
 interface Loaded {
   journey_id: string;
@@ -200,9 +198,15 @@ function PlanPageInner() {
   const [entry, setEntry] = useState<string | null | undefined>(undefined);
   const [personal, setPersonal] = useState<Personal>(DEFAULT_PERSONAL);
   const [gym, setGym] = useState<{ name: string | null; url: string | null; info: string | null } | null>(null);
-  // The setup wizard: opened on demand, and by itself the first time, when
-  // the programme is still running on defaults nobody has confirmed.
+  // The training settings wizard: opened on demand ("Stilla æfingar"), never by itself.
   const [setup, setSetup] = useState(false);
+  /**
+   * Whether hc_training_settings exists. null = not known yet. When false,
+   * Æfingar asks the movement and safety questions before any session
+   * (MovementSafety) — the one question that may stand between somebody
+   * and training, and only there.
+   */
+  const [trainingSaved, setTrainingSaved] = useState<boolean | null>(null);
   // "Hvað viltu breyta?" for the training programme.
   /** Which pillar the plan editor should open on, when it was opened from an action. */
   const [editPillar, setEditPillar] = useState<Pillar | null>(null);
@@ -256,8 +260,6 @@ function PlanPageInner() {
     try { window.localStorage.setItem(SOON_KEY, new Date().toISOString().slice(0, 10)); } catch { /* private mode */ }
   };
 
-  /** The wizard's first-load check, done once per visit to the page. */
-  const wizardChecked = useRef(false);
   useEffect(() => {
     type J = Record<string, unknown> & { plan?: ActionPlan | null };
     const apply = (aj: J, pj: J, tj: J | null) => {
@@ -270,22 +272,13 @@ function PlanPageInner() {
       if (tj?.gym !== undefined) setGym(tj.gym as typeof gym);
       if (tj?.nutrition) setNutritionPrefs(tj.nutrition as NutritionPrefs);
       /*
-       * The training wizard opens by itself once, on the first load where
-       * the programme still runs on defaults nobody has confirmed — not on
-       * every reload until it is saved, which is what it used to do. After
-       * that, "Stilla æfingar" on Æfingar is the way back to it.
+       * Nothing opens by itself. The training wizard used to pop up once on
+       * the first load with unconfirmed defaults; now "Stilla æfingar" is
+       * the way in, and the one thing that must be known before training —
+       * movement and what to spare — is asked on Æfingar, with the reason,
+       * only when the settings were never saved (MovementSafety).
        */
-      if (!wizardChecked.current && tj?.settings) {
-        wizardChecked.current = true;
-        if (!(tj.settings as { saved?: boolean }).saved) {
-          let seen = false;
-          try { seen = window.localStorage.getItem(WIZARD_SEEN_KEY) === "1"; } catch { /* private mode */ }
-          if (!seen) {
-            setSetup(true);
-            try { window.localStorage.setItem(WIZARD_SEEN_KEY, "1"); } catch { /* private mode */ }
-          }
-        }
-      }
+      if (tj?.settings) setTrainingSaved(!!(tj.settings as { saved?: boolean }).saved);
       setData({
         journey_id: aj.journey_id as string, plan: pj.plan ?? aj.plan ?? null,
         logs: (aj.logs as ActionLog[]) ?? [], prefs: (aj.prefs as ActionPref[]) ?? [], flagged: (aj.flagged as FlaggedValue[]) ?? [],
@@ -846,19 +839,22 @@ function PlanPageInner() {
                   {!walled && !plan && coaching === true && (
                     <div className="space-y-4">
                       <EmptyState variant="empty" title="Settu saman áætlunina þína"
-                        body="Veldu venjur og æfingar úr safninu. Æfingarnar taka mið af því sem þú sagðir okkur, og þú getur breytt öllu síðar."
-                        action={{ label: "Settu saman áætlunina þína", onClick: () => setEditing(true) }} />
-                      <Link href="/app?ferd=1" className="flex min-h-11 items-center justify-center text-sm font-semibold text-hc-ink-2 underline">Sjá heilsuferðina</Link>
+                        body="Veldu markmið og nokkrar venjur til að byrja á, skref fyrir skref. Þú getur breytt öllu síðar."
+                        action={{ label: "Setja saman áætlun", onClick: () => setEditing(true) }} />
+                      <div className="flex flex-wrap items-center justify-center gap-x-5 text-sm">
+                        <Link href="/app/uppsetning" className="flex min-h-11 items-center font-semibold text-hc-ink-2 underline">Uppsetning appsins</Link>
+                        <Link href="/app?ferd=1" className="flex min-h-11 items-center font-semibold text-hc-ink-2 underline">Sjá heilsuferðina</Link>
+                      </div>
                     </div>
                   )}
                   {!walled && !plan && coaching === false && (
                     <div className="space-y-4">
                       {next && <AppointmentCard a={next} />}
                       <EmptyState variant="waiting" title="Áætlunin er ekki tilbúin enn"
-                        body="Hún verður til í áætlunarsamtalinu með hjúkrunarfræðingi Lifeline. Þú getur líka sett skýrsluna þína inn og búið áætlunina til sjálf(ur)."
+                        body="Hún verður til í áætlunarsamtalinu með hjúkrunarfræðingi Lifeline. Þú getur líka sett skýrsluna þína inn og byrjað á eigin áætlun strax."
                         action={{ label: "Sjá heilsuferðina", href: "/app?ferd=1" }} />
                       <ReportUpload api={api} onDone={reload} />
-                      <button type="button" onClick={() => setEditing(true)} className={`${hcBtn.secondary} w-full`}>Búa til áætlun sjálf(ur) án skýrslu</button>
+                      <button type="button" onClick={() => setEditing(true)} className={`${hcBtn.secondary} w-full`}>Setja saman áætlun án skýrslu</button>
                     </div>
                   )}
                 </div>
@@ -886,7 +882,21 @@ function PlanPageInner() {
               {tab === "exercise" && walled && paywall}
               {tab === "exercise" && !walled && plan && baseExercise && (
                 <div className="print:hidden">
-                  {setup && isAdaptive(plan.exercise?.key) ? (
+                  {trainingSaved === false ? (
+                    /* Never answered: asked here, before any session, with
+                       the reason. Not on app open, and not in Í dag. */
+                    <section className={`${hcCard.base} p-5 sm:p-6`}>
+                      <h1 className="text-xl font-bold text-hc-ink">Hreyfing og það sem þarf að varast</h1>
+                      <div className="mt-4">
+                        <MovementSafety api={api} mode="training"
+                          onSaved={() => {
+                            setTrainingSaved(true);
+                            cache.invalidate("/api/hc/training", "/api/hc/setup");
+                            reload();
+                          }} />
+                      </div>
+                    </section>
+                  ) : setup && isAdaptive(plan.exercise?.key) ? (
                     <TrainingWizard
                       settings={training} planStart={plan.start_date}
                       signals={reportSignalsBySlug} titles={reportTitlesBySlug} gym={gym} saving={saving}
