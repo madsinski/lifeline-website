@@ -66,9 +66,9 @@ const appFeatureStyles = [
 ];
 
 const btnPrimary =
-  "inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25";
+  "inline-flex items-center justify-center px-10 py-4 text-base font-semibold text-white bg-[#047857] rounded-full hover:bg-[#065F46] transition-all duration-200 shadow-lg shadow-green-700/25";
 const btnSecondary =
-  "inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200";
+  "inline-flex items-center justify-center px-10 py-4 text-base font-semibold border-2 border-[#047857] text-[#047857] rounded-full hover:bg-[#047857] hover:text-white transition-all duration-200";
 
 function AppTextContent({ c }: { c: LocaleContent }) {
   return (
@@ -88,8 +88,8 @@ function AppTextContent({ c }: { c: LocaleContent }) {
         ))}
       </div>
       <div className="mt-8 flex flex-wrap gap-3">
-        <CtaLink href={c.app_cta_app_href || "/coaching#download"} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-all duration-200 shadow-lg shadow-green-500/25">{c.app_cta_app}</CtaLink>
-        <CtaLink href={c.app_cta_coaching_href || "/coaching"} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200">{c.app_cta_coaching}</CtaLink>
+        <CtaLink href={c.app_cta_app_href || "/coaching#download"} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-[#047857] rounded-full hover:bg-[#065F46] transition-all duration-200 shadow-lg shadow-green-700/25">{c.app_cta_app}</CtaLink>
+        <CtaLink href={c.app_cta_coaching_href || "/coaching"} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold border-2 border-[#047857] text-[#047857] rounded-full hover:bg-[#047857] hover:text-white transition-all duration-200">{c.app_cta_coaching}</CtaLink>
       </div>
     </div>
   );
