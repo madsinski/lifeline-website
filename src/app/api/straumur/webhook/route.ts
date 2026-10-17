@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
   const ad = body?.additionalData ?? {};
   const eventType = typeof ad.eventType === "string" ? ad.eventType : null;
 
+  /* An unsigned request is refused before anything is stored, so the log
+     can't be filled by anyone who finds the URL. */
+  if (!verified) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   // Kept for tracing; card details beyond the last four are dropped.
   await supabaseAdmin.from("straumur_webhook_events").insert({
     correlation_id: req.headers.get("x-webhook-correlationid"),
@@ -54,8 +58,6 @@ export async function POST(req: NextRequest) {
     verified,
     body: { ...body, reason: null, additionalData: { ...ad, cardNumber: undefined, token: ad.token ? "(stored)" : undefined } },
   }).then(() => {}, () => {});
-
-  if (!verified) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   /* Our session row: by Straumur's checkout reference, else our own reference. */
   const findRow = async () => {
