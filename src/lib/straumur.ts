@@ -21,17 +21,17 @@ export type StraumurChargeResult =
   | { ok: false; error: string };
 
 /**
- * Mock charge that returns success after a short delay. Swap the internals
- * for a real Straumur call (fetch to their checkout / payment-intent
- * endpoint) once the API is available.
+ * Fails closed until the real Straumur integration is connected.
+ *
+ * This used to be a mock that waited 900 ms and returned success, which on
+ * the live site meant every checkout, subscription and booking that reached
+ * it was marked paid without a card (closed 2026-10-17). Every caller treats
+ * { ok: false } as "not paid". Free purchases for testing go through the
+ * admin test-code pool, which brings the price to 0 so no charge is made.
  */
 export async function createStraumurCharge(args: StraumurChargeArgs): Promise<StraumurChargeResult> {
-  // Simulate network latency
-  await new Promise((r) => setTimeout(r, 900));
-  return {
-    ok: true,
-    providerReference: `stub_${args.reference.slice(0, 8)}_${Date.now().toString(36)}`,
-  };
+  void args;
+  return { ok: false, error: "Kortagreiðslur opna fljótlega. Hafðu samband á contact@lifelinehealth.is ef þú vilt ganga frá kaupum strax." };
 }
 
 export const STRAUMUR_BRAND = {
