@@ -92,12 +92,12 @@ export interface DoctorConfig {
 /**
  * Fallbacks, used only where hc_packages.quota on 'laeknisvidtal' is missing.
  *
- * doctor_weekday 3 (miðvikudagur) = the nurse's service day placeholder in
- * coaching-config.ts. Mads has not named the doctor's day yet; set it with
- * one UPDATE on hc_packages.quota, not here.
+ * doctor_weekday 5 (föstudagur), the same day as the coaching service day,
+ * named by Mads 2026-10-17. The live value is hc_packages.quota; change it
+ * there with one UPDATE, not here.
  */
 export const DOCTOR_PACKAGE_KEY = "laeknisvidtal";
-export const DOCTOR_DEFAULTS: DoctorConfig = { doctor_weekday: 3, slot_minutes: 30 };
+export const DOCTOR_DEFAULTS: DoctorConfig = { doctor_weekday: 5, slot_minutes: 30 };
 
 export function readDoctorConfig(raw: unknown): DoctorConfig {
   const q = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;

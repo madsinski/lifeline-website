@@ -52,15 +52,15 @@ export interface CoachingQuota {
 /**
  * Fallbacks, used only where hc_packages.quota is missing or partial.
  *
- * service_weekday 3 (miðvikudagur) is a placeholder: Mads has not named the
- * day yet. Set it in hc_packages.quota, not here, once he has.
+ * service_weekday 5 (föstudagur), named by Mads 2026-10-17. The live value is
+ * hc_packages.quota; change it there, not here.
  */
 export const COACHING_DEFAULTS: CoachingQuota & { price_isk: number } = {
   price_isk: 7990,
   video_per_month: 1,
   video_minutes: 20,
   measurement_every_months: 2,
-  service_weekday: 3,
+  service_weekday: 5,
   region: "vestmannaeyjar",
   postcodes: ["900", "902"],
 };
