@@ -13,7 +13,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ensureSignupConsentRecorded } from "@/lib/signup-consent";
 import LifelineLogo from "@/app/components/LifelineLogo";
-import OnboardingPlayer from "@/app/components/hc/OnboardingPlayer";
+import SetupCard, { useSetupState } from "@/app/components/hc/SetupCard";
+import { BookOpen, Compass, Sparkles } from "lucide-react";
 import { type JourneyStep, type StepKey, STEP_SHORT } from "@/lib/hc/stages";
 import AppointmentCard from "@/app/components/hc/AppointmentCard";
 import ReportUpload from "@/app/components/hc/ReportUpload";
@@ -111,9 +112,11 @@ function Heilsuferd() {
   // Once the plan exists, "Í dag" is home; ?ferd=1 is the journey itself.
   const showJourney = params.get("ferd") === "1";
   const [authed, setAuthed] = useState<boolean | null>(null);
-  /* Starts false; the player flips it true either by finishing the flow or
-     by reporting that there is none. */
-  const [onboarded, setOnboarded] = useState(false);
+  /* The guided setup is an invitation on this page, never a screen that
+     runs by itself (Mads: every step happens because the person chose to
+     go there). Hidden for this visit after „Ekki núna“. */
+  const { state: setup, reload: reloadSetup } = useSetupState(api);
+  const [setupHidden, setSetupHidden] = useState(false);
   const [data, setData] = useState<JourneyData | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<StepKey | null>(null);
@@ -184,20 +187,6 @@ function Heilsuferd() {
     await load(true);
   }, [stadur, load, toast]);
 
-  /* Stable, because the player refetches when it changes. */
-  const onboardingFinished = useCallback(() => {
-    void load(true).then((j) => {
-      /* The coaching track has no workup to follow: its next thing is the
-         plan, and that page knows how to start one. Redirected before the
-         journey page renders, so it does not flash past. */
-      if (j && (j.journey.entry === "coach" || j.journey.entry === "app") && !j.plan && !showJourney) {
-        router.replace("/app/aaetlun");
-        return;
-      }
-      setOnboarded(true);
-    });
-  }, [load, router, showJourney]);
-
   useEffect(() => {
     (async () => {
       const { data: s } = await supabase.auth.getSession();
@@ -219,9 +208,10 @@ function Heilsuferd() {
       if (!info) return;
       if (info.b2b) await startJourney("check");
       else if (info.start_track) await startJourney(info.start_track);
-      else setChoosing(true);
+      else { setChoosing(true); return; }
+      void reloadSetup();
     })();
-  }, [load, router, startJourney]);
+  }, [load, router, startJourney, reloadSetup]);
 
   if (authed === false) return <FirstStep stadur={stadur} />;
 
@@ -237,20 +227,18 @@ function Heilsuferd() {
     );
   }
 
-  /* A published onboarding flow runs after the journey is created and
-     before its page is shown.
-     OnboardingPlayer renders nothing when there is no flow, when this person
-     has finished it, or when the fetch fails — so the app is never behind a
-     screen that cannot load. That is deliberate: onboarding which can strand
-     somebody is worse than none, and the sequence this replaces could strand
-     you behind an email confirmation with no way past. */
-  if (!onboarded) {
-    return (
-      <Shell>
-        <OnboardingPlayer api={api} onFinished={onboardingFinished} />
-      </Shell>
-    );
-  }
+  /*
+   * No onboarding runs here any more.
+   *
+   * A published flow used to play itself (OnboardingPlayer) the moment the
+   * journey existed, and the coaching track was then sent on to
+   * /app/aaetlun without being asked. Both are now the person's choice: the
+   * setup is a card („Setja upp appið“) that opens /app/uppsetning, and its
+   * one safety-critical question — movement and what to spare — is asked
+   * there, or at the latest when a training session is about to start
+   * (MovementSafety on Æfingar). The terms, which the old flow could also
+   * ask, are taken at signup and checked again at the start of the setup.
+   */
 
   if (noJourney) {
     return (
@@ -276,6 +264,52 @@ function Heilsuferd() {
   }
 
   const coaching = data.journey.entry === "coach" || data.journey.entry === "app";
+  /* The setup card, while the setup is unfinished and not put off. */
+  const showSetup = !!setup && !setupHidden && !setup.progress.completed_at && !setup.progress.dismissed_at && !data.plan;
+
+  /*
+   * The coaching track before a plan: one card, nothing else competing.
+   *
+   * This track has no workup to follow, so its journey page is mostly
+   * empty steps; it used to be skipped by sending people on to
+   * /app/aaetlun unasked. Now they land here and choose.
+   */
+  if (coaching && !data.plan && !showJourney) {
+    const quiet = "inline-flex min-h-11 items-center gap-1.5 font-semibold text-hc-ink-2 underline";
+    return (
+      <Shell>
+        <JourneyHeader />
+        <div className="sm:mb-4"><JourneyNav active="today" /></div>
+        <div className="mx-auto max-w-xl space-y-4">
+          <div className="mb-4"><ReportApproval api={api} onDone={() => load(true)} /></div>
+          <h1 className="text-2xl font-bold text-hc-ink sm:text-3xl">
+            {data.profile.full_name ? `Hæ ${data.profile.full_name.split(" ")[0]}` : "Hæ"}
+          </h1>
+          {setup === null ? (
+            <div className="h-48 rounded-hc-card hc-shimmer" aria-busy="true" aria-label="Hleð" />
+          ) : setup && !setupHidden && !setup.progress.completed_at ? (
+            <SetupCard api={api} state={setup}
+              onDismissed={() => { setSetupHidden(true); void reloadSetup(); }}
+              alternatives={<Link href="/app/aaetlun?breyta=1" className={quiet}>Bara áætlunin</Link>} />
+          ) : (
+            <section className={`${hcCard.raised} p-5 sm:p-6`}>
+              <h2 className="text-lg font-bold text-hc-ink">Settu saman áætlunina þína</h2>
+              <p className="mt-1 text-sm text-hc-ink-2">Veldu markmið og nokkrar venjur til að byrja á. Þú getur breytt öllu síðar.</p>
+              <Link href="/app/aaetlun?breyta=1" className={`${hcBtn.cta} mt-4 w-full`}>Setja saman áætlun</Link>
+            </section>
+          )}
+          <nav aria-label="Annað" className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm">
+            {setup && (setupHidden || setup.progress.completed_at) && (
+              <Link href="/app/uppsetning" className={quiet}><Sparkles className="h-4 w-4" aria-hidden /> Uppsetning</Link>
+            )}
+            <Link href="/app/fraedsla" className={quiet}><BookOpen className="h-4 w-4" aria-hidden /> Skoða fræðsluna</Link>
+            <Link href="/app?ferd=1" className={quiet}><Compass className="h-4 w-4" aria-hidden /> Sjá heilsuferðina</Link>
+          </nav>
+        </div>
+      </Shell>
+    );
+  }
+
   /* "upload" and "report" are one step to the participant. */
   const steps = mergeReportSteps(data.steps);
   const openKey: StepKey | null = open === "upload" ? "report" : open;
@@ -321,6 +355,14 @@ function Heilsuferd() {
           shown anywhere until the person says it is theirs. */}
       <div className="mb-4"><ReportApproval api={api} onDone={() => load(true)} /></div>
       <RetentionReview api={api} onDone={() => load(true)} />
+      {/* The setup, offered once above the journey. The health check has its
+          own steps below, so this stays an invitation the person can put
+          off; after that it is a link under Ég. */}
+      {showSetup && setup && (
+        <div className="mb-4">
+          <SetupCard api={api} state={setup} onDismissed={() => { setSetupHidden(true); void reloadSetup(); }} />
+        </div>
+      )}
       {next && <div className="mb-4"><AppointmentCard a={next} /></div>}
       {data.profile.complete && data.profile.health_consent === false && <ConsentCard reload={() => load(true)} />}
       {/* Hero: where you are, in one glance, and the one thing to do next. */}
@@ -330,7 +372,7 @@ function Heilsuferd() {
           <div className="min-w-0 flex-1">
             <p className={`${hcKicker} text-emerald-300`}>Heilsuferðin þín{data.location ? ` · ${data.location.name}` : ""}</p>
             <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
-              {data.profile.full_name ? `Hæ ${data.profile.full_name.split(" ")[0]}` : "Velkomin(n)"}
+              {data.profile.full_name ? `Hæ ${data.profile.full_name.split(" ")[0]}` : "Hæ"}
             </h1>
             <p className="mt-1 text-emerald-100">
               {data.plan
@@ -1016,7 +1058,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           <div className="space-y-3 text-sm text-hc-ink-2">
             <p>Hjúkrunarfræðingurinn gengur frá áætluninni eftir áætlunarsamtalið. Hún birtist hér og þú færð tölvupóst.</p>
             {(j.report_generated_at || j.own_report_at) && (
-              <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Búa til áætlun sjálf(ur)</Link>
+              <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Setja saman áætlun</Link>
             )}
           </div>
           )
@@ -1154,7 +1196,7 @@ function ReportStep({ data, reload, portal }: { data: JourneyData; reload: () =>
           <p className="rounded-xl bg-hc-ok-surface px-3 py-2 text-hc-ok-ink">Afrit af skýrslunni er komið í appið.</p>
           <div className="flex flex-wrap gap-2">
             <Link href="/app/aaetlun?tab=report" className="inline-flex min-h-11 items-center rounded-full border border-hc-control bg-hc-surface px-4 font-semibold text-hc-ink-2 hover:bg-hc-sunken">Skoða niðurstöðurnar</Link>
-            {!data.plan && <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Búa til áætlun sjálf(ur)</Link>}
+            {!data.plan && <Link href="/app/aaetlun?breyta=1" className={hcBtn.cta}>Setja saman áætlun</Link>}
           </div>
           {consentAt && <StaffImportConsent consentAt={consentAt} onFile reload={reload} />}
           <details className="rounded-xl ring-1 ring-hc-hairline">

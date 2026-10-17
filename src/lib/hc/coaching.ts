@@ -31,6 +31,7 @@
 // Server only (supabase-admin).
 
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { postcodeFromAddress } from "@/lib/hc/address";
 import { isRunning } from "@/lib/hc/subscription-state";
 import { healthAccess, isMissingSchema, warnOnce } from "@/lib/hc/subscription";
 import type { HcJourney } from "@/lib/hc/types";
@@ -115,13 +116,17 @@ export interface Eligibility {
   postcode: string | null;
 }
 
-/** The three-digit postcode in "Gata 1, 900 Bær", or null. */
+/**
+ * The postcode in the person's address, or null.
+ *
+ * Read through postcodeFromAddress (src/lib/hc/address.ts), which only
+ * returns codes in Pósturinn's list: the validated "Gata 1, 900 Staður" form
+ * that /api/hc/profile writes since the address became postcode-first, and,
+ * for older free-text rows, a real three-digit postcode anywhere in it or a
+ * known place name ("Vestmannaeyjar" → 900).
+ */
 export function postcodeOf(address: string | null | undefined): string | null {
-  if (!address) return null;
-  const m = address.match(/(?:^|[,\s])(\d{3})(?=\s|$)/g);
-  if (!m?.length) return null;
-  // The last three-digit group: a house number like "Gata 101" comes first.
-  return m[m.length - 1].replace(/\D/g, "");
+  return postcodeFromAddress(address)?.postcode ?? null;
 }
 
 export async function coachingEligibility(clientId: string, quota?: CoachingQuota): Promise<Eligibility> {

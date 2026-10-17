@@ -28,6 +28,7 @@ import { PILLAR_META, PILLARS, type Pillar, type PlanGoal, type PlanItem, type P
 import type { PillarPriority } from "@/lib/hc/self-plan";
 import * as cache from "@/lib/hc/client-cache";
 import { ProgramList, usePrograms } from "./ProgramPicker";
+import FirstPlanWizard from "./FirstPlanWizard";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 interface LectureRef { slug: string; title: string; subtitle: string | null; duration_min: number | null; pillar: string | null }
@@ -97,6 +98,9 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
   // plan this visit is about. Picking one narrows everything below to it.
   const [focus, setFocus] = useState<Focus | null>(initialFocus ?? null);
   const [touched, setTouched] = useState<string[]>([]);
+  /* A first plan goes through FirstPlanWizard; „Fínstilla nánar“ there
+     brings its picks here, to the full editor. */
+  const [advanced, setAdvanced] = useState(false);
   const [own, setOwn] = useState<{ pillar: Pillar; title: string; frequency: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -220,6 +224,26 @@ export default function PlanEditor({ api, onDone, onCancel, initialFocus }: {
       {msg && <p role="alert" className="text-sm text-hc-bad-ink">{msg}</p>}
     </div>
   );
+
+  // ── A first plan: step by step, from a goal ───────────────────────────────
+  // Seven categories is the right question for changing a plan, not for
+  // making the first one. Opened from an action (initialFocus) there is a
+  // plan already, so this never intercepts that.
+  if (!d.plan && !advanced && !initialFocus) {
+    return (
+      <section className={`${hcCard.base} p-5 sm:p-6`}>
+        <p className={`${hcKicker} text-hc-brand-text`}>Fyrsta áætlunin</p>
+        <FirstPlanWizard api={api} onSaved={onDone}
+          onAdvanced={(keys) => {
+            const byKey = new Map(d.modules.map((m) => [m.key, m]));
+            setRows(keys.map((k) => byKey.get(k)).filter((m): m is PlanModule => !!m)
+              .map((m) => ({ key: m.key, pillar: m.pillar, title: m.title, summary: m.summary, frequency: m.frequency, note: "", own: false, tmp: tmpId() })));
+            setAdvanced(true);
+          }} />
+        <button type="button" onClick={onCancel} className="mt-3 min-h-11 text-sm font-semibold text-hc-ink-3 underline">Hætta við</button>
+      </section>
+    );
+  }
 
   // ── Step 1: what is this visit about? ──────────────────────────────────────
   // The pillars come worst-first out of the report, so the one that needs the
