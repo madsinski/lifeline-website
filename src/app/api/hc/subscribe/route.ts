@@ -2,7 +2,10 @@
 //
 // GET  → both packages, where this person stands, and whether coaching can
 //        be bought where they live
-// POST { accept_terms, withdrawal_waiver, package? } → start it (paid now).
+// POST { accept_terms, withdrawal_waiver, package?, code?, test_code? }
+//        → free (test code / free-months code): started now. Otherwise
+//        { pending, checkout_url }: Straumur's payment page; it starts when
+//        the payment is confirmed.
 //        package 'app-monthly' (default — what the RN app sends by omission)
 //        or 'coaching-monthly' (src/lib/hc/coaching-config.ts).
 // POST { start_trial, accept_terms, withdrawal_waiver } → save a card and
@@ -30,19 +33,27 @@
 //
 // ── What is real and what is not ─────────────────────────────────────
 //
-// createStraumurCharge is still a stub: it waits 900ms and returns a made-up
-// reference. The health-check checkout is in exactly the same position, so
-// this is built to the same shape and becomes real when Straumur does. It
-// means no money moves here yet, which is why the first period is written as
-// a trial rather than as something paid for.
+// A paid period starts only when Straumur confirms the payment (Hosted
+// Checkout → verified webhook; src/lib/straumur-checkouts.ts) or when a
+// test code makes it free. Without Straumur configured, POST with something
+// to pay answers 402 and nothing starts. The start itself — closing a trial,
+// replacing the app tier with coaching, the coach — is activateSubscription
+// in src/lib/hc/fulfil.ts, shared with the webhook.
 //
 // Schema: supabase/migration-hc-subscription-package.sql
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { hcAudit, requireUser, siteOrigin } from "@/lib/hc/server";
-import { createStraumurCharge, saveStraumurPaymentMethod, STRAUMUR_CARDS_LIVE } from "@/lib/straumur";
-import { priceWithCode, redeem } from "@/lib/hc/discount";
+import { saveStraumurPaymentMethod, STRAUMUR_CARDS_LIVE } from "@/lib/straumur";
+import { isStraumurConfigured, PAYMENTS_CLOSED_MESSAGE } from "@/lib/straumur-server";
+import { startStraumurCheckout } from "@/lib/straumur-checkouts";
+import { activateSubscription, type SubscriptionContext } from "@/lib/hc/fulfil";
+import {
+  attachTestCode, claimTestCode, normaliseTestCode, releaseTestCode, TEST_CODE_INVALID, TEST_CODE_PROVIDER,
+  testCodeRateLimited, type TestCodeClaim,
+} from "@/lib/hc/test-codes";
+import { priceWithCode } from "@/lib/hc/discount";
 import { cancelledButRunning, pickCurrent } from "@/lib/hc/subscription-state";
 import { isMissingSchema, TRIAL_DAYS, TRIAL_TIER, warnOnce } from "@/lib/hc/subscription";
 import { recordWaiver, requireWaiver } from "@/lib/hc/waiver";
@@ -50,8 +61,7 @@ import {
   APP_PACKAGE_KEY, COACHING_PACKAGE_KEY, COACHING_TIER, NOT_IN_REGION_COPY,
   tierForPackage, type SubscriptionPackageKey,
 } from "@/lib/hc/coaching-config";
-import { assignCoachIfNone, coachingEligibility, coachingPackage } from "@/lib/hc/coaching";
-import { getOrCreateJourney, patchJourney } from "@/lib/hc/server";
+import { coachingEligibility, coachingPackage } from "@/lib/hc/coaching";
 
 export const runtime = "nodejs";
 
@@ -225,12 +235,11 @@ export async function POST(req: NextRequest) {
   }
 
   /*
-   * A running free trial is not a subscription: paying now replaces it (the
-   * trial row is closed below once the paid row exists). Before this, an
-   * active trial row — even one long past its end date — answered
-   * "already", so somebody whose trial ran out could never subscribe.
+   * A running free trial is not a subscription: paying now replaces it
+   * (activateSubscription closes the trial row once the paid row exists).
+   * Before this, an active trial row — even one long past its end date —
+   * answered "already", so somebody whose trial ran out could never subscribe.
    */
-  const trialRow = existing?.tier === TRIAL_TIER ? existing : null;
   if (existing && existing.tier === tier) return NextResponse.json({ ok: true, subscription: existing, already: true });
 
   const live = existing ?? runningCancelled;
@@ -258,115 +267,76 @@ export async function POST(req: NextRequest) {
    * both looked up here, so a tampered request can only ask for a code that
    * exists and get what that code actually does.
    */
-  const rawCode = typeof body?.code === "string" ? body.code : "";
+  /*
+   * A test code (admin → Heilsuferð → Prófunarkóðar): one period free, no
+   * card, no trial that charges later. Recorded as provider 'test_code'.
+   */
+  const rawTest = normaliseTestCode(body?.test_code);
+  let testClaim: TestCodeClaim | null = null;
+  if (rawTest) {
+    if (await testCodeRateLimited(user.id)) return NextResponse.json({ error: "Of margar tilraunir. Reyndu aftur eftir smástund." }, { status: 429 });
+    testClaim = await claimTestCode(rawTest, user.id, "subscription", key);
+    if (!testClaim) return NextResponse.json({ error: TEST_CODE_INVALID }, { status: 400 });
+  }
+
+  const rawCode = !testClaim && typeof body?.code === "string" ? body.code : "";
   const discount = rawCode.trim()
     ? await priceWithCode(rawCode, "subscription", p.price_isk, user.id)
     : null;
   // A code that does not apply is not a reason to refuse the subscription;
   // it just does not come off. Saying so beats a dead end at the till.
-  const chargeIsk = discount?.ok ? (discount.priceIsk ?? p.price_isk) : p.price_isk;
-  const monthsFree = discount?.ok ? (discount.monthsFree ?? 0) : 0;
+  const chargeIsk = testClaim ? 0 : discount?.ok ? (discount.priceIsk ?? p.price_isk) : p.price_isk;
+  const monthsFree = !testClaim && discount?.ok ? (discount.monthsFree ?? 0) : 0;
+
+  const ctx: SubscriptionContext = {
+    clientId: user.id,
+    packageKey: key,
+    priceIsk: p.price_isk,
+    intervalMonths: p.interval_months ?? 1,
+    chargedIsk: chargeIsk,
+    monthsFree,
+    discountCode: discount?.ok && discount.code ? { code: discount.code.code, amountOffIsk: discount.amountOffIsk ?? 0 } : null,
+    waiverAt,
+    provider: testClaim ? TEST_CODE_PROVIDER : chargeIsk > 0 ? "straumur" : null,
+    providerReference: testClaim ? testClaim.codeId : null,
+    coachingRegion: (p as { quota?: { region: string } }).quota?.region ?? null,
+  };
 
   /*
-   * Charged through the same stub the rest of the site uses, so that when it
-   * becomes a real charge this becomes a real subscription without the flow
-   * changing shape. A failure here must not leave a row behind.
+   * Something to pay: Straumur's hosted payment page, with the card saved
+   * for renewals (recurringProcessingModel Subscription; the token arrives
+   * in a Tokenization webhook). The subscription starts when Straumur
+   * confirms the payment — never here. Until Straumur is configured this
+   * refuses, so nothing starts unpaid.
    *
    * Nothing is charged for a free period — there is no zero-krónur card
-   * transaction, and asking for one would fail on a real provider.
+   * transaction.
    */
   if (chargeIsk > 0) {
-    const charge = await createStraumurCharge({
-      amountIsk: chargeIsk,
-      reference: `sub_${user.id.slice(0, 8)}`,
-      description: p.name,
-      customer: { name: user.email || "", email: user.email || "", phone: null },
-      returnUrl: `${siteOrigin(req)}/app`,
+    if (!isStraumurConfigured()) return NextResponse.json({ error: PAYMENTS_CLOSED_MESSAGE }, { status: 402 });
+    /* The mobile app does not follow a payment-page redirect yet: it would
+       read { ok: true } as done. Card payments start from the website only. */
+    if (req.headers.get("x-lifeline-client") !== "web") {
+      return NextResponse.json({ error: "Greiðsla með korti fer fram á vefnum, lifelinehealth.is." }, { status: 402 });
+    }
+    const s = await startStraumurCheckout({
+      kind: "subscription", clientId: user.id, email: user.email ?? null, amountIsk: chargeIsk,
+      description: p.name, payload: { ctx }, origin: siteOrigin(req), returnPath: "/app", recurring: true,
     });
-    if (!charge.ok) {
-      return NextResponse.json({ error: charge.error || "Greiðsla tókst ekki." }, { status: 402 });
-    }
+    if (!s.ok) return NextResponse.json({ error: s.error }, { status: 402 });
+    await hcAudit(`self:${user.id}`, "subscription_checkout_started", null, { package: key, amount: chargeIsk, reference: s.reference });
+    return NextResponse.json({ ok: true, pending: true, checkout_url: s.url, reference: s.reference });
   }
 
-  const now = new Date();
-  // free_months extends the first period rather than discounting it: the
-  // customer gets that many months before anything is due.
-  const months = (p.interval_months ?? 1) + monthsFree;
-  const end = new Date(now);
-  end.setMonth(end.getMonth() + months);
-
-  const { data: sub, error } = await supabaseAdmin.from("subscriptions")
-    .insert({
-      client_id: user.id,
-      tier,
-      status: "active",
-      current_period_start: now.toISOString(),
-      current_period_end: end.toISOString(),
-    })
-    .select("id, tier, status, trial_ends_at, current_period_start, current_period_end")
-    .single();
-  if (error || !sub) return NextResponse.json({ error: "Tókst ekki að hefja áskrift." }, { status: 500 });
-  if (trialRow) {
-    await supabaseAdmin.from("subscriptions").update({ status: "expired" }).eq("id", trialRow.id).eq("tier", TRIAL_TIER);
+  try {
+    const sub = await activateSubscription(ctx);
+    if (testClaim) await attachTestCode(testClaim, { subscriptionId: sub.id as string });
+    return NextResponse.json({ ok: true, subscription: sub, charged_isk: chargeIsk, months_free: monthsFree, test_code: !!testClaim });
+  } catch (e) {
+    await releaseTestCode(testClaim);
+    console.error("[hc] subscription start failed", e instanceof Error ? e.message : e);
+    return NextResponse.json({ error: "Tókst ekki að hefja áskrift." }, { status: 500 });
   }
-  if (upgradeRow) {
-    // One live row: the app tier ends now that coaching (which includes it) has begun.
-    await supabaseAdmin.from("subscriptions")
-      .update({ status: "expired", current_period_end: now.toISOString() }).eq("id", upgradeRow.id);
-  }
-  if (waiverAt) await recordWaiver("subscriptions", sub.id, waiverAt);
-  await recordPackageKey(sub.id, key);
-
-  /*
-   * Coaching needs somebody on the other end: a journey (the thread and the
-   * bookings hang off it), the coaching track rather than app-only, and a
-   * coach, so they land in a caseload on the service day.
-   */
-  if (tier === COACHING_TIER) {
-    try {
-      const journey = await getOrCreateJourney(user.id);
-      if (journey.entry === "app") {
-        await patchJourney(journey.id, { entry: "coach" }, `self:${user.id}`, "journey_track_coach", { via: "coaching_subscription" });
-      }
-      const coach = await assignCoachIfNone(journey, (p as { quota?: { region: string } }).quota?.region ?? "vestmannaeyjar");
-      /* Paid and nobody to answer: say so where staff look, not only in a log. */
-      if (!coach) await hcAudit(`self:${user.id}`, "coaching_unassigned", journey.id, { subscription_id: sub.id });
-    } catch (e) {
-      // The subscription stands; staff can assign by hand. Say so in the log.
-      console.error("[hc] coaching set-up after purchase failed", e instanceof Error ? e.message : e);
-    }
-  }
-
-  /*
-   * Spent only now, after the row exists. A code redeemed before the
-   * subscription was written would be gone if the write failed.
-   */
-  if (discount?.ok && discount.code) {
-    await redeem(discount.code.code, user.id, "subscription",
-      discount.amountOffIsk ?? 0, monthsFree);
-  }
-
-  /*
-   * The withdrawal-right waiver (söluskilmálar gr. 8, d-liður 1. mgr. 18. gr.
-   * laga nr. 16/2016): on the row above (withdrawal_waiver_at) and here in
-   * hc_audit.detail as well, which works whether or not the column exists.
-   */
-  await hcAudit(`self:${user.id}`, "subscription_started", null, {
-    tier, package: key, price: p.price_isk, replaced: upgradeRow?.id ?? null, charged: chargeIsk,
-    code: discount?.ok ? discount.code?.code : null, months_free: monthsFree,
-    withdrawal_waiver: !!waiverAt,
-    withdrawal_waiver_at: waiverAt,
-    withdrawal_waiver_recorded_at: waiverAt,
-    replaced_trial: trialRow?.id ?? null,
-  });
-  return NextResponse.json({ ok: true, subscription: sub, charged_isk: chargeIsk, months_free: monthsFree });
-}
-
-/** subscriptions.package_key, if the column exists yet (migration-coaching-tier.sql). */
-async function recordPackageKey(subId: string, key: SubscriptionPackageKey) {
-  const { error } = await supabaseAdmin.from("subscriptions").update({ package_key: key }).eq("id", subId);
-  if (error && isMissingSchema(error)) warnOnce("subscriptions.package_key", "subscriptions.package_key missing — run supabase/migration-coaching-tier.sql; the tier column still says which.");
-  else if (error) console.error("[hc] recording package_key failed", error.message);
 }
 
 export async function DELETE(req: NextRequest) {

@@ -7,11 +7,16 @@
 
 import { ToastProvider } from "@/app/components/hc/Toast";
 import { DialogProvider } from "@/app/components/account/ui";
+import PaymentReturn from "@/app/components/hc/PaymentReturn";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <ToastProvider>
-      <DialogProvider>{children}</DialogProvider>
+      <DialogProvider>
+        {children}
+        {/* Back from Straumur's payment page (?greidsla=…). */}
+        <PaymentReturn />
+      </DialogProvider>
     </ToastProvider>
   );
 }

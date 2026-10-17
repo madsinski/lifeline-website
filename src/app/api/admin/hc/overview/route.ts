@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     supabaseAdmin.from("hc_journeys").select("id, client_id, location_id, stage, entry, created_at, updated_at, paid_at, report_sms_sent_at, referral_to_heilsugaesla").is("cancelled_at", null).order("updated_at", { ascending: false }).limit(500),
     supabaseAdmin.from("hc_packages").select("*").order("sort"),
     supabaseAdmin.from("hc_locations").select("*").order("name"),
-    supabaseAdmin.from("hc_orders").select("payment_route, amount_charged_isk, price_isk, union_reimbursement_isk, created_at").eq("status", "paid"),
+    supabaseAdmin.from("hc_orders").select("payment_route, amount_charged_isk, price_isk, union_reimbursement_isk, created_at, provider").eq("status", "paid"),
   ]);
   const ids = Array.from(new Set((journeys || []).map((j) => j.client_id)));
   const names: Record<string, string | null> = {};
@@ -37,8 +37,11 @@ export async function GET(req: NextRequest) {
     if (j.entry === "coach" || j.entry === "app") { coachTrack++; continue; }
     funnel[j.stage] = (funnel[j.stage] || 0) + 1;
   }
-  const revenue = { self: 0, union: 0, company: 0, count: 0 };
+  /* Test-code orders (provider 'test_code', admin → Prófunarkóðar) are a
+     test, not a sale: counted apart and in no total. */
+  const revenue = { self: 0, union: 0, company: 0, count: 0, test: 0 };
   for (const o of orders || []) {
+    if (o.provider === "test_code") { revenue.test++; continue; }
     revenue.count++;
     const k = o.payment_route as "self" | "union" | "company";
     if (k in revenue) revenue[k] += k === "company" ? o.price_isk : o.amount_charged_isk;
