@@ -268,7 +268,9 @@ async function grace(sub: Row | null, journey: Journey | null): Promise<Row | nu
  * Whether the paywall actually turns anybody away.
  *
  * Mads' call, 2026-10-12: keep the real gateway, let everyone through for
- * now. Nothing is stubbed or deleted to achieve that — the Straumur
+ * now. Back ON 2026-10-17 (Mads, testing): purchases now need a real
+ * payment or an admin test code, so the gate can hold. Checked first: of 9
+ * app users, none outside Lifeline lost access. Nothing is stubbed or deleted to achieve that — the Straumur
  * checkout, the trial clock, the tiers and the discount codes all stay
  * exactly where they are, so enforcing again is this one line and not a
  * rebuild.
@@ -278,7 +280,7 @@ async function grace(sub: Row | null, journey: Journey | null): Promise<Row | nu
  * be invisible, and nobody could tell how many people the paywall would be
  * stopping on the day it goes back on.
  */
-const PAYWALL_ENFORCED = false;
+const PAYWALL_ENFORCED = true;
 
 /**
  * Whether the app is open to this person.
