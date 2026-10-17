@@ -20,8 +20,17 @@ export async function requireUser(req: NextRequest): Promise<User | NextResponse
   return user;
 }
 
+/*
+ * Where links and payment return URLs point. Never a header taken on trust:
+ * this becomes Straumur's returnUrl, so a forged Origin could send a buyer to
+ * a look-alike page after paying. Only our own hosts (and local dev) pass.
+ */
+const OWN_ORIGINS = /^https:\/\/(www\.)?lifelinehealth\.is$|^https:\/\/lifeline-website-[a-z0-9-]+-madsinskis-projects\.vercel\.app$|^http:\/\/localhost:\d+$/;
 export function siteOrigin(req: Request): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL || req.headers.get("origin") || "https://www.lifelinehealth.is").replace(/\/$/, "");
+  const env = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (env) return env;
+  const origin = (req.headers.get("origin") || "").replace(/\/$/, "");
+  return OWN_ORIGINS.test(origin) ? origin : "https://www.lifelinehealth.is";
 }
 
 // ── Client profile ─────────────────────────────────────────────────────────
