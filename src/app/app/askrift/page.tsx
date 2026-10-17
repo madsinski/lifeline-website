@@ -9,7 +9,11 @@
 //
 //   1 „Veldu áskrift“        the tiers from hc_packages, with why coaching is
 //                            not on offer where it is not (no address yet →
-//                            a link to add one; outside the region → said)
+//                            a link to add one; outside the region → said).
+//                            Coaching is confirmed by Lifeline before payment
+//                            (Mads, 2026-10-17): send a request → „í skoðun“
+//                            → approved (pay) or declined (reason). See
+//                            CoachingRequest.tsx and src/lib/hc/coaching-requests.ts.
 //   2 „Greiðsla“             what is bought, for how much, the terms and the
 //                            waiver, then Straumur's hosted payment page via
 //                            /api/hc/subscribe (or a test code)
@@ -36,8 +40,11 @@ import {
   PAY_STATE_COPY, TermsChecks, TestCodeField, isActivePaid, startSubscription, usePaymentStatus,
   useSubscriptionState, type Pkg, type SubState,
 } from "@/app/components/hc/subscription-parts";
-import { APP_PACKAGE_KEY, COACHING_PACKAGE_KEY, COACHING_TIER, NOT_IN_REGION_COPY } from "@/lib/hc/coaching-config";
+import {
+  APP_PACKAGE_KEY, COACHING_PACKAGE_KEY, COACHING_TIER, NOT_IN_REGION_COPY, type CoachingRequestView,
+} from "@/lib/hc/coaching-config";
 import * as cache from "@/lib/hc/client-cache";
+import CoachingRequestPanel from "@/app/components/hc/CoachingRequest";
 
 type Choice = "app" | "thjalfun";
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
@@ -107,7 +114,7 @@ function Shimmer() {
 }
 
 function Flow({ api, choice, choose }: { api: Api; choice: Choice | null; choose: (c: Choice | null) => void }) {
-  const { state, failed, load, retry } = useSubscriptionState(api);
+  const { state, failed, load, retry, setRequest } = useSubscriptionState(api);
   /* Set once something was started here: the free start, or a confirmed
      payment on the way back from Straumur. Drives screen 3. */
   const [done, setDone] = useState<"paid" | "trial" | null>(null);
@@ -138,13 +145,21 @@ function Flow({ api, choice, choose }: { api: Api; choice: Choice | null; choose
   if (done) return <ActiveScreen state={state} trialStarted={done === "trial"} />;
 
   const pkg = choice === "thjalfun" ? state.coachingPkg : choice === "app" ? state.package : null;
-  const canBuy = choice === "thjalfun" ? !!state.coaching?.available : true;
+  /* Coaching: eligible AND approved by Lifeline. Otherwise the choice screen
+     shows where the request stands (the server refuses too). */
+  const canBuy = choice === "thjalfun"
+    ? resumableCoaching(state) || (!!state.coaching?.available && state.coaching.request.state === "approved")
+    : true;
   if (choice && pkg && canBuy && !alreadyHas(state, choice)) {
     return <PayScreen api={api} state={state} choice={choice} pkg={pkg}
       onBack={() => choose(null)} onDone={(trial) => void finish(trial ? "trial" : "paid")} />;
   }
-  return <ChooseScreen state={state} onChoose={(c) => choose(c)} />;
+  return <ChooseScreen state={state} onChoose={(c) => choose(c)}
+    onRequest={(v) => { setRequest(v); cache.invalidate("/api/hc/subscribe", "/api/hc/coach"); }} />;
 }
+
+/** Coaching cancelled with its month still running: taking it back starts nothing new, so no request. */
+const resumableCoaching = (state: SubState) => !!state.subscription?.cancelled && state.subscription.tier === COACHING_TIER;
 
 /** Already on this tier and paying for it: nothing to buy. */
 function alreadyHas(state: SubState, c: Choice): boolean {
@@ -159,7 +174,10 @@ function StepKicker({ n, of = 2 }: { n: number; of?: number }) {
 
 /* ── Screen 1 ─────────────────────────────────────────────────────── */
 
-function ChooseScreen({ state, onChoose }: { state: SubState; onChoose: (c: Choice) => void }) {
+function ChooseScreen({ state, onChoose, onRequest }: {
+  state: SubState; onChoose: (c: Choice) => void;
+  onRequest: (v: CoachingRequestView) => void;
+}) {
   const sub = state.subscription;
   const active = isActivePaid(sub) ? sub : null;
   const onCoaching = active?.tier === COACHING_TIER;
@@ -207,10 +225,17 @@ function ChooseScreen({ state, onChoose }: { state: SubState; onChoose: (c: Choi
       {showCoaching && state.coachingPkg && (
         <TierCard pkg={state.coachingPkg} title="Lifeline þjálfun" subtitle="Appið og heilsuþjálfi, í Vestmannaeyjum"
           status={onCoaching ? "Þín áskrift" : null}
-          action={onCoaching ? null : state.coaching?.available ? (
+          action={onCoaching ? null : resumableCoaching(state) ? (
             <button type="button" className={`${hcBtn.cta} w-full sm:w-auto`} onClick={() => onChoose("thjalfun")}>
-              {active ? "Uppfæra í þjálfun" : "Velja þjálfun"}
+              Velja þjálfun aftur
             </button>
+          ) : state.coaching?.available ? (
+            <CoachingRequestPanel request={state.coaching.request} onChange={onRequest}
+              payAction={(
+                <button type="button" className={`${hcBtn.cta} w-full sm:w-auto`} onClick={() => onChoose("thjalfun")}>
+                  {active ? "Uppfæra í þjálfun" : "Velja þjálfun"}
+                </button>
+              )} />
           ) : state.coaching?.reason === "no_address" ? (
             <div className="space-y-3">
               <p className="flex gap-2 text-sm text-hc-ink-2">

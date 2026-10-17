@@ -14,10 +14,11 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { currentJourney, requireUser } from "@/lib/hc/server";
 import { parseAppointment } from "@/lib/app/appointment-date";
 import { isMissingSchema } from "@/lib/hc/subscription";
+import { decisionNotes, markDecisionsSeen } from "@/lib/hc/coaching-requests";
 
 export const runtime = "nodejs";
 
-export type NoteKind = "coach" | "partner" | "appointment" | "report" | "retention" | "trial" | "consent";
+export type NoteKind = "coach" | "partner" | "appointment" | "report" | "retention" | "trial" | "consent" | "coaching";
 
 export interface Note {
   id: string;
@@ -223,6 +224,23 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  /*
+   * A worker answered the request for "Lifeline þjálfun"
+   * (src/lib/hc/coaching-requests.ts). Unread until the list is opened.
+   * Approvals the server gave on the spot are not listed: the person saw
+   * them on the page as they sent it.
+   */
+  for (const d of await decisionNotes(user.id)) {
+    const declined = d.status === "declined";
+    items.push({
+      id: `coaching:${d.id}`, kind: "coaching",
+      title: declined ? "Svar við beiðni um Lifeline þjálfun" : "Beiðnin um Lifeline þjálfun var samþykkt",
+      body: declined ? (d.decline_reason ?? null) : "Þú getur nú gengið frá áskriftinni.",
+      at: d.decided_at, unread: !d.decision_seen_at,
+      href: declined ? "/app/askrift" : "/app/askrift?pakki=thjalfun",
+    });
+  }
+
   items.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
   return NextResponse.json({ items, unread: items.filter((i) => i.unread).length });
 }
@@ -257,6 +275,8 @@ export async function POST(req: NextRequest) {
           .eq("id", journey.id).not("staff_import_consent_requested_at", "is", null).is("staff_import_consent_request_seen_at", null)
           .then(() => null, () => null)
       : Promise.resolve(null),
+    // Answers to a coaching request: seen once the list is open.
+    markDecisionsSeen(user.id),
     // Trial reminders: seen once the list is open. A missing table is ignored.
     supabaseAdmin.from("hc_trial_notices").update({ seen_at: new Date().toISOString() })
       .eq("client_id", user.id).is("seen_at", null).then(() => null, () => null),

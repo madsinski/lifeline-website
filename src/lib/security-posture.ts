@@ -24,8 +24,8 @@
 // statement is current.
 
 export const SECURITY_POSTURE_KEY = "security-posture";
-export const SECURITY_POSTURE_VERSION = "v1.20";
-export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-16";
+export const SECURITY_POSTURE_VERSION = "v1.21";
+export const SECURITY_POSTURE_LAST_UPDATED = "2026-10-17";
 
 export function renderSecurityPosture(): string {
   return `LIFELINE HEALTH — SECURITY & PRIVACY POSTURE STATEMENT
@@ -593,6 +593,16 @@ Skipulagslegt:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.21 (2026-10-17)
+  Lifeline þjálfun staðfest fyrir greiðslu. Ný tafla hc_coaching_requests
+  (RLS: lokað öllum nema þjónustulagi; virkt starfsfólk má lesa): beiðni,
+  póstnúmer og bær eins og þau voru, vísbendingar um búsetu (vinnuveitandi,
+  lokaðar mælingar á mælistöð, leið inn) og ákvörðun. Aðeins starfsfólk
+  Lifeline (ekki samstarfsaðilar) sér og afgreiðir beiðnir í Vinnustöð;
+  ákvarðanir skráðar í hc_audit. /api/hc/subscribe hafnar þjálfun án gilds
+  samþykkis. Tilkynningar fylgja hc_notify_prefs; ástæða höfnunar fer aðeins
+  í appið og tölvupóst, ekki á læstan skjá eða í SMS.
 
 v1.20 (2026-10-16)
   Tilkynningar frá Lifeline. Ný tafla hc_notify_prefs: skjólstæðingur velur
@@ -1406,6 +1416,17 @@ Organisational:
 ═══════════════════════════════════════════════════════════════════
 19. CHANGELOG
 ═══════════════════════════════════════════════════════════════════
+
+v1.21 (2026-10-17)
+  Lifeline Coaching approved before payment. New table hc_coaching_requests
+  (RLS: blocked except the service layer; active staff may read): the
+  request, postcode and town as they were, residence hints (employer,
+  completed station measurements, journey entry) and the decision. Only
+  Lifeline's own staff (not partner organisations) see and decide requests
+  in the workstation; decisions are logged in hc_audit. /api/hc/subscribe
+  refuses coaching without a valid approval. Notifications follow
+  hc_notify_prefs; a decline reason goes only to the app and email, never to
+  a lock screen or SMS.
 
 v1.20 (2026-10-16)
   Notifications from Lifeline. New table hc_notify_prefs: under Settings the

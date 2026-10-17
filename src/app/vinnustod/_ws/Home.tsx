@@ -23,7 +23,8 @@ import { useWsApi } from "@/app/components/hc/ws-api";
 import { useToast } from "@/app/components/hc/Toast";
 import { Alert } from "@/app/components/account/ui";
 import { cleanName, isTest, longDate, time, wsBtn } from "./format";
-import type { Inbox } from "./inbox";
+import type { CoachingReq, Inbox } from "./inbox";
+import { CoachingRequestRow, CoachingRequestSheet } from "./CoachingRequests";
 import { nextTask, rowFlags, taskTarget, TONE_DOT, type Me, type OpenClient, type Row, type RowFlags, type Task } from "./tasks";
 import { Kicker, Shimmer, TestBadge } from "./ui";
 
@@ -34,6 +35,7 @@ export function TodayView({ rows, me, onOpen, inbox }: {
 }) {
   const api = useWsApi();
   const [adding, setAdding] = useState(false);
+  const [reviewing, setReviewing] = useState<CoachingReq | null>(null);
   const [greet] = useState(() => {
     const hour = new Date().getHours();
     return hour < 11 ? "Góðan daginn" : hour < 18 ? "Góðan dag" : "Gott kvöld";
@@ -103,7 +105,8 @@ export function TodayView({ rows, me, onOpen, inbox }: {
     [inbox.threads],
   );
   const requests = (inbox.requests ?? []).filter((r) => r.status === "open");
-  const count = tasks.length + chats.length + requests.length;
+  const coaching = inbox.coaching;
+  const count = tasks.length + chats.length + requests.length + coaching.length;
   const inboxLoading = inbox.threads === null && inbox.requests === null && !inbox.failed;
 
   return (
@@ -146,6 +149,8 @@ export function TodayView({ rows, me, onOpen, inbox }: {
                   : { tab: "status", focus: "requests" })}
                 dot={<Dot className="bg-hc-signal-red" />} />
             ))}
+            {/* Somebody waiting to be allowed to pay for Lifeline þjálfun. */}
+            {coaching.map((c) => <CoachingRequestRow key={`cr-${c.id}`} r={c} onReview={setReviewing} />)}
             {chats.map((t) => (
               <li key={`c-${t.journeyId}`} className="flex flex-wrap items-center gap-3 px-4 py-3">
                 <Dot className="bg-hc-signal-red" />
@@ -167,6 +172,11 @@ export function TodayView({ rows, me, onOpen, inbox }: {
           </ul>
         )}
       </section>
+
+      {reviewing && (
+        <CoachingRequestSheet api={api} r={reviewing} onOpen={onOpen}
+          onClose={() => setReviewing(null)} onDone={() => void inbox.reload()} />
+      )}
 
       {adding && (
         <Sheet title="Nýr skjólstæðingur" onClose={() => setAdding(false)} max="max-w-lg">

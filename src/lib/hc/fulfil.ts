@@ -20,6 +20,7 @@ import { redeem } from "@/lib/hc/discount";
 import { isMissingSchema, TRIAL_TIER, warnOnce } from "@/lib/hc/subscription";
 import { COACHING_TIER, tierForPackage, type SubscriptionPackageKey } from "@/lib/hc/coaching-config";
 import { assignCoachIfNone } from "@/lib/hc/coaching";
+import { approvedRequest, markRequestUsed } from "@/lib/hc/coaching-requests";
 
 export type Provider = "straumur" | "company_invoice" | "test_code" | null;
 
@@ -212,6 +213,21 @@ export async function activateSubscription(ctx: SubscriptionContext) {
   const rows = (live ?? []) as { id: string; tier: string; status: string; current_period_end: string | null }[];
   const running = (r: { current_period_end: string | null }) => !r.current_period_end || Date.parse(r.current_period_end) > now.getTime();
 
+  /*
+   * Re-checked here, not only when checkout started: the webhook can land
+   * after the approval has lapsed or been withdrawn. Without a live approval
+   * nothing is activated; the caller records the failure (fulfil_error) so
+   * staff can refund or re-approve. Extending a running coaching period
+   * needs no new approval. Security review, 2026-10-17.
+   */
+  if (tier === COACHING_TIER && !rows.some((r) => r.tier === tier && running(r)) && !(await approvedRequest(ctx.clientId))) {
+    await supabaseAdmin.from("hc_audit").insert({
+      actor: `self:${ctx.clientId}`, action: "coaching_activation_refused",
+      detail: { reason: "no_live_approval", provider: ctx.provider },
+    }).then(() => {}, () => {});
+    throw new Error("coaching_not_approved");
+  }
+
   const same = rows.find((r) => r.tier === tier && r.status === "active");
   let sub: Record<string, unknown> | null = null;
   if (same) {
@@ -246,6 +262,9 @@ export async function activateSubscription(ctx: SubscriptionContext) {
   if (pkErr && isMissingSchema(pkErr)) warnOnce("subscriptions.package_key", "subscriptions.package_key missing — run supabase/migration-coaching-tier.sql.");
 
   if (tier === COACHING_TIER) {
+    /* The approval is spent (src/lib/hc/coaching-requests.ts). */
+    await markRequestUsed(ctx.clientId, subId).catch((e) =>
+      console.error("[hc] coaching request not marked used", e instanceof Error ? e.message : e));
     try {
       const journey = await getOrCreateJourney(ctx.clientId);
       if (journey.entry === "app") {

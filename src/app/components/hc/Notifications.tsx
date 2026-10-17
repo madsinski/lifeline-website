@@ -10,7 +10,7 @@
 import { chime } from "@/lib/hc/chime";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, CalendarClock, FileCheck2, Hand, Hourglass, MessageCircle, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Bell, CalendarClock, FileCheck2, Hand, Hourglass, MessageCircle, ShieldCheck } from "lucide-react";
 import { badgeClass } from "./Badge";
 import { hcCard } from "./ui";
 import { useSwipe } from "@/lib/hc/use-swipe";
@@ -19,13 +19,13 @@ import Sheet from "./Sheet";
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
 export interface Note {
-  id: string; kind: "coach" | "partner" | "appointment" | "report" | "retention" | "trial" | "consent";
+  id: string; kind: "coach" | "partner" | "appointment" | "report" | "retention" | "trial" | "consent" | "coaching";
   title: string; body: string | null; at: string; unread: boolean; href: string | null;
   /** Several messages behind one row. */
   count?: number;
 }
 
-const ICON = { coach: MessageCircle, partner: Hand, appointment: CalendarClock, report: FileCheck2, retention: FileCheck2, trial: Hourglass, consent: ShieldCheck };
+const ICON = { coach: MessageCircle, partner: Hand, appointment: CalendarClock, report: FileCheck2, retention: FileCheck2, trial: Hourglass, consent: ShieldCheck, coaching: BadgeCheck };
 
 const MO = ["jan", "feb", "mar", "apr", "maí", "jún", "júl", "ágú", "sep", "okt", "nóv", "des"];
 /** Hand-written: Vercel's runtime has no Icelandic locale data. */
