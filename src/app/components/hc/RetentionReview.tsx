@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Archive, Loader2 } from "lucide-react";
 import { hcBtn, hcCard, hcKicker } from "./ui";
 import { SAVE_FAILED, useToast } from "./Toast";
+import { DAY_MS, useSnooze } from "./useSnooze";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -36,8 +37,11 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
     setTimeout(() => setR(j?.review ?? null), 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
+  /* „Spyrja síðar“: a week, in this browser. Nothing is removed while the
+     question is open, so putting it off costs nothing. */
+  const [later, snooze] = useSnooze(`retention:${r?.id ?? ""}`, 7 * DAY_MS);
 
-  if (!r) return null;
+  if (!r || later !== false) return null;
 
   const decide = async (decision: "keep" | "remove") => {
     if (busy) return;
@@ -57,7 +61,7 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
   };
 
   return (
-    <section className={`${hcCard.base} mb-4 p-5`} role="region" aria-label="Geymsla skýrslu">
+    <section className={`${hcCard.accent} mb-4 p-5`} role="region" aria-label="Geymsla skýrslu">
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-sunken-2">
           <Archive className="h-5 w-5 text-hc-ink-2" aria-hidden />
@@ -75,6 +79,7 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
             Frumritið er áfram í sjúklingagáttinni. Þótt þú takir hana út hér geturðu sótt hana
             aftur hvenær sem er — þú tapar engu.
             {r.state === "reminded" && " Við spurðum fyrir mánuði."}
+            {" "}Ef ekkert svar berst er afritið tekið út um tveimur mánuðum eftir að við spurðum fyrst.
           </p>
 
           {err && <p role="alert" className="mt-2 text-sm font-semibold text-hc-bad-ink">{err}</p>}
@@ -89,6 +94,9 @@ export default function RetentionReview({ api, onDone }: { api: Api; onDone?: ()
               onClick={() => void decide("remove")}>
               {busy === "remove" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
               Taka hana út
+            </button>
+            <button type="button" className={hcBtn.ghost} disabled={busy !== null} onClick={snooze}>
+              Spyrja síðar
             </button>
           </div>
         </div>

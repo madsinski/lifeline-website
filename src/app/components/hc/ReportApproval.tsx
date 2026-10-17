@@ -19,6 +19,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FileCheck2, Loader2 } from "lucide-react";
 import { hcBtn, hcCard, hcKicker } from "./ui";
 import { SAVE_FAILED, useToast } from "./Toast";
+import { DAY_MS, useSnooze } from "./useSnooze";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -41,8 +42,11 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
     setTimeout(() => setPending(j?.pending ?? null), 0);
   }, [api]);
   useEffect(() => { void load(); }, [load]);
+  /* „Seinna“: a day's peace. The report stays hidden from their pages until
+     they answer, so the question comes back tomorrow rather than never. */
+  const [later, snooze] = useSnooze(`report-approval:${pending?.id ?? ""}`, DAY_MS);
 
-  if (!pending) return null;
+  if (!pending || later !== false) return null;
 
   const decide = async (decision: "approve" | "decline") => {
     if (busy) return;
@@ -62,7 +66,7 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
   };
 
   return (
-    <section className={`${hcCard.base} border-l-4 border-l-hc-brand mb-4 p-5`} role="region"
+    <section className={`${hcCard.accent} mb-4 p-5`} role="region"
       aria-label="Staðfesta skýrslu">
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-hc-ok-surface">
@@ -95,6 +99,9 @@ export default function ReportApproval({ api, onDone }: { api: Api; onDone?: () 
               onClick={() => void decide("decline")}>
               {busy === "decline" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
               Nei, taka hana út
+            </button>
+            <button type="button" className={hcBtn.ghost} disabled={busy !== null} onClick={snooze}>
+              Seinna
             </button>
           </div>
           {/* Nobody should have to wonder whether saying no costs them care.
