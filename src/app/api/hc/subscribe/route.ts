@@ -2,7 +2,7 @@
 //
 // GET  → both packages, where this person stands, and whether coaching can
 //        be bought where they live
-// POST { accept_terms, withdrawal_waiver, package?, code?, test_code? }
+// POST { accept_terms, withdrawal_waiver, package?, code?, test_code?, return_to? }
 //        → free (test code / free-months code): started now. Otherwise
 //        { pending, checkout_url }: Straumur's payment page; it starts when
 //        the payment is confirmed.
@@ -321,7 +321,11 @@ export async function POST(req: NextRequest) {
     }
     const s = await startStraumurCheckout({
       kind: "subscription", clientId: user.id, email: user.email ?? null, amountIsk: chargeIsk,
-      description: p.name, payload: { ctx }, origin: siteOrigin(req), returnPath: "/app", recurring: true,
+      description: p.name, payload: { ctx }, origin: siteOrigin(req),
+      /* Back to the focused flow when it started there (its last screen
+         polls payment-status itself); /app otherwise. A fixed allowlist,
+         never a path from the body. */
+      returnPath: body?.return_to === "askrift" ? "/app/askrift" : "/app", recurring: true,
     });
     if (!s.ok) return NextResponse.json({ error: s.error }, { status: 402 });
     await hcAudit(`self:${user.id}`, "subscription_checkout_started", null, { package: key, amount: chargeIsk, reference: s.reference });

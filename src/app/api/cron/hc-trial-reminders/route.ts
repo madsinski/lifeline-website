@@ -35,7 +35,8 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const ORIGIN = "https://www.lifelinehealth.is";
-const SETTINGS = "/app/adgangur#askrift";
+/* The focused subscription flow; cancelling is one link away from it. */
+const SUBSCRIPTION = "/app/askrift";
 const DAY = 86400_000;
 const PACKAGE_KEY = "app-monthly";
 
@@ -77,13 +78,13 @@ async function deliver(noticeId: string, clientId: string, title: string, body: 
       html: renderBrandedEmail({
         title, preheader: body.slice(0, 120),
         bodyHtml: `<p style="margin:0;">${body}</p>`,
-        ctaLabel: "Sjá áskriftina", ctaUrl: `${ORIGIN}${SETTINGS}`,
+        ctaLabel: "Sjá áskriftina", ctaUrl: `${ORIGIN}${SUBSCRIPTION}`,
       }),
-      text: `${body}\n\n${ORIGIN}${SETTINGS}`,
+      text: `${body}\n\n${ORIGIN}${SUBSCRIPTION}`,
     }).catch(() => ({ ok: false }));
     emailOk = r.ok;
   }
-  const pushed = await sendPush(clientId, { title, body, url: `${ORIGIN}${SETTINGS}`, tag: `trial-${noticeId}` }).catch(() => 0);
+  const pushed = await sendPush(clientId, { title, body, url: `${ORIGIN}${SUBSCRIPTION}`, tag: `trial-${noticeId}` }).catch(() => 0);
   await supabaseAdmin.from("hc_trial_notices").update({ email_sent: emailOk, push_sent: pushed }).eq("id", noticeId);
   return emailOk;
 }

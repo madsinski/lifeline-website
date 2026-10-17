@@ -80,9 +80,9 @@ function FeatureCell({ value: raw, locale = "is" }: { value: Cell; locale?: Loca
 /* Where the plan buttons go for somebody who already has an account. The
    CMS href (default /byrja?leid=coach) is the signup flow; sending a
    signed-in customer there asked them to make a second account. The
-   subscription is sold and cancelled in one place, the app's
-   Stillingar og áskrift (#askrift), so that is where they go. */
-const SIGNED_IN_SUBSCRIBE_HREF = "/app/adgangur#askrift";
+   subscription is chosen and paid for in one place, the app's focused
+   /app/askrift flow, so that is where they go. */
+const SIGNED_IN_SUBSCRIBE_HREF = "/app/askrift";
 
 /* A store badge. Until a listing exists the CMS href is "#" (or empty), and
    a link to "#" is a button that does nothing when pressed — so it renders

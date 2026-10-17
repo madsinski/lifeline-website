@@ -3,7 +3,8 @@
 // "Stillingar og áskrift": the account, inside the heilsuferð. Everything
 // that used to be on "Mínar síður" and still matters — personal details,
 // sign-in (password, PIN, sign-out), calendar, reminders, the subscription
-// (#askrift, the one place it is sold and cancelled), payments and receipts,
+// (#askrift: where it stands and how to cancel; choosing and paying is
+// /app/askrift), payments and receipts,
 // signed documents, privacy and data requests, company access, deleting the
 // account. Reached from Ég; lives under /app so the site gate never hides it.
 
@@ -67,7 +68,7 @@ function Adgangur() {
     })();
   }, [api, router]);
 
-  /* The trial banner and the journey link to #askrift. The cards render
+  /* „Segja upp eða sjá greiðslur“ on /app/askrift links to #askrift. The cards render
      after the session check, so the browser's own jump on load found
      nothing to jump to. */
   useEffect(() => {

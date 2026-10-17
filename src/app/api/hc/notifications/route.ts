@@ -199,7 +199,7 @@ export async function GET(req: NextRequest) {
       title: (t.title as string) ?? "Prufutíminn",
       body: (t.body as string) ?? null,
       at: t.sent_at as string, unread: !t.seen_at,
-      href: "/app/adgangur#askrift",
+      href: "/app/askrift",
     });
   }
 
