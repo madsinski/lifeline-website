@@ -120,8 +120,8 @@ function Start() {
     () => `${window.location.origin}${next || "/app"}`, [next]);
   /* Somebody who came here from a subscription button (?leid=coach) and
      already has an account wants the subscription, not a new account. */
-  const signedInHome = next || (leid === "coach" ? "/app/adgangur#askrift" : "/app");
-  const loginNext = next || (leid === "coach" ? "/app/adgangur#askrift" : null);
+  const signedInHome = next || (leid === "coach" ? "/app/askrift" : "/app");
+  const loginNext = next || (leid === "coach" ? "/app/askrift" : null);
   const loginHref = `/account/login${loginNext ? `?next=${encodeURIComponent(loginNext)}` : ""}`;
 
   /* Already signed in: this page would only make a second account. Go to

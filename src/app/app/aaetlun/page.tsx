@@ -19,6 +19,7 @@ import { hcBtn, hcCard, hcPage } from "@/app/components/hc/ui";
 import { SAVE_FAILED, useSaveStatus, useToast } from "@/app/components/hc/Toast";
 import { Alert, Button, useDialog } from "@/app/components/account/ui";
 import NextStepCard from "@/app/components/hc/NextStepCard";
+import { DAY_MS, useSnooze } from "@/app/components/hc/useSnooze";
 import { DayMealsProvider } from "@/app/components/hc/useDayMeals";
 import { actionForSession, isoDay } from "@/lib/hc/adherence";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
@@ -687,14 +688,7 @@ function PlanPageInner() {
   const otherUnread = notes.filter((n) => n.kind !== "coach" && n.unread).length;
   const reload = () => setReloadKey((k) => k + 1);
   const scrollToUpload = () => document.getElementById("ny-skyrsla")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  const paywall = (
-    <Paywall api={api} pkg={subPkg as never} trialEndsAt={access?.trialEndsAt ?? null}
-      mode={access?.reason === "none" ? "trial" : "subscribe"}
-      onDone={async () => {
-        cache.invalidate("/api/hc/journey", "/api/hc/subscribe");
-        reload();
-      }} />
-  );
+  const paywall = <Paywall pkg={subPkg as never} trialEndsAt={access?.trialEndsAt ?? null} />;
 
   return (
     <div className={`${hcPage.participant} print:bg-hc-surface`}>
@@ -773,14 +767,7 @@ function PlanPageInner() {
                     <div><RetentionReview api={api} onDone={reload} /></div>
                     <div>
                       {access?.ok && access.reason === "trial" && access.daysLeft != null && access.daysLeft <= 7 && (
-                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-hc-element bg-hc-warn-surface px-3 py-2.5 text-sm text-hc-warn-ink ring-1 ring-hc-warn-ink/25">
-                          <span>
-                            {access.daysLeft === 0
-                              ? "Prufutímabilið endar í dag."
-                              : `${access.daysLeft} ${access.daysLeft === 1 ? "dagur" : "dagar"} eftir af prufutímabilinu.`}
-                          </span>
-                          <Link href="/app/adgangur#askrift" className="inline-flex min-h-11 items-center font-semibold underline">Sjá áskriftina</Link>
-                        </div>
+                        <TrialEnding daysLeft={access.daysLeft} />
                       )}
                     </div>
                     <div>{plan && !walled && <NextStepCard api={api} entry={entry ?? null} />}</div>
@@ -1092,6 +1079,31 @@ function PlanPageInner() {
             </DayMealsProvider>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The trial's last week, said once a day at most.
+ *
+ * It is information, not a decision anybody owes us: „Seinna“ puts it away
+ * until tomorrow, and the way on is the focused subscription flow.
+ */
+function TrialEnding({ daysLeft }: { daysLeft: number }) {
+  const [later, snooze] = useSnooze(`trial-ending:${daysLeft}`, DAY_MS);
+  if (later !== false) return null;
+  return (
+    <div className="rounded-hc-card bg-hc-warn-surface px-4 py-3 text-sm text-hc-warn-ink ring-1 ring-hc-warn-ink/25">
+      <p className="font-semibold">
+        {daysLeft === 0
+          ? "Prufutímabilið endar í dag."
+          : `${daysLeft} ${daysLeft === 1 ? "dagur" : "dagar"} eftir af prufutímabilinu.`}
+      </p>
+      <p className="mt-0.5">Eftir það þarf áskrift fyrir Í dag, Æfingar og Næringu. Skýrslan og heilsuferðin eru áfram opin.</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Link href="/app/askrift" className={hcBtn.primary}>Skrá mig í áskrift</Link>
+        <button type="button" onClick={snooze} className="inline-flex min-h-11 items-center rounded-hc-element px-3 font-semibold underline">Seinna</button>
       </div>
     </div>
   );

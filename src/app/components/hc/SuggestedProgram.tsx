@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { SAVE_FAILED, useToast } from "./Toast";
+import { hcBtn } from "./ui";
 
 type Api = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -92,16 +93,18 @@ export default function SuggestedProgram({ api, onAccepted }: { api: Api; onAcce
             <p className="mt-2 rounded-xl bg-hc-surface/70 px-3 py-2 text-sm text-hc-ink">„{s.note}“</p>
           )}
           {s.description && <p className="mt-2 text-sm text-hc-ink-2">{s.description}</p>}
+          <p className="mt-2 text-xs text-hc-ink-2">Svarið þitt fer til þjálfarans. Núverandi prógramm helst þar til þú segir já.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={() => void answer(s.id, "accept")} disabled={!!busy}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-hc-brand-dark px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-40">
+              className={hcBtn.primary}>
               {busy === s.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
               Já, taka þetta upp
             </button>
-            {/* Not a quiet dismissal: the answer goes back. */}
+            {/* Not a quiet dismissal: the answer goes back to the coach, so
+                it is worded as the no it is — „Ekki núna“ read as „later“. */}
             <button type="button" onClick={() => void answer(s.id, "decline")} disabled={!!busy}
-              className="inline-flex min-h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-hc-ink-2 transition hover:bg-hc-surface disabled:opacity-40">
-              <X className="h-4 w-4" aria-hidden /> Ekki núna
+              className={hcBtn.ghost}>
+              <X className="h-4 w-4" aria-hidden /> Nei, takk
             </button>
           </div>
         </section>

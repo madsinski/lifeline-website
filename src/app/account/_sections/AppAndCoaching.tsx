@@ -33,7 +33,7 @@ export default function AppAndCoachingSection({ state: s, hrefFor }: SectionProp
         body={t("acct.p.aefingar-naering-svefn-og-andleg", "Æfingar, næring, svefn og andleg líðan — dag frá degi, með áætlun sem er þín og þjálfara sem þú nærð í. Appið keyrir í vafranum og þarf enga uppsetningu úr verslun.")}>
         <div className="mt-5 flex flex-wrap gap-2">
           <ButtonLink href="/app" variant="inverse">{t("acct.p.opna-appid", "Opna appið")}</ButtonLink>
-          {!subscribed && <ButtonLink href="/app/adgangur#askrift" variant="inverseOutline">{t("account.coaching.subscribe", "Skrá mig í áskrift")}</ButtonLink>}
+          {!subscribed && <ButtonLink href="/app/askrift" variant="inverseOutline">{t("account.coaching.subscribe", "Skrá mig í áskrift")}</ButtonLink>}
         </div>
       </PageHero>
 
@@ -64,7 +64,7 @@ export default function AppAndCoachingSection({ state: s, hrefFor }: SectionProp
               {/* Somebody who already subscribes is not a lead. */}
               {subscribed
                 ? <ButtonLink href={`${hrefFor("adgangur")}#subscription`} scroll={false} replace variant="secondary">{t("account.coaching.mysub", "Áskriftin þín")}</ButtonLink>
-                : <ButtonLink href="/app/adgangur#askrift" variant="secondary">{t("account.coaching.subscribe", "Skrá mig í áskrift")}</ButtonLink>}
+                : <ButtonLink href="/app/askrift" variant="secondary">{t("account.coaching.subscribe", "Skrá mig í áskrift")}</ButtonLink>}
             </div>
           </div>
         </SectionCard>

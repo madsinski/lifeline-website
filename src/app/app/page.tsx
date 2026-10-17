@@ -792,7 +792,7 @@ function SubscriptionStep({ api }: {
       <div className="space-y-2 text-sm text-hc-ink-2">
         <p className="font-semibold text-hc-ink">Þú ert á prufutíma{until ? ` til ${fmtDate(until)}` : ""}.</p>
         <p>Allt appið er opið á prufutímanum og ekkert er skuldfært. Verðið og hvað gerist þegar honum lýkur sérðu undir áskriftinni.</p>
-        <ButtonLink href="/app/adgangur#askrift" variant="secondary">Sjá áskriftina</ButtonLink>
+        <ButtonLink href="/app/askrift" variant="secondary">Sjá áskriftina</ButtonLink>
       </div>
     );
   }
@@ -808,7 +808,7 @@ function SubscriptionStep({ api }: {
           </p>
         )}
         <p>Þú getur sagt upp hvenær sem er í stillingum — appið er opið til loka þess tímabils sem er greitt.</p>
-        <ButtonLink href="/app/adgangur#askrift" variant="secondary">Sjá áskriftina</ButtonLink>
+        <ButtonLink href="/app/askrift" variant="secondary">Sjá áskriftina</ButtonLink>
       </div>
     );
   }
@@ -821,7 +821,7 @@ function SubscriptionStep({ api }: {
         Appið — æfingar, næring og dagleg eftirfylgd — er sjálfstæð mánaðarleg áskrift. Verðið,
         það sem fylgir og hvernig þú segir upp sérðu áður en þú byrjar.
       </p>
-      <ButtonLink href="/app/adgangur#askrift">Sjá áskriftina</ButtonLink>
+      <ButtonLink href="/app/askrift">Sjá áskriftina</ButtonLink>
     </div>
   );
 }
@@ -877,7 +877,7 @@ function StepBody({ step, data, reload, advance, healthOrder }: { step: JourneyS
           <p className="rounded-hc-element bg-hc-sunken px-3 py-2.5 text-xs text-hc-ink-2">
             Heilsufarsskoðunin er staðgreidd, eitt gjald. Appið — æfingar, næring og dagleg
             eftirfylgd — er sjálfstæð mánaðarleg áskrift og er ekki innifalin í þessu verði.{" "}
-            <Link href="/app/adgangur#askrift" className="font-semibold underline">Sjá áskriftina</Link>.
+            <Link href="/app/askrift" className="font-semibold underline">Sjá áskriftina</Link>.
           </p>
           {!j.paid_at && (
             <p className="px-1 text-xs text-hc-ink-2">
