@@ -28,7 +28,7 @@ export default function AppAndCoachingSection({ state: s, hrefFor }: SectionProp
   return (
     <>
       <PageHero icon={Smartphone}
-        kicker={t("acct.p.lifeline-appid", "Lifeline appið")}
+        kicker={t("acct.p.lifeline-appid", "Lifeline-appið")}
         title={t("acct.p.dagleg-thjalfun-i-simanum", "Dagleg þjálfun í símanum")}
         body={t("acct.p.aefingar-naering-svefn-og-andleg", "Æfingar, næring, svefn og andleg líðan — dag frá degi, með áætlun sem er þín og þjálfara sem þú nærð í. Appið keyrir í vafranum og þarf enga uppsetningu úr verslun.")}>
         <div className="mt-5 flex flex-wrap gap-2">
@@ -57,7 +57,7 @@ export default function AppAndCoachingSection({ state: s, hrefFor }: SectionProp
           </ol>
           <div className={`${accountInset} mt-6 p-4`}>
             <p className="text-sm leading-relaxed text-hc-ink">
-              {t("account.coaching.inapp", "Allt þetta gerist í Lifeline appinu — daglegu aðgerðirnar, æfingarnar, næringin og eftirfylgnin. Þjálfunin er valkvæð og greidd sérstaklega.")}
+              {t("account.coaching.inapp", "Allt þetta gerist í Lifeline-appinu — daglegu aðgerðirnar, æfingarnar, næringin og eftirfylgnin. Þjálfunin er valkvæð og greidd sérstaklega.")}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <ButtonLink href="/app">{t("account.coaching.try", "Prófaðu appið")}</ButtonLink>

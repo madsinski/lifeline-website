@@ -87,7 +87,7 @@ export default function PartnerInvitePage() {
 
         {s.k === "loading" && (
           <p className="mt-4 flex items-center gap-2 text-sm text-hc-ink-3">
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {t("acct.partner.loading", "Hleð boðinu…")}
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> {t("acct.partner.loading", "Sæki boðið…")}
           </p>
         )}
 

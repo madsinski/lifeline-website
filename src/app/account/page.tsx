@@ -128,7 +128,7 @@ function AccountPageInner() {
     { id: "adgangur", label: t("acc.nav.account", "Aðgangur"), shortLabel: t("acc.nav.account", "Aðgangur"), icon: UserCog, href: hrefFor("adgangur") },
   ], [t, hrefFor]);
 
-  if (loading) return <AccountLoading label={t("acct.loading", "Hleð…")} />;
+  if (loading) return <AccountLoading label={t("acct.loading", "Augnablik…")} />;
   if (!user) return null;
 
   const props: SectionProps = { user, state, patch, actions, open, journey, hrefFor };

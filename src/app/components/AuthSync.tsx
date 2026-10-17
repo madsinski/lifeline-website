@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n";
+import { isLocale, readLocaleCookie } from "@/lib/locale";
 
 // Cross-tab auth state sync.
 //
@@ -26,6 +28,13 @@ const SUPABASE_PROJECT_REF = "cfnibfxzltxiriqxvvru";
 const STORAGE_KEY = `sb-${SUPABASE_PROJECT_REF}-auth-token`;
 
 export default function AuthSync() {
+  /* The language saved on the account (user_metadata.locale, written by
+     setLocale and at signup) follows the person to a new browser: on sign-in
+     it is copied into the ll-locale cookie if that says otherwise. */
+  const { setLocale } = useI18n();
+  const setLocaleRef = useRef(setLocale);
+  useEffect(() => { setLocaleRef.current = setLocale; }, [setLocale]);
+
   useEffect(() => {
     // Track the last known user id so we can tell sign-outs from
     // routine token refreshes (both show up as auth state changes
@@ -42,6 +51,12 @@ export default function AuthSync() {
       const isSignedIn = !!nextUserId;
       const identityChanged = lastUserId !== nextUserId;
       lastUserId = nextUserId;
+      if (event === "SIGNED_IN") {
+        const saved = session?.user?.user_metadata?.locale;
+        if (isLocale(saved) && readLocaleCookie() !== saved) {
+          setLocaleRef.current(saved, { saveToAccount: false });
+        }
+      }
       if (event === "SIGNED_OUT" || (wasSignedIn && !isSignedIn)) {
         // Full reload — clears all in-memory state, triggers
         // auth-gated pages to redirect cleanly.

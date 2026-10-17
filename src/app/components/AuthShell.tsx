@@ -8,12 +8,17 @@
 // the Navbar/Footer chromeFree lists so the logo appears once.
 //
 // Presentational only — no Supabase, no state. Stateful pieces (resend,
-// forms) live with their callers.
+// forms) live with their callers. A client component because its few words
+// ("Til baka", "Skref n af N") follow the visitor's language; every caller
+// is already a client component.
+
+"use client";
 
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import LifelineLogo from "@/app/components/LifelineLogo";
 import { hcCard } from "@/app/components/hc/ui";
+import { useI18n } from "@/lib/i18n";
 
 type Props = {
   children: React.ReactNode;
@@ -41,14 +46,17 @@ export const authSecondary =
 export const authLink = "font-semibold text-hc-brand-text underline-offset-2 hover:underline";
 
 export default function AuthShell({ children, step, back, footer, above, width = "md", bare }: Props) {
+  const { t, tv } = useI18n();
   const max = width === "lg" ? "max-w-2xl" : "max-w-md";
+  const backLabel = t("auth.back", "Til baka");
+  const stepLabel = step ? tv("auth.step", "Skref {{n}} af {{of}}", { n: step.n, of: step.of }) : "";
   const backEl = !back ? null : typeof back === "string" ? (
-    <Link href={back} className="-ml-1.5 inline-flex min-h-10 items-center gap-1 rounded-hc-element px-1.5 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken-2">
-      <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
+    <Link href={back} className="-ml-1.5 inline-flex min-h-11 items-center gap-1 rounded-hc-element px-1.5 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken-2">
+      <ArrowLeft className="h-4 w-4" aria-hidden /> {backLabel}
     </Link>
   ) : (
-    <button type="button" onClick={back} className="-ml-1.5 inline-flex min-h-10 items-center gap-1 rounded-hc-element px-1.5 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken-2">
-      <ArrowLeft className="h-4 w-4" aria-hidden /> Til baka
+    <button type="button" onClick={back} className="-ml-1.5 inline-flex min-h-11 items-center gap-1 rounded-hc-element px-1.5 text-sm font-semibold text-hc-ink-2 hover:bg-hc-sunken-2">
+      <ArrowLeft className="h-4 w-4" aria-hidden /> {backLabel}
     </button>
   );
 
@@ -56,7 +64,7 @@ export default function AuthShell({ children, step, back, footer, above, width =
     <div className="min-h-screen bg-hc-page">
       <div className={`mx-auto ${max} px-4 pb-16 pt-5 sm:pt-8`}>
         <header className="flex items-center justify-between">
-          <Link href="/" aria-label="Lifeline Health – forsíða" className="inline-flex">
+          <Link href="/" aria-label={t("auth.home", "Lifeline Health – forsíða")} className="inline-flex">
             <LifelineLogo size="sm" />
           </Link>
         </header>
@@ -67,7 +75,7 @@ export default function AuthShell({ children, step, back, footer, above, width =
               <span>{backEl}</span>
               {step && (
                 <span className="text-xs font-semibold tabular-nums text-hc-ink-3">
-                  Skref {step.n} af {step.of}
+                  {stepLabel}
                 </span>
               )}
             </div>
@@ -78,7 +86,7 @@ export default function AuthShell({ children, step, back, footer, above, width =
                 aria-valuemin={1}
                 aria-valuemax={step.of}
                 aria-valuenow={step.n}
-                aria-label={`Skref ${step.n} af ${step.of}`}
+                aria-label={stepLabel}
               >
                 <div
                   className="h-full rounded-full bg-hc-brand-dark transition-all duration-300"

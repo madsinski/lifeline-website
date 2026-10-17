@@ -565,7 +565,7 @@ function BookAssessmentContent() {
     setStage("done");
   }
 
-  if (authChecking) return <AccountLoading label={t("acct.loading", "Hleð…")} />;
+  if (authChecking) return <AccountLoading label={t("acct.loading", "Augnablik…")} />;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-hc-brand-surface via-white to-white">

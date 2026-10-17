@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import AuthShell, { authPrimary, authSecondary } from "@/app/components/AuthShell";
+import { useI18n } from "@/lib/i18n";
 
 function appUrl(): string | null {
   const params = new URLSearchParams(window.location.search);
@@ -25,6 +26,7 @@ function appUrl(): string | null {
 }
 
 export default function AuthCallbackPage() {
+  const { t } = useI18n();
   const [state, setState] = useState<{ mobile: boolean; url: string | null } | null>(null);
 
   useEffect(() => {
@@ -40,25 +42,24 @@ export default function AuthCallbackPage() {
       {!state || (state.mobile && state.url) ? (
         <section className="text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-hc-brand-text" aria-hidden />
-          <h1 className="mt-4 text-xl font-bold text-hc-ink">Tengist Lifeline…</h1>
-          <p className="mt-1 text-sm text-hc-ink-2">Við sendum þig aftur í appið.</p>
+          <h1 className="mt-4 text-xl font-bold text-hc-ink">{t("auth.cb.connecting", "Tengist Lifeline…")}</h1>
+          <p className="mt-1 text-sm text-hc-ink-2">{t("auth.cb.back-to-app", "Við sendum þig aftur í appið.")}</p>
           {state?.url && (
             <div className="mt-6 space-y-2.5">
-              <a href={state.url} className={authPrimary}>Opna appið</a>
-              <Link href="/app" className={authSecondary}>Halda áfram á vefnum</Link>
+              <a href={state.url} className={authPrimary}>{t("auth.open-app", "Opna appið")}</a>
+              <Link href="/account" className={authSecondary}>{t("auth.continue-web", "Halda áfram á vefnum")}</Link>
             </div>
           )}
         </section>
       ) : (
         <section className="text-center">
-          <h1 className="text-xl font-bold text-hc-ink">Ljúktu innskráningunni í appinu</h1>
+          <h1 className="text-xl font-bold text-hc-ink">{t("auth.cb.finish-in-app", "Ljúktu innskráningunni í appinu")}</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-hc-ink-2">
-            Þessi innskráning hófst í Lifeline-appinu og klárast þar. Ef þú vilt frekar nota vefinn
-            geturðu skráð þig inn þar.
+            {t("auth.cb.finish-in-app.body", "Þessi innskráning hófst í Lifeline-appinu og klárast þar. Ef þú vilt frekar nota vefinn geturðu skráð þig inn þar.")}
           </p>
           <div className="mt-6 space-y-2.5">
-            {state.url && <a href={state.url} className={authSecondary}>Opna appið</a>}
-            <Link href="/app" className={authPrimary}>Halda áfram á vefnum</Link>
+            {state.url && <a href={state.url} className={authSecondary}>{t("auth.open-app", "Opna appið")}</a>}
+            <Link href="/account" className={authPrimary}>{t("auth.continue-web", "Halda áfram á vefnum")}</Link>
           </div>
         </section>
       )}

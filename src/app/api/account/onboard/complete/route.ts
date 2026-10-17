@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@/lib/error-reporter";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest } from "@/lib/auth-helpers";
-import { sendEmail, renderWelcomeEmail } from "@/lib/email";
+import { sendEmail, renderWelcomeEmail, welcomeEmailSubject } from "@/lib/email";
 import { activateBiodyForClient } from "@/lib/biody";
 import { recordHealthConsent } from "@/lib/health-consent";
 
@@ -120,10 +120,11 @@ export async function POST(req: NextRequest) {
       recipientName: firstName,
       welcomeUrl: `${origin}/account`,
       loginUrl: `${origin}/account/login`,
+      locale: user.user_metadata?.locale,
     });
     await sendEmail({
       to: email,
-      subject: "Welcome to Lifeline Health",
+      subject: welcomeEmailSubject(null, user.user_metadata?.locale),
       html,
       text,
     });

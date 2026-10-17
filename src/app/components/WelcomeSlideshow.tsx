@@ -130,14 +130,14 @@ export default function WelcomeSlideshow({
         <Slide n={1}>
           <div className="text-center">
             <p className="text-[11px] font-semibold tracking-[0.2em] uppercase text-emerald-700 mb-3">
-              {t("comp.ws.welcome", "Velkomin/n í Lifeline Health")}
+              {t("comp.ws.welcome", "Gott að sjá þig hjá Lifeline Health")}
             </p>
             <h1 className="text-4xl md:text-6xl font-bold text-[#0F172A] leading-tight">
               {firstName ? `Hæ ${firstName} — ` : t("comp.ws.hi", "Hæ — ")}
               <span className="bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">{t("comp.ws.journeystarts", "heilsuferðin þín byrjar hér.")}</span>
             </h1>
             <p className="text-lg text-gray-600 mt-5 max-w-xl mx-auto leading-relaxed">
-              {t("comp.ws.intro", "Þessi stutta kynning útskýrir hvernig Lifeline virkar — það tekur um 3 mínútur. Skrunaðu niður þegar þú ert tilbúin/n.")}
+              {t("comp.ws.intro", "Þessi stutta kynning útskýrir hvernig Lifeline virkar — það tekur um 3 mínútur. Skrunaðu niður þegar þú vilt byrja.")}
             </p>
             <button
               type="button"
@@ -182,7 +182,7 @@ export default function WelcomeSlideshow({
             {t("comp.ws.fourpillars", "Fjórar grunnstoðir — vegna þess að heilsa er meira en mataræði og hreyfing.")}
           </h2>
           <p className="text-base text-gray-600 mt-5 max-w-2xl">
-            {t("comp.ws.holisticbody", "Heilsumat Lifeline byggir á því að líta heildrænt á alla fjóra þætti. Þeir hafa allir áhrif hver á annan, og engin einföld ráðlegging dugar fyrir alla.")}
+            {t("comp.ws.holisticbody", "Heilsufarsskoðun Lifeline byggir á því að líta heildrænt á alla fjóra þætti. Þeir hafa allir áhrif hver á annan, og engin einföld ráðlegging dugar fyrir alla.")}
           </p>
           <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
             <Pillar emoji="🏃" name="Hreyfing" tone="bg-orange-50 text-orange-700" />
@@ -192,7 +192,7 @@ export default function WelcomeSlideshow({
           </div>
         </Slide>
 
-        <Slide n={4} kicker={t("comp.ws.yourassessment", "Heilsumatið þitt")}>
+        <Slide n={4} kicker={t("comp.ws.yourassessment", "Heilsufarsskoðunin þín")}>
           <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
             {t("comp.ws.foursteps", "Fjögur skref — frá fyrstu mælingu að einstaklingsbundnu heilsuplani.")}
           </h2>
@@ -295,21 +295,21 @@ export default function WelcomeSlideshow({
             {t("comp.ws.inmedhands", "Þú ert í læknishöndum.")}
           </h2>
           <p className="text-base text-gray-600 mt-5 max-w-2xl">
-            {t("comp.ws.alldoctors", "Allir læknar Lifeline hafa starfsleyfi frá Embætti landlæknis og koma að heilsumati þínu beint.")}
+            {t("comp.ws.alldoctors", "Allir læknar Lifeline hafa starfsleyfi frá Embætti landlæknis og koma beint að heilsufarsskoðuninni þinni.")}
           </p>
           <div className="mt-8">
             <DoctorsTeam compact />
           </div>
         </Slide>
 
-        <Slide n={8} kicker={t("comp.ws.youreready", "Þú ert tilbúin/n")}>
+        <Slide n={8} kicker={t("comp.ws.youreready", "Allt klárt")}>
           <h2 className="text-3xl md:text-4xl font-bold text-[#0F172A] leading-tight">
             {t("comp.ws.nextstep", "Næsta skref.")}
           </h2>
           <p className="text-base text-gray-600 mt-5 max-w-2xl leading-relaxed">
             {variant === "public"
-              ? t("comp.ws.done2", "Þú ert búin/n með kynninguna. Skoðaðu hvernig hægt er að taka þátt — sem einstaklingur eða gegnum vinnuveitanda.")
-              : t("comp.ws.done1", "Þú ert búin/n með kynninguna. Næsta skref er að bóka líkamssamsetningarmælingu og blóðprufu — það tekur um 5 mínútur saman.")}
+              ? t("comp.ws.done2", "Kynningunni er lokið. Skoðaðu hvernig hægt er að taka þátt — sem einstaklingur eða gegnum vinnuveitanda.")
+              : t("comp.ws.done1", "Kynningunni er lokið. Næsta skref er að bóka líkamssamsetningarmælingu og blóðprufu — það tekur um 5 mínútur saman.")}
           </p>
           <ul className="mt-6 space-y-2 text-sm text-gray-700">
             <li className="flex items-start gap-2">

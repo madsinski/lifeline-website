@@ -80,7 +80,7 @@ function AccountWelcomePageInner() {
     } catch { /* best-effort, don't block UX */ }
   };
 
-  if (loading) return <AccountLoading label={t("acct.welcome.loading", "Hleð kynningu…")} />;
+  if (loading) return <AccountLoading label={t("acct.welcome.loading", "Sæki kynningu…")} />;
 
   return (
     <WelcomeSlideshow

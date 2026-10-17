@@ -35,7 +35,18 @@ export function safeNextPath(raw: string | null | undefined): string | null {
   return v;
 }
 
-const doneKey = (uid: string) => `ll-signup-consent:${uid}`;
+/**
+ * Where a new account lands after confirming its email: /account, with the
+ * purchase intent (if any) carried as ?next= so /account can offer
+ * „Halda áfram þar sem frá var horfið“. A #fragment is dropped: the
+ * confirmation link puts its own tokens in the hash.
+ */
+export function accountLandingPath(next: string | null | undefined): string {
+  const clean = safeNextPath(next)?.split("#")[0] || null;
+  return clean ? `/account?next=${encodeURIComponent(clean)}` : "/account";
+}
+
+const doneKey =(uid: string) => `ll-signup-consent:${uid}`;
 
 /**
  * Make sure the terms acceptance + opt-outs given at signup are on the

@@ -23,7 +23,7 @@ const DSR_OPTIONS = (t: (k: string, f?: string) => string) =>
   {
     value: "rectification",
     label: t("comp.dp.rectify", "Leiðrétta rangar upplýsingar"),
-    help: t("comp.dp.rectifydesc", "Nafni, síma og heimilisfangi getur þú breytt sjálf(ur) undir „Persónuupplýsingar“ hér að ofan. Notaðu þennan valkost ef eitthvað annað þarf að laga og lýstu því hér fyrir neðan."),
+    help: t("comp.dp.rectifydesc", "Nafni, síma og heimilisfangi getur þú breytt undir „Persónuupplýsingar“ hér að ofan. Notaðu þennan valkost ef eitthvað annað þarf að laga og lýstu því hér fyrir neðan."),
   },
   {
     value: "erasure",
@@ -48,7 +48,7 @@ const DSR_OPTIONS = (t: (k: string, f?: string) => string) =>
   {
     value: "withdraw_consent",
     label: t("comp.dp.withdraw", "Draga samþykki til baka"),
-    help: t("comp.dp.withdrawdesc", "Ef þú vilt afturkalla samþykki sem þú gafst. Biody-rofinn hér að ofan er algengasta dæmið. Notaðu þetta fyrir allt sem þú getur ekki breytt sjálf(ur)."),
+    help: t("comp.dp.withdrawdesc", "Ef þú vilt afturkalla samþykki sem þú gafst. Biody-rofinn hér að ofan er algengasta dæmið. Notaðu þetta fyrir allt sem þú getur ekki breytt hér."),
   },
 ];
 
@@ -159,7 +159,7 @@ export default function DataPrivacyPanel({ userId }: { userId: string }) {
       <div className={`${accountInset} p-4`}>
         <p className="mb-1 text-sm font-semibold text-hc-ink">{t("comp.dp.requesttitle", "Beiðni um gögnin þín")}</p>
         <p className="mb-3 text-xs leading-relaxed text-hc-ink-2">
-          {t("comp.dp.rights", "Samkvæmt persónuverndarlögum átt þú rétt á afriti af gögnunum þínum, leiðréttingu, eyðingu og fleiru. Flest getur þú gert sjálf(ur) hér. Fyrir annað skaltu velja valkost hér fyrir neðan og við svörum innan 30 daga.")}
+          {t("comp.dp.rights", "Samkvæmt persónuverndarlögum átt þú rétt á afriti af gögnunum þínum, leiðréttingu, eyðingu og fleiru. Flest af því getur þú gert hér. Fyrir annað skaltu velja valkost hér fyrir neðan og við svörum innan 30 daga.")}
         </p>
         <div className="space-y-3">
           <select

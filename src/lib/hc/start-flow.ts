@@ -26,9 +26,9 @@ export const GOALS: { key: GoalKey; label: string; hint: string }[] = [
   { key: "energy", label: "Meiri orka", hint: "Úthald yfir daginn, minni þreyta" },
   { key: "weight", label: "Léttast", hint: "Þyngd og líkamssamsetning" },
   { key: "strength", label: "Styrkur", hint: "Byggja upp vöðva og þol" },
-  { key: "sleep", label: "Betri svefn", hint: "Sofna fyrr, vakna úthvíld/ur" },
+  { key: "sleep", label: "Betri svefn", hint: "Sofna fyrr og hvílast betur" },
   { key: "stress", label: "Minni streita", hint: "Ró og andleg líðan" },
-  { key: "prevent", label: "Fyrirbyggja", hint: "Vita hvar ég stend og halda því" },
+  { key: "prevent", label: "Yfirsýn", hint: "Vita hvar ég stend og fylgjast með því" },
 ];
 
 export const MOVES: { key: MoveKey; label: string }[] = [

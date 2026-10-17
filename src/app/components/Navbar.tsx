@@ -17,6 +17,9 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
   const [userName, setUserName] = useState<string | null>(null);
   const [acctOpen, setAcctOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  /* Until the session is known, neither „Stofna aðgang“ nor „Mínar síður“
+     is drawn, so a signed-in visitor never sees the signup button flash. */
+  const [authReady, setAuthReady] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   // Only company admins see the business account link.
   const [hasBusiness, setHasBusiness] = useState(false);
@@ -59,6 +62,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSignedIn(!!session?.user);
+      setAuthReady(true);
       if (session?.user) {
         loadUserName(session.user.id, session.user.email ?? undefined);
         const [primary, coadmin] = await Promise.all([
@@ -72,6 +76,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSignedIn(!!session?.user);
+      setAuthReady(true);
       if (session?.user) {
         loadUserName(session.user.id, session.user.email ?? undefined);
       } else {
@@ -144,12 +149,12 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
               12px, which stops reading as optical alignment and starts
               reading as touching the edge. The trick needs room to be a
               trick. */}
-          <Link href="/" className="flex items-center mr-8 sm:-ml-2">
+          <Link href="/" className="flex items-center mr-4 sm:-ml-2 xl:mr-8">
             <LifelineLogo size="sm" />
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden lg:flex items-center gap-5 xl:gap-7 flex-nowrap">
+          <div className="hidden lg:flex items-center gap-4 xl:gap-7 flex-nowrap">
             {navItems.map((link) => {
               const isActive =
                 link.href === "/"
@@ -173,13 +178,40 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
               );
             })}
             <LanguagePicker />
+            {/* Signed out: „Skrá inn“ + the site's main action, „Stofna aðgang“.
+                Signed in: „Mínar síður“. Nothing until the session is known. */}
+            {!authReady && <span aria-hidden className="inline-block h-11 w-56" />}
+            {authReady && !signedIn && (
+              <div className="flex items-center gap-2">
+                {/* Between 1024 and 1280px the row is full: there „Skrá inn“
+                    is the person icon alone (the label stays for screen
+                    readers); from 1280px the word shows. */}
+                <Link
+                  href="/account/login"
+                  title={t("nav.signin", "Skrá inn")}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-[#1F2937] hover:bg-gray-100 transition-colors whitespace-nowrap xl:px-4"
+                >
+                  <svg className="h-5 w-5 xl:hidden" aria-hidden fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="sr-only xl:not-sr-only">{t("nav.signin", "Skrá inn")}</span>
+                </Link>
+                <Link
+                  href="/byrja"
+                  className="inline-flex min-h-11 items-center rounded-full bg-[#047857] px-5 text-sm font-semibold text-white shadow-sm hover:bg-[#065f46] transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-[#047857] focus-visible:ring-offset-2"
+                >
+                  {t("nav.create_account", "Stofna aðgang")}
+                </Link>
+              </div>
+            )}
+            {authReady && signedIn && (
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setAcctOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={acctOpen}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#10B981] rounded-full hover:bg-[#047857] transition-colors whitespace-nowrap shadow-sm"
+                className="inline-flex min-h-11 items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#047857] rounded-full hover:bg-[#065f46] transition-colors whitespace-nowrap shadow-sm"
               >
                 {userName ? (
                   <span className="w-6 h-6 rounded-full bg-white/25 text-white text-xs font-bold flex items-center justify-center shrink-0">
@@ -207,37 +239,41 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                       <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                       {t("nav.business_account", "Fyrirtækjaaðgangur")}
                     </Link>}
-                    {/* Signed out, "Skrá út" did nothing visible; offer the way in instead. */}
-                    {signedIn ? (
-                      <button type="button" disabled={signingOut}
-                        onClick={async () => {
-                          setSigningOut(true);
-                          await supabase.auth.signOut().catch(() => null);
-                          setAcctOpen(false);
-                          window.location.href = "/account/login";
-                        }}
-                        className="flex w-full items-center gap-3 border-t border-gray-100 px-4 py-3 text-left text-sm text-gray-800 hover:bg-gray-50 disabled:opacity-60">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                        {signingOut ? t("nav.signingout", "Skrái út…") : t("nav.signout", "Skrá út")}
-                      </button>
-                    ) : (
-                      <Link href="/account/login" onClick={() => setAcctOpen(false)}
-                        className="flex items-center gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-800 hover:bg-gray-50">
-                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
-                        {t("nav.signin", "Skrá inn")}
-                      </Link>
-                    )}
+                    <button type="button" disabled={signingOut}
+                      onClick={async () => {
+                        setSigningOut(true);
+                        await supabase.auth.signOut().catch(() => null);
+                        setAcctOpen(false);
+                        window.location.href = "/account/login";
+                      }}
+                      className="flex w-full items-center gap-3 border-t border-gray-100 px-4 py-3 text-left text-sm text-gray-800 hover:bg-gray-50 disabled:opacity-60">
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                      {signingOut ? t("nav.signingout", "Skrái út…") : t("nav.signout", "Skrá út")}
+                    </button>
                   </div>
                 </>
               )}
             </div>
+            )}
           </div>
 
+          {/* Tablet: the main action stays in sight next to the menu button.
+              A phone has no room beside the 226px wordmark; there it leads
+              the open menu instead. */}
+          <div className="flex items-center gap-1.5 lg:hidden">
+          {authReady && !signedIn && (
+            <Link
+              href="/byrja"
+              className="hidden min-h-11 items-center rounded-full bg-[#047857] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#065f46] whitespace-nowrap sm:inline-flex"
+            >
+              {t("nav.create_account", "Stofna aðgang")}
+            </Link>
+          )}
           {/* Mobile hamburger */}
           <button
             type="button"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="grid h-11 w-11 place-items-center rounded-lg hover:bg-gray-100 transition-colors"
             aria-label={mobileOpen ? t("nav.close_menu", "Loka valmynd") : t("nav.open_menu", "Opna valmynd")}
             aria-expanded={mobileOpen}
           >
@@ -264,6 +300,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
               )}
             </svg>
           </button>
+          </div>
         </div>
       </div>
 
@@ -299,10 +336,29 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
               );
             })}
             <div className="pt-4 space-y-3 border-t border-gray-100">
+              {authReady && !signedIn && (
+                <>
+                  <Link
+                    href="/byrja"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex min-h-12 items-center justify-center rounded-lg bg-[#047857] px-4 text-sm font-semibold text-white hover:bg-[#065f46] transition-colors"
+                  >
+                    {t("nav.create_account", "Stofna aðgang")}
+                  </Link>
+                  <Link
+                    href="/account/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex min-h-11 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-semibold text-[#1F2937] hover:bg-gray-50 transition-colors"
+                  >
+                    {t("nav.signin", "Skrá inn")}
+                  </Link>
+                </>
+              )}
+              {authReady && signedIn && (
               <Link
                 href="/account"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg text-white bg-[#10B981] hover:bg-[#047857] transition-colors"
+                className="flex min-h-11 items-center gap-2 px-4 py-3 text-sm font-semibold rounded-lg text-white bg-[#047857] hover:bg-[#065f46] transition-colors"
               >
                 {userName ? (
                   <>
@@ -320,6 +376,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
                   </>
                 )}
               </Link>
+              )}
               {hasBusiness && <Link
                 href="/business/account"
                 onClick={() => setMobileOpen(false)}
@@ -333,7 +390,7 @@ export default function Navbar({ initialItems }: { initialItems?: NavItem[] }) {
               <Link
                 href="/coaching#download"
                 onClick={() => setMobileOpen(false)}
-                className="block w-full text-center px-5 py-2.5 text-sm font-semibold border-2 border-[#10B981] text-[#10B981] rounded-full hover:bg-[#10B981] hover:text-white transition-all duration-200"
+                className="flex min-h-11 w-full items-center justify-center px-5 text-sm font-semibold border-2 border-[#047857] text-[#047857] rounded-full hover:bg-[#047857] hover:text-white transition-all duration-200"
               >
                 {t('nav.check_app', 'Skoða appið')}
               </Link>

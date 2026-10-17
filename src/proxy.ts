@@ -91,6 +91,28 @@ async function isSiteGated(
   }
 }
 
+/**
+ * Icelandic if the browser lists Icelandic at all; otherwise English if it
+ * lists any language (a Polish or English browser reads English better than
+ * Icelandic); Icelandic when there is no header.
+ */
+function guessLocale(acceptLanguage: string | null): "is" | "en" {
+  if (!acceptLanguage) return "is";
+  const langs = acceptLanguage
+    .split(",")
+    .map((part) => part.trim().split(";")[0].toLowerCase())
+    .filter(Boolean);
+  if (langs.some((l) => l === "is" || l.startsWith("is-"))) return "is";
+  return langs.length ? "en" : "is";
+}
+
+function localeGuessInit(request: NextRequest): { request: { headers: Headers } } | undefined {
+  if (request.cookies.has("ll-locale")) return undefined;
+  const headers = new Headers(request.headers);
+  headers.set("x-ll-locale-guess", guessLocale(request.headers.get("accept-language")));
+  return { request: { headers } };
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -99,6 +121,11 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/" && tenantIdForHost(request.headers.get("host")) === "fjarlaekningar") {
     return NextResponse.redirect(new URL("/admin", request.url));
   }
+
+  // 0. Language guess for visitors who have not chosen yet (no ll-locale
+  //    cookie): passed upstream as a request header, never a redirect. The
+  //    layout only uses it to highlight a button in the LanguageChooser.
+  const init = localeGuessInit(request);
 
   // 1. Hard bypass for system routes + static assets.
   //    /business (exact) is the B2B landing that outreach emails link to;
@@ -110,10 +137,10 @@ export async function proxy(request: NextRequest) {
     pathname === "/business" ||
     /^\/business\/[0-9a-f-]{36}(\/|$)/i.test(pathname)
   ) {
-    return NextResponse.next();
+    return NextResponse.next(init);
   }
 
-  const response = NextResponse.next();
+  const response = NextResponse.next(init);
 
   // 2. Unauthenticated bypass via claimed invite-token cookie.
   const tokenCookie = request.cookies.get(COOKIE_NAME)?.value;
@@ -180,5 +207,5 @@ export async function proxy(request: NextRequest) {
   //    because the account area had nothing of its own to show. It does now,
   //    and it is in the bypass list above with its own auth guard — so the
   //    redirect would only have been in the way.
-  return NextResponse.rewrite(new URL("/coming-soon", request.url));
+  return NextResponse.rewrite(new URL("/coming-soon", request.url), init);
 }

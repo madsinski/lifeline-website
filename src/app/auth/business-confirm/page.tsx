@@ -7,6 +7,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Loader2, X } from "lucide-react";
 import AuthShell, { authPrimary } from "@/app/components/AuthShell";
+import { useI18n } from "@/lib/i18n";
 
 // Web verify handler for the B2B email-confirmation link.
 //
@@ -28,6 +29,7 @@ export default function BusinessConfirmPage() {
 function BusinessConfirmInner() {
   const router = useRouter();
   const search = useSearchParams();
+  const { t } = useI18n();
   const [status, setStatus] = useState<"verifying" | "error">("verifying");
 
   useEffect(() => {
@@ -60,21 +62,20 @@ function BusinessConfirmInner() {
       {status === "verifying" ? (
         <section className="text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-hc-brand-text" aria-hidden />
-          <h1 className="mt-4 text-xl font-bold text-hc-ink">Staðfesti netfangið…</h1>
-          <p className="mt-1 text-sm text-hc-ink-2">Augnablik — við skráum þig inn.</p>
+          <h1 className="mt-4 text-xl font-bold text-hc-ink">{t("auth.bc.verifying", "Staðfesti netfangið…")}</h1>
+          <p className="mt-1 text-sm text-hc-ink-2">{t("auth.bc.signing-in", "Augnablik — við skráum þig inn.")}</p>
         </section>
       ) : (
         <section className="text-center">
           <span aria-hidden className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-hc-bad-surface text-hc-bad-ink">
             <X className="h-7 w-7" />
           </span>
-          <h1 className="mt-4 text-2xl font-bold text-hc-ink">Hlekkurinn er útrunninn</h1>
+          <h1 className="mt-4 text-2xl font-bold text-hc-ink">{t("auth.bc.expired.title", "Hlekkurinn er útrunninn")}</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-hc-ink-2">
-            Hlekkurinn hefur annaðhvort verið notaður eða er útrunninn. Biddu um nýjan staðfestingarpóst,
-            eða skráðu þig inn ef netfangið er þegar staðfest.
+            {t("auth.bc.expired.body", "Hlekkurinn hefur annaðhvort verið notaður eða er útrunninn. Biddu um nýjan staðfestingarpóst, eða skráðu þig inn ef netfangið er þegar staðfest.")}
           </p>
           <Link href="/business/login?mode=login&next=/business/signup" className={`mt-6 ${authPrimary}`}>
-            Fara í innskráningu
+            {t("auth.bc.to-login", "Fara í innskráningu")}
           </Link>
         </section>
       )}

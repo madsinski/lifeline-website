@@ -13,6 +13,8 @@ import AuthSync from "./components/AuthSync";
 import BetaFeedback from "./components/BetaFeedback";
 import ErrorHandlerClient from "./components/ErrorHandlerClient";
 import { I18nProvider } from "@/lib/i18n";
+import { getRequestLocale, getTranslations } from "@/lib/i18n-server";
+import LanguageChooser from "./components/LanguageChooser";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -94,10 +96,12 @@ export async function generateMetadata(): Promise<Metadata> {
   if (tenant.id === "fjarlaekningar") {
     return { title: "Fjarlækningar", description: "Íslensk fjarlækningaþjónusta." };
   }
+  const { locale } = await getRequestLocale();
   return {
     title: "Lifeline Health",
-    description:
-      "Comprehensive health assessments and personalised daily coaching. Know your numbers, build better habits, track your progress.",
+    description: locale === "en"
+      ? "Health checks and personalised daily coaching. Know your numbers, build better habits, track your progress."
+      : "Heilsufarsskoðun og persónuleg dagleg þjálfun. Þekktu tölurnar þínar, byggðu upp betri venjur og fylgstu með framförunum.",
   };
 }
 
@@ -112,9 +116,16 @@ export default async function RootLayout({
   const showMarketingChrome = tenant.id === "lifeline";
   // Resolve the published navbar config on the server so the menu paints in its
   // final order/visibility (no flash of the default setup).
-  const navItems = showMarketingChrome ? resolveNav(await getPublishedBlob("nav")) : undefined;
+  // The visitor's language (ll-locale cookie) and its strings are resolved
+  // here too, so the first paint is already in that language. No cookie:
+  // Icelandic, and the LanguageChooser asks.
+  const [navItems, req] = await Promise.all([
+    showMarketingChrome ? getPublishedBlob("nav").then(resolveNav) : Promise.resolve(undefined),
+    getRequestLocale(),
+  ]);
+  const translations = await getTranslations(req.locale);
   return (
-    <html lang="is" className={`${inter.variable} ${signature.variable} ${nunitoSans.variable} ${schibsted.variable} ${newsreader.variable} ${publicSans.variable} ${archivo.variable} ${plexSans.variable} ${plexMono.variable} antialiased`} style={{ overflow: "auto" }}>
+    <html lang={req.locale}className={`${inter.variable} ${signature.variable} ${nunitoSans.variable} ${schibsted.variable} ${newsreader.variable} ${publicSans.variable} ${archivo.variable} ${plexSans.variable} ${plexMono.variable} antialiased`} style={{ overflow: "auto" }}>
       <body className="min-h-screen flex flex-col font-sans" style={{ overflow: "auto" }}>
         <script
           dangerouslySetInnerHTML={{
@@ -124,7 +135,7 @@ export default async function RootLayout({
             __html: `try{if(localStorage.getItem("ll-brand-theme")==="classic")document.documentElement.dataset.theme="classic";var s=localStorage.getItem("ll-scheme");if(s==="dark"||s==="light")document.documentElement.dataset.scheme=s}catch(e){}`,
           }}
         />
-        <I18nProvider>
+        <I18nProvider initialLocale={req.locale} initialTranslations={translations} chosen={req.chosen}>
         <ErrorHandlerClient />
         <ScrollToTop />
         <ScrollDebug />
@@ -132,6 +143,7 @@ export default async function RootLayout({
         {showMarketingChrome && <Navbar initialItems={navItems} />}
         <main className="flex-1">{children}</main>
         {showMarketingChrome && <Footer />}
+        {showMarketingChrome && !req.chosen && <LanguageChooser guess={req.guess} />}
         <BetaFeedback />
         </I18nProvider>
       </body>

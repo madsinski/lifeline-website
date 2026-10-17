@@ -20,6 +20,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { ensureSignupConsentRecorded, safeNextPath } from "@/lib/signup-consent";
 import { getMyStaffRole } from "@/lib/staff-role";
 import * as hcCache from "@/lib/hc/client-cache";
 import { pickCurrent } from "@/lib/hc/subscription-state";
@@ -96,6 +97,22 @@ export async function fetchMyEventSlot(userId: string): Promise<string | null> {
   return (data?.slot_at as string | undefined) ?? null;
 }
 
+/** The purchase intent a new account carried here (?next=), if any. */
+function carriedNext(): string | null {
+  try {
+    return safeNextPath(new URLSearchParams(window.location.search).get("next"));
+  } catch {
+    return null;
+  }
+}
+
+/** Login, keeping that intent (a confirmation opened on another device
+ *  lands here without a session). */
+function loginPath(): string {
+  const next = carriedNext();
+  return next ? `/account/login?next=${encodeURIComponent(next)}` : "/account/login";
+}
+
 export function useAccountData(upgradeParam: string | null) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -112,7 +129,7 @@ export function useAccountData(upgradeParam: string | null) {
     // though the client still has it cached locally.
     supabase.auth.getUser().then(async ({ data: { user: verifiedUser } }) => {
       if (!verifiedUser) {
-        router.push("/account/login");
+        router.push(loginPath());
         setLoading(false);
         return;
       }
@@ -120,16 +137,20 @@ export function useAccountData(upgradeParam: string | null) {
       // activation should not run against an unverified identity.
       if (!verifiedUser.email_confirmed_at) {
         // ?email lets the login page's "send again" work in one tap.
-        router.push(`/account/login?verify=1&email=${encodeURIComponent(verifiedUser.email ?? "")}&next=${encodeURIComponent("/account")}`);
+        router.push(`/account/login?verify=1&email=${encodeURIComponent(verifiedUser.email ?? "")}&next=${encodeURIComponent(carriedNext() || "/account")}`);
         setLoading(false);
         return;
       }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        router.push("/account/login");
+        router.push(loginPath());
         setLoading(false);
         return;
       }
+      /* A confirmation link from /byrja lands here now (it used to land on
+         /app): copy the signup terms + opt-outs onto the clients row before
+         anything reads it. Never throws; skips itself once done. */
+      await ensureSignupConsentRecorded();
 
       const currentUser = session.user;
       setUser(currentUser);

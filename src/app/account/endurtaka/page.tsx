@@ -72,10 +72,10 @@ export default function ReplayOnboardingPage() {
           {t("acct.replay.what", "Setur aðganginn aftur í sama horf og rétt eftir nýskráningu, svo hægt sé að fara aftur í gegnum kynninguna og skilmálana. Aðgangurinn, lykilorðið og netfangið haldast óbreytt.")}
         </p>
 
-        {(who === undefined || (who && allowed === null)) && <p className="mt-4 text-sm text-hc-ink-3">{t("acct.loading", "Hleð…")}</p>}
+        {(who === undefined || (who && allowed === null)) && <p className="mt-4 text-sm text-hc-ink-3">{t("acct.loading", "Augnablik…")}</p>}
         {who === null && (
           <Alert tone="warn" compact className="mt-4">
-            {t("acct.replay.signin", "Þú þarft að vera skráð/ur inn.")} <a href="/account/login" className="font-semibold underline">{t("acct.signin", "Skrá inn")}</a>
+            {t("acct.replay.signin", "Skráðu þig inn til að halda áfram.")} <a href="/account/login" className="font-semibold underline">{t("acct.signin", "Skrá inn")}</a>
           </Alert>
         )}
         {who && allowed === false && (

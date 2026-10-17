@@ -175,7 +175,7 @@ export default function BiodyProfileModal({ userId, onClose, onActivated, onSave
         ? t("acct.p.hafdu-upplysingarnar-rettar-svo-ma", "Hafðu upplýsingarnar réttar svo mælingar og ráðleggingar séu nákvæmar.")
         : t("acc.biody.intro", "Nokkur atriði svo hægt sé að stofna þig hjá Biody, samstarfsaðila okkar sem sér um líkamssamsetningarmælinguna.")}>
       {loading ? (
-        <p className="py-6 text-center text-sm text-hc-ink-3">{t("acct.q.loading", "Hleð…")}</p>
+        <p className="py-6 text-center text-sm text-hc-ink-3">{t("acct.q.loading", "Augnablik…")}</p>
       ) : (
         <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -215,7 +215,7 @@ export default function BiodyProfileModal({ userId, onClose, onActivated, onSave
 
           {!biodyActive && (
             <div className="space-y-2 border-t border-hc-hairline pt-4">
-              <p className="text-sm font-semibold text-hc-ink">{tv("acct.p.consent-version", "Upplýst samþykki fyrir heilsumat ({{v}})", { v: HEALTH_CONSENT_VERSION })}</p>
+              <p className="text-sm font-semibold text-hc-ink">{tv("acct.p.consent-version", "Upplýst samþykki fyrir heilsufarsskoðun ({{v}})", { v: HEALTH_CONSENT_VERSION })}</p>
               <p className="text-xs text-hc-ink-3">{t("acc.biody.gdpr", "9. gr. (2)(a) GDPR · krafa fyrir vinnslu heilsufarsupplýsinga")}</p>
               <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-hc-element bg-hc-sunken p-3 font-sans text-[11px] leading-relaxed text-hc-ink-2 ring-1 ring-hc-hairline">
 {renderHealthAssessmentConsent()}

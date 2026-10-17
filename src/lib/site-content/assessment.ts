@@ -134,7 +134,7 @@ export const ASSESSMENT_FIELDS: SiteField[] = [
 ];
 
 const SHARED = {
-  hero_cta: "Create your Lifeline account",
+  hero_cta: "Create account",
   hero_cta_href: "/byrja?leid=check",
   cta_button_href: "/byrja?leid=check",
   /* Signed in → straight to Þjónusta; otherwise /byrja makes the account
@@ -197,21 +197,21 @@ const SHARED = {
   q6_q: "How often should I do a Check-in?",
   q6_a: "We recommend a Check-in every 3-6 months to track your progress. This allows enough time for meaningful changes to show in your body composition results.",
 
-  cta_title: "Ready to know your numbers?",
-  cta_desc: "Create your Lifeline account — book your assessment from inside.",
-  cta_button: "Create your Lifeline account",
+  cta_title: "Want to take the first step towards better health?",
+  cta_desc: "Create an account and buy your health check from there.",
+  cta_button: "Create account",
 };
 
 export const ASSESSMENT_DEFAULTS_IS: LocaleContent = {
   ...SHARED,
-  hero_title: "Heilsumat",
-  hero_subtitle: "Fáðu heilsugögnin sem skipta mestu máli. Markvissir skoðunarpakkar okkar beinast að efnaskiptaþáttum sem skila raunverulegum breytingum — engar óþarfa rannsóknir, hámarks verðgildi.",
-  hero_cta: "Stofnaðu Lifeline-aðgang",
+  hero_title: "Heilsufarsskoðun",
+  hero_subtitle: "Fáðu heilsugögnin sem skipta mestu máli. Skoðunin beinist að markvissum efnaskiptaþáttum — engar óþarfa rannsóknir.",
+  hero_cta: "Stofna aðgang",
 
-  process_title: "Heilsumatið þitt",
+  process_title: "Heilsufarsskoðunin þín",
   process_subtitle: "Frá bókun til persónulegra ráðlegginga — í fimm einföldum skrefum",
   process_medalia_title: "Geymt á öruggan hátt í Medalia",
-  process_medalia_desc: "Öll heilsugögnin þín — niðurstöður heilsumats, blóðprufur og spurningalistar — eru geymd á öruggan hátt í persónulegu sjúklingagáttinni þinni sem knúin er af Medalia.is.",
+  process_medalia_desc: "Öll heilsugögnin þín — niðurstöður heilsufarsskoðunar, blóðprufur og spurningalistar — eru geymd á öruggan hátt í persónulegu sjúklingagáttinni þinni sem knúin er af Medalia.is.",
   s1_title: "Keyptu heilsufarsskoðunina", s1_desc: "Stofnaðu Lifeline-aðgang og keyptu skoðunina í heild eða stakan hluta. Þú færð virkjunarkóða fyrir sjúklingagáttina strax eftir greiðslu.",
   s2_title: "Heimsæktu stöðina okkar", s2_desc: "Komdu á stöðina okkar að Lágmúla 5 í Reykjavík fyrir líkamssamsetningarmælingu og aðrar mælingar. Tekur um 20 mínútur.",
   s3_title: "Blóðprufa hjá Sameind", s3_desc: "Farðu á hvaða blóðprufustöð Sameindar sem er fyrir blóðprufupakkann þinn. Niðurstöður berast beint til Lifeline.",
@@ -219,14 +219,14 @@ export const ASSESSMENT_DEFAULTS_IS: LocaleContent = {
   s5_title: "Læknisviðtal", s5_desc: "Bókaðu læknisviðtal í Lifeline-appinu á læknadegi vikunnar. Læknirinn fer yfir niðurstöðurnar með þér og viðtalið er skráð í sjúklingagáttinni.",
 
   results_title: "Niðurstöðurnar þínar, ==útskýrðar==",
-  results_body: "Að heilsumati loknu færðu ítarlega heilsuskýrslu með einkunnum þvert á alla helstu heilsuflokka. Læknirinn þinn fer yfir hverja niðurstöðu og hittir þig til að ræða þær og næstu skref.",
-  results_bullets: ["Heilsueinkunn þvert á 6 flokka", "Blóðprufuniðurstöður með klínísku samhengi", "Sundurliðun á líkamssamsetningu", "Persónulegar ráðleggingar", "Beinn aðgangur í Lifeline appinu"].join("\n"),
+  results_body: "Að heilsufarsskoðun lokinni færðu ítarlega heilsuskýrslu með einkunnum þvert á alla helstu heilsuflokka. Læknirinn þinn fer yfir hverja niðurstöðu og hittir þig til að ræða þær og næstu skref.",
+  results_bullets: ["Heilsueinkunn þvert á 6 flokka", "Blóðprufuniðurstöður með klínísku samhengi", "Sundurliðun á líkamssamsetningu", "Persónulegar ráðleggingar", "Beinn aðgangur í Lifeline-appinu"].join("\n"),
   results_note: "Allar niðurstöður eru geymdar á öruggan hátt í Medalia sjúklingagáttinni þinni.",
 
   track_title: "Fylgstu með ==framförum==",
   track_body: "Mælingarnar þínar, blóðprufuniðurstöður og heilsueinkunnir á einum stað. Sjáðu hvernig tölurnar þínar breytast með tímanum og skildu hvað þær þýða fyrir efnaskiptaheilsu þína.",
   track_bullets: ["Líkamssamsetning: þyngd, fitumassi, vöðvamassi, BMI", "Blóðþrýstingur", "Markvissir blóðþættir með klínísku samhengi", "Heilsueinkunnir þvert á alla flokka", "Framvindurit sem bera saman fyrri skoðanir"].join("\n"),
-  track_note: "Heilsugögnin þín eru geymd á öruggan hátt í Medalia. Lifeline appið er örugg gátt inn í gögnin þín.",
+  track_note: "Heilsugögnin þín eru geymd á öruggan hátt í Medalia. Lifeline-appið er örugg gátt inn í gögnin þín.",
 
   packages_includes_label: "Það sem er innifalið:",
   packages_ideal_label: "Hentar fyrir:",
@@ -253,10 +253,10 @@ export const ASSESSMENT_DEFAULTS_IS: LocaleContent = {
   packages_title: "Heilsufarsskoðun og stakir hlutar",
   packages_subtitle: "Keyptu skoðunina í heild eða aðeins þann hluta sem þú þarft",
   locations_title: "Prófunarstaðir",
-  locations_subtitle: "Hvar þú getur lokið heilsumatinu þínu",
+  locations_subtitle: "Hvar þú getur lokið heilsufarsskoðuninni",
 
   faq_title: "Algengar spurningar",
-  faq_subtitle: "Allt sem þú þarft að vita um heilsumat",
+  faq_subtitle: "Allt sem þú þarft að vita um heilsufarsskoðun",
   q1_q: "Hversu langan tíma tekur heilsufarsskoðunin?",
   q1_a: "Heimsóknin á stöðina tekur um 20 mínútur. Blóðprufan hjá Sameind tekur 10–15 mínútur. Læknisviðtalið er 30 mínútur. Alls má gera ráð fyrir um klukkustund sem dreifist á tvær heimsóknir auk viðtalsins.",
   q2_q: "Þarf ég að fasta fyrir blóðprufuna?",
@@ -270,15 +270,15 @@ export const ASSESSMENT_DEFAULTS_IS: LocaleContent = {
   q6_q: "Hversu oft ætti ég að fara í endurmat?",
   q6_a: "Við mælum með endurmati á 3–6 mánaða fresti til að fylgjast með framförum. Það gefur nægan tíma fyrir raunverulegar breytingar til að koma fram í líkamssamsetningarniðurstöðunum.",
 
-  cta_title: "Tilbúin að þekkja tölurnar þínar?",
-  cta_desc: "Stofnaðu Lifeline-aðgang — og bókaðu heilsumatið þitt þaðan.",
-  cta_button: "Stofnaðu Lifeline-aðgang",
+  cta_title: "Viltu taka fyrsta skrefið í átt að betri heilsu?",
+  cta_desc: "Stofnaðu aðgang og keyptu heilsufarsskoðunina þaðan.",
+  cta_button: "Stofna aðgang",
 };
 
 export const ASSESSMENT_DEFAULTS_EN: LocaleContent = {
   ...SHARED,
-  hero_title: "Health Assessment",
-  hero_subtitle: "Get the health data that matters most. Our targeted screening packages focus on metabolic health markers that drive real change — no unnecessary tests, maximum value.",
+  hero_title: "Health check",
+  hero_subtitle: "Get the health data that matters most. The check focuses on targeted metabolic health markers — no unnecessary tests.",
 
   process_title: "Your health assessment",
   process_subtitle: "From booking to personalised recommendations — in five simple steps",

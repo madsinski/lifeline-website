@@ -64,7 +64,7 @@ const comparisonFeatures: { feature: [string, string]; free: Cell; self: Cell; f
   { feature: ["Æfingar sem aðlagast þér", "Training that adapts to you"], free: true, self: true, full: true },
   { feature: ["Næring og máltíðir", "Nutrition and meals"], free: true, self: true, full: true },
   { feature: ["Fræðsla", "Lessons"], free: true, self: true, full: true },
-  { feature: ["Skilaboð við heilsuþjálfa", "Messaging a health coach"], free: false, self: false, full: true },
+  { feature: ["Skilaboð við heilsuþjálfara", "Messaging a health coach"], free: false, self: false, full: true },
   { feature: ["Myndsamtal", "Video call"], free: false, self: false, full: ["20 mín. á mánuði", "20 min. a month"] },
   { feature: ["Mæling á staðnum", "On-site measurement"], free: false, self: false, full: ["Á 2 mánaða fresti", "Every 2 months"] },
   { feature: ["Lengd", "Length"], free: ["14 dagar", "14 days"], self: ["Mánaðarlega", "Monthly"], full: ["Mánaðarlega", "Monthly"] },
